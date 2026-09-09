@@ -1,6 +1,6 @@
 # AI Coding Toolkit
 
-This directory contains the portable source for the change-structure skills. The initial implementation supports the high-level design stage and Codex installation.
+This directory contains the portable source for the architecture diff skills. The initial implementation supports the HLD stage and Codex installation.
 
 ## Install
 
@@ -18,24 +18,24 @@ The output directory defaults to `docs/plans` under the repository root. To choo
 npm run install:codex -- --output-dir architecture/plans
 ```
 
-The installer records the selection in `ai-coding-toolkit/config.json`, creates `.agents/skills/change-structure-high-level-design` as a link to the canonical skill, and adds `npm run mermaid` when the repository has a root `package.json`. It is safe to run more than once and will not replace unrelated existing paths or npm scripts.
+The installer records the selection in `ai-coding-toolkit/config.json`, creates `.agents/skills/architecture-diff-hld` as a link to the canonical skill, and adds `npm run mermaid` when the repository has a root `package.json`. It is safe to run more than once and will not replace unrelated existing paths or npm scripts.
 
 ## Use
 
-Ask Codex to use `$change-structure-high-level-design` during a high-level design discussion. The skill includes the feature name in the output filename, such as `docs/plans/workbook-import.high-level-design.change-structure.json`.
+Ask Codex to use `$architecture-diff-hld` during a high-level design discussion. The skill includes the feature name in the output filename, such as `docs/plans/workbook-import.architecture-diff.hld.json`.
 
-Validate any change-structure file from the repository root with:
+Validate any architecture diff file from the repository root with:
 
 ```sh
-node ai-coding-toolkit/scripts/validate-change-structure.mjs <path-to-json>
+node ai-coding-toolkit/scripts/validate-architecture-diff.mjs <path-to-json>
 ```
 
 ## Mermaid
 
-Convert a change-structure JSON file into a Markdown file containing a Mermaid diagram:
+Convert an architecture diff JSON file into a Markdown file containing a Mermaid diagram:
 
 ```sh
-npm run mermaid -- docs/plans/workbook-import.high-level-design.change-structure.json
+npm run mermaid -- docs/plans/workbook-import.architecture-diff.hld.json
 ```
 
 By default, the converter writes beside the JSON file with `.mermaid.md` appended to its base name. Pass a second path to choose another output file.

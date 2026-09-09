@@ -10,18 +10,18 @@ const inputArguments = process.argv.slice(2);
 
 if (inputArguments.length !== 1) {
   console.error(
-    "Usage: node ai-coding-toolkit/scripts/validate-change-structure.mjs <change-structure.json>"
+    "Usage: node ai-coding-toolkit/scripts/validate-architecture-diff.mjs <architecture-diff.json>"
   );
   process.exitCode = 1;
 } else {
   const inputPath = path.resolve(process.cwd(), inputArguments[0]);
-  const schemaPath = path.join(toolkitDirectory, "schemas", "change-structure.schema.json");
+  const schemaPath = path.join(toolkitDirectory, "schemas", "architecture-diff.schema.json");
 
   try {
     const schema = JSON.parse(await readFile(schemaPath, "utf8"));
-    const changeStructure = JSON.parse(await readFile(inputPath, "utf8"));
+    const architectureDiff = JSON.parse(await readFile(inputPath, "utf8"));
     const validate = new Ajv2020({ allErrors: true }).compile(schema);
-    const schemaIsValid = validate(changeStructure);
+    const schemaIsValid = validate(architectureDiff);
 
     if (!schemaIsValid) {
       for (const error of validate.errors) {
@@ -33,24 +33,24 @@ if (inputArguments.length !== 1) {
       const semanticErrors = [];
       const classNames = new Set();
 
-      for (const classChange of changeStructure.classes) {
-        if (classNames.has(classChange.name)) {
-          semanticErrors.push(`Duplicate class name: ${classChange.name}`);
+      for (const classDiff of architectureDiff.classes) {
+        if (classNames.has(classDiff.name)) {
+          semanticErrors.push(`Duplicate class name: ${classDiff.name}`);
         } else {
-          classNames.add(classChange.name);
+          classNames.add(classDiff.name);
         }
 
         const methodNames = new Set();
-        for (const method of classChange.methods) {
+        for (const method of classDiff.methods) {
           if (methodNames.has(method.name)) {
-            semanticErrors.push(`Duplicate method name in ${classChange.name}: ${method.name}`);
+            semanticErrors.push(`Duplicate method name in ${classDiff.name}: ${method.name}`);
           } else {
             methodNames.add(method.name);
           }
         }
       }
 
-      for (const relationship of changeStructure.relationships) {
+      for (const relationship of architectureDiff.relationships) {
         if (!classNames.has(relationship.from)) {
           semanticErrors.push(`Unknown relationship source class: ${relationship.from}`);
         }
@@ -65,7 +65,7 @@ if (inputArguments.length !== 1) {
         }
         process.exitCode = 1;
       } else {
-        console.log(`Valid change structure: ${inputPath}`);
+        console.log(`Valid architecture diff: ${inputPath}`);
       }
     }
   } catch (error) {

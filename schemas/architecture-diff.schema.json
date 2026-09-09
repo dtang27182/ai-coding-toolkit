@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "AI Coding Toolkit Change Structure",
+  "title": "AI Coding Toolkit Architecture Diff",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "stage", "classes", "relationships"],
@@ -9,7 +9,7 @@
       "const": 1
     },
     "stage": {
-      "enum": ["high level design", "implementation plan", "diff review"]
+      "enum": ["high level design", "low level design", "code review"]
     },
     "classes": {
       "type": "array",

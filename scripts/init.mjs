@@ -52,7 +52,7 @@ async function installRootMermaidCommand() {
   }
 
   if (packageJson !== undefined) {
-    const mermaidCommand = "node ai-coding-toolkit/scripts/change-structure-to-mermaid.mjs";
+    const mermaidCommand = "node ai-coding-toolkit/scripts/architecture-diff-to-mermaid.mjs";
     const existingCommand = packageJson.scripts?.mermaid;
 
     if (existingCommand === undefined) {
@@ -88,5 +88,5 @@ if (argumentError !== undefined) {
     path.join(toolkitDirectory, "config.json"),
     `${JSON.stringify({ outputDirectory: relativeOutputDirectory }, null, 2)}\n`
   );
-  console.log(`Configured change-structure output: ${outputPath}`);
+  console.log(`Configured architecture diff output: ${outputPath}`);
 }

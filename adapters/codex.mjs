@@ -1,7 +1,7 @@
 import { lstat, mkdir, readlink, symlink } from "node:fs/promises";
 import path from "node:path";
 
-const skillNames = ["change-structure-high-level-design"];
+const skillNames = ["architecture-diff-hld"];
 
 export async function installCodexSkills(repoDirectory, toolkitDirectory) {
   const codexSkillsDirectory = path.join(repoDirectory, ".agents", "skills");

@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const validatorPath = path.join(scriptDirectory, "validate-change-structure.mjs");
+const validatorPath = path.join(scriptDirectory, "validate-architecture-diff.mjs");
 const inputArguments = process.argv.slice(2);
 
 function escapeMermaidText(value) {
@@ -16,10 +16,10 @@ function escapeMermaidText(value) {
     .replaceAll("\n", " ");
 }
 
-function classLabel(classChange) {
-  const labelLines = [escapeMermaidText(classChange.name)];
+function classLabel(classDiff) {
+  const labelLines = [escapeMermaidText(classDiff.name)];
 
-  for (const method of classChange.methods) {
+  for (const method of classDiff.methods) {
     const changeMarker = method.changeType === "added" ? "+" : "~";
     const coreMarker = method.coreChange === true ? " ★" : "";
     labelLines.push(`${changeMarker} ${escapeMermaidText(method.name)}${coreMarker}`);
@@ -28,10 +28,10 @@ function classLabel(classChange) {
   return labelLines.join("<br/>");
 }
 
-function classNode(classChange, nodeId) {
-  const label = classLabel(classChange);
+function classNode(classDiff, nodeId) {
+  const label = classLabel(classDiff);
 
-  if (classChange.coreChange === true) {
+  if (classDiff.coreChange === true) {
     return `${nodeId}(("${label}"))`;
   } else {
     return `${nodeId}["${label}"]`;
@@ -69,32 +69,32 @@ function edgeStyle(changeType) {
   return style;
 }
 
-function renderMermaid(changeStructure) {
+function renderMermaid(architectureDiff) {
   const nodeIds = new Map();
   const changedClasses = [];
   const contextClasses = [];
 
-  for (let classIndex = 0; classIndex < changeStructure.classes.length; classIndex += 1) {
-    const classChange = changeStructure.classes[classIndex];
-    nodeIds.set(classChange.name, `class${classIndex + 1}`);
+  for (let classIndex = 0; classIndex < architectureDiff.classes.length; classIndex += 1) {
+    const classDiff = architectureDiff.classes[classIndex];
+    nodeIds.set(classDiff.name, `class${classIndex + 1}`);
 
-    if (classChange.changeType === "unchanged") {
-      contextClasses.push(classChange);
+    if (classDiff.changeType === "unchanged") {
+      contextClasses.push(classDiff);
     } else {
-      changedClasses.push(classChange);
+      changedClasses.push(classDiff);
     }
   }
 
-  const changedClassNames = new Set(changedClasses.map((classChange) => classChange.name));
+  const changedClassNames = new Set(changedClasses.map((classDiff) => classDiff.name));
   const boundaryNodeIds = new Map();
   let boundaryCounter = 1;
 
   for (
     let relationshipIndex = 0;
-    relationshipIndex < changeStructure.relationships.length;
+    relationshipIndex < architectureDiff.relationships.length;
     relationshipIndex += 1
   ) {
-    const relationship = changeStructure.relationships[relationshipIndex];
+    const relationship = architectureDiff.relationships[relationshipIndex];
     const sourceIsChanged = changedClassNames.has(relationship.from);
     const targetIsChanged = changedClassNames.has(relationship.to);
 
@@ -106,16 +106,16 @@ function renderMermaid(changeStructure) {
 
   const lines = ["flowchart LR"];
 
-  for (const classChange of contextClasses) {
-    lines.push(`  ${classNode(classChange, nodeIds.get(classChange.name))}`);
+  for (const classDiff of contextClasses) {
+    lines.push(`  ${classNode(classDiff, nodeIds.get(classDiff.name))}`);
   }
 
   if (changedClasses.length > 0) {
     lines.push('  subgraph changeScope["Change Scope"]');
     lines.push("    direction TB");
 
-    for (const classChange of changedClasses) {
-      lines.push(`    ${classNode(classChange, nodeIds.get(classChange.name))}`);
+    for (const classDiff of changedClasses) {
+      lines.push(`    ${classNode(classDiff, nodeIds.get(classDiff.name))}`);
     }
 
     for (const boundaryNodeId of boundaryNodeIds.values()) {
@@ -130,10 +130,10 @@ function renderMermaid(changeStructure) {
 
   for (
     let relationshipIndex = 0;
-    relationshipIndex < changeStructure.relationships.length;
+    relationshipIndex < architectureDiff.relationships.length;
     relationshipIndex += 1
   ) {
-    const relationship = changeStructure.relationships[relationshipIndex];
+    const relationship = architectureDiff.relationships[relationshipIndex];
     const sourceId = nodeIds.get(relationship.from);
     const targetId = nodeIds.get(relationship.to);
     const boundaryNodeId = boundaryNodeIds.get(relationshipIndex);
@@ -169,10 +169,10 @@ function renderMermaid(changeStructure) {
   lines.push("  classDef unchangedCore fill:#f1f5f9,stroke:#7e22ce,stroke-width:4px,color:#334155");
   lines.push("  classDef boundary fill:#ffffff,stroke:#475569,stroke-width:2px");
 
-  for (const classChange of changeStructure.classes) {
+  for (const classDiff of architectureDiff.classes) {
     const styleName =
-      classChange.coreChange === true ? `${classChange.changeType}Core` : classChange.changeType;
-    lines.push(`  class ${nodeIds.get(classChange.name)} ${styleName}`);
+      classDiff.coreChange === true ? `${classDiff.changeType}Core` : classDiff.changeType;
+    lines.push(`  class ${nodeIds.get(classDiff.name)} ${styleName}`);
   }
 
   if (boundaryNodeIds.size > 0) {
@@ -187,14 +187,14 @@ function renderMermaid(changeStructure) {
   return lines.join("\n");
 }
 
-function renderMarkdown(changeStructure) {
+function renderMarkdown(architectureDiff) {
   return [
-    "# Change Structure",
+    "# Architecture Diff",
     "",
-    `Stage: ${changeStructure.stage}`,
+    `Stage: ${architectureDiff.stage}`,
     "",
     "```mermaid",
-    renderMermaid(changeStructure),
+    renderMermaid(architectureDiff),
     "```",
     "",
     "## Legend",
@@ -212,7 +212,7 @@ function renderMarkdown(changeStructure) {
 
 if (inputArguments.length < 1 || inputArguments.length > 2) {
   console.error(
-    "Usage: node ai-coding-toolkit/scripts/change-structure-to-mermaid.mjs <change-structure.json> [output.md]"
+    "Usage: node ai-coding-toolkit/scripts/architecture-diff-to-mermaid.mjs <architecture-diff.json> [output.md]"
   );
   process.exitCode = 1;
 } else {
@@ -235,9 +235,9 @@ if (inputArguments.length < 1 || inputArguments.length > 2) {
       process.stderr.write(validationResult.stderr);
       process.exitCode = 1;
     } else {
-      const changeStructure = JSON.parse(await readFile(inputPath, "utf8"));
+      const architectureDiff = JSON.parse(await readFile(inputPath, "utf8"));
       await mkdir(path.dirname(outputPath), { recursive: true });
-      await writeFile(outputPath, renderMarkdown(changeStructure));
+      await writeFile(outputPath, renderMarkdown(architectureDiff));
       console.log(`Created Mermaid diagram: ${outputPath}`);
     }
   }

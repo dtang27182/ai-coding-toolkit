@@ -1,8 +1,8 @@
-# Change Structure Skills Plan
+# Architecture Diff Skills Plan
 
 ## Behavior
 
-Create a portable `ai-coding-toolkit` directory that can be copied into another repository and initialized for a supported coding agent. The toolkit will contain three agent-neutral skills that generate change-structure JSON at the high-level design, implementation plan, and diff review stages. All three skills use one shared format, limit their output to evidence available at their stage, and run the shared deterministic validator before reporting success.
+Create a portable `ai-coding-toolkit` directory that can be copied into another repository and initialized for a supported coding agent. The toolkit will contain three agent-neutral skills that generate architecture diff JSON at the high-level design, low-level design, and code review stages. All three skills use one shared format, limit their output to evidence available at their stage, and run the shared deterministic validator before reporting success.
 
 Canonical source files will remain under `ai-coding-toolkit`. Initialization may create agent-specific discovery links outside that directory, but those links will point back to the canonical skill definitions.
 
@@ -10,22 +10,22 @@ Canonical source files will remain under `ai-coding-toolkit`. Initialization may
 
 The existing example will move into the portable toolkit layout.
 
-- Move `ai-coding-toolkit/change-structure.example.json` to `ai-coding-toolkit/examples/change-structure.example.json` and update it as the format evolves.
+- Move `ai-coding-toolkit/architecture-diff.example.json` to `ai-coding-toolkit/examples/architecture-diff.example.json` and update it as the format evolves.
 
 The shared contract and commands will provide one source of truth for every agent integration.
 
-- Add `ai-coding-toolkit/schemas/change-structure.schema.json` to define the format.
-- Add `ai-coding-toolkit/scripts/validate-change-structure.mjs` to validate generated files.
-- Add `ai-coding-toolkit/scripts/change-structure-to-mermaid.mjs` to convert generated files into Mermaid diagrams.
+- Add `ai-coding-toolkit/schemas/architecture-diff.schema.json` to define the format.
+- Add `ai-coding-toolkit/scripts/validate-architecture-diff.mjs` to validate generated files.
+- Add `ai-coding-toolkit/scripts/architecture-diff-to-mermaid.mjs` to convert generated files into Mermaid diagrams.
 - Add `ai-coding-toolkit/scripts/init.mjs` to initialize the toolkit for a selected agent and configure its repository-relative output directory.
 - Add `ai-coding-toolkit/config.json` to store the selected output directory.
 - Add `ai-coding-toolkit/package.json` to define commands and pin validator dependencies.
 
-The canonical skills will provide distinct, agent-neutral generation workflows.
+The canonical architecture diff skills will provide distinct, agent-neutral generation workflows.
 
-- Add `ai-coding-toolkit/skills/change-structure-high-level-design/SKILL.md` for high-level design generation.
-- Add `ai-coding-toolkit/skills/change-structure-implementation-plan/SKILL.md` for implementation plan generation.
-- Add `ai-coding-toolkit/skills/change-structure-diff-review/SKILL.md` for diff review generation.
+- Add `ai-coding-toolkit/skills/architecture-diff-hld/SKILL.md` for high-level design generation.
+- Add `ai-coding-toolkit/skills/architecture-diff-lld/SKILL.md` for low-level design generation.
+- Add `ai-coding-toolkit/skills/architecture-diff-cr/SKILL.md` for code review generation.
 
 Agent adapters will install the canonical skills into each agent's discovery location.
 
@@ -40,11 +40,11 @@ Finalize the schema, allowed stage values, and feature-based output filenames be
 
 ### Shared Validator
 
-Add one Node command-line validator that accepts a change-structure file path. It will validate JSON syntax, enforce the shared schema, confirm class names are unique, and confirm every relationship endpoint references a declared class. It will print actionable errors and exit unsuccessfully when validation fails.
+Add one Node command-line validator that accepts an architecture diff file path. It will validate JSON syntax, enforce the shared schema, confirm class names are unique, and confirm every relationship endpoint references a declared class. It will print actionable errors and exit unsuccessfully when validation fails.
 
 ### Mermaid Converter
 
-Add one Node command-line converter that validates a change-structure file and writes a Markdown file containing a Mermaid flowchart. Group added and modified classes within a change-scope subgraph, keep unchanged context classes outside it, show crossing data flows through small boundary nodes, distinguish composition edges, and display changed methods within class nodes.
+Add one Node command-line converter that validates an architecture diff file and writes a Markdown file containing a Mermaid flowchart. Group added and modified classes within a change-scope subgraph, keep unchanged context classes outside it, show crossing data flows through small boundary nodes, distinguish composition edges, and display changed methods within class nodes.
 
 ### Initialization and Adapters
 
@@ -56,17 +56,17 @@ The adapter boundary will contain all agent-specific paths and metadata. Adding 
 
 Keep the `SKILL.md` files independent of Codex-specific tools, commands, and UI behavior. Each skill will describe its required inputs and output, use ordinary repository and Git operations, reference the shared schema and example, and invoke the shared validator through its stable command-line interface.
 
-### High-Level Design Skill
+### HLD Skill
 
 Generate conceptual classes, changed public methods, relationships, and core-change markers from the high-level design conversation without requiring implemented code. Write the result to the configured output directory using a kebab-case feature name in the filename.
 
-### Implementation Plan Skill
+### LLD Skill
 
-Read the high-level design structure, implementation plan, and repository to refine conceptual entries into concrete planned classes, methods, and relationships.
+Read the high-level design architecture diff, low-level design discussion, and repository to refine conceptual entries into concrete planned classes, methods, and relationships.
 
-### Diff Review Skill
+### CR Skill
 
-Inspect the Git diff and repository to generate a diff review structure containing only changes supported by the resulting code. Compare it with earlier structures when they are available.
+Inspect the Git diff and repository to generate a code review architecture diff containing only changes supported by the resulting code. Compare it with earlier architecture diffs when they are available.
 
 Keep the three skill folders instruction-only initially. Shared executable behavior will remain in `ai-coding-toolkit/scripts` rather than being copied into each skill.
 

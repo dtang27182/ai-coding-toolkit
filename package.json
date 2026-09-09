@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "install:codex": "node scripts/init.mjs --agent codex",
-    "mermaid": "node scripts/change-structure-to-mermaid.mjs",
-    "validate": "node scripts/validate-change-structure.mjs"
+    "mermaid": "node scripts/architecture-diff-to-mermaid.mjs",
+    "validate": "node scripts/validate-architecture-diff.mjs"
   },
   "dependencies": {
     "ajv": "8.20.0"
