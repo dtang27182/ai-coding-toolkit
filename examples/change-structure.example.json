@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "stage": "high level design",
+  "classes": [
+    {
+      "name": "ChangeService",
+      "changeType": "added",
+      "coreChange": true,
+      "methods": [
+        {
+          "name": "buildChangeSet",
+          "changeType": "added",
+          "coreChange": true
+        }
+      ]
+    },
+    {
+      "name": "ChangeModel",
+      "changeType": "added",
+      "methods": []
+    },
+    {
+      "name": "Repository",
+      "changeType": "unchanged",
+      "methods": []
+    }
+  ],
+  "relationships": [
+    {
+      "from": "Repository",
+      "to": "ChangeService",
+      "type": "dataflow",
+      "label": "source files",
+      "changeType": "unchanged"
+    },
+    {
+      "from": "ChangeService",
+      "to": "ChangeModel",
+      "type": "composition",
+      "changeType": "added"
+    }
+  ]
+}
