@@ -52,7 +52,8 @@ async function installRootMermaidCommand() {
   }
 
   if (packageJson !== undefined) {
-    const mermaidCommand = "node ai-coding-toolkit/scripts/architecture-diff-to-mermaid.mjs";
+    const mermaidCommand =
+      "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs";
     const existingCommand = packageJson.scripts?.mermaid;
 
     if (existingCommand === undefined) {
@@ -63,7 +64,7 @@ async function installRootMermaidCommand() {
     } else if (existingCommand === mermaidCommand) {
       console.log(`npm command already installed: npm run mermaid`);
     } else {
-      throw new Error("Refusing to replace existing npm script: mermaid");
+      console.warn("Skipped npm command because npm run mermaid already exists");
     }
   }
 }
@@ -88,5 +89,5 @@ if (argumentError !== undefined) {
     path.join(toolkitDirectory, "config.json"),
     `${JSON.stringify({ outputDirectory: relativeOutputDirectory }, null, 2)}\n`
   );
-  console.log(`Configured architecture diff output: ${outputPath}`);
+  console.log(`Configured HLD output: ${outputPath}`);
 }

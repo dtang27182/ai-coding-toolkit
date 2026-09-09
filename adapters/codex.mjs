@@ -1,14 +1,14 @@
 import { lstat, mkdir, readlink, symlink } from "node:fs/promises";
 import path from "node:path";
 
-const skillNames = ["architecture-diff-hld"];
+const skillNames = ["hld-eval", "hld-gen"];
 
 export async function installCodexSkills(repoDirectory, toolkitDirectory) {
   const codexSkillsDirectory = path.join(repoDirectory, ".agents", "skills");
   await mkdir(codexSkillsDirectory, { recursive: true });
 
   for (const skillName of skillNames) {
-    const skillDirectory = path.join(toolkitDirectory, "skills", skillName);
+    const skillDirectory = path.join(toolkitDirectory, "hld-gen", "skills", skillName);
     const linkPath = path.join(codexSkillsDirectory, skillName);
     const relativeTarget = path.relative(codexSkillsDirectory, skillDirectory);
     let existingLink;

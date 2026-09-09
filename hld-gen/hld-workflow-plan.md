@@ -5,7 +5,7 @@
 1. The human starts `$hld-gen` at any point in a feature conversation. No agreed design is required.
 2. The agent creates two complementary parts of the high-level design together, using the conversation context and existing code: a narrative Markdown file and an Architecture Diff JSON file. Neither is derived from the other.
 3. `$hld-eval` evaluates the HLD against the feature context, current code, and rubric. It returns a list of evaluated attributes and scores plus one qualitative assessment.
-4. `$hld-gen` uses the evaluation to revise the same HLD in place, updating either or both components as needed, and requests another evaluation. Repeat until every attribute has its maximum score or `$hld-gen` cannot identify another improvement.
+4. `$hld-gen` uses the evaluation to revise the same HLD in place, updating either or both components as needed, and requests another evaluation. It tries to move each score in the direction defined by the rubric and stops when every score reaches its best possible value or `$hld-gen` cannot identify another improvement.
 5. Present the current design, its diagram, and its latest evaluation to the human for review. State why revision stopped.
 
 Preserve explicit user requirements and decisions. Agent proposals and labeled working assumptions may change during refinement. Application implementation and human approval are outside this workflow.
@@ -19,9 +19,9 @@ Retire `adiff-hld` and remove it from default installation. Move its reusable au
 
 ## Scoring
 
-The rubric in `hld-gen/references/hld-quality.md`, or a user-supplied rubric, defines the attributes and their scoring scales. Use the same rubric for every evaluation. If it is missing or incomplete, request the missing input rather than inventing scores.
+The rubric in `hld-gen/references/hld-quality.md`, or a user-supplied rubric, defines each attribute's raw score and whether higher or lower values are better. Use the same rubric for every evaluation. If it is missing or incomplete, request the missing input rather than inventing scores.
 
-Evaluate after each revision and keep only the current HLD and latest evaluation. Continue until all attributes reach their maximum scores or `hld-gen` cannot see how to improve the scores further.
+Evaluate after each revision and keep only the current HLD and latest evaluation. Continue until all attributes reach their best possible scores or `hld-gen` cannot see how to improve them further.
 
 ## Scripts and Files
 
@@ -53,4 +53,4 @@ Validate JSON before scoring. Generate `<feature>.architecture-diff.hld.mermaid.
 3. Extract the Architecture Diff authoring reference and update the evaluation report contract.
 4. Update `hld-eval` to produce attribute scores and one qualitative assessment, and `hld-gen` to revise both artifacts in place.
 5. Retire `adiff-hld`, update installation and UI metadata, and align the README and toolkit plan. Check fresh and repeat installation and references.
-6. Try a sample feature from an early conversation: verify coordinated edits to the same HLD and standalone evaluation without design edits or revision suggestions. Exercise maximum scores, no identifiable improvement, missing inputs, and interruption; confirm the final design matches its latest evaluation and diagram.
+6. Try a sample feature from an early conversation: verify coordinated edits to the same HLD and standalone evaluation without design edits or revision suggestions. Exercise both optimization directions, best possible scores, no identifiable improvement, missing inputs, and interruption; confirm the final design matches its latest evaluation and diagram.

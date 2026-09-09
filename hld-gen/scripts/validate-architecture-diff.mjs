@@ -5,17 +5,21 @@ import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const toolkitDirectory = path.resolve(scriptDirectory, "..");
+const hldGeneratorDirectory = path.resolve(scriptDirectory, "..");
 const inputArguments = process.argv.slice(2);
 
 if (inputArguments.length !== 1) {
   console.error(
-    "Usage: node ai-coding-toolkit/scripts/validate-architecture-diff.mjs <architecture-diff.json>"
+    "Usage: node ai-coding-toolkit/hld-gen/scripts/validate-architecture-diff.mjs <architecture-diff.json>"
   );
   process.exitCode = 1;
 } else {
   const inputPath = path.resolve(process.cwd(), inputArguments[0]);
-  const schemaPath = path.join(toolkitDirectory, "schemas", "architecture-diff.schema.json");
+  const schemaPath = path.join(
+    hldGeneratorDirectory,
+    "references",
+    "architecture-diff.schema.json"
+  );
 
   try {
     const schema = JSON.parse(await readFile(schemaPath, "utf8"));

@@ -9,7 +9,7 @@
       "const": 1
     },
     "stage": {
-      "enum": ["high level design", "low level design", "code review"]
+      "const": "high level design"
     },
     "classes": {
       "type": "array",

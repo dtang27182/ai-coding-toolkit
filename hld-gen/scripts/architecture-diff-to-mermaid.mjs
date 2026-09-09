@@ -212,7 +212,7 @@ function renderMarkdown(architectureDiff) {
 
 if (inputArguments.length < 1 || inputArguments.length > 2) {
   console.error(
-    "Usage: node ai-coding-toolkit/scripts/architecture-diff-to-mermaid.mjs <architecture-diff.json> [output.md]"
+    "Usage: node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs <architecture-diff.json> [output.md]"
   );
   process.exitCode = 1;
 } else {
