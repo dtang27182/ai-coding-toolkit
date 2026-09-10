@@ -11,6 +11,8 @@ Evaluate one HLD without changing it or recommending revisions.
 
 Read the feature context, narrative HLD, Architecture Diff JSON, current relevant code, repository guidance, and rubric. Treat the narrative and JSON as two parts of the same HLD. Default to `ai-coding-toolkit/hld-gen/references/hld-quality.md` when no rubric is supplied.
 
+Read `ai-coding-toolkit/hld-gen/references/hld-narrative.md` for the HLD's scope and narrative structure. Evaluate at that level of detail; do not penalize the omission of detailed error handling, edge cases, or adjustments to existing logic and dataflow.
+
 Use `ai-coding-toolkit/hld-gen/references/hld-evaluation-format.md` for the report. Write to the caller's report path, or `<outputDirectory>/<feature>.hld-evaluation.md` using `ai-coding-toolkit/config.json`. Only write the evaluation report.
 
 ## Evaluation

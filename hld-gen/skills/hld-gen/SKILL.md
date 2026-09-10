@@ -7,9 +7,12 @@ description: Create and improve a high-level design from feature context and the
 
 Create and improve one HLD. The HLD consists of a narrative Markdown file and an Architecture Diff JSON file that describe the same design from shared feature and repository context.
 
+An HLD sketches the core logic and dataflow for new or changed behavior, its place in the existing architecture, data ingress and egress, and interactions with newly introduced state. Focus on core use cases; leave detailed error handling, edge cases, and adjustments to existing logic for later design work.
+
 Read these instructions when their corresponding work is needed:
 
-- `ai-coding-toolkit/hld-gen/references/architecture-diff-authoring.md` before writing or revising the Architecture Diff.
+- `ai-coding-toolkit/hld-gen/references/hld-narrative.md` before writing or revising the narrative.
+- `ai-coding-toolkit/hld-gen/references/hld-architecture-diff.md` before writing or revising the Architecture Diff.
 - `ai-coding-toolkit/hld-gen/skills/hld-eval/SKILL.md` before evaluating the HLD.
 
 ## Create the HLD
@@ -17,8 +20,8 @@ Read these instructions when their corresponding work is needed:
 1. Read `ai-coding-toolkit/config.json`, the available feature context, relevant code, and applicable repository guidance. Start with the available context even when the feature has not been fully discussed or agreed.
 2. Use a stable kebab-case feature slug. Resolve `outputDirectory` relative to the containing repository root and create it if necessary. Save the files as `<feature>.hld.md`, `<feature>.architecture-diff.hld.json`, and `<feature>.hld-evaluation.md`. Preserve user-supplied paths and existing user edits.
 3. Write or revise both design artifacts together. Preserve explicit user requirements and decisions. Clearly label proposed approaches, working assumptions, and open questions.
-4. In the narrative, describe the desired behavior, scope, core logic and dataflow, architectural responsibilities, and unresolved design questions. Follow applicable repository document conventions.
-5. Write the JSON using the Architecture Diff authoring reference and validate it with the provided script. Fix validation errors before evaluation.
+4. Write the concise narrative using the five sections defined in the narrative reference.
+5. Write the JSON using the HLD Architecture Diff reference and validate it with the provided script. Fix validation errors before evaluation.
 
 ## Improve the HLD
 

@@ -4,7 +4,7 @@ Evaluate the narrative design and Architecture Diff as one HLD. Each attribute d
 
 ## Scoring Preconditions
 
-Score the HLD only when the Architecture Diff is valid, consistent with the narrative, includes the changes needed to implement the feature, and does not combine unrelated responsibilities merely to reduce counts. Do not reward omitted classes, methods, relationships, or `coreChange` markers. If these preconditions are not met, return no scores and explain why in the qualitative assessment.
+Score the HLD only when the Architecture Diff is valid, consistent with the narrative, covers the core logic and interface points defined in `hld-narrative.md`, and does not combine unrelated responsibilities merely to reduce counts. Do not reward omitted classes, methods, relationships, or `coreChange` markers within that scope. If these preconditions are not met, return no scores and explain why in the qualitative assessment.
 
 Count `added`, `modified`, and `deleted` entries as changed. Exclude `unchanged` context entries.
 

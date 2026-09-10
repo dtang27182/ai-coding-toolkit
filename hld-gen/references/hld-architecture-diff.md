@@ -1,6 +1,8 @@
-# Architecture Diff Authoring
+# HLD Architecture Diff
 
 Use the Architecture Diff to show how the existing architecture changes to implement the HLD. Read `architecture-diff.schema.json` and `architecture-diff.example.json` in this directory before writing it.
+
+Keep the diff at the level of core logic and interface points defined in `hld-narrative.md`; it need not enumerate detailed integration changes.
 
 - Set `stage` to `high level design`.
 - Include added, modified, or deleted classes and the unchanged context classes needed to show their interactions.
