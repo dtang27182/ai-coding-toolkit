@@ -36,7 +36,7 @@
           "minLength": 1
         },
         "changeType": {
-          "enum": ["added", "modified", "unchanged"]
+          "enum": ["added", "modified", "deleted", "unchanged"]
         },
         "coreChange": {
           "type": "boolean"
@@ -59,7 +59,7 @@
           "minLength": 1
         },
         "changeType": {
-          "enum": ["added", "modified"]
+          "enum": ["added", "modified", "deleted"]
         },
         "coreChange": {
           "type": "boolean"
@@ -87,7 +87,7 @@
           "minLength": 1
         },
         "changeType": {
-          "enum": ["added", "modified", "unchanged"]
+          "enum": ["added", "modified", "deleted", "unchanged"]
         }
       }
     }

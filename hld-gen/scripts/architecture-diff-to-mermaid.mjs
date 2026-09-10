@@ -20,7 +20,16 @@ function classLabel(classDiff) {
   const labelLines = [escapeMermaidText(classDiff.name)];
 
   for (const method of classDiff.methods) {
-    const changeMarker = method.changeType === "added" ? "+" : "~";
+    let changeMarker;
+
+    if (method.changeType === "added") {
+      changeMarker = "+";
+    } else if (method.changeType === "modified") {
+      changeMarker = "~";
+    } else if (method.changeType === "deleted") {
+      changeMarker = "-";
+    }
+
     const coreMarker = method.coreChange === true ? " ★" : "";
     labelLines.push(`${changeMarker} ${escapeMermaidText(method.name)}${coreMarker}`);
   }
@@ -62,6 +71,8 @@ function edgeStyle(changeType) {
     style = "stroke:#15803d,stroke-width:2px";
   } else if (changeType === "modified") {
     style = "stroke:#b45309,stroke-width:2px";
+  } else if (changeType === "deleted") {
+    style = "stroke:#b91c1c,stroke-width:2px,stroke-dasharray:5 3";
   } else if (changeType === "unchanged") {
     style = "stroke:#64748b,stroke-width:1.5px";
   }
@@ -163,9 +174,11 @@ function renderMermaid(architectureDiff) {
 
   lines.push("  classDef added fill:#dcfce7,stroke:#15803d,color:#14532d");
   lines.push("  classDef modified fill:#fef3c7,stroke:#b45309,color:#78350f");
+  lines.push("  classDef deleted fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d");
   lines.push("  classDef unchanged fill:#f1f5f9,stroke:#64748b,color:#334155");
   lines.push("  classDef addedCore fill:#dcfce7,stroke:#7e22ce,stroke-width:4px,color:#14532d");
   lines.push("  classDef modifiedCore fill:#fef3c7,stroke:#7e22ce,stroke-width:4px,color:#78350f");
+  lines.push("  classDef deletedCore fill:#fee2e2,stroke:#7e22ce,stroke-width:4px,color:#7f1d1d");
   lines.push("  classDef unchangedCore fill:#f1f5f9,stroke:#7e22ce,stroke-width:4px,color:#334155");
   lines.push("  classDef boundary fill:#ffffff,stroke:#475569,stroke-width:2px");
 
@@ -201,10 +214,12 @@ function renderMarkdown(architectureDiff) {
     "",
     "- Green nodes are added classes.",
     "- Amber nodes are modified classes.",
+    "- Red nodes are deleted classes.",
     "- Gray nodes are unchanged context classes.",
     "- Circular purple-bordered nodes contain core feature logic.",
-    "- `+` and `~` mark added and modified public methods; `★` marks core methods.",
+    "- `+`, `~`, and `-` mark added, modified, and deleted public methods; `★` marks core methods.",
     "- Solid edges are data flows; dashed edges are composition relationships.",
+    "- Red dashed edges are deleted relationships.",
     "- Small circles mark data flows crossing the change scope.",
     "",
   ].join("\n");

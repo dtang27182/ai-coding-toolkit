@@ -67,4 +67,4 @@ node ai-coding-toolkit/hld-gen/scripts/validate-architecture-diff.mjs <path-to-j
 
 By default, the converter writes beside the JSON file with `.mermaid.md` appended to its base name. Pass a second path to choose another output file.
 
-The diagram groups added and modified classes inside a change-scope outline. Unchanged context classes remain outside, small circles mark data flows that cross the scope, and changed methods appear inside their class nodes.
+The diagram groups added, modified, and deleted classes inside a change-scope outline. Unchanged context classes remain outside, small circles mark data flows that cross the scope, and changed methods appear inside their class nodes.

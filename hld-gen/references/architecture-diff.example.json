@@ -23,6 +23,16 @@
       "name": "Repository",
       "changeType": "unchanged",
       "methods": []
+    },
+    {
+      "name": "LegacyChangeAdapter",
+      "changeType": "deleted",
+      "methods": [
+        {
+          "name": "adaptLegacyChange",
+          "changeType": "deleted"
+        }
+      ]
     }
   ],
   "relationships": [
@@ -38,6 +48,13 @@
       "to": "ChangeModel",
       "type": "composition",
       "changeType": "added"
+    },
+    {
+      "from": "Repository",
+      "to": "LegacyChangeAdapter",
+      "type": "dataflow",
+      "label": "legacy source files",
+      "changeType": "deleted"
     }
   ]
 }
