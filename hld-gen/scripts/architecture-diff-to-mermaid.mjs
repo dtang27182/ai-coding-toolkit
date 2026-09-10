@@ -47,18 +47,14 @@ function classNode(classDiff, nodeId) {
   }
 }
 
-function edgeStatement(sourceId, targetId, relationship, label) {
+function edgeStatement(sourceId, targetId, label) {
   const escapedLabel = label === undefined ? undefined : escapeMermaidText(label);
   let statement;
 
-  if (relationship.type === "dataflow" && escapedLabel === undefined) {
+  if (escapedLabel === undefined) {
     statement = `${sourceId} --> ${targetId}`;
-  } else if (relationship.type === "dataflow") {
+  } else {
     statement = `${sourceId} -->|"${escapedLabel}"| ${targetId}`;
-  } else if (relationship.type === "composition" && escapedLabel === undefined) {
-    statement = `${sourceId} -.-> ${targetId}`;
-  } else if (relationship.type === "composition") {
-    statement = `${sourceId} -. "${escapedLabel}" .-> ${targetId}`;
   }
 
   return statement;
@@ -81,6 +77,9 @@ function edgeStyle(changeType) {
 }
 
 function renderMermaid(architectureDiff) {
+  const dataflows = architectureDiff.relationships.filter(
+    (relationship) => relationship.type === "dataflow"
+  );
   const nodeIds = new Map();
   const changedClasses = [];
   const contextClasses = [];
@@ -102,20 +101,23 @@ function renderMermaid(architectureDiff) {
 
   for (
     let relationshipIndex = 0;
-    relationshipIndex < architectureDiff.relationships.length;
+    relationshipIndex < dataflows.length;
     relationshipIndex += 1
   ) {
-    const relationship = architectureDiff.relationships[relationshipIndex];
+    const relationship = dataflows[relationshipIndex];
     const sourceIsChanged = changedClassNames.has(relationship.from);
     const targetIsChanged = changedClassNames.has(relationship.to);
 
-    if (relationship.type === "dataflow" && sourceIsChanged !== targetIsChanged) {
+    if (sourceIsChanged !== targetIsChanged) {
       boundaryNodeIds.set(relationshipIndex, `boundary${boundaryCounter}`);
       boundaryCounter += 1;
     }
   }
 
-  const lines = ["flowchart LR"];
+  const lines = [
+    '%%{init: {"flowchart": {"nodeSpacing": 30, "rankSpacing": 35}}}%%',
+    "flowchart TB",
+  ];
 
   for (const classDiff of contextClasses) {
     lines.push(`  ${classNode(classDiff, nodeIds.get(classDiff.name))}`);
@@ -141,32 +143,30 @@ function renderMermaid(architectureDiff) {
 
   for (
     let relationshipIndex = 0;
-    relationshipIndex < architectureDiff.relationships.length;
+    relationshipIndex < dataflows.length;
     relationshipIndex += 1
   ) {
-    const relationship = architectureDiff.relationships[relationshipIndex];
+    const relationship = dataflows[relationshipIndex];
     const sourceId = nodeIds.get(relationship.from);
     const targetId = nodeIds.get(relationship.to);
     const boundaryNodeId = boundaryNodeIds.get(relationshipIndex);
-    const relationshipLabel =
-      relationship.label ?? (relationship.type === "composition" ? "composition" : undefined);
 
     if (boundaryNodeId === undefined) {
-      lines.push(`  ${edgeStatement(sourceId, targetId, relationship, relationshipLabel)}`);
+      lines.push(`  ${edgeStatement(sourceId, targetId, relationship.label)}`);
       linkStyles.push(`  linkStyle ${linkIndex} ${edgeStyle(relationship.changeType)}`);
       linkIndex += 1;
     } else if (changedClassNames.has(relationship.from)) {
-      lines.push(`  ${edgeStatement(sourceId, boundaryNodeId, relationship)}`);
+      lines.push(`  ${edgeStatement(sourceId, boundaryNodeId)}`);
       linkStyles.push(`  linkStyle ${linkIndex} ${edgeStyle(relationship.changeType)}`);
       linkIndex += 1;
-      lines.push(`  ${edgeStatement(boundaryNodeId, targetId, relationship, relationshipLabel)}`);
+      lines.push(`  ${edgeStatement(boundaryNodeId, targetId, relationship.label)}`);
       linkStyles.push(`  linkStyle ${linkIndex} ${edgeStyle(relationship.changeType)}`);
       linkIndex += 1;
     } else {
-      lines.push(`  ${edgeStatement(sourceId, boundaryNodeId, relationship, relationshipLabel)}`);
+      lines.push(`  ${edgeStatement(sourceId, boundaryNodeId, relationship.label)}`);
       linkStyles.push(`  linkStyle ${linkIndex} ${edgeStyle(relationship.changeType)}`);
       linkIndex += 1;
-      lines.push(`  ${edgeStatement(boundaryNodeId, targetId, relationship)}`);
+      lines.push(`  ${edgeStatement(boundaryNodeId, targetId)}`);
       linkStyles.push(`  linkStyle ${linkIndex} ${edgeStyle(relationship.changeType)}`);
       linkIndex += 1;
     }
@@ -218,8 +218,8 @@ function renderMarkdown(architectureDiff) {
     "- Gray nodes are unchanged context classes.",
     "- Circular purple-bordered nodes contain core feature logic.",
     "- `+`, `~`, and `-` mark added, modified, and deleted public methods; `★` marks core methods.",
-    "- Solid edges are data flows; dashed edges are composition relationships.",
-    "- Red dashed edges are deleted relationships.",
+    "- Edges are data flows; composition relationships are omitted.",
+    "- Red dashed edges are deleted data flows.",
     "- Small circles mark data flows crossing the change scope.",
     "",
   ].join("\n");
