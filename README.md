@@ -4,21 +4,23 @@ This directory contains portable skills and scripts that help developers work wi
 
 ## Install
 
-Copy `ai-coding-toolkit` into the root of a repository, then run:
+Keep this toolkit checkout anywhere on your machine. From this directory, install its dependencies and pass the target code repository path:
 
 ```sh
 cd ai-coding-toolkit
 npm install
-npm run install:codex
+npm run install:codex -- /path/to/code-repo
 ```
 
-The output directory defaults to `docs/plans` under the repository root. To choose another repository-relative directory, run:
+The target directory must already exist. Relative target paths are resolved from the current working directory. The output directory defaults to `docs/plans` under the target repository root. To choose another repository-relative directory, run:
 
 ```sh
-npm run install:codex -- --output-dir architecture/plans
+npm run install:codex -- ../code-repo --output-dir architecture/plans
 ```
 
-The installer records the selection in `ai-coding-toolkit/config.json`, links `hld-gen` and `hld-eval` under `.agents/skills`, and adds `npm run mermaid` when the repository has a root `package.json`. It is safe to run more than once and will not replace unrelated existing paths or npm scripts.
+In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the HLD files and installed dependencies into `ai-coding-toolkit`, copies `hld-gen` and `hld-eval` under `.agents/skills`, and adds `npm run mermaid` when the repository has a root `package.json`.
+
+Each target repository has its own files and output configuration and works independently of this checkout. Rerun the installer to update its installed copies; this overwrites files in directories marked as toolkit installations. It will not replace unrelated existing directories or npm scripts. Links created by the earlier installer to this checkout are replaced with copies.
 
 ## Generate a High-Level Design
 
@@ -53,7 +55,7 @@ The report follows `hld-gen/references/hld-evaluation-format.md`. The final arti
 
 ## Mermaid
 
-Convert an architecture diff JSON file into a Markdown file containing a Mermaid diagram:
+From an installed target repository with a root `package.json`, convert an architecture diff JSON file into a Markdown file containing a Mermaid diagram:
 
 ```sh
 npm run mermaid -- docs/plans/workbook-import.architecture-diff.hld.json

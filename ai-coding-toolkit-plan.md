@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Provide a portable collection of skills and scripts that helps a human developer work more effectively with AI coding agents. Target Codex first while keeping the toolkit usable with other agents and IDEs. The toolkit lives inside the repository where it is used.
+Provide a portable collection of skills and scripts that helps a human developer work more effectively with AI coding agents. Target Codex first while keeping the toolkit usable with other agents and IDEs. One toolkit checkout can serve multiple target repositories.
 
 ## Structure
 
@@ -15,9 +15,9 @@ For example, everything specific to the HLD generator lives under `hld-gen/`. Ag
 
 ## Installation
 
-Copy `ai-coding-toolkit` into a repository and run the existing initializer for the chosen agent. The initializer stores repository-relative configuration, delegates agent-specific setup to an adapter, and may add convenient repository commands when they do not conflict with existing commands.
+Run the initializer from the toolkit checkout with a target repository path and the chosen agent. The initializer stores repository-relative configuration in the target's `ai-coding-toolkit/config.json`, copies the HLD files and installed dependencies into the target, delegates agent-specific setup to an adapter, and may add convenient repository commands when they do not conflict with existing commands.
 
-Installation must be repeatable and must not replace unrelated files, links, or commands. All canonical toolkit files remain under `ai-coding-toolkit`; installation may create agent discovery entries elsewhere in the repository.
+Installation must be repeatable and must not replace unrelated directories, links, or commands. Installed toolkit directories carry an ownership marker so subsequent installations can update their files. Each target receives independent copies of the skills, scripts, references, and dependencies and does not require the source checkout to remain available.
 
 ## Principles
 

@@ -1,13 +1,14 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { installCodexSkills } from "../adapters/codex.mjs";
+import { copyDirectory } from "./copy-directory.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const toolkitDirectory = path.resolve(scriptDirectory, "..");
-const repoDirectory = path.resolve(toolkitDirectory, "..");
+const toolkitDirectory = await realpath(path.resolve(scriptDirectory, ".."));
 const inputArguments = process.argv.slice(2);
+let repoDirectory;
 let agentName = "codex";
 let outputDirectory = "docs/plans";
 let argumentError;
@@ -25,16 +26,21 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
   ) {
     outputDirectory = inputArguments[argumentIndex + 1];
     argumentIndex += 2;
+  } else if (
+    !inputArguments[argumentIndex].startsWith("-") &&
+    repoDirectory === undefined
+  ) {
+    repoDirectory = path.resolve(inputArguments[argumentIndex]);
+    argumentIndex += 1;
   } else {
     argumentError = `Unknown or incomplete argument: ${inputArguments[argumentIndex]}`;
     argumentIndex += 1;
   }
 }
 
-const outputPath = path.resolve(repoDirectory, outputDirectory);
-const relativeOutputDirectory = path.relative(repoDirectory, outputPath);
+const relativeOutputDirectory = path.normalize(outputDirectory);
 const outputIsRepoSubdirectory =
-  relativeOutputDirectory !== "" &&
+  relativeOutputDirectory !== "." &&
   relativeOutputDirectory !== ".." &&
   !relativeOutputDirectory.startsWith(`..${path.sep}`) &&
   !path.isAbsolute(relativeOutputDirectory);
@@ -69,10 +75,10 @@ async function installRootMermaidCommand() {
   }
 }
 
-if (argumentError !== undefined) {
-  console.error(argumentError);
+if (argumentError !== undefined || repoDirectory === undefined) {
+  console.error(argumentError ?? "Target repository path is required.");
   console.error(
-    "Usage: node ai-coding-toolkit/scripts/init.mjs [--agent codex] [--output-dir <relative-directory>]"
+    "Usage: node scripts/init.mjs <target-repo> [--agent codex] [--output-dir <relative-directory>]"
   );
   process.exitCode = 1;
 } else if (agentName !== "codex") {
@@ -82,11 +88,23 @@ if (argumentError !== undefined) {
   console.error("Output directory must be a relative directory under the repository root.");
   process.exitCode = 1;
 } else {
+  if (!(await stat(repoDirectory)).isDirectory()) {
+    throw new Error(`Target repository is not a directory: ${repoDirectory}`);
+  }
+  repoDirectory = await realpath(repoDirectory);
+  const installedToolkitDirectory = path.join(repoDirectory, "ai-coding-toolkit");
+  const outputPath = path.resolve(repoDirectory, relativeOutputDirectory);
+  for (const directoryName of ["hld-gen", "node_modules"]) {
+    await copyDirectory(
+      path.join(toolkitDirectory, directoryName),
+      path.join(installedToolkitDirectory, directoryName)
+    );
+  }
   await installCodexSkills(repoDirectory, toolkitDirectory);
   await installRootMermaidCommand();
   await mkdir(outputPath, { recursive: true });
   await writeFile(
-    path.join(toolkitDirectory, "config.json"),
+    path.join(installedToolkitDirectory, "config.json"),
     `${JSON.stringify({ outputDirectory: relativeOutputDirectory }, null, 2)}\n`
   );
   console.log(`Configured HLD output: ${outputPath}`);
