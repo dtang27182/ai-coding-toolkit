@@ -41,13 +41,3 @@ Score: `N`. Lower is better. The minimum valid score is 1.
 Let `N` be the number of methods with `coreChange: true`.
 
 Score: `N`. Lower is better. The minimum score is 0, which is valid only when no changed public method owns core feature logic.
-
-### Composition Hierarchy Placement
-
-Treat each `composition` relationship as directed from the parent or owner in `from` to the child or component in `to`. Use the current code and proposed relationships together to establish the relevant hierarchy.
-
-The height of a class is the length of the longest composition path from that class to a leaf. A leaf has height 0. Let `H` be the greatest height of any changed class.
-
-Score: `H`. Lower is better. The minimum score is 0.
-
-Do not score this attribute when the relevant composition hierarchy is missing or cyclic.

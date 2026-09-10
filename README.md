@@ -26,7 +26,7 @@ Each target repository has its own files and output configuration and works inde
 
 Start `$hld-gen` at any point in a conversation about a feature. Clarification, discussion of possible approaches, and an agreed design are optional. The agent uses the available context to draft or refine a design, records working assumptions, and preserves explicit user constraints and decisions.
 
-The default rubric in `hld-gen/references/hld-quality.md` scores the size and concentration of the proposed changes and their placement in the composition hierarchy. You can supply another rubric for a particular HLD.
+The default rubric in `hld-gen/references/hld-quality.md` scores the size and concentration of the proposed changes. You can supply another rubric for a particular HLD.
 
 Ask the agent:
 
@@ -71,4 +71,4 @@ By default, the converter writes beside the JSON file with `.mermaid.md` appende
 
 The diagram groups added, modified, and deleted classes inside a change-scope outline. Unchanged context classes remain outside, small circles mark data flows that cross the scope, and changed methods appear inside their class nodes.
 
-Only data flow relationships are drawn; composition relationships remain in the JSON for evaluation. Diagrams use a compact top-to-bottom layout to reduce horizontal scrolling.
+Only data flow relationships are drawn; composition relationships remain in the JSON. Diagrams use a compact top-to-bottom layout to reduce horizontal scrolling.
