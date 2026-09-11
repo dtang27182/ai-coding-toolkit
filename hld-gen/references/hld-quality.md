@@ -26,6 +26,12 @@ Let `N` be the number of methods whose `changeType` is `added`, `modified`, or `
 
 Score: `N`. Lower is better. The minimum score is 0.
 
+### Changed Components
+
+Let `N` be the number of entries in `components` whose `changeType` is `added`, `modified`, or `deleted`. Count both `ui` and `external-io` components; exclude unchanged components.
+
+Score: `N`. Lower is better. The minimum score is 0.
+
 ### Changed Dataflow Relationships
 
 Let `N` be the number of `dataflow` relationships whose `changeType` is `added`, `modified`, or `deleted`.

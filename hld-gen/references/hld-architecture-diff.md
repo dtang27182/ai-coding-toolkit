@@ -46,7 +46,7 @@ Explain sequencing and state changes in the narrative.
 
 ## Scoring and Preview
 
-- Components do not count as classes. Score changed dataflow and state-update relationships separately under `hld-quality.md`.
+- Score changed components separately from changed classes, and changed dataflow relationships separately from changed state-update relationships, under `hld-quality.md`.
 - The preview draws individual method nodes, dataflow arrows, and dotted method-to-class state-update arrows. UI and I/O components stay outside the class change scope; composition edges are omitted.
 
 ## Validation
