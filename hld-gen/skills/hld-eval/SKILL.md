@@ -13,6 +13,7 @@ Read the feature context, narrative, Architecture Diff, relevant code, and repos
 
 - `ai-coding-toolkit/hld-gen/references/hld-quality.md` for scoring.
 - `ai-coding-toolkit/hld-gen/references/hld-narrative.md` for evaluation scope.
+- `ai-coding-toolkit/hld-gen/references/hld-architecture-diff.md` for class, component, and relationship representation rules.
 - `ai-coding-toolkit/hld-gen/references/hld-variable-exposure.md` for inventory verification.
 - `ai-coding-toolkit/hld-gen/references/hld-evaluation-format.md` for the report.
 

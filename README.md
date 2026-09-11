@@ -50,7 +50,7 @@ Results are grouped by feature under the configured output directory:
 - `<feature>/<feature>.architecture-diff.hld.mermaid.md`: generated diagram preview.
 - `<feature>/<feature>.hld-evaluation.md`: latest attribute scores, qualitative assessment, and stopping reason.
 
-Architecture Diff schema version 2 records each class's `variableExposure` inventory. The counting script writes per-class counts and a deduplicated total; `null` means the exposure is unknown.
+The Architecture Diff records each class's `variableExposure` inventory. The counting script writes per-class counts and a deduplicated total; `null` means the exposure is unknown.
 
 The report follows `hld-gen/references/hld-evaluation-format.md`. The final artifacts are ready for human review; application implementation is a separate step.
 
@@ -73,3 +73,5 @@ By default, the converter writes beside the JSON file with `.mermaid.md` appende
 The diagram groups added, modified, and deleted classes inside a change-scope outline. Unchanged context classes remain outside, small circles mark data flows that cross the scope, and all methods participating in the end-to-end flow appear inside their class nodes with change markers.
 
 Only data flow relationships are drawn; composition relationships remain in the JSON. Diagrams use a compact top-to-bottom layout to reduce horizontal scrolling.
+
+UI components and external I/O endpoints appear outside the class change scope, connected by directed data flows. Rounded nodes represent UI surfaces; hexagons represent external I/O such as network services, files, or browser storage. Their colors indicate change type, as for classes.

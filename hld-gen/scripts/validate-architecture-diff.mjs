@@ -35,13 +35,13 @@ if (inputArguments.length !== 1) {
       process.exitCode = 1;
     } else {
       const semanticErrors = [];
-      const classNames = new Set();
+      const nodeNames = new Set();
 
       for (const classDiff of architectureDiff.classes) {
-        if (classNames.has(classDiff.name)) {
+        if (nodeNames.has(classDiff.name)) {
           semanticErrors.push(`Duplicate class name: ${classDiff.name}`);
         } else {
-          classNames.add(classDiff.name);
+          nodeNames.add(classDiff.name);
         }
 
         const methodNames = new Set();
@@ -83,12 +83,20 @@ if (inputArguments.length !== 1) {
         }
       }
 
-      for (const relationship of architectureDiff.relationships) {
-        if (!classNames.has(relationship.from)) {
-          semanticErrors.push(`Unknown relationship source class: ${relationship.from}`);
+      for (const component of architectureDiff.components) {
+        if (nodeNames.has(component.name)) {
+          semanticErrors.push(`Duplicate class or component name: ${component.name}`);
+        } else {
+          nodeNames.add(component.name);
         }
-        if (!classNames.has(relationship.to)) {
-          semanticErrors.push(`Unknown relationship target class: ${relationship.to}`);
+      }
+
+      for (const relationship of architectureDiff.relationships) {
+        if (!nodeNames.has(relationship.from)) {
+          semanticErrors.push(`Unknown relationship source class or component: ${relationship.from}`);
+        }
+        if (!nodeNames.has(relationship.to)) {
+          semanticErrors.push(`Unknown relationship target class or component: ${relationship.to}`);
         }
       }
 

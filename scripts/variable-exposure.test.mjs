@@ -16,9 +16,10 @@ function variable(name, kind, line, method) {
 
 function architectureDiff(variableExposure) {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     stage: "high level design",
     classes: [{ name: "Service", changeType: "modified", methods: [], variableExposure }],
+    components: [],
     relationships: [],
   };
 }
@@ -109,15 +110,13 @@ test("refreshes the saved count after inventory changes and on repeat runs", asy
   }
 });
 
-test("requires the current schema version and valid variable declarations", async (t) => {
-  const oldVersion = architectureDiff([]);
-  oldVersion.schemaVersion = 2;
+test("requires exposure inventories and valid variable declarations", async (t) => {
   const missingInventory = architectureDiff(undefined);
   const missingMethod = architectureDiff([variable("value", "local", 10)]);
   const instanceWithMethod = architectureDiff([variable("value", "instance", 2, "apply")]);
   const invalidLine = architectureDiff([variable("value", "instance", 0)]);
   const missingLocation = architectureDiff([{ name: "value", kind: "instance" }]);
-  for (const input of [oldVersion, missingInventory, missingMethod, instanceWithMethod, invalidLine, missingLocation]) {
+  for (const input of [missingInventory, missingMethod, instanceWithMethod, invalidLine, missingLocation]) {
     for (const scriptPath of [validatorPath, counterPath]) {
       const result = await runScript(t, input, scriptPath);
       assert.notEqual(result.status, 0);

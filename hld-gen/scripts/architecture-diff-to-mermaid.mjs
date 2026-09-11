@@ -118,6 +118,19 @@ function renderMermaid(architectureDiff) {
     lines.push(`  ${classNode(classDiff, nodeIds.get(classDiff.name))}`);
   }
 
+  let componentCounter = 1;
+  for (const component of architectureDiff.components) {
+    const nodeId = `component${componentCounter}`;
+    componentCounter += 1;
+    nodeIds.set(component.name, nodeId);
+
+    if (component.type === "ui") {
+      lines.push(`  ${nodeId}("UI: ${escapeMermaidText(component.name)}")`);
+    } else if (component.type === "external-io") {
+      lines.push(`  ${nodeId}{{"I/O: ${escapeMermaidText(component.name)}"}}`);
+    }
+  }
+
   if (changedClasses.length > 0) {
     lines.push('  subgraph changeScope["Change Scope"]');
     lines.push("    direction TB");
@@ -177,6 +190,10 @@ function renderMermaid(architectureDiff) {
     lines.push(`  class ${nodeIds.get(classDiff.name)} ${classDiff.changeType}`);
   }
 
+  for (const component of architectureDiff.components) {
+    lines.push(`  class ${nodeIds.get(component.name)} ${component.changeType}`);
+  }
+
   if (boundaryNodeIds.size > 0) {
     lines.push(`  class ${[...boundaryNodeIds.values()].join(",")} boundary`);
   }
@@ -201,10 +218,12 @@ function renderMarkdown(architectureDiff) {
     "",
     "## Legend",
     "",
-    "- Green nodes are added classes.",
-    "- Amber nodes are modified classes.",
-    "- Red nodes are deleted classes.",
-    "- Gray nodes are unchanged context classes.",
+    "- Green nodes are added classes or components.",
+    "- Amber nodes are modified classes or components.",
+    "- Red nodes are deleted classes or components.",
+    "- Gray nodes are unchanged classes or components.",
+    "- Rounded nodes marked UI are user-facing components; hexagons marked I/O are external I/O endpoints.",
+    "- UI and external I/O components sit outside the class change scope.",
     "- `+`, `~`, `-`, and `=` mark added, modified, deleted, and unchanged methods.",
     "- Edges are data flows; composition relationships are omitted.",
     "- Red dashed edges are deleted data flows.",

@@ -6,7 +6,7 @@ The HLD generator develops and improves one high-level design from a feature con
 
 The objective is the simplest design that preserves required new and existing behavior. The rubric scores change size, concentration, and Variable Exposure.
 
-The HLD covers the core use cases end-to-end: user actions, processing, system state changes, I/O requests and results, and data display and UI updates. The narrative and Architecture Diff include every class and method touched by these flows, including unchanged participants and existing state and I/O. Integration adjustments to existing classes, persistent state, methods, and dataflows that might interfere with or be disrupted by the new flow can remain for later design work. Detailed error handling and edge cases can also remain for later design work unless needed for the desired behavior.
+The HLD covers the core use cases end-to-end: user actions, processing, system state changes, I/O requests and results, and data display and UI updates. The narrative and Architecture Diff include every class, method, UI component, and external I/O component touched by these flows, including unchanged participants and existing state and I/O. Integration adjustments to existing classes, persistent state, methods, and dataflows that might interfere with or be disrupted by the new flow can remain for later design work. Detailed error handling and edge cases can also remain for later design work unless needed for the desired behavior.
 
 ## Skills
 
@@ -49,6 +49,6 @@ hld-gen/
 Artifacts use a stable feature slug as a subdirectory under the configured repository-relative output directory, unless the user supplies paths:
 
 - `<feature>/<feature>.hld.md`: narrative design.
-- `<feature>/<feature>.architecture-diff.hld.json`: classes, methods, relationships, and variable exposure inventories.
+- `<feature>/<feature>.architecture-diff.hld.json`: classes, methods, UI and external I/O components, relationships, and variable exposure inventories.
 - `<feature>/<feature>.hld-evaluation.md`: latest evaluation and stopping reason.
 - `<feature>/<feature>.architecture-diff.hld.mermaid.md`: diagram generated from the current JSON. Preview failures are reported separately from design quality.

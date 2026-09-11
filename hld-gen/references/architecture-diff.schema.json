@@ -3,10 +3,10 @@
   "title": "AI Coding Toolkit Architecture Diff",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "stage", "classes", "relationships"],
+  "required": ["schemaVersion", "stage", "classes", "components", "relationships"],
   "properties": {
     "schemaVersion": {
-      "const": 3
+      "const": 4
     },
     "stage": {
       "const": "high level design"
@@ -23,6 +23,13 @@
         "$ref": "#/$defs/class"
       }
     },
+    "components": {
+      "description": "UI and external I/O endpoints participating in the dataflow. Use an empty array when none participate.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/component"
+      }
+    },
     "relationships": {
       "type": "array",
       "items": {
@@ -31,6 +38,25 @@
     }
   },
   "$defs": {
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "changeType"],
+      "properties": {
+        "name": {
+          "description": "Unique across classes and components; referenced by relationship endpoints.",
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "description": "A user-facing UI surface or an external I/O endpoint such as a network service, file, or browser storage.",
+          "enum": ["ui", "external-io"]
+        },
+        "changeType": {
+          "enum": ["added", "modified", "deleted", "unchanged"]
+        }
+      }
+    },
     "class": {
       "type": "object",
       "additionalProperties": false,
@@ -141,10 +167,12 @@
       "required": ["from", "to", "type", "changeType"],
       "properties": {
         "from": {
+          "description": "Name of the source class or component.",
           "type": "string",
           "minLength": 1
         },
         "to": {
+          "description": "Name of the target class or component.",
           "type": "string",
           "minLength": 1
         },

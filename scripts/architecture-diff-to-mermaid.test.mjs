@@ -23,6 +23,10 @@ async function generateDiagram(t, architectureDiff) {
 
 test("omits composition while preserving data flows, boundary markers, and edge styles", async (t) => {
   const architectureDiff = JSON.parse(await readFile(examplePath, "utf8"));
+  architectureDiff.components = [];
+  architectureDiff.relationships = architectureDiff.relationships.filter(
+    (relationship) => ["source files", "legacy source files"].includes(relationship.label) || relationship.type === "composition"
+  );
   architectureDiff.relationships[1].label = "owns model";
   architectureDiff.relationships.push(
     { from: "Repository", to: "ChangeModel", type: "composition", changeType: "deleted", label: "owned model" },
@@ -57,6 +61,25 @@ test("shows unchanged methods in both changed and context classes", async (t) =>
   const markdown = await generateDiagram(t, architectureDiff);
   assert.ok(markdown.includes('ChangeService<br/>+ buildChangeSet<br/>= getChangeSet'));
   assert.ok(markdown.includes('Repository<br/>= readSourceFiles'));
+});
+
+test("renders UI input and output and external I/O requests and results", async (t) => {
+  const architectureDiff = JSON.parse(await readFile(examplePath, "utf8"));
+  const markdown = await generateDiagram(t, architectureDiff);
+  const diagram = markdown.split("```mermaid\n")[1].split("```")[0];
+  const uiNode = diagram.match(/(\w+)\("UI: Change Panel"\)/)[1];
+  const ioNode = diagram.match(/(\w+)\{\{"I\/O: Source Files on Disk"\}\}/)[1];
+  const repositoryNode = diagram.match(/(\w+)\["Repository<br\/>= readSourceFiles"\]/)[1];
+  assert.ok(diagram.includes(`${uiNode} -->|"user requests changes for selected files"|`));
+  assert.ok(diagram.includes(`-->|"change set displayed to user"| ${uiNode}`));
+  assert.ok(diagram.includes(`${repositoryNode} -->|"read file paths"| ${ioNode}`));
+  assert.ok(diagram.includes(`${ioNode} -->|"file contents"| ${repositoryNode}`));
+  assert.ok(diagram.includes(`class ${uiNode} added`));
+  assert.ok(diagram.includes(`class ${ioNode} unchanged`));
+  const changeScope = diagram.split('subgraph changeScope["Change Scope"]')[1].split("  end")[0];
+  assert.ok(!changeScope.includes(uiNode));
+  assert.ok(!changeScope.includes(ioNode));
+  assert.doesNotMatch(diagram, /undefined/);
 });
 
 test("keeps classes visible when all relationships are composition", async (t) => {

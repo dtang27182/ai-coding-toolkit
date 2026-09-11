@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "stage": "high level design",
   "classes": [
     {
@@ -76,6 +76,18 @@
       "variableExposureCount": 3
     }
   ],
+  "components": [
+    {
+      "name": "Change Panel",
+      "type": "ui",
+      "changeType": "added"
+    },
+    {
+      "name": "Source Files on Disk",
+      "type": "external-io",
+      "changeType": "unchanged"
+    }
+  ],
   "relationships": [
     {
       "from": "Repository",
@@ -96,6 +108,41 @@
       "type": "dataflow",
       "label": "legacy source files",
       "changeType": "deleted"
+    },
+    {
+      "from": "Change Panel",
+      "to": "ChangeService",
+      "type": "dataflow",
+      "label": "user requests changes for selected files",
+      "changeType": "added"
+    },
+    {
+      "from": "ChangeService",
+      "to": "Repository",
+      "type": "dataflow",
+      "label": "read selected files",
+      "changeType": "added"
+    },
+    {
+      "from": "Repository",
+      "to": "Source Files on Disk",
+      "type": "dataflow",
+      "label": "read file paths",
+      "changeType": "unchanged"
+    },
+    {
+      "from": "Source Files on Disk",
+      "to": "Repository",
+      "type": "dataflow",
+      "label": "file contents",
+      "changeType": "unchanged"
+    },
+    {
+      "from": "ChangeService",
+      "to": "Change Panel",
+      "type": "dataflow",
+      "label": "change set displayed to user",
+      "changeType": "added"
     }
   ],
   "variableExposureCount": 3
