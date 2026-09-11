@@ -43,12 +43,12 @@ Use $hld-gen to develop a design from our workbook-import conversation so far.
 
 You can also invoke `$hld-eval` on an existing HLD for a standalone evaluation.
 
-Results are saved under the configured output directory:
+Results are grouped by feature under the configured output directory:
 
-- `<feature>.hld.md`: narrative, stated intent and constraints, proposed approach, working assumptions, and open questions.
-- `<feature>.architecture-diff.hld.json`: current Architecture Diff.
-- `<feature>.architecture-diff.hld.mermaid.md`: generated diagram preview.
-- `<feature>.hld-evaluation.md`: latest attribute scores, qualitative assessment, and stopping reason.
+- `<feature>/<feature>.hld.md`: narrative, stated intent and constraints, proposed approach, working assumptions, and open questions.
+- `<feature>/<feature>.architecture-diff.hld.json`: current Architecture Diff.
+- `<feature>/<feature>.architecture-diff.hld.mermaid.md`: generated diagram preview.
+- `<feature>/<feature>.hld-evaluation.md`: latest attribute scores, qualitative assessment, and stopping reason.
 
 Architecture Diff schema version 2 records each class's `variableExposure` inventory. The counting script writes per-class counts and a deduplicated total; `null` means the exposure is unknown.
 
@@ -59,7 +59,7 @@ The report follows `hld-gen/references/hld-evaluation-format.md`. The final arti
 From an installed target repository with a root `package.json`, convert an architecture diff JSON file into a Markdown file containing a Mermaid diagram:
 
 ```sh
-npm run mermaid -- docs/plans/workbook-import.architecture-diff.hld.json
+npm run mermaid -- docs/plans/workbook-import/workbook-import.architecture-diff.hld.json
 ```
 
 Validate an Architecture Diff from the repository root with:

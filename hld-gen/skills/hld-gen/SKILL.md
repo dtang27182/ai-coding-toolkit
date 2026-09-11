@@ -26,7 +26,7 @@ Read these instructions when their corresponding work is needed:
    - Incorporate the response and record any remaining assumptions and open questions.
 2. Read `ai-coding-toolkit/hld-gen/references/hld-quality.md` and use its criteria to choose the simplest design that implements the desired behavior.
 3. Create the narrative and Architecture Diff in parallel as complementary parts of the same design; do not derive one from the other.
-   - Read `ai-coding-toolkit/config.json`, choose a stable kebab-case feature slug, and write both artifacts under its repository-relative `outputDirectory` unless the user supplies paths.
+   - Read `ai-coding-toolkit/config.json`, choose a stable kebab-case feature slug, and create `<outputDirectory>/<feature>/`. Write all HLD artifacts there unless the user supplies paths.
    - Write the narrative using `ai-coding-toolkit/hld-gen/references/hld-narrative.md` and the Architecture Diff using `ai-coding-toolkit/hld-gen/references/hld-architecture-diff.md`. When revising existing artifacts, retain the user's edits unless they conflict with the requested behavior.
 4. Use the Architecture Diff's changed classes and methods to find exposed variables in the current code. Populate `variableExposure` using `ai-coding-toolkit/hld-gen/references/hld-variable-exposure.md`. Use `null` when exposure remains unknown.
 5. Run `node ai-coding-toolkit/hld-gen/scripts/count-variable-exposure.mjs <json-path>` to validate the Architecture Diff and write its `variableExposureCount` values. Fix failures before evaluation.

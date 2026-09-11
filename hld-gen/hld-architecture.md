@@ -46,9 +46,9 @@ hld-gen/
 
 ## Output
 
-Artifacts use a stable feature slug under the configured repository-relative output directory, unless the user supplies paths:
+Artifacts use a stable feature slug as a subdirectory under the configured repository-relative output directory, unless the user supplies paths:
 
-- `<feature>.hld.md`: narrative design.
-- `<feature>.architecture-diff.hld.json`: classes, methods, relationships, and variable exposure inventories.
-- `<feature>.hld-evaluation.md`: latest evaluation and stopping reason.
-- `<feature>.architecture-diff.hld.mermaid.md`: diagram generated from the current JSON. Preview failures are reported separately from design quality.
+- `<feature>/<feature>.hld.md`: narrative design.
+- `<feature>/<feature>.architecture-diff.hld.json`: classes, methods, relationships, and variable exposure inventories.
+- `<feature>/<feature>.hld-evaluation.md`: latest evaluation and stopping reason.
+- `<feature>/<feature>.architecture-diff.hld.mermaid.md`: diagram generated from the current JSON. Preview failures are reported separately from design quality.
