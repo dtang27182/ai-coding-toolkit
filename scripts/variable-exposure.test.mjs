@@ -16,7 +16,7 @@ function variable(name, kind, line, method) {
 
 function architectureDiff(variableExposure) {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     stage: "high level design",
     classes: [{ name: "Service", changeType: "modified", methods: [], variableExposure }],
     relationships: [],
@@ -109,9 +109,9 @@ test("refreshes the saved count after inventory changes and on repeat runs", asy
   }
 });
 
-test("requires the version 2 inventory and valid variable declarations", async (t) => {
+test("requires the current schema version and valid variable declarations", async (t) => {
   const oldVersion = architectureDiff([]);
-  oldVersion.schemaVersion = 1;
+  oldVersion.schemaVersion = 2;
   const missingInventory = architectureDiff(undefined);
   const missingMethod = architectureDiff([variable("value", "local", 10)]);
   const instanceWithMethod = architectureDiff([variable("value", "instance", 2, "apply")]);

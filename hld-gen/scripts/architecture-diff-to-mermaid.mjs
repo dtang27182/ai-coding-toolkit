@@ -30,21 +30,14 @@ function classLabel(classDiff) {
       changeMarker = "-";
     }
 
-    const coreMarker = method.coreChange === true ? " ★" : "";
-    labelLines.push(`${changeMarker} ${escapeMermaidText(method.name)}${coreMarker}`);
+    labelLines.push(`${changeMarker} ${escapeMermaidText(method.name)}`);
   }
 
   return labelLines.join("<br/>");
 }
 
 function classNode(classDiff, nodeId) {
-  const label = classLabel(classDiff);
-
-  if (classDiff.coreChange === true) {
-    return `${nodeId}(("${label}"))`;
-  } else {
-    return `${nodeId}["${label}"]`;
-  }
+  return `${nodeId}["${classLabel(classDiff)}"]`;
 }
 
 function edgeStatement(sourceId, targetId, label) {
@@ -176,16 +169,10 @@ function renderMermaid(architectureDiff) {
   lines.push("  classDef modified fill:#fef3c7,stroke:#b45309,color:#78350f");
   lines.push("  classDef deleted fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d");
   lines.push("  classDef unchanged fill:#f1f5f9,stroke:#64748b,color:#334155");
-  lines.push("  classDef addedCore fill:#dcfce7,stroke:#7e22ce,stroke-width:4px,color:#14532d");
-  lines.push("  classDef modifiedCore fill:#fef3c7,stroke:#7e22ce,stroke-width:4px,color:#78350f");
-  lines.push("  classDef deletedCore fill:#fee2e2,stroke:#7e22ce,stroke-width:4px,color:#7f1d1d");
-  lines.push("  classDef unchangedCore fill:#f1f5f9,stroke:#7e22ce,stroke-width:4px,color:#334155");
   lines.push("  classDef boundary fill:#ffffff,stroke:#475569,stroke-width:2px");
 
   for (const classDiff of architectureDiff.classes) {
-    const styleName =
-      classDiff.coreChange === true ? `${classDiff.changeType}Core` : classDiff.changeType;
-    lines.push(`  class ${nodeIds.get(classDiff.name)} ${styleName}`);
+    lines.push(`  class ${nodeIds.get(classDiff.name)} ${classDiff.changeType}`);
   }
 
   if (boundaryNodeIds.size > 0) {
@@ -216,8 +203,7 @@ function renderMarkdown(architectureDiff) {
     "- Amber nodes are modified classes.",
     "- Red nodes are deleted classes.",
     "- Gray nodes are unchanged context classes.",
-    "- Circular purple-bordered nodes contain core feature logic.",
-    "- `+`, `~`, and `-` mark added, modified, and deleted methods; `★` marks core methods.",
+    "- `+`, `~`, and `-` mark added, modified, and deleted methods.",
     "- Edges are data flows; composition relationships are omitted.",
     "- Red dashed edges are deleted data flows.",
     "- Small circles mark data flows crossing the change scope.",

@@ -6,7 +6,7 @@
   "required": ["schemaVersion", "stage", "classes", "relationships"],
   "properties": {
     "schemaVersion": {
-      "const": 2
+      "const": 3
     },
     "stage": {
       "const": "high level design"
@@ -43,9 +43,6 @@
         "changeType": {
           "enum": ["added", "modified", "deleted", "unchanged"]
         },
-        "coreChange": {
-          "type": "boolean"
-        },
         "methods": {
           "description": "Every added, modified, or deleted method in the class.",
           "type": "array",
@@ -78,9 +75,6 @@
         },
         "changeType": {
           "enum": ["added", "modified", "deleted"]
-        },
-        "coreChange": {
-          "type": "boolean"
         }
       }
     },

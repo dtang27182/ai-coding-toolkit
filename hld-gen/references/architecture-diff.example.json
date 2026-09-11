@@ -1,16 +1,14 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "stage": "high level design",
   "classes": [
     {
       "name": "ChangeService",
       "changeType": "added",
-      "coreChange": true,
       "methods": [
         {
           "name": "buildChangeSet",
-          "changeType": "added",
-          "coreChange": true
+          "changeType": "added"
         }
       ],
       "variableExposure": [],

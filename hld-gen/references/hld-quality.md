@@ -37,15 +37,3 @@ Score: `N`. Lower is better. The minimum score is 0.
 Follow `hld-variable-exposure.md`, run `count-variable-exposure.mjs` on the current JSON, and read `N` from its top-level `variableExposureCount`. Do not calculate or adjust `N` with the model.
 
 Score: `N`. Lower is better. The minimum score is 0, valid only when the design exposes its changes to no existing variables. An unknown inventory cannot be scored.
-
-### Core-Change Classes
-
-Let `N` be the number of changed classes with `coreChange: true`. At least one changed class must identify where the core feature logic resides.
-
-Score: `N`. Lower is better. The minimum valid score is 1.
-
-### Core-Change Methods
-
-Let `N` be the number of methods with `coreChange: true`.
-
-Score: `N`. Lower is better. The minimum score is 0, which is valid only when no changed method owns core feature logic.
