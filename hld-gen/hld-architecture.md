@@ -6,7 +6,7 @@ The HLD generator develops and improves one high-level design from a feature con
 
 The objective is the simplest design that preserves required new and existing behavior. The rubric scores change size, concentration, and Variable Exposure.
 
-The HLD sketches core logic and dataflow, architectural fit, data ingress and egress, and interactions with new state. It covers core use cases; detailed error handling, edge cases, and integration changes belong to later design work.
+The HLD covers the core use cases end-to-end: user actions, processing, system state changes, I/O requests and results, and data display and UI updates. The narrative and Architecture Diff include every class and method touched by these flows, including unchanged participants and existing state and I/O. Integration adjustments to existing classes, persistent state, methods, and dataflows that might interfere with or be disrupted by the new flow can remain for later design work. Detailed error handling and edge cases can also remain for later design work unless needed for the desired behavior.
 
 ## Skills
 

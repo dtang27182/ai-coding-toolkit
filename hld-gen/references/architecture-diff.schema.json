@@ -44,7 +44,7 @@
           "enum": ["added", "modified", "deleted", "unchanged"]
         },
         "methods": {
-          "description": "Every added, modified, or deleted method in the class.",
+          "description": "Every changed method and every unchanged method participating in the core logic's end-to-end dataflow.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/method"
@@ -74,7 +74,7 @@
           "minLength": 1
         },
         "changeType": {
-          "enum": ["added", "modified", "deleted"]
+          "enum": ["added", "modified", "deleted", "unchanged"]
         }
       }
     },

@@ -50,6 +50,15 @@ test("omits composition while preserving data flows, boundary markers, and edge 
   assert.match(markdown, /composition relationships are omitted/);
 });
 
+test("shows unchanged methods in both changed and context classes", async (t) => {
+  const architectureDiff = JSON.parse(await readFile(examplePath, "utf8"));
+  architectureDiff.classes[0].changeType = "modified";
+  architectureDiff.classes[0].methods.push({ name: "getChangeSet", changeType: "unchanged" });
+  const markdown = await generateDiagram(t, architectureDiff);
+  assert.ok(markdown.includes('ChangeService<br/>+ buildChangeSet<br/>= getChangeSet'));
+  assert.ok(markdown.includes('Repository<br/>= readSourceFiles'));
+});
+
 test("keeps classes visible when all relationships are composition", async (t) => {
   const architectureDiff = JSON.parse(await readFile(examplePath, "utf8"));
   architectureDiff.relationships = architectureDiff.relationships.filter(

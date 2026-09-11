@@ -28,6 +28,8 @@ function classLabel(classDiff) {
       changeMarker = "~";
     } else if (method.changeType === "deleted") {
       changeMarker = "-";
+    } else if (method.changeType === "unchanged") {
+      changeMarker = "=";
     }
 
     labelLines.push(`${changeMarker} ${escapeMermaidText(method.name)}`);
@@ -203,7 +205,7 @@ function renderMarkdown(architectureDiff) {
     "- Amber nodes are modified classes.",
     "- Red nodes are deleted classes.",
     "- Gray nodes are unchanged context classes.",
-    "- `+`, `~`, and `-` mark added, modified, and deleted methods.",
+    "- `+`, `~`, `-`, and `=` mark added, modified, deleted, and unchanged methods.",
     "- Edges are data flows; composition relationships are omitted.",
     "- Red dashed edges are deleted data flows.",
     "- Small circles mark data flows crossing the change scope.",

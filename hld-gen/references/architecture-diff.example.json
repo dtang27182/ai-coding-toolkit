@@ -24,7 +24,12 @@
     {
       "name": "Repository",
       "changeType": "unchanged",
-      "methods": [],
+      "methods": [
+        {
+          "name": "readSourceFiles",
+          "changeType": "unchanged"
+        }
+      ],
       "variableExposure": [],
       "variableExposureCount": 0
     },
