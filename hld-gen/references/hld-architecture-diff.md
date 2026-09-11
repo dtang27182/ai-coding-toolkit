@@ -2,20 +2,56 @@
 
 Use the Architecture Diff to show how the existing architecture changes to implement the HLD. Read `architecture-diff.schema.json` and `architecture-diff.example.json` in this directory before writing it.
 
-Cover the complete core logic and end-to-end dataflow defined in `hld-narrative.md`: user action, processing, system state changes, I/O requests and results, and data display and UI updates. Include existing state and I/O touched by the new flow. Adjustments to existing classes, persistent state, methods, and dataflows that might interfere with or be disrupted by it can remain for later low level design, as defined in `hld-narrative.md`.
+## Scope
 
-- Include every class and method touched by that flow, including unchanged methods in changed or unchanged classes. Include every added, modified, or deleted class and method required to implement the behavior.
-- Include `components` for the UI surfaces the user interacts with (`type: "ui"`) and external I/O endpoints (`type: "external-io"`), such as network services, files, and local or session storage. Each component has a `name`, `type`, and `changeType`. Use `[]` when none participate.
-- Components represent interaction endpoints. Keep their implementation classes and methods in `classes`, including UI handlers and I/O adapters, with variable exposure on those classes.
-- Use unique names across classes and components. Relationship `from` and `to` values refer to these names directly.
-- Use `unchanged` for classes, methods, components, and relationships reused without modification; participation in the flow alone does not make them modified. An added connection to an existing endpoint does not by itself change that endpoint. Omit unrelated context.
-- Include directed dataflow relationships between the involved classes and components. Draw user input from UI components toward handling classes and display updates toward UI components. Draw I/O requests toward external endpoints and results toward consuming classes. Represent each direction separately when both occur. Label relationships with the data passed and relevant operations; describe method-level sequencing, state ownership and updates, and I/O details in the narrative.
-- For composition relationships, place the owner in `from` and the component in `to`.
+- Follow `hld-narrative.md` from user action through processing, state access, and I/O to displayed data and UI updates.
+- Include only dataflow and state-update relationships directly needed by the core use cases, including relevant unchanged flows. Omit incidental interactions and unrelated state updates.
+- Defer adjustments for interference with existing behavior to low level design, as defined in `hld-narrative.md`.
 - Ground every entry in the feature context, narrative, or current code.
 
-Components do not count as classes or carry variable exposure; their changed dataflow relationships count under the existing rubric. The Mermaid preview places these endpoints outside the class change scope and colors them by `changeType`.
+## Classes Methods and Components
 
-After completing these design entries, use the changed classes and methods to populate `variableExposure` as described in `hld-variable-exposure.md`. Then validate the JSON and write its exposure counts:
+- Include all required class and method changes, plus unchanged participants in the flow.
+- Use `components` for UI surfaces (`ui`) and external I/O endpoints (`external-io`), such as network services, files, and browser storage. Each has `name`, `type`, and `changeType`; use `[]` when none participate.
+- Keep implementation classes and methods, including UI handlers and I/O adapters, in `classes`. Variable exposure belongs to those classes.
+- Mark reused entries `unchanged`. Participation or a new connection alone does not modify an endpoint.
+- Keep class and component names globally unique, and method names unique within each class.
+
+## Relationships
+
+Every `from` and `to` reference must resolve to a listed entry:
+
+| Endpoint  | Reference                                            |
+| --------- | ---------------------------------------------------- |
+| Method    | `{"class": "ClassName", "method": "methodName"}`     |
+| Component | `{"component": "ComponentName"}`                     |
+| Class     | `{"class": "ClassName"}`                             |
+
+Explain sequencing and state changes in the narrative.
+
+### Dataflow
+
+- Connect UI components, methods, or external I/O components in the direction data travels. Classes are not endpoints.
+- Route user input to handling methods, method outputs to consuming methods, display updates to UI components, I/O requests to external endpoints, and results to consuming methods.
+- Use separate edges for each direction. Label the data passed and relevant operation.
+
+### State Update
+
+- Use `state-update` from a method to the class whose instance variable it updates, whether its own class or another.
+- Require a `label` naming the variable and describing the update. State reads alone are not updates.
+
+### Composition
+
+- Use `composition` from the owner to the owned class or component.
+
+## Scoring and Preview
+
+- Components do not count as classes. Score changed dataflow and state-update relationships separately under `hld-quality.md`.
+- The preview draws individual method nodes, dataflow arrows, and dotted method-to-class state-update arrows. UI and I/O components stay outside the class change scope; composition edges are omitted.
+
+## Validation
+
+Populate `variableExposure` from changed classes and methods using `hld-variable-exposure.md`. Then validate the JSON and write its exposure counts:
 
 ```sh
 node ai-coding-toolkit/hld-gen/scripts/count-variable-exposure.mjs <json-path>

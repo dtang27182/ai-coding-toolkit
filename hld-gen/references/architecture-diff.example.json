@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "stage": "high level design",
   "classes": [
     {
@@ -90,58 +90,65 @@
   ],
   "relationships": [
     {
-      "from": "Repository",
-      "to": "ChangeService",
+      "from": { "class": "Repository", "method": "readSourceFiles" },
+      "to": { "class": "ChangeService", "method": "buildChangeSet" },
       "type": "dataflow",
       "label": "source files",
       "changeType": "unchanged"
     },
     {
-      "from": "ChangeService",
-      "to": "ChangeModel",
+      "from": { "class": "ChangeService" },
+      "to": { "class": "ChangeModel" },
       "type": "composition",
       "changeType": "added"
     },
     {
-      "from": "Repository",
-      "to": "LegacyChangeAdapter",
+      "from": { "class": "Repository", "method": "readSourceFiles" },
+      "to": { "class": "LegacyChangeAdapter", "method": "adaptLegacyChange" },
       "type": "dataflow",
       "label": "legacy source files",
       "changeType": "deleted"
     },
     {
-      "from": "Change Panel",
-      "to": "ChangeService",
+      "from": { "component": "Change Panel" },
+      "to": { "class": "ChangeService", "method": "buildChangeSet" },
       "type": "dataflow",
       "label": "user requests changes for selected files",
       "changeType": "added"
     },
     {
-      "from": "ChangeService",
-      "to": "Repository",
+      "from": { "class": "ChangeService", "method": "buildChangeSet" },
+      "to": { "class": "Repository", "method": "readSourceFiles" },
       "type": "dataflow",
       "label": "read selected files",
       "changeType": "added"
     },
     {
-      "from": "Repository",
-      "to": "Source Files on Disk",
+      "from": { "class": "Repository", "method": "readSourceFiles" },
+      "to": { "component": "Source Files on Disk" },
       "type": "dataflow",
       "label": "read file paths",
       "changeType": "unchanged"
     },
     {
-      "from": "Source Files on Disk",
-      "to": "Repository",
+      "from": { "component": "Source Files on Disk" },
+      "to": { "class": "Repository", "method": "readSourceFiles" },
       "type": "dataflow",
       "label": "file contents",
       "changeType": "unchanged"
     },
     {
-      "from": "ChangeService",
-      "to": "Change Panel",
+      "from": { "class": "ChangeService", "method": "buildChangeSet" },
+      "to": { "component": "Change Panel" },
       "type": "dataflow",
       "label": "change set displayed to user",
+      "changeType": "added"
+    },
+    {
+      "from": { "class": "ChangeService", "method": "buildChangeSet" },
+      "to": { "class": "ChangeModel" },
+      "type": "state-update",
+      "label": "changes: store the computed change set",
       "changeType": "added"
     }
   ],

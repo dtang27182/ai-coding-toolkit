@@ -30,6 +30,16 @@ Score: `N`. Lower is better. The minimum score is 0.
 
 Let `N` be the number of `dataflow` relationships whose `changeType` is `added`, `modified`, or `deleted`.
 
+Count only flows directly relevant to the core use cases. State-update relationships are a separate type and are excluded from this count.
+
+Score: `N`. Lower is better. The minimum score is 0.
+
+### Changed State-Update Relationships
+
+Let `N` be the number of `state-update` relationships whose `changeType` is `added`, `modified`, or `deleted`.
+
+Count only updates directly relevant to the core use cases. Exclude unchanged relationships.
+
 Score: `N`. Lower is better. The minimum score is 0.
 
 ### Variable Exposure

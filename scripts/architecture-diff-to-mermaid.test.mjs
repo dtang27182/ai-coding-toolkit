@@ -29,9 +29,9 @@ test("omits composition while preserving data flows, boundary markers, and edge 
   );
   architectureDiff.relationships[1].label = "owns model";
   architectureDiff.relationships.push(
-    { from: "Repository", to: "ChangeModel", type: "composition", changeType: "deleted", label: "owned model" },
-    { from: "ChangeService", to: "ChangeModel", type: "dataflow", changeType: "modified", label: "changes" },
-    { from: "ChangeModel", to: "Repository", type: "dataflow", changeType: "added", label: "saved changes" }
+    { from: { class: "Repository" }, to: { class: "ChangeModel" }, type: "composition", changeType: "deleted", label: "owned model" },
+    { from: { class: "ChangeService", method: "buildChangeSet" }, to: { class: "LegacyChangeAdapter", method: "adaptLegacyChange" }, type: "dataflow", changeType: "modified", label: "changes" },
+    { from: { class: "ChangeService", method: "buildChangeSet" }, to: { class: "Repository", method: "readSourceFiles" }, type: "dataflow", changeType: "added", label: "saved changes" }
   );
   const markdown = await generateDiagram(t, architectureDiff);
   const diagram = markdown.split("```mermaid\n")[1].split("```")[0];
@@ -59,8 +59,9 @@ test("shows unchanged methods in both changed and context classes", async (t) =>
   architectureDiff.classes[0].changeType = "modified";
   architectureDiff.classes[0].methods.push({ name: "getChangeSet", changeType: "unchanged" });
   const markdown = await generateDiagram(t, architectureDiff);
-  assert.ok(markdown.includes('ChangeService<br/>+ buildChangeSet<br/>= getChangeSet'));
-  assert.ok(markdown.includes('Repository<br/>= readSourceFiles'));
+  assert.ok(markdown.includes('"+ ChangeService.buildChangeSet"'));
+  assert.ok(markdown.includes('"= ChangeService.getChangeSet"'));
+  assert.ok(markdown.includes('"= Repository.readSourceFiles"'));
 });
 
 test("renders UI input and output and external I/O requests and results", async (t) => {
@@ -69,7 +70,7 @@ test("renders UI input and output and external I/O requests and results", async 
   const diagram = markdown.split("```mermaid\n")[1].split("```")[0];
   const uiNode = diagram.match(/(\w+)\("UI: Change Panel"\)/)[1];
   const ioNode = diagram.match(/(\w+)\{\{"I\/O: Source Files on Disk"\}\}/)[1];
-  const repositoryNode = diagram.match(/(\w+)\["Repository<br\/>= readSourceFiles"\]/)[1];
+  const repositoryNode = diagram.match(/(\w+)\["= Repository.readSourceFiles"\]/)[1];
   assert.ok(diagram.includes(`${uiNode} -->|"user requests changes for selected files"|`));
   assert.ok(diagram.includes(`-->|"change set displayed to user"| ${uiNode}`));
   assert.ok(diagram.includes(`${repositoryNode} -->|"read file paths"| ${ioNode}`));
@@ -80,6 +81,24 @@ test("renders UI input and output and external I/O requests and results", async 
   assert.ok(!changeScope.includes(uiNode));
   assert.ok(!changeScope.includes(ioNode));
   assert.doesNotMatch(diagram, /undefined/);
+});
+
+test("targets methods within their owning classes and draws state updates to classes", async (t) => {
+  const architectureDiff = JSON.parse(await readFile(examplePath, "utf8"));
+  architectureDiff.classes[1].methods.push({ name: "buildChangeSet", changeType: "added" });
+  architectureDiff.relationships = [
+    { from: { class: "ChangeService", method: "buildChangeSet" }, to: { class: "ChangeModel", method: "buildChangeSet" }, type: "dataflow", changeType: "added", label: "changes" },
+    { from: { class: "ChangeModel", method: "buildChangeSet" }, to: { class: "ChangeModel" }, type: "state-update", changeType: "added", label: "changes: store result" },
+    { from: { class: "ChangeService", method: "buildChangeSet" }, to: { class: "ChangeModel" }, type: "state-update", changeType: "added", label: "ready: set true" },
+  ];
+  const markdown = await generateDiagram(t, architectureDiff);
+  const serviceMethod = markdown.match(/(\w+)\["\+ ChangeService.buildChangeSet"\]/)[1];
+  const modelMethod = markdown.match(/(\w+)\["\+ ChangeModel.buildChangeSet"\]/)[1];
+  const modelClass = markdown.match(/(\w+)\["ChangeModel"\]/)[1];
+  assert.notEqual(serviceMethod, modelMethod);
+  assert.ok(markdown.includes(`${serviceMethod} -->|"changes"| ${modelMethod}`));
+  assert.ok(markdown.includes(`${modelMethod} -.->|"state update: changes: store result"| ${modelClass}`));
+  assert.ok(markdown.includes(`${serviceMethod} -.->|"state update: ready: set true"| ${modelClass}`));
 });
 
 test("keeps classes visible when all relationships are composition", async (t) => {

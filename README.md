@@ -70,8 +70,8 @@ node ai-coding-toolkit/hld-gen/scripts/validate-architecture-diff.mjs <path-to-j
 
 By default, the converter writes beside the JSON file with `.mermaid.md` appended to its base name. Pass a second path to choose another output file.
 
-The diagram groups added, modified, and deleted classes inside a change-scope outline. Unchanged context classes remain outside, small circles mark data flows that cross the scope, and all methods participating in the end-to-end flow appear inside their class nodes with change markers.
+The diagram groups added, modified, and deleted classes and their methods inside a change-scope outline. Unchanged context classes and their methods remain outside. Method nodes show their owning class, method name, and change marker. Small circles mark relationships crossing the scope.
 
-Only data flow relationships are drawn; composition relationships remain in the JSON. Diagrams use a compact top-to-bottom layout to reduce horizontal scrolling.
+Dataflow arrows connect methods and UI or external I/O components. Dotted state-update arrows connect a method to the class whose instance variable it updates. Include only relationships directly relevant to the core use cases. Composition relationships remain in the JSON and are not drawn. Diagrams use a compact top-to-bottom layout to reduce horizontal scrolling.
 
 UI components and external I/O endpoints appear outside the class change scope, connected by directed data flows. Rounded nodes represent UI surfaces; hexagons represent external I/O such as network services, files, or browser storage. Their colors indicate change type, as for classes.

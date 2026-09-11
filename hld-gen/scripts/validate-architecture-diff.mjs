@@ -36,6 +36,8 @@ if (inputArguments.length !== 1) {
     } else {
       const semanticErrors = [];
       const nodeNames = new Set();
+      const classMethods = new Map();
+      const componentNames = new Set();
 
       for (const classDiff of architectureDiff.classes) {
         if (nodeNames.has(classDiff.name)) {
@@ -45,6 +47,7 @@ if (inputArguments.length !== 1) {
         }
 
         const methodNames = new Set();
+        classMethods.set(classDiff.name, methodNames);
         for (const method of classDiff.methods) {
           if (methodNames.has(method.name)) {
             semanticErrors.push(`Duplicate method name in ${classDiff.name}: ${method.name}`);
@@ -84,6 +87,7 @@ if (inputArguments.length !== 1) {
       }
 
       for (const component of architectureDiff.components) {
+        componentNames.add(component.name);
         if (nodeNames.has(component.name)) {
           semanticErrors.push(`Duplicate class or component name: ${component.name}`);
         } else {
@@ -92,11 +96,18 @@ if (inputArguments.length !== 1) {
       }
 
       for (const relationship of architectureDiff.relationships) {
-        if (!nodeNames.has(relationship.from)) {
-          semanticErrors.push(`Unknown relationship source class or component: ${relationship.from}`);
-        }
-        if (!nodeNames.has(relationship.to)) {
-          semanticErrors.push(`Unknown relationship target class or component: ${relationship.to}`);
+        for (const endpoint of [relationship.from, relationship.to]) {
+          if (endpoint.component !== undefined) {
+            if (!componentNames.has(endpoint.component)) {
+              semanticErrors.push(`Unknown relationship component: ${endpoint.component}`);
+            }
+          } else if (endpoint.class !== undefined) {
+            if (!classMethods.has(endpoint.class)) {
+              semanticErrors.push(`Unknown relationship class: ${endpoint.class}`);
+            } else if (endpoint.method !== undefined && !classMethods.get(endpoint.class).has(endpoint.method)) {
+              semanticErrors.push(`Unknown relationship method in ${endpoint.class}: ${endpoint.method}`);
+            }
+          }
         }
       }
 

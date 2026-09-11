@@ -69,10 +69,88 @@ test("rejects ambiguous names across components and classes", async (t) => {
 test("rejects unknown source and target endpoints", async (t) => {
   for (const endpoint of ["from", "to"]) {
     const input = JSON.parse(await readFile(examplePath, "utf8"));
-    input.relationships.push({ from: "Change Panel", to: "Source Files on Disk", type: "dataflow", changeType: "added" });
-    input.relationships.at(-1)[endpoint] = "Missing endpoint";
+    input.relationships.push({ from: { component: "Change Panel" }, to: { component: "Source Files on Disk" }, type: "dataflow", changeType: "added" });
+    input.relationships.at(-1)[endpoint] = { component: "Missing endpoint" };
     const result = await runScript(t, input);
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /Unknown relationship (source|target) class or component: Missing endpoint/);
+    assert.match(result.stderr, /Unknown relationship component: Missing endpoint/);
+  }
+});
+
+test("accepts every dataflow pairing of UI components, methods, and I/O components", async (t) => {
+  const input = JSON.parse(await readFile(examplePath, "utf8"));
+  input.relationships = [];
+  const endpoints = [
+    { component: "Change Panel" },
+    { class: "ChangeService", method: "buildChangeSet" },
+    { component: "Source Files on Disk" },
+  ];
+  for (const from of endpoints) {
+    for (const to of endpoints) {
+      input.relationships.push({ from, to, type: "dataflow", changeType: "added" });
+    }
+  }
+  const result = await runScript(t, input);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("accepts state updates to the method's own class or another class", async (t) => {
+  const input = JSON.parse(await readFile(examplePath, "utf8"));
+  input.relationships = ["ChangeService", "ChangeModel"].map((name) => ({
+    from: { class: "ChangeService", method: "buildChangeSet" },
+    to: { class: name },
+    type: "state-update",
+    changeType: "added",
+    label: "changes: store computed changes",
+  }));
+  const result = await runScript(t, input);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("enforces endpoint kinds for dataflows and state updates", async (t) => {
+  const method = { class: "ChangeService", method: "buildChangeSet" };
+  const classEndpoint = { class: "ChangeModel" };
+  const ui = { component: "Change Panel" };
+  const io = { component: "Source Files on Disk" };
+  for (const [type, from, to] of [
+    ["dataflow", classEndpoint, method],
+    ["dataflow", method, classEndpoint],
+    ["state-update", ui, classEndpoint],
+    ["state-update", io, classEndpoint],
+    ["state-update", classEndpoint, classEndpoint],
+    ["state-update", method, ui],
+    ["state-update", method, io],
+    ["state-update", method, method],
+    ["dataflow", { ...method, component: "Change Panel" }, ui],
+  ]) {
+    const input = JSON.parse(await readFile(examplePath, "utf8"));
+    input.relationships = [{ from, to, type, changeType: "added", label: "changes" }];
+    const result = await runScript(t, input);
+    assert.notEqual(result.status, 0, JSON.stringify(input.relationships));
+    assert.match(result.stderr, /\/relationships\/0/);
+  }
+});
+
+test("requires state updates to describe the instance variable update", async (t) => {
+  const input = JSON.parse(await readFile(examplePath, "utf8"));
+  input.relationships = input.relationships.filter((relationship) => relationship.type === "state-update");
+  delete input.relationships[0].label;
+  const result = await runScript(t, input);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /required property 'label'/);
+});
+
+test("resolves methods within their explicit class and keeps class and component references distinct", async (t) => {
+  for (const [from, error] of [
+    [{ class: "ChangeModel", method: "buildChangeSet" }, /Unknown relationship method in ChangeModel/],
+    [{ class: "Missing class", method: "buildChangeSet" }, /Unknown relationship class: Missing class/],
+    [{ class: "Change Panel", method: "buildChangeSet" }, /Unknown relationship class: Change Panel/],
+    [{ component: "ChangeService" }, /Unknown relationship component: ChangeService/],
+  ]) {
+    const input = JSON.parse(await readFile(examplePath, "utf8"));
+    input.relationships = [{ from, to: { component: "Change Panel" }, type: "dataflow", changeType: "added" }];
+    const result = await runScript(t, input);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, error);
   }
 });

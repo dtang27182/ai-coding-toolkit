@@ -22,11 +22,13 @@ Begin with a brief paragraph explaining the overall approach. Then trace each fl
 
 - The initiating user action, the UI component receiving it, and its handling class and method.
 - Processing and data transformations needed to support the behavior.
-- Reads and writes of system state, including persistent instance variables in classes; identify the owning class and how the state changes.
+- Reads and writes of system state, which usually means persistent instance variables in classes, identify the owning class, the method performing each update, and how the variable changes.
 - I/O requests and results, naming the external I/O components and the classes and methods sending requests and consuming results. Include network services, files, local or session storage, and other endpoints where applicable.
 - Data returned to the user, the UI components displaying it, and the classes and methods that update or render them, including updates following asynchronous results.
 
 Cover every applicable step; do not stop at a service boundary or omit existing methods that carry the flow through to its user-visible result.
+
+Include only dataflow and state-update relationships directly relevant to the core use cases needed to realize the desired behavior. Dataflow describes data passed between UI components, methods, and external I/O components. State updates describe a method updating an instance variable in a class. Keep these relationships consistent with the Architecture Diff; omit incidental interactions and unrelated state changes.
 
 ## Touch Points
 

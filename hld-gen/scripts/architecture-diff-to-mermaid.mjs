@@ -16,8 +16,8 @@ function escapeMermaidText(value) {
     .replaceAll("\n", " ");
 }
 
-function classLabel(classDiff) {
-  const labelLines = [escapeMermaidText(classDiff.name)];
+function classNodes(classDiff, nodeIds, methodNodeIds) {
+  const lines = [`${nodeIds.get(classDiff.name)}["${escapeMermaidText(classDiff.name)}"]`];
 
   for (const method of classDiff.methods) {
     let changeMarker;
@@ -32,24 +32,40 @@ function classLabel(classDiff) {
       changeMarker = "=";
     }
 
-    labelLines.push(`${changeMarker} ${escapeMermaidText(method.name)}`);
+    lines.push(`${methodNodeIds.get(classDiff.name).get(method.name)}["${changeMarker} ${escapeMermaidText(classDiff.name)}.${escapeMermaidText(method.name)}"]`);
   }
 
-  return labelLines.join("<br/>");
+  return lines;
 }
 
-function classNode(classDiff, nodeId) {
-  return `${nodeId}["${classLabel(classDiff)}"]`;
+function endpointNodeId(endpoint, nodeIds, methodNodeIds) {
+  let nodeId;
+
+  if (endpoint.method !== undefined) {
+    nodeId = methodNodeIds.get(endpoint.class).get(endpoint.method);
+  } else if (endpoint.component !== undefined) {
+    nodeId = nodeIds.get(endpoint.component);
+  } else if (endpoint.class !== undefined) {
+    nodeId = nodeIds.get(endpoint.class);
+  }
+
+  return nodeId;
 }
 
-function edgeStatement(sourceId, targetId, label) {
+function edgeStatement(sourceId, targetId, type, label) {
   const escapedLabel = label === undefined ? undefined : escapeMermaidText(label);
+  let arrow;
+  if (type === "dataflow") {
+    arrow = "-->";
+  } else if (type === "state-update") {
+    arrow = "-.->";
+  }
   let statement;
 
   if (escapedLabel === undefined) {
-    statement = `${sourceId} --> ${targetId}`;
+    statement = `${sourceId} ${arrow} ${targetId}`;
   } else {
-    statement = `${sourceId} -->|"${escapedLabel}"| ${targetId}`;
+    statement = `${sourceId} ${arrow}|"${escapedLabel}"| ${targetId}`;
   }
 
   return statement;
@@ -72,16 +88,23 @@ function edgeStyle(changeType) {
 }
 
 function renderMermaid(architectureDiff) {
-  const dataflows = architectureDiff.relationships.filter(
-    (relationship) => relationship.type === "dataflow"
+  const visibleRelationships = architectureDiff.relationships.filter(
+    (relationship) => relationship.type === "dataflow" || relationship.type === "state-update"
   );
   const nodeIds = new Map();
+  const methodNodeIds = new Map();
+  let methodCounter = 1;
   const changedClasses = [];
   const contextClasses = [];
 
   for (let classIndex = 0; classIndex < architectureDiff.classes.length; classIndex += 1) {
     const classDiff = architectureDiff.classes[classIndex];
     nodeIds.set(classDiff.name, `class${classIndex + 1}`);
+    methodNodeIds.set(classDiff.name, new Map());
+    for (const method of classDiff.methods) {
+      methodNodeIds.get(classDiff.name).set(method.name, `method${methodCounter}`);
+      methodCounter += 1;
+    }
 
     if (classDiff.changeType === "unchanged") {
       contextClasses.push(classDiff);
@@ -96,12 +119,12 @@ function renderMermaid(architectureDiff) {
 
   for (
     let relationshipIndex = 0;
-    relationshipIndex < dataflows.length;
+    relationshipIndex < visibleRelationships.length;
     relationshipIndex += 1
   ) {
-    const relationship = dataflows[relationshipIndex];
-    const sourceIsChanged = changedClassNames.has(relationship.from);
-    const targetIsChanged = changedClassNames.has(relationship.to);
+    const relationship = visibleRelationships[relationshipIndex];
+    const sourceIsChanged = changedClassNames.has(relationship.from.class);
+    const targetIsChanged = changedClassNames.has(relationship.to.class);
 
     if (sourceIsChanged !== targetIsChanged) {
       boundaryNodeIds.set(relationshipIndex, `boundary${boundaryCounter}`);
@@ -115,7 +138,7 @@ function renderMermaid(architectureDiff) {
   ];
 
   for (const classDiff of contextClasses) {
-    lines.push(`  ${classNode(classDiff, nodeIds.get(classDiff.name))}`);
+    lines.push(...classNodes(classDiff, nodeIds, methodNodeIds).map((line) => `  ${line}`));
   }
 
   let componentCounter = 1;
@@ -136,7 +159,7 @@ function renderMermaid(architectureDiff) {
     lines.push("    direction TB");
 
     for (const classDiff of changedClasses) {
-      lines.push(`    ${classNode(classDiff, nodeIds.get(classDiff.name))}`);
+      lines.push(...classNodes(classDiff, nodeIds, methodNodeIds).map((line) => `    ${line}`));
     }
 
     for (const boundaryNodeId of boundaryNodeIds.values()) {
@@ -151,30 +174,34 @@ function renderMermaid(architectureDiff) {
 
   for (
     let relationshipIndex = 0;
-    relationshipIndex < dataflows.length;
+    relationshipIndex < visibleRelationships.length;
     relationshipIndex += 1
   ) {
-    const relationship = dataflows[relationshipIndex];
-    const sourceId = nodeIds.get(relationship.from);
-    const targetId = nodeIds.get(relationship.to);
+    const relationship = visibleRelationships[relationshipIndex];
+    const sourceId = endpointNodeId(relationship.from, nodeIds, methodNodeIds);
+    const targetId = endpointNodeId(relationship.to, nodeIds, methodNodeIds);
     const boundaryNodeId = boundaryNodeIds.get(relationshipIndex);
+    let label = relationship.label;
+    if (relationship.type === "state-update") {
+      label = `state update: ${relationship.label}`;
+    }
 
     if (boundaryNodeId === undefined) {
-      lines.push(`  ${edgeStatement(sourceId, targetId, relationship.label)}`);
+      lines.push(`  ${edgeStatement(sourceId, targetId, relationship.type, label)}`);
       linkStyles.push(`  linkStyle ${linkIndex} ${edgeStyle(relationship.changeType)}`);
       linkIndex += 1;
-    } else if (changedClassNames.has(relationship.from)) {
-      lines.push(`  ${edgeStatement(sourceId, boundaryNodeId)}`);
+    } else if (changedClassNames.has(relationship.from.class)) {
+      lines.push(`  ${edgeStatement(sourceId, boundaryNodeId, relationship.type)}`);
       linkStyles.push(`  linkStyle ${linkIndex} ${edgeStyle(relationship.changeType)}`);
       linkIndex += 1;
-      lines.push(`  ${edgeStatement(boundaryNodeId, targetId, relationship.label)}`);
+      lines.push(`  ${edgeStatement(boundaryNodeId, targetId, relationship.type, label)}`);
       linkStyles.push(`  linkStyle ${linkIndex} ${edgeStyle(relationship.changeType)}`);
       linkIndex += 1;
     } else {
-      lines.push(`  ${edgeStatement(sourceId, boundaryNodeId, relationship.label)}`);
+      lines.push(`  ${edgeStatement(sourceId, boundaryNodeId, relationship.type, label)}`);
       linkStyles.push(`  linkStyle ${linkIndex} ${edgeStyle(relationship.changeType)}`);
       linkIndex += 1;
-      lines.push(`  ${edgeStatement(boundaryNodeId, targetId)}`);
+      lines.push(`  ${edgeStatement(boundaryNodeId, targetId, relationship.type)}`);
       linkStyles.push(`  linkStyle ${linkIndex} ${edgeStyle(relationship.changeType)}`);
       linkIndex += 1;
     }
@@ -188,6 +215,9 @@ function renderMermaid(architectureDiff) {
 
   for (const classDiff of architectureDiff.classes) {
     lines.push(`  class ${nodeIds.get(classDiff.name)} ${classDiff.changeType}`);
+    for (const method of classDiff.methods) {
+      lines.push(`  class ${methodNodeIds.get(classDiff.name).get(method.name)} ${method.changeType}`);
+    }
   }
 
   for (const component of architectureDiff.components) {
@@ -218,16 +248,18 @@ function renderMarkdown(architectureDiff) {
     "",
     "## Legend",
     "",
-    "- Green nodes are added classes or components.",
-    "- Amber nodes are modified classes or components.",
-    "- Red nodes are deleted classes or components.",
-    "- Gray nodes are unchanged classes or components.",
+    "- Green nodes are added classes, methods, or components.",
+    "- Amber nodes are modified classes, methods, or components.",
+    "- Red nodes are deleted classes, methods, or components.",
+    "- Gray nodes are unchanged classes, methods, or components.",
     "- Rounded nodes marked UI are user-facing components; hexagons marked I/O are external I/O endpoints.",
     "- UI and external I/O components sit outside the class change scope.",
     "- `+`, `~`, `-`, and `=` mark added, modified, deleted, and unchanged methods.",
-    "- Edges are data flows; composition relationships are omitted.",
+    "- Method nodes show their owning class and method name.",
+    "- Data flows connect methods and UI or external I/O components; composition relationships are omitted.",
+    "- Dotted edges labeled state update connect a method to the class whose instance variable it updates.",
     "- Red dashed edges are deleted data flows.",
-    "- Small circles mark data flows crossing the change scope.",
+    "- Small circles mark data flows and state updates crossing the class change scope.",
     "",
   ].join("\n");
 }

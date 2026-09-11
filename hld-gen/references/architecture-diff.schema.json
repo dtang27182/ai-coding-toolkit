@@ -6,7 +6,7 @@
   "required": ["schemaVersion", "stage", "classes", "components", "relationships"],
   "properties": {
     "schemaVersion": {
-      "const": 4
+      "const": 5
     },
     "stage": {
       "const": "high level design"
@@ -161,23 +161,58 @@
         }
       ]
     },
+    "classEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class"],
+      "properties": {
+        "class": { "type": "string", "minLength": 1 }
+      }
+    },
+    "methodEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class", "method"],
+      "properties": {
+        "class": { "type": "string", "minLength": 1 },
+        "method": { "type": "string", "minLength": 1 }
+      }
+    },
+    "componentEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component"],
+      "properties": {
+        "component": { "type": "string", "minLength": 1 }
+      }
+    },
+    "dataflowEndpoint": {
+      "oneOf": [
+        { "$ref": "#/$defs/methodEndpoint" },
+        { "$ref": "#/$defs/componentEndpoint" }
+      ]
+    },
+    "compositionEndpoint": {
+      "oneOf": [
+        { "$ref": "#/$defs/classEndpoint" },
+        { "$ref": "#/$defs/componentEndpoint" }
+      ]
+    },
     "relationship": {
       "type": "object",
       "additionalProperties": false,
       "required": ["from", "to", "type", "changeType"],
       "properties": {
         "from": {
-          "description": "Name of the source class or component.",
-          "type": "string",
-          "minLength": 1
+          "description": "Explicit source reference, constrained by relationship type.",
+          "type": "object"
         },
         "to": {
-          "description": "Name of the target class or component.",
-          "type": "string",
-          "minLength": 1
+          "description": "Explicit target reference, constrained by relationship type.",
+          "type": "object"
         },
         "type": {
-          "enum": ["dataflow", "composition"]
+          "enum": ["dataflow", "state-update", "composition"]
         },
         "label": {
           "type": "string",
@@ -186,7 +221,38 @@
         "changeType": {
           "enum": ["added", "modified", "deleted", "unchanged"]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "dataflow" } } },
+          "then": {
+            "properties": {
+              "from": { "$ref": "#/$defs/dataflowEndpoint" },
+              "to": { "$ref": "#/$defs/dataflowEndpoint" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "state-update" } } },
+          "then": {
+            "required": ["label"],
+            "properties": {
+              "from": { "$ref": "#/$defs/methodEndpoint" },
+              "to": { "$ref": "#/$defs/classEndpoint" },
+              "label": { "description": "Name the instance variable being updated and describe the update." }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "composition" } } },
+          "then": {
+            "properties": {
+              "from": { "$ref": "#/$defs/compositionEndpoint" },
+              "to": { "$ref": "#/$defs/compositionEndpoint" }
+            }
+          }
+        }
+      ]
     }
   }
 }

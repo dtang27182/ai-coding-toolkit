@@ -16,7 +16,7 @@ function variable(name, kind, line, method) {
 
 function architectureDiff(variableExposure) {
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     stage: "high level design",
     classes: [{ name: "Service", changeType: "modified", methods: [], variableExposure }],
     components: [],
