@@ -24,15 +24,14 @@ Each target repository has its own files and output configuration and works inde
 
 ## Generate a High-Level Design
 
-Start `$hld-gen` at any point in a conversation about a feature. Clarification, discussion of possible approaches, and an agreed design are optional. The agent uses the available context to draft or refine a design, records working assumptions, and preserves explicit user constraints and decisions.
+Start `$hld-gen` at any point in a conversation about a feature. Before drafting, the agent presents its understanding of the desired behavior and scope, asks the user to confirm or correct it, and waits for an explicit response. It does not create or revise the HLD before confirmation.
 
-The default rubric in `hld-gen/references/hld-quality.md` scores the size and concentration of the proposed changes. You can supply another rubric for a particular HLD.
+The rubric in `hld-gen/references/hld-quality.md` scores change size, concentration, and Variable Exposure. See `hld-gen/references/hld-variable-exposure.md` for the exposure rules.
 
 Ask the agent:
 
 ```text
 Use $hld-gen to develop a design from our workbook-import conversation so far.
-Use ai-coding-toolkit/hld-gen/references/hld-quality.md as the rubric.
 ```
 
 `hld-gen` writes a narrative and Architecture Diff as one HLD. `hld-eval` returns each rubric attribute's raw score, whether higher or lower values are better, and one qualitative assessment without revision suggestions. `hld-gen` revises the same HLD until every score reaches its best possible value or it cannot identify another improvement.
@@ -50,6 +49,8 @@ Results are saved under the configured output directory:
 - `<feature>.architecture-diff.hld.json`: current Architecture Diff.
 - `<feature>.architecture-diff.hld.mermaid.md`: generated diagram preview.
 - `<feature>.hld-evaluation.md`: latest attribute scores, qualitative assessment, and stopping reason.
+
+Architecture Diff schema version 2 records each class's `variableExposure` inventory. The counting script writes per-class counts and a deduplicated total; `null` means the exposure is unknown.
 
 The report follows `hld-gen/references/hld-evaluation-format.md`. The final artifacts are ready for human review; application implementation is a separate step.
 

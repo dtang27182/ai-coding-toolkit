@@ -6,10 +6,15 @@
   "required": ["schemaVersion", "stage", "classes", "relationships"],
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "const": 2
     },
     "stage": {
       "const": "high level design"
+    },
+    "variableExposureCount": {
+      "description": "Derived total; null when any inventory is unknown.",
+      "type": ["integer", "null"],
+      "minimum": 0
     },
     "classes": {
       "type": "array",
@@ -29,7 +34,7 @@
     "class": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "changeType", "methods"],
+      "required": ["name", "changeType", "methods", "variableExposure"],
       "properties": {
         "name": {
           "type": "string",
@@ -42,9 +47,22 @@
           "type": "boolean"
         },
         "methods": {
+          "description": "Every added, modified, or deleted method in the class.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/method"
+          }
+        },
+        "variableExposureCount": {
+          "description": "Derived class count; null when its inventory is unknown.",
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "variableExposure": {
+          "description": "Existing declarations exposed to this class's changes; null when unknown.",
+          "type": ["array", "null"],
+          "items": {
+            "$ref": "#/$defs/exposedVariable"
           }
         }
       }
@@ -65,6 +83,63 @@
           "type": "boolean"
         }
       }
+    },
+    "exposedVariable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "declaredAt"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": ["instance", "parameter", "local"]
+        },
+        "method": {
+          "description": "Existing method containing the parameter or local.",
+          "type": "string",
+          "minLength": 1
+        },
+        "declaredAt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file", "line", "column"],
+          "properties": {
+            "file": {
+              "description": "Canonical repository-relative path to the declaration in current code.",
+              "type": "string",
+              "minLength": 1
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "column": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": { "enum": ["parameter", "local"] }
+            }
+          },
+          "then": { "required": ["method"] }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": { "const": "instance" }
+            }
+          },
+          "then": { "not": { "required": ["method"] } }
+        }
+      ]
     },
     "relationship": {
       "type": "object",

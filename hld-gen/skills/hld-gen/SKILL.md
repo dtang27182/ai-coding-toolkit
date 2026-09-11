@@ -1,35 +1,46 @@
 ---
 name: hld-gen
-description: Create and improve a high-level design from feature context and the current code, including a narrative, Architecture Diff, and rubric-based evaluation.
+description: Create and refine the simplest high-level design that implements requested behavior, using a narrative, Architecture Diff, and rubric-based evaluation.
 ---
 
 # HLD Generation
 
-Create and improve one HLD. The HLD consists of a narrative Markdown file and an Architecture Diff JSON file that describe the same design from shared feature and repository context.
+Create the simplest design that implements the requested behavior. Minimize the rubric's complexity measures while preserving explicit requirements, existing behavior, and clear responsibilities. Do not omit necessary changes or combine unrelated responsibilities to improve a score.
 
-An HLD sketches the core logic and dataflow for new or changed behavior, its place in the existing architecture, data ingress and egress, and interactions with newly introduced state. Focus on core use cases; leave detailed error handling, edge cases, and adjustments to existing logic for later design work.
+The HLD consists of a narrative Markdown file and an Architecture Diff JSON file describing the same design. It covers core logic, dataflow, architectural fit, and variable exposure for the core use cases. Detailed error handling, edge cases, and implementation changes belong to later design work.
 
 Read these instructions when their corresponding work is needed:
 
 - `ai-coding-toolkit/hld-gen/references/hld-narrative.md` before writing or revising the narrative.
 - `ai-coding-toolkit/hld-gen/references/hld-architecture-diff.md` before writing or revising the Architecture Diff.
+- `ai-coding-toolkit/hld-gen/references/hld-variable-exposure.md` when identifying touched methods and existing variables exposed to the change.
+- `ai-coding-toolkit/hld-gen/references/hld-quality.md` before choosing a design.
 - `ai-coding-toolkit/hld-gen/skills/hld-eval/SKILL.md` before evaluating the HLD.
 
 ## Create the HLD
 
-1. Read `ai-coding-toolkit/config.json`, the available feature context, relevant code, and applicable repository guidance. Start with the available context even when the feature has not been fully discussed or agreed.
-2. Use a stable kebab-case feature slug. Resolve `outputDirectory` relative to the containing repository root and create it if necessary. Save the files as `<feature>.hld.md`, `<feature>.architecture-diff.hld.json`, and `<feature>.hld-evaluation.md`. Preserve user-supplied paths and existing user edits.
-3. Write or revise both design artifacts together. Preserve explicit user requirements and decisions. Clearly label proposed approaches, working assumptions, and open questions.
-4. Write the concise narrative using the five sections defined in the narrative reference.
-5. Write the JSON using the HLD Architecture Diff reference and validate it with the provided script. Fix validation errors before evaluation.
+1. Understand the desired behavior.
+   - Read the feature context, relevant code, and repository guidance. Identify the core use cases, requirements, decisions, and constraints.
+   - Present the user with a concise summary of the desired behavior and what is in and out of scope. Ask them to confirm or correct it.
+   - Stop and wait for the user's response. Do not start the design or proceed to step 2 until the user explicitly confirms the summary.
+   - Incorporate the response and record any remaining assumptions and open questions.
+2. Read `ai-coding-toolkit/hld-gen/references/hld-quality.md` and use its criteria to choose the simplest design that implements the desired behavior.
+3. Create the narrative and Architecture Diff in parallel as complementary parts of the same design; do not derive one from the other.
+   - Read `ai-coding-toolkit/config.json`, choose a stable kebab-case feature slug, and write both artifacts under its repository-relative `outputDirectory` unless the user supplies paths.
+   - Write the narrative using `ai-coding-toolkit/hld-gen/references/hld-narrative.md` and the Architecture Diff using `ai-coding-toolkit/hld-gen/references/hld-architecture-diff.md`. When revising existing artifacts, retain the user's edits unless they conflict with the requested behavior.
+4. Use the Architecture Diff's changed classes and methods to find exposed variables in the current code. Populate `variableExposure` using `ai-coding-toolkit/hld-gen/references/hld-variable-exposure.md`. Use `null` when exposure remains unknown.
+5. Run `node ai-coding-toolkit/hld-gen/scripts/count-variable-exposure.mjs <json-path>` to validate the Architecture Diff and write its `variableExposureCount` values. Fix failures before evaluation.
 
 ## Improve the HLD
 
-1. Use the supplied rubric, defaulting to `ai-coding-toolkit/hld-gen/references/hld-quality.md`. Do not add attributes or scoring rules. If the rubric has no usable score definitions and optimization directions, preserve the HLD and request them.
-2. Follow `hld-eval` to evaluate the current HLD. Save the result to the evaluation path, replacing the previous evaluation.
-3. If every attribute has reached its best possible score defined by the rubric, stop with `best-scores`.
-4. Otherwise, use each attribute's optimization direction and the qualitative assessment together with the feature context and current code to identify a concrete improvement. The evaluator does not supply revision instructions. If no improvement is apparent, stop with `no-identifiable-improvement`.
-5. Revise the same narrative and JSON files in place, validate the JSON, and evaluate again. Continue until one of the stopping conditions above applies. Do not keep alternate candidates or revision history.
+1. Use the explicit behavior and scope confirmation obtained before creation. For standalone improvement, obtain that confirmation and wait for the user's response before evaluating or revising the HLD.
+2. Use `ai-coding-toolkit/hld-gen/references/hld-quality.md` without changing it during the run.
+3. Follow `hld-eval` to evaluate the current HLD, replacing the previous evaluation.
+4. If every attribute has reached its best possible score defined by the rubric, stop with `best-scores`.
+5. Otherwise, identify a revision that makes the design simpler using all attribute directions and the qualitative assessment. Account for tradeoffs without inventing weights. If no simpler complete design is apparent, stop with `no-identifiable-improvement`.
+6. Revise the same files in place. Rebuild the exposure inventory from the revised Architecture Diff, run the counting script, and evaluate again. Keep only the current design and evaluation.
+
+If variable exposure is unknown, inspect the missing code or settle the relevant design choice. If required context remains unavailable, preserve the design and stop with `needs-input`.
 
 ## Human Handoff
 

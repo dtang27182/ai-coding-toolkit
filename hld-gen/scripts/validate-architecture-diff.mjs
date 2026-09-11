@@ -52,6 +52,35 @@ if (inputArguments.length !== 1) {
             methodNames.add(method.name);
           }
         }
+
+        if (Array.isArray(classDiff.variableExposure)) {
+          const classExposedVariables = new Set();
+          if (classDiff.changeType === "unchanged" && classDiff.variableExposure.length > 0) {
+            semanticErrors.push(`Unchanged context class has variable exposure: ${classDiff.name}`);
+          }
+          for (const variable of classDiff.variableExposure) {
+            if (
+              path.posix.isAbsolute(variable.declaredAt.file) ||
+              path.win32.isAbsolute(variable.declaredAt.file) ||
+              variable.declaredAt.file.includes("\\") ||
+              path.posix.normalize(variable.declaredAt.file) !== variable.declaredAt.file ||
+              variable.declaredAt.file === "." ||
+              variable.declaredAt.file === ".." ||
+              variable.declaredAt.file.startsWith("../")
+            ) {
+              semanticErrors.push(`Variable declaration path must be canonical and repository-relative: ${variable.declaredAt.file}`);
+            }
+            const declarationId = JSON.stringify([
+              variable.declaredAt.file,
+              variable.declaredAt.line,
+              variable.declaredAt.column,
+            ]);
+            if (classExposedVariables.has(declarationId)) {
+              semanticErrors.push(`Duplicate exposed variable in ${classDiff.name}: ${variable.name}`);
+            }
+            classExposedVariables.add(declarationId);
+          }
+        }
       }
 
       for (const relationship of architectureDiff.relationships) {

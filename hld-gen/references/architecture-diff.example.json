@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "stage": "high level design",
   "classes": [
     {
@@ -12,17 +12,23 @@
           "changeType": "added",
           "coreChange": true
         }
-      ]
+      ],
+      "variableExposure": [],
+      "variableExposureCount": 0
     },
     {
       "name": "ChangeModel",
       "changeType": "added",
-      "methods": []
+      "methods": [],
+      "variableExposure": [],
+      "variableExposureCount": 0
     },
     {
       "name": "Repository",
       "changeType": "unchanged",
-      "methods": []
+      "methods": [],
+      "variableExposure": [],
+      "variableExposureCount": 0
     },
     {
       "name": "LegacyChangeAdapter",
@@ -32,7 +38,39 @@
           "name": "adaptLegacyChange",
           "changeType": "deleted"
         }
-      ]
+      ],
+      "variableExposure": [
+        {
+          "name": "repository",
+          "kind": "instance",
+          "declaredAt": {
+            "file": "src/LegacyChangeAdapter.js",
+            "line": 2,
+            "column": 3
+          }
+        },
+        {
+          "name": "sourceFiles",
+          "kind": "parameter",
+          "method": "adaptLegacyChange",
+          "declaredAt": {
+            "file": "src/LegacyChangeAdapter.js",
+            "line": 4,
+            "column": 21
+          }
+        },
+        {
+          "name": "changes",
+          "kind": "local",
+          "method": "adaptLegacyChange",
+          "declaredAt": {
+            "file": "src/LegacyChangeAdapter.js",
+            "line": 5,
+            "column": 11
+          }
+        }
+      ],
+      "variableExposureCount": 3
     }
   ],
   "relationships": [
@@ -56,5 +94,6 @@
       "label": "legacy source files",
       "changeType": "deleted"
     }
-  ]
+  ],
+  "variableExposureCount": 3
 }

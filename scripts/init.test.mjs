@@ -63,6 +63,12 @@ test("copies skills and scripts that work after the source checkout is removed",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(validation.status, 0, validation.stderr);
 
+  const count = spawnSync(process.execPath, [
+    "ai-coding-toolkit/hld-gen/scripts/count-variable-exposure.mjs", inputPath,
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(count.status, 0, count.stderr);
+  assert.equal(JSON.parse(await readFile(path.join(repoDirectory, inputPath), "utf8")).variableExposureCount, 3);
+
   const previewPath = "docs/plans/example.mermaid.md";
   const preview = spawnSync("npm", ["run", "mermaid", "--", inputPath, previewPath], {
     cwd: repoDirectory,

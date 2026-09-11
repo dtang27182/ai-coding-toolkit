@@ -2,9 +2,9 @@
 
 An HLD sketches the core logic and dataflow needed to implement new or changed behavior for the core use cases. It shows where that logic fits in the existing code and architecture, where data enters and leaves it, and how newly introduced state interacts with existing components.
 
-Keep the narrative concise. Leave detailed error handling, edge cases, implementation changes, and adjustments to existing logic and dataflow for later design work. Describe integration at the level of responsibilities and interface points.
+Keep the narrative concise. Leave detailed error handling, edge cases, implementation changes, and adjustments to existing logic and dataflow for later design work. Describe integration at the level of responsibilities and touch points.
 
-Use the following five sections in order:
+Use the following six sections in order:
 
 ## Desired Behavior
 
@@ -18,9 +18,13 @@ State the scope, explicit constraints, and working assumptions.
 
 Sketch the core processing steps and how data moves through them, including the inputs, persistent state updates, and resulting outputs.
 
-## Interface Points
+## Touch Points
 
-Identify where the core logic and dataflow fit in existing classes or components. Describe where input data comes from and where output data goes. For new stateful variables or components, describe who owns the state and how existing components read, update, or otherwise interact with it.
+Identify where the core logic and dataflow fit in existing classes or components. Describe where input data comes from and where output data goes.
+
+## Variable Exposure
+
+Follow `hld-variable-exposure.md`. Summarize the existing state that constrains the change and keep individual declarations in the Architecture Diff.
 
 ## Open Questions
 

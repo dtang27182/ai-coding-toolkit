@@ -217,7 +217,7 @@ function renderMarkdown(architectureDiff) {
     "- Red nodes are deleted classes.",
     "- Gray nodes are unchanged context classes.",
     "- Circular purple-bordered nodes contain core feature logic.",
-    "- `+`, `~`, and `-` mark added, modified, and deleted public methods; `★` marks core methods.",
+    "- `+`, `~`, and `-` mark added, modified, and deleted methods; `★` marks core methods.",
     "- Edges are data flows; composition relationships are omitted.",
     "- Red dashed edges are deleted data flows.",
     "- Small circles mark data flows crossing the change scope.",
