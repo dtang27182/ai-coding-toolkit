@@ -35,6 +35,8 @@ let methodsHidden = false;
 let zoom = 1;
 let panX = 0;
 let panY = 0;
+let inspectorWidth = 356;
+let currentGraphWidth = 320;
 let userZoomed = false;
 let selection: Selection | undefined;
 let hovered: Selection | undefined;
@@ -246,6 +248,7 @@ function renderGraph(): string {
       .map((relationship) => methodKey(relationship.from.nodeName, relationship.from.methodName!)),
   );
   const layout = computeLayout(graph.nodes, graph.relationships, methodsHidden, methodWidth, componentWidth, stateWriters);
+  currentGraphWidth = layout.width;
   const classByName = new Map(graph.classes.map((classDiff) => [classDiff.name, classDiff]));
   const focus = hovered ?? selection;
 
@@ -519,7 +522,8 @@ function render(): void {
         ${shapeLegend()}
         ${dragDepth > 0 ? '<div class="drop-overlay">Drop an architecture-diff.json file</div>' : ""}
       </div>
-      <aside class="inspector" aria-label="Architecture inspector">${renderInspector()}</aside>
+      <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuenow="${Math.round(inspectorWidth)}" tabindex="0"></div>
+      <aside class="inspector" style="width:${inspectorWidth}px;flex-basis:${inspectorWidth}px" aria-label="Architecture inspector">${renderInspector()}</aside>
     </div>
     <input type="file" accept="application/json,.json" data-file-input hidden>
   </div>`;
@@ -529,11 +533,51 @@ function render(): void {
 
 function bindEvents(): void {
   const canvas = app.querySelector<HTMLElement>(".canvas")!;
+  const workspace = app.querySelector<HTMLElement>(".workspace")!;
+  const inspectorResizer = app.querySelector<HTMLElement>("[data-inspector-resizer]")!;
   let rightDragPointer: number | undefined;
+  let resizePointer: number | undefined;
   let dragStartX = 0;
   let dragStartY = 0;
   let dragStartPanX = 0;
   let dragStartPanY = 0;
+  let resizeStartX = 0;
+  let resizeStartWidth = 0;
+  inspectorResizer.addEventListener("pointerdown", (event) => {
+    if (event.button === 0) {
+      resizePointer = event.pointerId;
+      resizeStartX = event.clientX;
+      resizeStartWidth = inspectorWidth;
+      inspectorResizer.setPointerCapture(event.pointerId);
+      workspace.classList.add("resizing-inspector");
+      event.preventDefault();
+    }
+  });
+  inspectorResizer.addEventListener("pointermove", (event) => {
+    if (event.pointerId === resizePointer) {
+      setInspectorWidth(resizeStartWidth - (event.clientX - resizeStartX));
+    }
+  });
+  inspectorResizer.addEventListener("pointerup", (event) => {
+    if (event.pointerId === resizePointer) {
+      inspectorResizer.releasePointerCapture(event.pointerId);
+      workspace.classList.remove("resizing-inspector");
+      resizePointer = undefined;
+    }
+  });
+  inspectorResizer.addEventListener("pointercancel", () => {
+    workspace.classList.remove("resizing-inspector");
+    resizePointer = undefined;
+  });
+  inspectorResizer.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowLeft") {
+      setInspectorWidth(inspectorWidth + 16);
+      event.preventDefault();
+    } else if (event.key === "ArrowRight") {
+      setInspectorWidth(inspectorWidth - 16);
+      event.preventDefault();
+    }
+  });
   canvas.addEventListener("pointerdown", (event) => {
     if (event.button === 2) {
       rightDragPointer = event.pointerId;
@@ -660,6 +704,16 @@ function bindEvents(): void {
   });
 }
 
+function setInspectorWidth(nextWidth: number): void {
+  const workspace = app.querySelector<HTMLElement>(".workspace")!;
+  inspectorWidth = Math.min(Math.max(240, workspace.clientWidth - 260), Math.max(240, nextWidth));
+  const inspector = app.querySelector<HTMLElement>(".inspector")!;
+  inspector.style.width = `${inspectorWidth}px`;
+  inspector.style.flexBasis = `${inspectorWidth}px`;
+  app.querySelector<HTMLElement>("[data-inspector-resizer]")!.setAttribute("aria-valuenow", String(Math.round(inspectorWidth)));
+  fitGraph(currentGraphWidth);
+}
+
 function updateGraphTransform(): void {
   const graph = app.querySelector<HTMLElement>(".graph");
   if (graph !== null) {
@@ -713,7 +767,7 @@ function fitGraph(graphWidth: number): void {
       const nextZoom = Math.min(1, Math.max(0.15, (canvas.clientWidth - 112) / graphWidth));
       if (Math.abs(nextZoom - zoom) >= 0.01) {
         zoom = nextZoom;
-        render();
+        updateGraphTransform();
       }
     }
   }

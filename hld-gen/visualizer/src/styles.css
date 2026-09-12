@@ -528,8 +528,38 @@ button:focus-visible,
   width: 356px;
   min-height: 0;
   overflow-y: auto;
-  border-left: 1px solid var(--border);
   background: var(--header);
+}
+
+.inspector-resizer {
+  position: relative;
+  z-index: 6;
+  width: 7px;
+  flex: 0 0 7px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.inspector-resizer::after {
+  position: absolute;
+  inset: 0 auto 0 3px;
+  width: 1px;
+  background: var(--border);
+  content: "";
+  transition: background 120ms ease, width 120ms ease;
+}
+
+.inspector-resizer:hover::after,
+.inspector-resizer:focus-visible::after,
+.resizing-inspector .inspector-resizer::after {
+  width: 2px;
+  background: var(--accent);
+}
+
+.resizing-inspector,
+.resizing-inspector * {
+  cursor: col-resize !important;
+  user-select: none;
 }
 
 .inspector-header {
