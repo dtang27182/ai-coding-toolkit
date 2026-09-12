@@ -45,7 +45,7 @@ const outputIsRepoSubdirectory =
   !relativeOutputDirectory.startsWith(`..${path.sep}`) &&
   !path.isAbsolute(relativeOutputDirectory);
 
-async function installRootMermaidCommand() {
+async function installRootCommands() {
   const packagePath = path.join(repoDirectory, "package.json");
   let packageJson;
 
@@ -58,19 +58,26 @@ async function installRootMermaidCommand() {
   }
 
   if (packageJson !== undefined) {
-    const mermaidCommand =
-      "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs";
-    const existingCommand = packageJson.scripts?.mermaid;
-
-    if (existingCommand === undefined) {
-      packageJson.scripts = packageJson.scripts ?? {};
-      packageJson.scripts.mermaid = mermaidCommand;
+    const commands = {
+      mermaid: "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs",
+      visualizer: "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer",
+    };
+    let packageChanged = false;
+    for (const [name, command] of Object.entries(commands)) {
+      const existingCommand = packageJson.scripts?.[name];
+      if (existingCommand === undefined) {
+        packageJson.scripts = packageJson.scripts ?? {};
+        packageJson.scripts[name] = command;
+        packageChanged = true;
+        console.log(`Installed npm command: npm run ${name}`);
+      } else if (existingCommand === command) {
+        console.log(`npm command already installed: npm run ${name}`);
+      } else {
+        console.warn(`Skipped npm command because npm run ${name} already exists`);
+      }
+    }
+    if (packageChanged) {
       await writeFile(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
-      console.log(`Installed npm command: npm run mermaid`);
-    } else if (existingCommand === mermaidCommand) {
-      console.log(`npm command already installed: npm run mermaid`);
-    } else {
-      console.warn("Skipped npm command because npm run mermaid already exists");
     }
   }
 }
@@ -101,7 +108,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     );
   }
   await installCodexSkills(repoDirectory, toolkitDirectory);
-  await installRootMermaidCommand();
+  await installRootCommands();
   await mkdir(outputPath, { recursive: true });
   await writeFile(
     path.join(installedToolkitDirectory, "config.json"),

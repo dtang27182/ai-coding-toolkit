@@ -76,6 +76,21 @@ test("copies skills and scripts that work after the source checkout is removed",
   });
   assert.equal(preview.status, 0, preview.stderr);
   assert.match(await readFile(path.join(repoDirectory, previewPath), "utf8"), /```mermaid/);
+
+  await rm(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen", "visualizer", "dist"), {
+    recursive: true,
+    force: true,
+  });
+  const visualizerBuild = spawnSync(process.execPath, [
+    "ai-coding-toolkit/node_modules/vite/bin/vite.js",
+    "build",
+    "ai-coding-toolkit/hld-gen/visualizer",
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
+  assert.match(
+    await readFile(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen", "visualizer", "dist", "index.html"), "utf8"),
+    /Architecture Diff Viewer/
+  );
 });
 
 test("refreshes installed copies on repeat installation", async (t) => {
@@ -119,7 +134,12 @@ test("keeps configuration in each target and preserves an existing mermaid comma
     { outputDirectory: "docs/plans" }
   );
   assert.equal(await readFile(path.join(toolkitDirectory, "config.json"), "utf8"), sourceConfig);
-  assert.equal(await readFile(path.join(firstRepo, "package.json"), "utf8"), existingPackage);
+  const installedPackage = JSON.parse(await readFile(path.join(firstRepo, "package.json"), "utf8"));
+  assert.equal(installedPackage.scripts.mermaid, "existing");
+  assert.equal(
+    installedPackage.scripts.visualizer,
+    "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer"
+  );
 });
 
 test("rejects missing targets and invalid arguments", async (t) => {

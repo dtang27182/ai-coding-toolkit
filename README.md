@@ -18,7 +18,7 @@ The target directory must already exist. Relative target paths are resolved from
 npm run install:codex -- ../code-repo --output-dir architecture/plans
 ```
 
-In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the HLD files and installed dependencies into `ai-coding-toolkit`, copies `hld-gen` and `hld-eval` under `.agents/skills`, and adds `npm run mermaid` when the repository has a root `package.json`.
+In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the HLD files and installed dependencies into `ai-coding-toolkit`, copies `hld-gen` and `hld-eval` under `.agents/skills`, and adds `npm run mermaid` and `npm run visualizer` when the repository has a root `package.json`.
 
 Each target repository has its own files and output configuration and works independently of this checkout. Rerun the installer to update its installed copies; this overwrites files in directories marked as toolkit installations. It will not replace unrelated existing directories or npm scripts. Links created by the earlier installer to this checkout are replaced with copies.
 
@@ -53,6 +53,16 @@ Results are grouped by feature under the configured output directory:
 The Architecture Diff records each class's `variableExposure` inventory. The counting script writes per-class counts and a deduplicated total; `null` means the exposure is unknown.
 
 The report follows `hld-gen/references/hld-evaluation-format.md`. The final artifacts are ready for human review; application implementation is a separate step.
+
+## Architecture Diff Visualizer
+
+Run the interactive visualizer from this toolkit checkout or an installed target repository:
+
+```sh
+npm run visualizer
+```
+
+The visualizer starts with the workbook-import schema-v5 sample from its design handoff. Open or drag in any schema-v5 `architecture-diff.json` file to inspect its classes, methods, UI and external I/O components, dataflows, state updates, composition, and variable exposure. Its controls can hide unchanged elements, collapse methods, and adjust the graph zoom.
 
 ## Mermaid
 

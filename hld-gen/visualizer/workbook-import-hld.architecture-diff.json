@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 5,
+  "stage": "high level design",
+  "classes": [
+    {
+      "name": "ImportOrchestrator",
+      "changeType": "modified",
+      "methods": [
+        { "name": "run", "changeType": "modified" },
+        { "name": "planStages", "changeType": "added" },
+        { "name": "handleStageFailure", "changeType": "modified" }
+      ],
+      "variableExposure": [
+        { "name": "result", "kind": "instance", "declaredAt": { "file": "src/import/import-orchestrator.ts", "line": 20, "column": 7 } },
+        { "name": "buffer1", "kind": "instance", "declaredAt": { "file": "src/import/import-orchestrator.ts", "line": 24, "column": 5 } },
+        { "name": "retries2", "kind": "instance", "declaredAt": { "file": "src/import/import-orchestrator.ts", "line": 28, "column": 7 } },
+        { "name": "options", "kind": "local", "method": "run", "declaredAt": { "file": "src/import/import-orchestrator.ts", "line": 274, "column": 8 } },
+        { "name": "target1", "kind": "parameter", "method": "run", "declaredAt": { "file": "src/import/import-orchestrator.ts", "line": 259, "column": 11 } },
+        { "name": "state2", "kind": "local", "method": "run", "declaredAt": { "file": "src/import/import-orchestrator.ts", "line": 185, "column": 14 } },
+        { "name": "target3", "kind": "local", "method": "run", "declaredAt": { "file": "src/import/import-orchestrator.ts", "line": 148, "column": 10 } },
+        { "name": "context", "kind": "local", "method": "handleStageFailure", "declaredAt": { "file": "src/import/import-orchestrator.ts", "line": 150, "column": 7 } },
+        { "name": "payload1", "kind": "local", "method": "handleStageFailure", "declaredAt": { "file": "src/import/import-orchestrator.ts", "line": 120, "column": 5 } },
+        { "name": "logger2", "kind": "local", "method": "handleStageFailure", "declaredAt": { "file": "src/import/import-orchestrator.ts", "line": 283, "column": 7 } },
+        { "name": "options3", "kind": "parameter", "method": "handleStageFailure", "declaredAt": { "file": "src/import/import-orchestrator.ts", "line": 251, "column": 10 } }
+      ],
+      "variableExposureCount": 11
+    },
+    {
+      "name": "WorkbookReader",
+      "changeType": "modified",
+      "methods": [
+        { "name": "open", "changeType": "modified" },
+        { "name": "readSheet", "changeType": "modified" },
+        { "name": "collectDiagnostics", "changeType": "added" }
+      ],
+      "variableExposure": [
+        { "name": "buffer", "kind": "instance", "declaredAt": { "file": "src/import/reader/workbook-reader.ts", "line": 20, "column": 3 } },
+        { "name": "index1", "kind": "instance", "declaredAt": { "file": "src/import/reader/workbook-reader.ts", "line": 24, "column": 4 } },
+        { "name": "logger", "kind": "local", "method": "open", "declaredAt": { "file": "src/import/reader/workbook-reader.ts", "line": 157, "column": 14 } },
+        { "name": "retries1", "kind": "local", "method": "open", "declaredAt": { "file": "src/import/reader/workbook-reader.ts", "line": 296, "column": 10 } },
+        { "name": "sheetBuffer", "kind": "parameter", "method": "readSheet", "declaredAt": { "file": "src/import/reader/workbook-reader.ts", "line": 108, "column": 5 } },
+        { "name": "result1", "kind": "parameter", "method": "readSheet", "declaredAt": { "file": "src/import/reader/workbook-reader.ts", "line": 295, "column": 8 } }
+      ],
+      "variableExposureCount": 6
+    },
+    {
+      "name": "SheetMapper",
+      "changeType": "added",
+      "methods": [
+        { "name": "constructor", "changeType": "added" },
+        { "name": "mapSheet", "changeType": "added" },
+        { "name": "proposeColumns", "changeType": "added" }
+      ],
+      "variableExposure": [],
+      "variableExposureCount": 0
+    },
+    {
+      "name": "SheetParser",
+      "changeType": "modified",
+      "methods": [
+        { "name": "parseRows", "changeType": "modified" },
+        { "name": "parseHeader", "changeType": "modified" }
+      ],
+      "variableExposure": [
+        { "name": "column", "kind": "instance", "declaredAt": { "file": "src/import/reader/sheet-parser.ts", "line": 20, "column": 5 } },
+        { "name": "state1", "kind": "instance", "declaredAt": { "file": "src/import/reader/sheet-parser.ts", "line": 24, "column": 3 } },
+        { "name": "context2", "kind": "instance", "declaredAt": { "file": "src/import/reader/sheet-parser.ts", "line": 28, "column": 3 } },
+        { "name": "state", "kind": "local", "method": "parseRows", "declaredAt": { "file": "src/import/reader/sheet-parser.ts", "line": 156, "column": 8 } },
+        { "name": "column1", "kind": "local", "method": "parseRows", "declaredAt": { "file": "src/import/reader/sheet-parser.ts", "line": 154, "column": 13 } },
+        { "name": "handle2", "kind": "local", "method": "parseRows", "declaredAt": { "file": "src/import/reader/sheet-parser.ts", "line": 310, "column": 7 } },
+        { "name": "column3", "kind": "parameter", "method": "parseRows", "declaredAt": { "file": "src/import/reader/sheet-parser.ts", "line": 319, "column": 11 } },
+        { "name": "buffer", "kind": "local", "method": "parseHeader", "declaredAt": { "file": "src/import/reader/sheet-parser.ts", "line": 265, "column": 9 } },
+        { "name": "headerCells", "kind": "local", "method": "parseHeader", "declaredAt": { "file": "src/import/reader/sheet-parser.ts", "line": 131, "column": 13 } },
+        { "name": "handle2", "kind": "parameter", "method": "parseHeader", "declaredAt": { "file": "src/import/reader/sheet-parser.ts", "line": 83, "column": 9 } },
+        { "name": "result3", "kind": "local", "method": "parseHeader", "declaredAt": { "file": "src/import/reader/sheet-parser.ts", "line": 144, "column": 9 } }
+      ],
+      "variableExposureCount": 11
+    },
+    {
+      "name": "ParseDiagnostics",
+      "changeType": "added",
+      "methods": [
+        { "name": "record", "changeType": "added" },
+        { "name": "summarize", "changeType": "added" }
+      ],
+      "variableExposure": [],
+      "variableExposureCount": 0
+    },
+    {
+      "name": "ColumnMatcher",
+      "changeType": "added",
+      "methods": [
+        { "name": "match", "changeType": "added" },
+        { "name": "scoreCandidate", "changeType": "added" },
+        { "name": "normalizeHeader", "changeType": "added" }
+      ],
+      "variableExposure": [],
+      "variableExposureCount": 0
+    },
+    {
+      "name": "TypeCoercer",
+      "changeType": "unchanged",
+      "methods": [
+        { "name": "coerceCell", "changeType": "unchanged" }
+      ],
+      "variableExposure": [],
+      "variableExposureCount": 0
+    }
+  ],
+  "components": [
+    { "name": "Import Panel", "type": "ui", "changeType": "modified" },
+    { "name": "Mapping Review", "type": "ui", "changeType": "added" },
+    { "name": "Workbook File on Disk", "type": "external-io", "changeType": "unchanged" }
+  ],
+  "relationships": [
+    { "from": { "class": "ImportOrchestrator" }, "to": { "class": "WorkbookReader" }, "type": "composition", "changeType": "unchanged" },
+    { "from": { "class": "ImportOrchestrator" }, "to": { "class": "SheetMapper" }, "type": "composition", "changeType": "added" },
+    { "from": { "class": "WorkbookReader" }, "to": { "class": "SheetParser" }, "type": "composition", "changeType": "unchanged" },
+    { "from": { "class": "WorkbookReader" }, "to": { "class": "ParseDiagnostics" }, "type": "composition", "changeType": "added" },
+    { "from": { "class": "SheetMapper" }, "to": { "class": "ColumnMatcher" }, "type": "composition", "changeType": "added" },
+    { "from": { "class": "SheetMapper" }, "to": { "class": "TypeCoercer" }, "type": "composition", "changeType": "added" },
+
+    { "from": { "component": "Import Panel" }, "to": { "class": "ImportOrchestrator", "method": "run" }, "type": "dataflow", "label": "user picks a workbook and starts the import", "changeType": "modified" },
+    { "from": { "class": "ImportOrchestrator", "method": "planStages" }, "to": { "class": "WorkbookReader", "method": "open" }, "type": "dataflow", "label": "stage plan drives read order", "changeType": "modified" },
+    { "from": { "class": "WorkbookReader", "method": "open" }, "to": { "component": "Workbook File on Disk" }, "type": "dataflow", "label": "read workbook bytes at path", "changeType": "unchanged" },
+    { "from": { "component": "Workbook File on Disk" }, "to": { "class": "WorkbookReader", "method": "open" }, "type": "dataflow", "label": "workbook bytes", "changeType": "unchanged" },
+    { "from": { "class": "WorkbookReader", "method": "readSheet" }, "to": { "class": "SheetParser", "method": "parseRows" }, "type": "dataflow", "label": "raw row stream", "changeType": "modified" },
+    { "from": { "class": "SheetParser", "method": "parseRows" }, "to": { "class": "ParseDiagnostics", "method": "record" }, "type": "dataflow", "label": "per-row parse warnings", "changeType": "added" },
+    { "from": { "class": "ImportOrchestrator", "method": "run" }, "to": { "class": "SheetMapper", "method": "mapSheet" }, "type": "dataflow", "label": "parsed sheet handed to mapping", "changeType": "added" },
+    { "from": { "class": "SheetMapper", "method": "proposeColumns" }, "to": { "class": "ColumnMatcher", "method": "match" }, "type": "dataflow", "label": "header candidates scored", "changeType": "added" },
+    { "from": { "class": "ColumnMatcher", "method": "scoreCandidate" }, "to": { "class": "ColumnMatcher", "method": "normalizeHeader" }, "type": "dataflow", "label": "header normalised before scoring", "changeType": "added" },
+    { "from": { "class": "SheetMapper", "method": "proposeColumns" }, "to": { "component": "Mapping Review" }, "type": "dataflow", "label": "proposed column mapping shown for confirmation", "changeType": "added" },
+    { "from": { "component": "Mapping Review" }, "to": { "class": "SheetMapper", "method": "mapSheet" }, "type": "dataflow", "label": "confirmed column mapping", "changeType": "added" },
+    { "from": { "class": "SheetMapper", "method": "mapSheet" }, "to": { "class": "TypeCoercer", "method": "coerceCell" }, "type": "dataflow", "label": "cell values coerced per mapping", "changeType": "unchanged" },
+    { "from": { "class": "ParseDiagnostics", "method": "summarize" }, "to": { "class": "ImportOrchestrator", "method": "handleStageFailure" }, "type": "dataflow", "label": "diagnostics surfaced to the run report", "changeType": "added" },
+    { "from": { "class": "ImportOrchestrator", "method": "handleStageFailure" }, "to": { "component": "Import Panel" }, "type": "dataflow", "label": "stage failures and row counts displayed", "changeType": "modified" },
+
+    { "from": { "class": "ImportOrchestrator", "method": "run" }, "to": { "class": "ImportOrchestrator" }, "type": "state-update", "label": "result: store the completed import result", "changeType": "modified" },
+    { "from": { "class": "WorkbookReader", "method": "readSheet" }, "to": { "class": "WorkbookReader" }, "type": "state-update", "label": "buffer: cache the decoded sheet buffer", "changeType": "modified" },
+    { "from": { "class": "SheetParser", "method": "parseRows" }, "to": { "class": "ParseDiagnostics" }, "type": "state-update", "label": "entries: append per-row parse warnings", "changeType": "added" },
+    { "from": { "class": "SheetMapper", "method": "mapSheet" }, "to": { "class": "ImportOrchestrator" }, "type": "state-update", "label": "result: record mapped rows on the run result", "changeType": "added" }
+  ],
+  "variableExposureCount": 28
+}
