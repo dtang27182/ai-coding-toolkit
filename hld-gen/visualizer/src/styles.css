@@ -259,22 +259,27 @@ button:focus-visible,
 .canvas {
   flex: 1 1 auto;
   min-width: 0;
-  overflow: auto;
+  overflow: hidden;
   position: relative;
   background-color: var(--surface);
   background-image: radial-gradient(oklch(0.262 0.028 255) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
+.canvas.right-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
 .graph-space {
   position: relative;
-  min-width: 100%;
-  min-height: 100%;
+  width: 100%;
+  height: 100%;
 }
 
 .graph {
   position: absolute;
-  transform-origin: 0 0;
+  transform-origin: center;
 }
 
 .graph-svg {

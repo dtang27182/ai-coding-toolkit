@@ -33,6 +33,8 @@ let fileName = "workbook-import-hld.architecture-diff.json";
 let showUnchanged = true;
 let methodsHidden = false;
 let zoom = 1;
+let panX = 0;
+let panY = 0;
 let userZoomed = false;
 let selection: Selection | undefined;
 let hovered: Selection | undefined;
@@ -80,6 +82,24 @@ function classExposureCount(classDiff: ClassDiff): number | null {
   } else {
     return classDiff.variableExposure.length;
   }
+}
+
+function exposureCountForClasses(classes: ClassDiff[]): number | "?" {
+  if (classes.some((classDiff) => classDiff.variableExposure === null)) {
+    return "?";
+  }
+  return new Set(
+    classes.flatMap((classDiff) =>
+      classDiff.variableExposure!
+        .filter(
+          (variable) =>
+            variable.kind === "instance" || classDiff.methods.some((method) => method.name === variable.method),
+        )
+        .map((variable) =>
+          JSON.stringify([variable.declaredAt.file, variable.declaredAt.line, variable.declaredAt.column]),
+        ),
+    ),
+  ).size;
 }
 
 function endpointLabel(endpoint: ResolvedEndpoint): string {
@@ -343,13 +363,11 @@ function renderGraph(): string {
     })
     .join("");
 
-  const graphWidth = layout.width + 112;
-  const graphHeight = layout.height + 128;
   queueMicrotask(() => fitGraph(layout.width));
   return `
-    <div class="graph-space" style="width:${graphWidth * zoom}px;height:${graphHeight * zoom}px">
+    <div class="graph-space">
       ${graph.nodes.length === 0 ? '<div class="empty-graph">No changed nodes to display</div>' : ""}
-      <div class="graph" style="left:${56 * zoom}px;top:${48 * zoom}px;width:${layout.width}px;height:${layout.height}px;transform:scale(${zoom})">
+      <div class="graph" style="left:calc(50% + ${panX}px);top:calc(50% + ${panY}px);width:${layout.width}px;height:${layout.height}px;transform:translate(-50%, -50%) scale(${zoom})">
         <svg class="graph-svg" width="${layout.width}" height="${layout.height}">
           <defs>${renderMarkers()}</defs>
           ${classFrames}${compositionEdges}${edges}
@@ -468,15 +486,16 @@ function shapeLegend(): string {
 }
 
 function render(): void {
-  const methods = diff.classes.reduce((count, classDiff) => count + classDiff.methods.length, 0);
-  const dataflows = diff.relationships.filter((relationship) => relationship.type === "dataflow").length;
-  const stateUpdates = diff.relationships.filter((relationship) => relationship.type === "state-update").length;
+  const graph = visibleGraph();
+  const methods = graph.classes.reduce((count, classDiff) => count + classDiff.methods.length, 0);
+  const dataflows = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow").length;
+  const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update").length;
   const metrics = [
     [methods, "methods"],
     [dataflows, "dataflows"],
     [stateUpdates, "state updates"],
-    [diff.components.length, "ui / io"],
-    [diff.variableExposureCount ?? "?", "exposed vars"],
+    [graph.components.length, "ui / io"],
+    [exposureCountForClasses(graph.classes), "exposed vars"],
   ];
   app.innerHTML = `<div class="app-shell">
     <header class="topbar">
@@ -488,7 +507,7 @@ function render(): void {
         <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}</div>
         <div class="control-group">
           <button class="control-button" data-open>Open JSON</button>
-          <button class="control-button${showUnchanged ? " active" : ""}" data-toggle-unchanged>Unchanged</button>
+          <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
           <button class="control-button${methodsHidden ? " active" : ""}" data-toggle-methods>${methodsHidden ? "Show methods" : "Hide methods"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button" data-fit>Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
@@ -510,6 +529,60 @@ function render(): void {
 
 function bindEvents(): void {
   const canvas = app.querySelector<HTMLElement>(".canvas")!;
+  let rightDragPointer: number | undefined;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let dragStartPanX = 0;
+  let dragStartPanY = 0;
+  canvas.addEventListener("pointerdown", (event) => {
+    if (event.button === 2) {
+      rightDragPointer = event.pointerId;
+      dragStartX = event.clientX;
+      dragStartY = event.clientY;
+      dragStartPanX = panX;
+      dragStartPanY = panY;
+      canvas.setPointerCapture(event.pointerId);
+      canvas.classList.add("right-dragging");
+      event.preventDefault();
+    }
+  });
+  canvas.addEventListener("pointermove", (event) => {
+    if (event.pointerId === rightDragPointer) {
+      panX = dragStartPanX + event.clientX - dragStartX;
+      panY = dragStartPanY + event.clientY - dragStartY;
+      updateGraphTransform();
+    }
+  });
+  canvas.addEventListener("pointerup", (event) => {
+    if (event.pointerId === rightDragPointer) {
+      canvas.releasePointerCapture(event.pointerId);
+      canvas.classList.remove("right-dragging");
+      rightDragPointer = undefined;
+    }
+  });
+  canvas.addEventListener("pointercancel", () => {
+    canvas.classList.remove("right-dragging");
+    rightDragPointer = undefined;
+  });
+  canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+  canvas.addEventListener(
+    "wheel",
+    (event) => {
+      const nextZoom = Math.min(1.4, Math.max(0.15, zoom * Math.exp(-event.deltaY * 0.0015)));
+      if (nextZoom !== zoom) {
+        const bounds = canvas.getBoundingClientRect();
+        const pointerX = event.clientX - bounds.left - canvas.clientWidth / 2;
+        const pointerY = event.clientY - bounds.top - canvas.clientHeight / 2;
+        panX = pointerX - (nextZoom / zoom) * (pointerX - panX);
+        panY = pointerY - (nextZoom / zoom) * (pointerY - panY);
+        zoom = nextZoom;
+        userZoomed = true;
+        updateGraphTransform();
+      }
+      event.preventDefault();
+    },
+    { passive: false },
+  );
   canvas.addEventListener("click", (event) => {
     if (event.target === canvas || (event.target as HTMLElement).classList.contains("graph-space")) {
       selection = undefined;
@@ -559,17 +632,23 @@ function bindEvents(): void {
   app.querySelector<HTMLElement>("[data-toggle-unchanged]")!.addEventListener("click", () => {
     showUnchanged = !showUnchanged;
     selection = undefined;
+    panX = 0;
+    panY = 0;
     userZoomed = false;
     render();
   });
   app.querySelector<HTMLElement>("[data-toggle-methods]")!.addEventListener("click", () => {
     methodsHidden = !methodsHidden;
+    panX = 0;
+    panY = 0;
     userZoomed = false;
     render();
   });
   app.querySelector<HTMLElement>("[data-zoom-out]")!.addEventListener("click", () => setZoom(zoom - 0.1));
   app.querySelector<HTMLElement>("[data-zoom-in]")!.addEventListener("click", () => setZoom(zoom + 0.1));
   app.querySelector<HTMLElement>("[data-fit]")!.addEventListener("click", () => {
+    panX = 0;
+    panY = 0;
     userZoomed = false;
     render();
   });
@@ -579,6 +658,16 @@ function bindEvents(): void {
     const file = input.files?.[0];
     if (file !== undefined) void openFile(file);
   });
+}
+
+function updateGraphTransform(): void {
+  const graph = app.querySelector<HTMLElement>(".graph");
+  if (graph !== null) {
+    graph.style.left = `calc(50% + ${panX}px)`;
+    graph.style.top = `calc(50% + ${panY}px)`;
+    graph.style.transform = `translate(-50%, -50%) scale(${zoom})`;
+  }
+  app.querySelector<HTMLElement>("[data-fit]")!.textContent = `Fit · ${Math.round(zoom * 100)}%`;
 }
 
 function endpointDatasetMatches(element: HTMLElement | SVGElement, prefix: "from" | "to", value: Selection): boolean {
@@ -633,7 +722,7 @@ function fitGraph(graphWidth: number): void {
 function setZoom(nextZoom: number): void {
   zoom = Math.min(1.4, Math.max(0.15, Math.round(nextZoom * 10) / 10));
   userZoomed = true;
-  render();
+  updateGraphTransform();
 }
 
 function validationMessage(errors: ErrorObject[] | null | undefined): string {
@@ -682,6 +771,8 @@ async function openFile(file: File): Promise<void> {
         fileName = file.name;
         selection = undefined;
         hovered = undefined;
+        panX = 0;
+        panY = 0;
         statusMessage = "";
         userZoomed = false;
       }
