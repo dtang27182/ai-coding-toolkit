@@ -7,7 +7,7 @@ description: Create and refine the simplest high-level design that implements re
 
 Create the simplest design that implements the requested behavior. Minimize the rubric's complexity measures while preserving explicit requirements, existing behavior, and clear responsibilities. Do not omit necessary changes or combine unrelated responsibilities to improve a score.
 
-The HLD consists of a narrative Markdown file and an Architecture Diff JSON file describing the same design. Both show the core data flows end-to-end, including every unchanged class, method, UI component, and external I/O component directly participating in those flows. Include all required changes, but do not expand into other flows merely because they share participants or state. Follow `hld-narrative.md` for the core flow steps and what can remain for later low level design, and `hld-architecture-diff.md` for inclusion criteria. Assess variable exposure for the changes.
+The HLD consists of a narrative Markdown file and an Architecture Diff JSON file describing the same design. Follow `hld-narrative.md` for narrative structure and scope, and `hld-architecture-diff.md` for diagram scope and representation.
 
 Read these instructions when their corresponding work is needed:
 
@@ -15,6 +15,7 @@ Read these instructions when their corresponding work is needed:
 - `ai-coding-toolkit/hld-gen/references/hld-architecture-diff.md` before writing or revising the Architecture Diff.
 - `ai-coding-toolkit/hld-gen/references/hld-variable-exposure.md` when identifying touched methods and existing variables exposed to the change.
 - `ai-coding-toolkit/hld-gen/references/hld-quality.md` before choosing a design.
+- `ai-coding-toolkit/hld-gen/references/hld-evaluation-format.md` when recording design iterations and the stopping reason.
 - `ai-coding-toolkit/hld-gen/skills/hld-eval/SKILL.md` before evaluating the HLD.
 
 ## Create the HLD
@@ -35,10 +36,10 @@ Read these instructions when their corresponding work is needed:
 
 1. Use the explicit behavior and scope confirmation obtained before creation. For standalone improvement, obtain that confirmation and wait for the user's response before evaluating or revising the HLD.
 2. Use `ai-coding-toolkit/hld-gen/references/hld-quality.md` without changing it during the run.
-3. Follow `hld-eval` to evaluate the current HLD, replacing the previous evaluation.
+3. Record the current design in Design Iterations using `hld-evaluation-format.md`. Follow `hld-eval` to replace the evaluation while preserving that history, then update the iteration's outcome from the result.
 4. If every attribute has reached its best possible score defined by the rubric, stop with `best-scores`.
 5. Otherwise, identify a revision that makes the design simpler using all attribute directions and the qualitative assessment. Account for tradeoffs without inventing weights. If no simpler complete design is apparent, stop with `no-identifiable-improvement`.
-6. Revise the same files in place. Rebuild the exposure inventory from the revised Architecture Diff, run the counting script, and evaluate again. Keep only the current design and evaluation.
+6. Revise the same files in place. Rebuild the exposure inventory from the revised Architecture Diff, run the counting script, and return to step 3. Keep only the current design and evaluation, retaining the iteration history in the report.
 
 If variable exposure is unknown, inspect the missing code or settle the relevant design choice. If required context remains unavailable, preserve the design and stop with `needs-input`.
 
@@ -46,4 +47,4 @@ If variable exposure is unknown, inspect the missing code or settle the relevant
 
 Append the stopping reason to the latest evaluation report. Generate the final preview with `node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs <json-path>` and disclose preview failures separately from design quality.
 
-Present links to the narrative, Architecture Diff JSON, Mermaid preview if generated, and latest evaluation. State why revision stopped and whether the current HLD was evaluated after its last edit. Do not implement application code or claim human approval as part of this workflow.
+Present links to the narrative, Architecture Diff JSON, Mermaid preview if generated, and latest evaluation. Report the evaluated iteration count, distinguishing the initial or starting design from revisions and disclosing any pending or unevaluated iterations. State why revision stopped and whether the current HLD was evaluated after its last edit. Do not implement application code or claim human approval as part of this workflow.

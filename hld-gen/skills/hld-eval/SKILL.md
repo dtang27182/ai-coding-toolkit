@@ -17,7 +17,7 @@ Read the feature context, narrative, Architecture Diff, relevant code, and repos
 - `ai-coding-toolkit/hld-gen/references/hld-variable-exposure.md` for inventory verification.
 - `ai-coding-toolkit/hld-gen/references/hld-evaluation-format.md` for the report.
 
-Write to the caller's report path, or `<outputDirectory>/<feature>/<feature>.hld-evaluation.md` using `ai-coding-toolkit/config.json`.
+Write to the caller's report path, or `<outputDirectory>/<feature>/<feature>.hld-evaluation.md` using `ai-coding-toolkit/config.json`. Read any existing report and preserve its Design Iterations section unchanged; `hld-gen` owns that history.
 
 ## Evaluation
 

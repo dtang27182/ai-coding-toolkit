@@ -6,11 +6,9 @@ Use the attributes to measure design complexity while preserving required new an
 
 ## Scoring Preconditions
 
-Score only a valid Architecture Diff that matches the narrative, covers the scope in `hld-narrative.md`, and has code-verified inventories under `hld-variable-exposure.md`. Do not reward omissions or combining unrelated responsibilities to reduce counts. If these preconditions fail, return no scores and explain why in the qualitative assessment.
+Score only a valid Architecture Diff that covers the User Flow Steps, matches Core Logic and Dataflow under `hld-narrative.md`, and has code-verified inventories under `hld-variable-exposure.md`. If these checks fail, return no scores and explain why in the qualitative assessment. Relevant Logic and Dataflow does not expand the required coverage.
 
-Count `added`, `modified`, and `deleted` entries as changed. Exclude `unchanged` context entries.
-
-Each attribute specifies its raw score, whether higher or lower values are better, and a best possible value when one exists.
+Count only `added`, `modified`, and `deleted` entries as changed. Do not reward omissions or combining unrelated responsibilities to reduce counts.
 
 ## Attributes
 

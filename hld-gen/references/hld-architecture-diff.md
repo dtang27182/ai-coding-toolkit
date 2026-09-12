@@ -4,10 +4,9 @@ Use the Architecture Diff to show how the existing architecture changes to imple
 
 ## Scope
 
-- Show all class, method, component, and relationship changes required by the core use cases in `hld-narrative.md`.
-- Include unchanged classes, methods, components, and relationships if and only if they directly participate in a core data flow described under `hld-narrative.md`'s Core Logic and Dataflow section. Show each such flow end-to-end, including unchanged participants that handle, pass, or transform its data, own its accessed state, perform its I/O, or display its results.
-- Scope inclusion to the specific flow, not everything an included entity can do. Do not expand into other workflows, sibling methods, or incidental interactions merely because they share a class, method, component, or state with a core flow.
-- Continue through unchanged participants to the core flow's user-visible result; do not stop at an unchanged service or transport boundary. Exclude existing behavior outside the core flows from all HLD artifacts, including narrative summaries.
+- Represent Core Logic and Dataflow, including all changes required by the User Flow Steps. Keep broader workflows in Relevant Logic and Dataflow, outside the diagram.
+- Include unchanged entities and relationships only when they implement or connect User Flow Steps, preserving intermediaries, state owners, and consumers. When a step supplies data or state to existing behavior, stop where it is read and applied.
+- Shared entities, state, or execution paths do not bring other methods or workflows into scope. Following calls helps locate code but does not determine inclusion.
 - Defer adjustments for interference with existing behavior to low level design, as defined in `hld-narrative.md`.
 - Ground every entry in the feature context, narrative, or current code.
 
@@ -54,7 +53,7 @@ Preserve actual intermediate participants and relationships on core data flows; 
 
 ## Validation
 
-For each unchanged entry and relationship, identify the specific core data flow and step it participates in; omit it if none applies. Verify that every core flow remains traceable end-to-end through its unchanged participants. Preserve all required changes regardless of diagram size.
+For each unchanged entry and relationship, identify the numbered User Flow Step it implements or the steps it connects; omit it if neither applies. Relevance to design investigation, execution in the same workflow, or downstream carriage of the feature's data does not satisfy this check. Verify that every User Flow Step remains traceable through its unchanged participants. Preserve all required changes regardless of diagram size.
 
 Populate `variableExposure` from changed classes and methods using `hld-variable-exposure.md`. Then validate the JSON and write its exposure counts:
 
