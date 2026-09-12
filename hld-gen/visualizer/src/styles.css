@@ -242,6 +242,12 @@ button:focus-visible,
   border-right: 0;
 }
 
+.zoom-button.active {
+  color: oklch(0.87 0.08 245);
+  background: oklch(0.255 0.045 255);
+  box-shadow: inset 0 0 0 1px oklch(0.55 0.09 245);
+}
+
 .workspace {
   display: flex;
   flex: 1 1 auto;

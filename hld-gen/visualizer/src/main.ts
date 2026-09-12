@@ -512,7 +512,7 @@ function render(): void {
           <button class="control-button" data-open>Open JSON</button>
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
           <button class="control-button${methodsHidden ? " active" : ""}" data-toggle-methods>${methodsHidden ? "Show methods" : "Hide methods"}</button>
-          <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button" data-fit>Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
+          <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
       </div>
     </header>
@@ -721,7 +721,10 @@ function updateGraphTransform(): void {
     graph.style.top = `calc(50% + ${panY}px)`;
     graph.style.transform = `translate(-50%, -50%) scale(${zoom})`;
   }
-  app.querySelector<HTMLElement>("[data-fit]")!.textContent = `Fit · ${Math.round(zoom * 100)}%`;
+  const fitButton = app.querySelector<HTMLElement>("[data-fit]")!;
+  fitButton.textContent = `Fit · ${Math.round(zoom * 100)}%`;
+  fitButton.classList.toggle("active", !userZoomed);
+  fitButton.setAttribute("aria-pressed", String(!userZoomed));
 }
 
 function endpointDatasetMatches(element: HTMLElement | SVGElement, prefix: "from" | "to", value: Selection): boolean {
