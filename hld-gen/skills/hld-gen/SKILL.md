@@ -7,7 +7,7 @@ description: Create and refine the simplest high-level design that implements re
 
 Create the simplest design that implements the requested behavior. Minimize the rubric's complexity measures while preserving explicit requirements, existing behavior, and clear responsibilities. Do not omit necessary changes or combine unrelated responsibilities to improve a score.
 
-The HLD consists of a narrative Markdown file and an Architecture Diff JSON file describing the same design. Both cover every class, method, UI component, and external I/O component participating in the core logic's end-to-end dataflow, from user action through processing, persistent state access and updates, and I/O to the resulting data display and UI updates. Follow `hld-narrative.md` for the full scope and what can remain for later low level design. Assess variable exposure for the changes.
+The HLD consists of a narrative Markdown file and an Architecture Diff JSON file describing the same design. Both show the core data flows end-to-end, including every unchanged class, method, UI component, and external I/O component directly participating in those flows. Include all required changes, but do not expand into other flows merely because they share participants or state. Follow `hld-narrative.md` for the core flow steps and what can remain for later low level design, and `hld-architecture-diff.md` for inclusion criteria. Assess variable exposure for the changes.
 
 Read these instructions when their corresponding work is needed:
 

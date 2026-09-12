@@ -22,7 +22,7 @@ Score: `N`. Lower is better. The minimum valid score is 1.
 
 ### Changed Methods
 
-Let `N` be the number of methods whose `changeType` is `added`, `modified`, or `deleted` in changed classes. Exclude unchanged methods included to show the end-to-end flow.
+Let `N` be the number of methods whose `changeType` is `added`, `modified`, or `deleted` in changed classes. Exclude unchanged methods included to show the core data flows end-to-end.
 
 Score: `N`. Lower is better. The minimum score is 0.
 

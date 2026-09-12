@@ -4,14 +4,16 @@ Use the Architecture Diff to show how the existing architecture changes to imple
 
 ## Scope
 
-- Follow `hld-narrative.md` from user action through processing, state access, and I/O to displayed data and UI updates.
-- Include only dataflow and state-update relationships directly needed by the core use cases, including relevant unchanged flows. Omit incidental interactions and unrelated state updates.
+- Show all class, method, component, and relationship changes required by the core use cases in `hld-narrative.md`.
+- Include unchanged classes, methods, components, and relationships if and only if they directly participate in a core data flow described under `hld-narrative.md`'s Core Logic and Dataflow section. Show each such flow end-to-end, including unchanged participants that handle, pass, or transform its data, own its accessed state, perform its I/O, or display its results.
+- Scope inclusion to the specific flow, not everything an included entity can do. Do not expand into other workflows, sibling methods, or incidental interactions merely because they share a class, method, component, or state with a core flow.
+- Continue through unchanged participants to the core flow's user-visible result; do not stop at an unchanged service or transport boundary. Exclude existing behavior outside the core flows from all HLD artifacts, including narrative summaries.
 - Defer adjustments for interference with existing behavior to low level design, as defined in `hld-narrative.md`.
 - Ground every entry in the feature context, narrative, or current code.
 
 ## Classes Methods and Components
 
-- Include all required class and method changes, plus unchanged participants in the flow.
+- Include all required class and method changes. Apply the scope criteria separately to unchanged classes, methods within included classes, and components.
 - Use `components` for UI surfaces (`ui`) and external I/O endpoints (`external-io`), such as network services, files, and browser storage. Each has `name`, `type`, and `changeType`; use `[]` when none participate.
 - Keep implementation classes and methods, including UI handlers and I/O adapters, in `classes`. Variable exposure belongs to those classes.
 - Mark reused entries `unchanged`. Participation or a new connection alone does not modify an endpoint.
@@ -28,6 +30,7 @@ Every `from` and `to` reference must resolve to a listed entry:
 | Class     | `{"class": "ClassName"}`                             |
 
 Explain sequencing and state changes in the narrative.
+Preserve actual intermediate participants and relationships on core data flows; do not replace an unchanged path with an inferred direct edge or a prose summary.
 
 ### Dataflow
 
@@ -50,6 +53,8 @@ Explain sequencing and state changes in the narrative.
 - The preview draws individual method nodes, dataflow arrows, and dotted method-to-class state-update arrows. UI and I/O components stay outside the class change scope; composition edges are omitted.
 
 ## Validation
+
+For each unchanged entry and relationship, identify the specific core data flow and step it participates in; omit it if none applies. Verify that every core flow remains traceable end-to-end through its unchanged participants. Preserve all required changes regardless of diagram size.
 
 Populate `variableExposure` from changed classes and methods using `hld-variable-exposure.md`. Then validate the JSON and write its exposure counts:
 

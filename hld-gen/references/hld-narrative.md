@@ -1,6 +1,6 @@
 # HLD Narrative
 
-An HLD describes the core logic and dataflow needed to support the desired behavior end-to-end. Trace each core use case from the initiating user action through processing, persistent state access and updates, and I/O to the data displayed and resulting UI updates. Include every class, method, UI component, and external I/O component participating in that flow, whether changed or reused unchanged.
+An HLD describes the core logic and dataflow needed to support the desired behavior end-to-end. Trace each core use case from the initiating user action through processing, persistent state access and updates, and I/O to the data displayed and resulting UI updates. Include every class, method, UI component, and external I/O component directly participating in these core data flows, whether changed or reused unchanged. Do not expand into other flows merely because they share participants or state with a core flow.
 
 Describe responsibilities, data, and interactions without writing implementation code. Adjustments needed to reconcile the new flow with existing classes, persistent state, methods, or dataflows that it might disrupt—or that might interfere with it—can remain for later low level design. Detailed error handling and edge cases can also remain for later low level design unless required by the desired behavior.
 
@@ -18,7 +18,7 @@ Use bullets for included and excluded scope, explicit constraints, and working a
 
 ## Core Logic and Dataflow
 
-Begin with a brief paragraph explaining the overall approach. Then trace each flow in order, naming the participating UI and external I/O components, responsible classes and methods, and data passed between them:
+Begin with a brief paragraph explaining the overall approach. Identify the core data flows needed for the desired behavior, with an initiating action and user-visible result for each. Then trace each flow in order, naming the participating UI and external I/O components, responsible classes and methods, and data passed between them:
 
 - The initiating user action, the UI component receiving it, and its handling class and method.
 - Processing and data transformations needed to support the behavior.
@@ -26,13 +26,13 @@ Begin with a brief paragraph explaining the overall approach. Then trace each fl
 - I/O requests and results, naming the external I/O components and the classes and methods sending requests and consuming results. Include network services, files, local or session storage, and other endpoints where applicable.
 - Data returned to the user, the UI components displaying it, and the classes and methods that update or render them, including updates following asynchronous results.
 
-Cover every applicable step; do not stop at a service boundary or omit existing methods that carry the flow through to its user-visible result.
+Cover every applicable step in both the narrative and Architecture Diff; do not stop at a service boundary or omit existing methods that carry a core flow through to its user-visible result.
 
 Include only dataflow and state-update relationships directly relevant to the core use cases needed to realize the desired behavior. Dataflow describes data passed between UI components, methods, and external I/O components. State updates describe a method updating an instance variable in a class. Keep these relationships consistent with the Architecture Diff; omit incidental interactions and unrelated state changes.
 
 ## Touch Points
 
-Use brief prose to group related classes, methods, UI components, and external I/O components touched by the end-to-end flow. Under each group, use concise bullets naming every participant, its responsibility, relevant inputs and outputs, and whether it is added, modified, deleted, or reused unchanged. Describe UI and external I/O components as interaction endpoints and identify their implementation classes and methods separately. Keep names, component types, and change types consistent with the Architecture Diff.
+Use brief prose to group related classes, methods, UI components, and external I/O components included under `hld-architecture-diff.md`'s scope criteria. Under each group, use concise bullets naming each included participant, its responsibility, relevant inputs and outputs, and whether it is added, modified, deleted, or reused unchanged. Describe UI and external I/O components as interaction endpoints and identify their implementation classes and methods separately. Keep names, component types, and change types consistent with the Architecture Diff.
 
 ## Variable Exposure
 
