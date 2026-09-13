@@ -121,3 +121,24 @@ export function resolveEndpoint(endpoint: RelationshipEndpoint): ResolvedEndpoin
     return { nodeName: endpoint.class, component: false };
   }
 }
+
+export function mergeClassDataflows(relationships: ResolvedRelationship[]): ResolvedRelationship[] {
+  const merged: ResolvedRelationship[] = [];
+  const seen = new Set<string>();
+  for (const item of relationships) {
+    if (item.relationship.type === "dataflow" && !item.from.component && !item.to.component) {
+      const key = JSON.stringify([item.from.nodeName, item.to.nodeName, item.relationship.changeType]);
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push({
+          relationship: item.relationship,
+          from: { nodeName: item.from.nodeName, component: false },
+          to: { nodeName: item.to.nodeName, component: false },
+        });
+      }
+    } else {
+      merged.push(item);
+    }
+  }
+  return merged;
+}

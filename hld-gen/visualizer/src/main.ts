@@ -15,7 +15,7 @@ import type {
   ResolvedRelationship,
   Selection,
 } from "./types";
-import { methodKey, resolveEndpoint } from "./types";
+import { mergeClassDataflows, methodKey, resolveEndpoint } from "./types";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const ajv = new Ajv2020({ allErrors: true });
@@ -151,6 +151,14 @@ function relationshipMatches(relationship: ResolvedRelationship, value: Selectio
   return value !== undefined && (endpointMatches(relationship.from, value) || endpointMatches(relationship.to, value));
 }
 
+function graphFocus(value: Selection | undefined): Selection | undefined {
+  if (methodsHidden && value?.type === "method") {
+    return { type: "class", className: value.className };
+  } else {
+    return value;
+  }
+}
+
 function nodeMatches(nodeName: string, methodName: string | undefined, value: Selection | undefined): boolean {
   if (value === undefined) {
     return true;
@@ -267,7 +275,7 @@ function renderGraph(): string {
   function obstaclesFor(relationship: ResolvedRelationship): Rect[] {
     return [...routingBounds].filter(([name]) => name !== relationship.from.nodeName && name !== relationship.to.nodeName).map(([, box]) => box);
   }
-  const focus = hovered ?? selection;
+  const focus = graphFocus(hovered ?? selection);
 
   const relatedNodes = new Set<string>();
   if (focus !== undefined) {
@@ -301,7 +309,7 @@ function renderGraph(): string {
     .join("");
 
   const drawableRelationships = graph.relationships.filter((relationship) => relationship.relationship.type !== "composition");
-  const edges = drawableRelationships
+  const edges = (methodsHidden ? mergeClassDataflows(drawableRelationships) : drawableRelationships)
     .map((relationship, index) => {
       const from = graphRect(relationship.from, layout.boxes, layout.methodRects);
       let to = graphRect(relationship.to, layout.boxes, layout.methodRects);
@@ -748,6 +756,7 @@ function endpointDatasetMatches(element: HTMLElement | SVGElement, prefix: "from
 }
 
 function updateGraphFocus(value: Selection | undefined): void {
+  value = graphFocus(value);
   const relationships = visibleGraph().relationships;
   const relatedNodes = new Set<string>();
   const relatedMethods = new Set<string>();
