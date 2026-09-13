@@ -239,7 +239,7 @@ function renderMarkers(): string {
   const changeMarkers = (Object.keys(CHANGE_COLORS) as ChangeType[])
     .map(
       (changeType) => `
-        <marker id="arrow-${changeType}" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <marker id="arrow-${changeType}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path d="M 0 1 L 7 4 L 0 7 z" fill="${changeColor(changeType)}"></path>
         </marker>
         <marker id="state-${changeType}" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -311,8 +311,8 @@ function renderGraph(): string {
   const drawableRelationships = graph.relationships.filter((relationship) => relationship.relationship.type !== "composition");
   const edges = (methodsHidden ? mergeClassDataflows(drawableRelationships) : drawableRelationships)
     .map((relationship, index) => {
-      const from = graphRect(relationship.from, layout.boxes, layout.methodRects);
-      let to = graphRect(relationship.to, layout.boxes, layout.methodRects);
+      const from = graphRect(relationship.from, routingBounds, layout.methodRects);
+      let to = graphRect(relationship.to, routingBounds, layout.methodRects);
       if (relationship.relationship.type === "state-update") {
         const targetClass = classByName.get(relationship.to.nodeName)!;
         to = classTargetRect(targetClass, layout.boxes.get(relationship.to.nodeName)!);
