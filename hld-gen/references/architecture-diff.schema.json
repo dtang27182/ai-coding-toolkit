@@ -192,12 +192,6 @@
         { "$ref": "#/$defs/componentEndpoint" }
       ]
     },
-    "compositionEndpoint": {
-      "oneOf": [
-        { "$ref": "#/$defs/classEndpoint" },
-        { "$ref": "#/$defs/componentEndpoint" }
-      ]
-    },
     "relationship": {
       "type": "object",
       "additionalProperties": false,
@@ -247,8 +241,8 @@
           "if": { "properties": { "type": { "const": "composition" } } },
           "then": {
             "properties": {
-              "from": { "$ref": "#/$defs/compositionEndpoint" },
-              "to": { "$ref": "#/$defs/compositionEndpoint" }
+              "from": { "$ref": "#/$defs/classEndpoint" },
+              "to": { "$ref": "#/$defs/classEndpoint" }
             }
           }
         }

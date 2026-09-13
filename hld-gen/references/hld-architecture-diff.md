@@ -44,7 +44,7 @@ Preserve actual intermediate participants and relationships on core data flows; 
 
 ### Composition
 
-- Use `composition` from the owner to the owned class or component.
+- Use `composition` only from an owning class to an owned class. Components and methods cannot be composition endpoints.
 
 ## Scoring and Preview
 

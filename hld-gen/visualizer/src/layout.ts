@@ -230,10 +230,10 @@ export function routeEdge(from: Rect, to: Rect, spread = 0): { path: string; sta
   const toCenterX = to.x + to.width / 2;
   const toCenterY = to.y + to.height / 2;
   if (from === to || (Math.abs(toCenterX - fromCenterX) < 1 && Math.abs(toCenterY - fromCenterY) < 1)) {
-    const start = { x: from.x + from.width, y: from.y + from.height * 0.34 };
-    const end = { x: from.x + from.width, y: from.y + from.height * 0.66 };
+    const start = { x: from.x + from.width * 0.34 + spread, y: from.y + from.height };
+    const end = { x: from.x + from.width * 0.66 + spread, y: from.y + from.height };
     const bow = 46 + Math.abs(spread);
-    return { path: `M ${start.x} ${start.y} C ${start.x + bow} ${start.y} ${end.x + bow} ${end.y} ${end.x} ${end.y}`, start, end };
+    return { path: `M ${start.x} ${start.y} C ${start.x} ${start.y + bow} ${end.x} ${end.y + bow} ${end.x} ${end.y}`, start, end };
   } else if (toCenterY > from.y + from.height + 12 || toCenterY < from.y - 12) {
     const down = toCenterY > fromCenterY;
     const start = { x: fromCenterX + spread, y: down ? from.y + from.height : from.y };
@@ -245,14 +245,11 @@ export function routeEdge(from: Rect, to: Rect, spread = 0): { path: string; sta
       end,
     };
   } else {
-    const rightward = toCenterX >= fromCenterX;
-    const start = { x: rightward ? from.x + from.width : from.x, y: fromCenterY };
-    const end = { x: rightward ? to.x : to.x + to.width, y: toCenterY };
-    const gap = Math.abs(end.x - start.x);
-    const bend = Math.min(Math.max(18, gap / 2), 46 + Math.abs(spread));
-    const direction = rightward ? 1 : -1;
+    const start = { x: fromCenterX + spread, y: from.y + from.height };
+    const end = { x: toCenterX + spread, y: to.y + to.height };
+    const bend = 48 + Math.abs(end.x - start.x) / 8 + Math.abs(spread);
     return {
-      path: `M ${start.x} ${start.y} C ${start.x + direction * bend} ${start.y} ${end.x - direction * bend} ${end.y} ${end.x} ${end.y}`,
+      path: `M ${start.x} ${start.y} C ${start.x} ${start.y + bend} ${end.x} ${end.y + bend} ${end.x} ${end.y}`,
       start,
       end,
     };

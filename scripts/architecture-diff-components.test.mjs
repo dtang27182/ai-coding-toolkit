@@ -107,7 +107,14 @@ test("accepts state updates to the method's own class or another class", async (
   assert.equal(result.status, 0, result.stderr);
 });
 
-test("enforces endpoint kinds for dataflows and state updates", async (t) => {
+test("accepts composition between classes", async (t) => {
+  const input = JSON.parse(await readFile(examplePath, "utf8"));
+  input.relationships = [{ from: { class: "ChangeService" }, to: { class: "ChangeModel" }, type: "composition", changeType: "added" }];
+  const result = await runScript(t, input);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("enforces endpoint kinds for each relationship type", async (t) => {
   const method = { class: "ChangeService", method: "buildChangeSet" };
   const classEndpoint = { class: "ChangeModel" };
   const ui = { component: "Change Panel" };
@@ -122,6 +129,17 @@ test("enforces endpoint kinds for dataflows and state updates", async (t) => {
     ["state-update", method, io],
     ["state-update", method, method],
     ["dataflow", { ...method, component: "Change Panel" }, ui],
+    ["composition", classEndpoint, ui],
+    ["composition", ui, classEndpoint],
+    ["composition", classEndpoint, io],
+    ["composition", io, classEndpoint],
+    ["composition", ui, io],
+    ["composition", io, ui],
+    ["composition", ui, ui],
+    ["composition", io, io],
+    ["composition", method, classEndpoint],
+    ["composition", classEndpoint, method],
+    ["composition", method, method],
   ]) {
     const input = JSON.parse(await readFile(examplePath, "utf8"));
     input.relationships = [{ from, to, type, changeType: "added", label: "changes" }];
