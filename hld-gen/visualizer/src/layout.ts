@@ -176,13 +176,18 @@ export function computeLayout(
     );
   }
 
-  for (let row = 0; row <= maximumRank; row += 1) {
-    const rowNames = names.filter((name) => rank.get(name) === row).sort((a, b) => x.get(a)! - x.get(b)!);
-    let edge = -Infinity;
+  const rows = Array.from({ length: maximumRank + 1 }, (_, row) =>
+    names.filter((name) => rank.get(name) === row).sort((a, b) => x.get(a)! - x.get(b)!),
+  );
+  const rowWidths = rows.map(
+    (rowNames) => rowNames.reduce((total, name) => total + widthOf(byName.get(name)!), 0) + Math.max(0, rowNames.length - 1) * GAP_X,
+  );
+  const maximumRowWidth = Math.max(...rowWidths);
+  for (const [row, rowNames] of rows.entries()) {
+    let edge = (maximumRowWidth - rowWidths[row]) / 2;
     for (const name of rowNames) {
-      const position = Math.max(x.get(name)!, edge);
-      x.set(name, position);
-      edge = position + widthOf(byName.get(name)!) + GAP_X;
+      x.set(name, edge);
+      edge += widthOf(byName.get(name)!) + GAP_X;
     }
   }
 
