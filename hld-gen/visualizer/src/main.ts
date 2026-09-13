@@ -1,7 +1,8 @@
 import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
 import architectureDiffSchema from "../../references/architecture-diff.schema.json";
 import exampleDiff from "../workbook-import-hld.architecture-diff.json";
-import { computeLayout, routeEdge } from "./layout";
+import { computeLayout } from "./layout";
+import { routeCompositionEdge, routeEdge } from "./routing";
 import "./styles.css";
 import type {
   ArchitectureDiff,
@@ -254,6 +255,18 @@ function renderGraph(): string {
   const layout = computeLayout(graph.nodes, graph.relationships, methodsHidden, methodWidth, componentWidth, stateWriters);
   currentGraphWidth = layout.width;
   const classByName = new Map(graph.classes.map((classDiff) => [classDiff.name, classDiff]));
+  const routingBounds = new Map(graph.nodes.map((node): [string, Rect] => {
+    const box = layout.boxes.get(node.name)!;
+    if (node.componentType !== undefined) {
+      return [node.name, box];
+    } else {
+      const tab = classTargetRect(classByName.get(node.name)!, box);
+      return [node.name, { x: box.x, y: tab.y, width: Math.max(box.width, tab.x + tab.width - box.x), height: box.y + box.height - tab.y }];
+    }
+  }));
+  function obstaclesFor(relationship: ResolvedRelationship): Rect[] {
+    return [...routingBounds].filter(([name]) => name !== relationship.from.nodeName && name !== relationship.to.nodeName).map(([, box]) => box);
+  }
   const focus = hovered ?? selection;
 
   const relatedNodes = new Set<string>();
@@ -281,13 +294,9 @@ function renderGraph(): string {
     .map((relationship) => {
       const from = layout.boxes.get(relationship.from.nodeName)!;
       const to = layout.boxes.get(relationship.to.nodeName)!;
-      const sx = from.x + from.width / 2;
-      const sy = from.y + from.height;
-      const ex = to.x + to.width / 2;
-      const ey = to.y - (relationship.to.component ? 0 : 12);
-      const mid = sy + Math.max(30, (ey - sy) / 2);
+      const path = routeCompositionEdge(from, to, obstaclesFor(relationship));
       const dimmed = focus !== undefined && !relationshipMatches(relationship, focus);
-      return `<path class="edge${dimmed ? " dimmed" : ""}" ${relationshipAttributes(relationship)} d="M ${sx} ${sy} L ${sx} ${mid} L ${ex} ${mid} L ${ex} ${ey}" fill="none" stroke="oklch(0.305 0.032 255)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#composition-arrow)"></path>`;
+      return `<path class="edge${dimmed ? " dimmed" : ""}" ${relationshipAttributes(relationship)} d="${path}" fill="none" stroke="oklch(0.305 0.032 255)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#composition-arrow)"></path>`;
     })
     .join("");
 
@@ -302,14 +311,14 @@ function renderGraph(): string {
       }
       if (from === undefined || to === undefined) return "";
       const spread = ((index % 5) - 2) * 4;
-      const route = routeEdge(from, to, spread);
+      const route = routeEdge(from, to, spread, obstaclesFor(relationship));
       const changeType = relationship.relationship.changeType;
       const stateUpdate = relationship.relationship.type === "state-update";
       const dimmed = focus !== undefined && !relationshipMatches(relationship, focus);
       const dash = stateUpdate ? "2 5" : changeType === "deleted" ? "7 5" : "";
       const marker = stateUpdate ? `state-${changeType}` : `arrow-${changeType}`;
       return `
-        <path class="edge${dimmed ? " dimmed" : ""}" ${relationshipAttributes(relationship)} d="${route.path}" fill="none" stroke="${changeColor(changeType)}" stroke-width="${stateUpdate ? 1.75 : 1.6}" stroke-dasharray="${dash}" stroke-linecap="round" marker-end="url(#${marker})"></path>
+        <path class="edge${dimmed ? " dimmed" : ""}" ${relationshipAttributes(relationship)} d="${route.path}" fill="none" stroke="${changeColor(changeType)}" stroke-width="${stateUpdate ? 1.75 : 1.6}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#${marker})"></path>
         <circle class="edge${dimmed ? " dimmed" : ""}" ${relationshipAttributes(relationship)} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${changeColor(changeType)}" stroke="oklch(0.198 0.024 255)" stroke-width="1.5"></circle>`;
     })
     .join("");
