@@ -1,4 +1,4 @@
-import { mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -106,6 +106,9 @@ if (argumentError !== undefined || repoDirectory === undefined) {
       path.join(toolkitDirectory, directoryName),
       path.join(installedToolkitDirectory, directoryName)
     );
+  }
+  for (const relativePath of ["skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md"]) {
+    await rm(path.join(installedToolkitDirectory, "hld-gen", relativePath), { recursive: true, force: true });
   }
   await installCodexSkills(repoDirectory, toolkitDirectory);
   await installRootCommands();

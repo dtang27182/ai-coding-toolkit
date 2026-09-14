@@ -113,6 +113,86 @@ test("refreshes installed copies on repeat installation", async (t) => {
   }
 });
 
+test("removes retired toolkit files on upgrade while preserving other installed content", async (t) => {
+  const repoDirectory = await createRepository(t);
+  const firstInstall = install([repoDirectory]);
+  assert.equal(firstInstall.status, 0, firstInstall.stderr);
+  const retiredPaths = [
+    ".agents/skills/hld-gen/SKILL.next.md",
+    ".agents/skills/hld-eval/SKILL.md",
+    "ai-coding-toolkit/hld-gen/skills/hld-gen/SKILL.next.md",
+    "ai-coding-toolkit/hld-gen/skills/hld-eval/SKILL.md",
+    "ai-coding-toolkit/hld-gen/references/hld-evaluation-format.md",
+  ];
+  for (const relativePath of retiredPaths) {
+    await mkdir(path.dirname(path.join(repoDirectory, relativePath)), { recursive: true });
+    await writeFile(path.join(repoDirectory, relativePath), "retired instructions");
+  }
+  await writeFile(
+    path.join(repoDirectory, ".agents/skills/hld-eval/.ai-coding-toolkit-installed"),
+    "ai-coding-toolkit\n"
+  );
+  const notesPath = path.join(repoDirectory, ".agents/skills/hld-gen/notes.md");
+  await writeFile(notesPath, "local notes");
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const upgrade = install([repoDirectory]);
+    assert.equal(upgrade.status, 0, upgrade.stderr);
+    for (const relativePath of retiredPaths) {
+      await assert.rejects(lstat(path.join(repoDirectory, relativePath)), { code: "ENOENT" });
+    }
+    await assert.rejects(lstat(path.join(repoDirectory, ".agents/skills/hld-eval")), { code: "ENOENT" });
+    assert.equal(await readFile(notesPath, "utf8"), "local notes");
+    assert.equal(
+      await readFile(path.join(repoDirectory, ".agents/skills/hld-gen/SKILL.md"), "utf8"),
+      await readFile(path.join(toolkitDirectory, "hld-gen/skills/hld-gen/SKILL.md"), "utf8")
+    );
+  }
+});
+
+test("preserves unrelated hld-eval directories and links during installation", async (t) => {
+  for (const kind of ["unmarked", "foreign-marker", "link"]) {
+    const repoDirectory = await createRepository(t);
+    const skillDirectory = path.join(repoDirectory, ".agents/skills/hld-eval");
+    const externalDirectory = await createRepository(t);
+    await writeFile(path.join(externalDirectory, "SKILL.md"), "unrelated skill");
+    await writeFile(path.join(externalDirectory, ".ai-coding-toolkit-installed"), "ai-coding-toolkit\n");
+    if (kind === "link") {
+      await mkdir(path.dirname(skillDirectory), { recursive: true });
+      await symlink(externalDirectory, skillDirectory, "dir");
+    } else if (kind === "unmarked" || kind === "foreign-marker") {
+      await mkdir(skillDirectory, { recursive: true });
+      await writeFile(path.join(skillDirectory, "SKILL.md"), "unrelated skill");
+      if (kind === "foreign-marker") {
+        await writeFile(path.join(skillDirectory, ".ai-coding-toolkit-installed"), "another-toolkit\n");
+      }
+    }
+
+    const result = install([repoDirectory]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(await readFile(path.join(skillDirectory, "SKILL.md"), "utf8"), "unrelated skill");
+    assert.equal(await readFile(path.join(externalDirectory, "SKILL.md"), "utf8"), "unrelated skill");
+    if (kind === "link") {
+      assert.equal((await lstat(skillDirectory)).isSymbolicLink(), true);
+      assert.equal(await realpath(skillDirectory), await realpath(externalDirectory));
+    }
+  }
+});
+
+test("removes a retired skill link pointing to this toolkit", async (t) => {
+  const repoDirectory = await realpath(await createRepository(t));
+  const skillDirectory = path.join(repoDirectory, ".agents/skills/hld-eval");
+  await mkdir(path.dirname(skillDirectory), { recursive: true });
+  await symlink(
+    path.relative(path.dirname(skillDirectory), path.join(toolkitDirectory, "hld-gen/skills/hld-eval")),
+    skillDirectory,
+    "dir"
+  );
+  const result = install([repoDirectory]);
+  assert.equal(result.status, 0, result.stderr);
+  await assert.rejects(lstat(skillDirectory), { code: "ENOENT" });
+});
+
 test("keeps configuration in each target and preserves an existing mermaid command", async (t) => {
   const firstRepo = await createRepository(t);
   const secondRepo = await createRepository(t);

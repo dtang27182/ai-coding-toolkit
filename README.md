@@ -22,6 +22,8 @@ In the target repository, the installer records the selection in `ai-coding-tool
 
 Each target repository has its own files and output configuration and works independently of this checkout. Rerun the installer to update its installed copies; this overwrites files in directories marked as toolkit installations. It will not replace unrelated existing directories or npm scripts. Links created by the earlier installer to this checkout are replaced with copies.
 
+Upgrades remove the retired toolkit-owned `hld-eval` skill, `SKILL.next.md` files, and evaluation report format. Unrelated skills and links are preserved.
+
 ## Generate a High-Level Design
 
 Start `$hld-gen` at any point in a conversation about a feature. Before drafting, the agent presents its understanding of the desired behavior and scope, asks the user to confirm or correct it, and waits for an explicit response. It does not create or revise the HLD before confirmation.
@@ -34,7 +36,7 @@ Ask the agent:
 Use $hld-gen to develop a design from our workbook-import conversation so far.
 ```
 
-`hld-gen` generates three candidate designs per iteration, each with a narrative and Architecture Diff. Shared instructions in `generate-hld.md` and `eval-hld.md` handle candidate generation and quantitative counting. The skill compares the candidates, records their metrics and analysis in an iteration summary, and generates three new candidates when it identifies an improvement approach. Otherwise, it selects the best of the three designs.
+`hld-gen` generates three candidate designs per iteration, each with a narrative and Architecture Diff. Shared instructions in `generate-hld.md` and `eval-hld.md` handle candidate generation and quantitative counting. The skill compares the candidates, retains the best design across iterations, and records their metrics, analysis, and improvement outcomes in an iteration summary. It generates three new candidates for an untried or newly justified improvement approach; otherwise, it selects the best design across the run.
 
 Results are grouped by feature under the configured output directory:
 

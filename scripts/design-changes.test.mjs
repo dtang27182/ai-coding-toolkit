@@ -20,7 +20,9 @@ function architectureDiff() {
     classes: changeTypes.map((changeType) => ({
       name: `Service-${changeType}`,
       changeType,
-      methods: changeTypes.map((methodChangeType) => ({ name: methodChangeType, changeType: methodChangeType })),
+      methods: (changeType === "unchanged" ? ["unchanged"] : changeTypes).map(
+        (methodChangeType) => ({ name: methodChangeType, changeType: methodChangeType })
+      ),
       variableExposure: [],
       variableExposureCount: 0,
     })),
@@ -108,6 +110,9 @@ test("refreshes all counts after design changes and produces stable results on r
   assert.equal(result.status, 0, result.stderr);
   const updated = JSON.parse(await readFile(result.inputPath, "utf8"));
   updated.classes[0].changeType = "unchanged";
+  for (const method of updated.classes[0].methods) {
+    method.changeType = "unchanged";
+  }
   updated.components[0].changeType = "unchanged";
   updated.relationships[0].changeType = "unchanged";
   updated.relationships[1].changeType = "unchanged";
@@ -138,5 +143,28 @@ test("rejects invalid architecture diffs and derived counts without changing the
     const result = await runCounter(t, input);
     assert.notEqual(result.status, 0);
     assert.equal(await readFile(result.inputPath, "utf8"), JSON.stringify(input));
+  }
+});
+
+test("rejects changed methods in unchanged classes before validating, counting, or previewing", async (t) => {
+  for (const changeType of ["added", "modified", "deleted"]) {
+    const input = architectureDiff();
+    input.classes.push({
+      name: "InvalidContext",
+      changeType: "unchanged",
+      methods: [{ name: "run", changeType }],
+      variableExposure: [],
+    });
+    const result = await runCounter(t, input);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Unchanged class has changed method: InvalidContext.run/);
+    assert.equal(await readFile(result.inputPath, "utf8"), JSON.stringify(input));
+
+    for (const scriptPath of [validatorPath, exposureCounterPath, previewPath]) {
+      const rejected = spawnSync(process.execPath, [scriptPath, result.inputPath], { encoding: "utf8" });
+      assert.notEqual(rejected.status, 0);
+      assert.match(rejected.stderr, /Unchanged class has changed method: InvalidContext.run/);
+      assert.equal(await readFile(result.inputPath, "utf8"), JSON.stringify(input));
+    }
   }
 });

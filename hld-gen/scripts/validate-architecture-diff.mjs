@@ -49,6 +49,12 @@ if (inputArguments.length !== 1) {
         const methodNames = new Set();
         classMethods.set(classDiff.name, methodNames);
         for (const method of classDiff.methods) {
+          if (
+            classDiff.changeType === "unchanged" &&
+            (method.changeType === "added" || method.changeType === "modified" || method.changeType === "deleted")
+          ) {
+            semanticErrors.push(`Unchanged class has changed method: ${classDiff.name}.${method.name}`);
+          }
           if (methodNames.has(method.name)) {
             semanticErrors.push(`Duplicate method name in ${classDiff.name}: ${method.name}`);
           } else {

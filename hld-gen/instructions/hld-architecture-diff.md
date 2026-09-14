@@ -16,6 +16,7 @@ Use the Architecture Diff to show how the existing architecture changes to imple
 - Use `components` for UI surfaces (`ui`) and external I/O endpoints (`external-io`), such as network services, files, and browser storage. Each has `name`, `type`, and `changeType`; use `[]` when none participate.
 - Keep implementation classes and methods, including UI handlers and I/O adapters, in `classes`. Variable exposure belongs to those classes.
 - Mark reused entries `unchanged`. Participation or a new connection alone does not modify an endpoint.
+- A class with an added, modified, or deleted method must be marked changed.
 - Keep class and component names globally unique, and method names unique within each class.
 
 ## Relationships
