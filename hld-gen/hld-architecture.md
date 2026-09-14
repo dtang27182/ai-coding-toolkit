@@ -6,7 +6,7 @@ The HLD generator develops and improves one high-level design from a feature con
 
 The objective is the simplest design that preserves required new and existing behavior. The rubric scores change size, concentration, and Variable Exposure.
 
-The narrative's Relevant Logic and Dataflow section covers the broader end-to-end workflows needed to understand the design. Its Core Logic and Dataflow section and the Architecture Diff cover only the User Flow Steps, including where existing behavior reads and applies the feature's output or state. This core scope includes all required changes and every unchanged class, method, UI component, and external I/O component implementing or connecting those steps; follow `references/hld-narrative.md` and `references/hld-architecture-diff.md` for inclusion criteria. Integration adjustments to existing classes, persistent state, methods, and dataflows that might interfere with or be disrupted by the new flow can remain for later design work. Detailed error handling and edge cases can also remain for later design work unless needed for the desired behavior.
+The narrative's Relevant Logic and Dataflow section covers the broader end-to-end workflows needed to understand the design. Its Core Logic and Dataflow section and the Architecture Diff cover only the User Flow Steps, including where existing behavior reads and applies the feature's output or state. This core scope includes all required changes and every unchanged class, method, UI component, and external I/O component implementing or connecting those steps; follow `instructions/hld-narrative.md` and `instructions/hld-architecture-diff.md` for inclusion criteria. Integration adjustments to existing classes, persistent state, methods, and dataflows that might interfere with or be disrupted by the new flow can remain for later design work. Detailed error handling and edge cases can also remain for later design work unless needed for the desired behavior.
 
 ## Skills
 
@@ -17,7 +17,7 @@ The narrative's Relevant Logic and Dataflow section covers the broader end-to-en
 
 `hld-gen` populates Variable Exposure after the narrative and architectural design are complete, then runs the counter and follows `hld-eval`. It uses the assessment and each attribute's preferred direction to revise the same files in place, then repeats the exposure and evaluation steps. Only the current HLD and latest evaluation are retained, with a Design Iterations history maintained by `hld-gen` and preserved by `hld-eval`.
 
-The rubric in `references/hld-quality.md` stays fixed during a run. Revision stops when all attributes reach their rubric-defined best values or the generator cannot identify another improvement. The loop is carried out through skill instructions, without a separate runner.
+The rubric in `instructions/hld-quality.md` stays fixed during a run. Revision stops when all attributes reach their rubric-defined best values or the generator cannot identify another improvement. The loop is carried out through skill instructions, without a separate runner.
 
 The generator reports the evaluated iteration count and why it stopped, then presents the artifacts for human review. An interruption after a design edit is reported as an unevaluated current design. Application implementation is a separate task.
 
@@ -31,17 +31,23 @@ hld-gen/
     hld-gen/
     hld-eval/
   scripts/
+  instructions/
   references/
 ```
 
 `scripts/` contains the JSON validator, Variable Exposure counter, and Mermaid converter. Each can run directly from the command line. The toolkit's shared initializer and agent adapters expose the skills from `hld-gen/skills/`.
 
-`references/` defines the tool's contracts:
+`instructions/` contains the shared guidance for generation and evaluation:
 
-- [hld-narrative.md](references/hld-narrative.md): narrative scope and seven-section structure, with User Flow Steps defining the scope of Core Logic and Dataflow and the Architecture Diff.
-- [hld-architecture-diff.md](references/hld-architecture-diff.md): architectural representation, supported by the schema and example in the same directory.
-- [hld-quality.md](references/hld-quality.md): score definitions and preferred directions.
-- [hld-variable-exposure.md](references/hld-variable-exposure.md): existing variable scope, declaration inventories, and counting rules.
+- [hld-narrative.md](instructions/hld-narrative.md): narrative scope and seven-section structure, with User Flow Steps defining the scope of Core Logic and Dataflow and the Architecture Diff.
+- [hld-architecture-diff.md](instructions/hld-architecture-diff.md): architectural representation, supported by the schema and example in `references/`.
+- [hld-quality.md](instructions/hld-quality.md): score definitions and preferred directions.
+- [hld-variable-exposure.md](instructions/hld-variable-exposure.md): existing variable scope, declaration inventories, and counting rules.
+
+`references/` contains the Architecture Diff schema, example JSON, and report format:
+
+- [architecture-diff.schema.json](references/architecture-diff.schema.json): Architecture Diff schema.
+- [architecture-diff.example.json](references/architecture-diff.example.json): example Architecture Diff.
 - [hld-evaluation-format.md](references/hld-evaluation-format.md): attribute scores, qualitative assessment, design iteration history, and generator stopping reason.
 
 ## Output

@@ -99,7 +99,7 @@ test("refreshes installed copies on repeat installation", async (t) => {
   assert.equal(firstInstall.status, 0, firstInstall.stderr);
   const relativePaths = [
     ".agents/skills/hld-gen/SKILL.md",
-    "ai-coding-toolkit/hld-gen/references/hld-narrative.md",
+    "ai-coding-toolkit/hld-gen/instructions/hld-narrative.md",
     "ai-coding-toolkit/node_modules/ajv/package.json",
   ];
   const installedContents = [];

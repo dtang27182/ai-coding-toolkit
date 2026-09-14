@@ -9,12 +9,12 @@ Evaluate one HLD without revising it or recommending changes.
 
 ## Inputs
 
-Read the feature context, narrative, Architecture Diff, relevant code, and repository guidance. Treat the narrative and JSON as one HLD. Read these references:
+Read the feature context, narrative, Architecture Diff, relevant code, and repository guidance. Treat the narrative and JSON as one HLD. Read these instructions and references:
 
-- `ai-coding-toolkit/hld-gen/references/hld-quality.md` for scoring.
-- `ai-coding-toolkit/hld-gen/references/hld-narrative.md` for evaluation scope.
-- `ai-coding-toolkit/hld-gen/references/hld-architecture-diff.md` for class, component, and relationship representation rules.
-- `ai-coding-toolkit/hld-gen/references/hld-variable-exposure.md` for inventory verification.
+- `ai-coding-toolkit/hld-gen/instructions/hld-quality.md` for scoring.
+- `ai-coding-toolkit/hld-gen/instructions/hld-narrative.md` for evaluation scope.
+- `ai-coding-toolkit/hld-gen/instructions/hld-architecture-diff.md` for class, component, and relationship representation rules.
+- `ai-coding-toolkit/hld-gen/instructions/hld-variable-exposure.md` for inventory verification.
 - `ai-coding-toolkit/hld-gen/references/hld-evaluation-format.md` for the report.
 
 Write to the caller's report path, or `<outputDirectory>/<feature>/<feature>.hld-evaluation.md` using `ai-coding-toolkit/config.json`. Read any existing report and preserve its Design Iterations section unchanged; `hld-gen` owns that history.

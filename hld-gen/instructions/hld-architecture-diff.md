@@ -1,6 +1,6 @@
 # HLD Architecture Diff
 
-Use the Architecture Diff to show how the existing architecture changes to implement the HLD. Read `architecture-diff.schema.json` and `architecture-diff.example.json` in this directory before writing it.
+Use the Architecture Diff to show how the existing architecture changes to implement the HLD. Read `../references/architecture-diff.schema.json` and `../references/architecture-diff.example.json` before writing it.
 
 ## Scope
 

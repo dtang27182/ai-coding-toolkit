@@ -26,7 +26,7 @@ Each target repository has its own files and output configuration and works inde
 
 Start `$hld-gen` at any point in a conversation about a feature. Before drafting, the agent presents its understanding of the desired behavior and scope, asks the user to confirm or correct it, and waits for an explicit response. It does not create or revise the HLD before confirmation.
 
-The rubric in `hld-gen/references/hld-quality.md` scores change size, concentration, and Variable Exposure. See `hld-gen/references/hld-variable-exposure.md` for the exposure rules.
+The rubric in `hld-gen/instructions/hld-quality.md` scores change size, concentration, and Variable Exposure. See `hld-gen/instructions/hld-variable-exposure.md` for the exposure rules.
 
 Ask the agent:
 

@@ -11,10 +11,10 @@ The HLD consists of a narrative Markdown file and an Architecture Diff JSON file
 
 Read these instructions when their corresponding work is needed:
 
-- `ai-coding-toolkit/hld-gen/references/hld-narrative.md` before writing or revising the narrative.
-- `ai-coding-toolkit/hld-gen/references/hld-architecture-diff.md` before writing or revising the Architecture Diff.
-- `ai-coding-toolkit/hld-gen/references/hld-variable-exposure.md` when identifying touched methods and existing variables exposed to the change.
-- `ai-coding-toolkit/hld-gen/references/hld-quality.md` before choosing a design.
+- `ai-coding-toolkit/hld-gen/instructions/hld-narrative.md` before writing or revising the narrative.
+- `ai-coding-toolkit/hld-gen/instructions/hld-architecture-diff.md` before writing or revising the Architecture Diff.
+- `ai-coding-toolkit/hld-gen/instructions/hld-variable-exposure.md` when identifying touched methods and existing variables exposed to the change.
+- `ai-coding-toolkit/hld-gen/instructions/hld-quality.md` before choosing a design.
 - `ai-coding-toolkit/hld-gen/references/hld-evaluation-format.md` when recording design iterations and the stopping reason.
 - `ai-coding-toolkit/hld-gen/skills/hld-eval/SKILL.md` before evaluating the HLD.
 
@@ -25,21 +25,23 @@ Read these instructions when their corresponding work is needed:
    - Present the user with a concise summary of the desired behavior and what is in and out of scope. Ask them to confirm or correct it.
    - Stop and wait for the user's response. Do not start the design or proceed to step 2 until the user explicitly confirms the summary.
    - Incorporate the response and record any remaining assumptions and open questions.
-2. Read `ai-coding-toolkit/hld-gen/references/hld-quality.md` and use its criteria to choose the simplest design that implements the desired behavior.
+2. Read `ai-coding-toolkit/hld-gen/instructions/hld-quality.md` and use its criteria to develop an initial candidate design that implements the desired behavior. Select the best design after comparing alternatives in Improve the HLD.
 3. Create the narrative and Architecture Diff in parallel as complementary parts of the same design; do not derive one from the other.
    - Read `ai-coding-toolkit/config.json`, choose a stable kebab-case feature slug, and create `<outputDirectory>/<feature>/`. Write all HLD artifacts there unless the user supplies paths.
-   - Write the narrative using `ai-coding-toolkit/hld-gen/references/hld-narrative.md` and the Architecture Diff using `ai-coding-toolkit/hld-gen/references/hld-architecture-diff.md`. When revising existing artifacts, retain the user's edits unless they conflict with the requested behavior.
-4. Use the Architecture Diff's changed classes and methods to find exposed variables in the current code. Populate `variableExposure` using `ai-coding-toolkit/hld-gen/references/hld-variable-exposure.md`. Use `null` when exposure remains unknown.
+   - Write the narrative using `ai-coding-toolkit/hld-gen/instructions/hld-narrative.md` and the Architecture Diff using `ai-coding-toolkit/hld-gen/instructions/hld-architecture-diff.md`. When revising existing artifacts, retain the user's edits unless they conflict with the requested behavior.
+4. Use the Architecture Diff's changed classes and methods to find exposed variables in the current code. Populate `variableExposure` using `ai-coding-toolkit/hld-gen/instructions/hld-variable-exposure.md`. Use `null` when exposure remains unknown.
 5. Run `node ai-coding-toolkit/hld-gen/scripts/count-variable-exposure.mjs <json-path>` to validate the Architecture Diff and write its `variableExposureCount` values. Fix failures before evaluation.
 
 ## Improve the HLD
 
-1. Use the explicit behavior and scope confirmation obtained before creation. For standalone improvement, obtain that confirmation and wait for the user's response before evaluating or revising the HLD.
-2. Use `ai-coding-toolkit/hld-gen/references/hld-quality.md` without changing it during the run.
-3. Record the current design in Design Iterations using `hld-evaluation-format.md`. Follow `hld-eval` to replace the evaluation while preserving that history, then update the iteration's outcome from the result.
-4. If every attribute has reached its best possible score defined by the rubric, stop with `best-scores`.
-5. Otherwise, identify a revision that makes the design simpler using all attribute directions and the qualitative assessment. Account for tradeoffs without inventing weights. If no simpler complete design is apparent, stop with `no-identifiable-improvement`.
-6. Revise the same files in place. Rebuild the exposure inventory from the revised Architecture Diff, run the counting script, and return to step 3. Keep only the current design and evaluation, retaining the iteration history in the report.
+Use the explicit behavior and scope confirmation obtained before creation. For standalone improvement, obtain that confirmation and wait for the user's response before evaluating or revising the HLD. Use `ai-coding-toolkit/hld-gen/instructions/hld-quality.md` without changing it during the run.
+
+Start with the current HLD as the first design and repeat this comparison loop:
+
+1. Create two alternative designs, for three designs total. Constrain the alternatives only by Desired Behavior and Scope and Assumptions, not by any other choices in the first design. Explore materially different responsibilities, state ownership, class boundaries, interfaces, or core dataflows. Write a complete narrative and Architecture Diff for each alternative using the creation instructions. Keep all three designs separately available for comparison.
+2. Evaluate all three designs against the quality rubric. For each design, rebuild its exposure inventory, run the counting script, and follow `hld-eval`. Record each design in Design Iterations using `hld-evaluation-format.md`, preserving the accumulated history and updating each outcome from its evaluation. Retain each design's scores and qualitative assessment alongside its artifacts.
+3. Analyze all three designs and their evaluations together. Use their differences, commonalities, and any patterns or trends to identify an approach that could improve the quality metrics further. Consider combining useful choices and changing shared choices that may limit all three designs. Explain the proposed approach and the metrics it could improve, accounting for tradeoffs without inventing weights.
+4. If an improvement approach is identified, create a new complete design based on it and use that design as the first design in the next round, returning to step 1 to create two new alternatives. If no improvement approach is identified, choose the best of the current three designs using the quality metrics and explain any tradeoffs supporting the choice. Restore the selected design and its matching evaluation to the main artifact paths, preserving the full iteration history and recording the comparison and selection rationale. Stop with `best-scores` if the selected design reaches every rubric-defined best value, or `no-identifiable-improvement` otherwise.
 
 If variable exposure is unknown, inspect the missing code or settle the relevant design choice. If required context remains unavailable, preserve the design and stop with `needs-input`.
 
