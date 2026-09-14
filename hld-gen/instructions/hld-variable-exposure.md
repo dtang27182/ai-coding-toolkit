@@ -14,4 +14,4 @@ For each class:
 
 Use the code before the proposed change. Count only declarations owned by affected methods or exposed as instance state; do not count new declarations or recursively inspect state reachable through a variable.
 
-Use `[]` for unchanged context classes and after verifying that a changed class has no exposure. Use `null` for the entire class inventory when the affected scope or any declaration location remains unknown. Do not save a partial inventory.
+Use `[]` for unchanged context classes and after verifying that a changed class has no exposure. Use `null` for the entire class inventory when the affected scope or any declaration location remains unknown.

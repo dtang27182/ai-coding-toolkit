@@ -14,4 +14,4 @@ Use the Architecture Diff's changed classes and methods to find exposed variable
 2. Run `node ai-coding-toolkit/hld-gen/scripts/count-design-changes.mjs <json-path>` to validate the Architecture Diff and write the five change counts. Fix failures before accepting the counts.
 3. Verify that `changedClassCount`, `changedMethodCount`, `changedComponentCount`, `changedDataflowRelationshipCount`, `changedStateUpdateRelationshipCount`, and `variableExposureCount` are present and non-null in the Architecture Diff JSON.
 
-After verification, copy all six counts from the JSON into the candidate's iteration record and mark it evaluated. On failure, record the failed status and reason without inventing counts. Do not produce a separate per-design evaluation file. After a design or inventory changes, mark evaluation pending and repeat these steps.
+After verification, copy all six counts from the JSON into the candidate's iteration record and mark it evaluated. On failure, record the failed status and reason. After a design or inventory changes, mark evaluation pending and repeat these steps.

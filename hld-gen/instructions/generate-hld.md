@@ -1,6 +1,6 @@
 # Generate an HLD Candidate
 
-Generate one candidate from the confirmed Desired Behavior and Scope and Assumptions, the current code, and the caller's feature slug, iteration number, and candidate number. The caller owns scope confirmation and comparison; do not repeat those steps here.
+Generate one candidate from the confirmed Desired Behavior and Scope and Assumptions, the current code, and the caller's feature slug, iteration number, and candidate number. The caller owns scope confirmation and comparison.
 
 Constrain the design only by Desired Behavior and Scope and Assumptions, not by the other candidates' design choices. Explore materially different responsibilities, state ownership, class boundaries, interfaces, or core dataflows. In later iterations, use the identified improvement approach as guidance while keeping other design choices open.
 
@@ -14,6 +14,6 @@ Constrain the design only by Desired Behavior and Scope and Assumptions, not by 
    - Use `outputDirectory` from `ai-coding-toolkit/config.json` and the caller's feature slug. Write `<feature>.hld.md` and `<feature>.architecture-diff.hld.json` under `<outputDirectory>/<feature>/iterations/<iteration>/candidate-<candidate>/` (candidates 1–3). Preserve earlier candidates and iterations.
    - Write the narrative using `ai-coding-toolkit/hld-gen/instructions/hld-narrative.md` and the Architecture Diff using `ai-coding-toolkit/hld-gen/instructions/hld-architecture-diff.md`. When revising existing artifacts, retain the user's edits unless they conflict with the requested behavior.
 
-Leave exposure inventory preparation and counting to `eval-hld.md`. Use `null` for inventories not yet populated and omit derived counts until evaluation.
+Use `null` for inventories not yet populated and omit derived counts until evaluation.
 
 Update the candidate's artifact links in the iteration record as files are written and mark generation complete or failed. Before editing an existing candidate, mark its evaluation pending.
