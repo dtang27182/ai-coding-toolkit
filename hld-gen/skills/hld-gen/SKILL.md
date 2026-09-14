@@ -22,7 +22,7 @@ Read these supporting documents when their corresponding work is needed:
 
 Use the confirmed Desired Behavior and Scope and Assumptions for every candidate. Keep the quality rubric fixed during the run.
 
-Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to the target repository root, for all generated artifacts.
+Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to the target repository root, for all generated artifacts. Choose one stable kebab-case feature slug (`<feature>`) for the run and pass it to candidate generation.
 
 1. Understand the desired behavior.
    - Read the feature context, relevant code, and repository guidance. Identify the core use cases, requirements, decisions, and constraints.
@@ -30,8 +30,8 @@ Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to
    - Stop and wait for the user's response. Do not start the design or proceed to step 2 until the user explicitly confirms the summary.
    - Incorporate the response and record any remaining assumptions and open questions.
 2. Read `ai-coding-toolkit/hld-gen/instructions/hld-quality.md` to understand the design quality criteria. Use these criteria to guide candidate generation and comparison.
-3. Before generation, create or resume an iteration record in `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md`, with generation and evaluation marked pending for each new candidate. Generate three materially different candidate designs using `ai-coding-toolkit/hld-gen/instructions/generate-hld.md`.
-   - Start at iteration 1 and increment for each new set of three candidates. Resume an unfinished iteration in its existing record and preserve earlier records and completed work.
+3. Before generation, create an iteration record in `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md`, with generation and evaluation marked pending for each new candidate. Generate three materially different candidate designs using `ai-coding-toolkit/hld-gen/instructions/generate-hld.md`.
+   - Start at iteration 1 and increment for each new set of three candidates. Preserve earlier records and completed work.
 4. Evaluate all three designs using `ai-coding-toolkit/hld-gen/instructions/eval-hld.md`. An evaluated iteration has three successfully evaluated candidates.
 5. Analyze all three designs together. Use their differences, commonalities, and any patterns or trends to identify an approach that could improve the quality metrics further. Consider combining useful choices and changing shared choices that may limit all three designs. Explain the proposed approach and the metrics it could improve, accounting for tradeoffs without inventing weights.
    - Compare the candidates with the best evaluated design from earlier iterations and retain the best design across the run, explaining any tradeoffs. Keep the earlier design on a tie.

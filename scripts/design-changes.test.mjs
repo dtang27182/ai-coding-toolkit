@@ -35,6 +35,7 @@ function architectureDiff() {
         from: { component: `Panel-${changeType}` },
         to: { class: "Service-modified", method: "modified" },
         type: "dataflow",
+        label: "selected item",
         changeType,
       },
       {

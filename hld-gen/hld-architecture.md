@@ -16,7 +16,7 @@ The narrative's Relevant Logic and Dataflow section covers the broader end-to-en
 
 ## Evaluation and Revision
 
-`hld-gen` creates or resumes an iteration record before generating three structurally different candidates from the confirmed Desired Behavior and Scope and Assumptions. It updates artifact links, generation and evaluation statuses, and metrics as work proceeds. After calculating their metrics, it analyzes their differences, commonalities, patterns, and trends for further improvements. Each iteration's candidate artifacts are retained, and its analysis and improvement approach are added to the same iteration summary.
+`hld-gen` creates an iteration record before generating three structurally different candidates from the confirmed Desired Behavior and Scope and Assumptions. It updates artifact links, generation and evaluation statuses, and metrics as work proceeds. After calculating their metrics, it analyzes their differences, commonalities, patterns, and trends for further improvements. Each iteration's candidate artifacts are retained, and its analysis and improvement approach are added to the same iteration summary.
 
 The rubric in `instructions/hld-quality.md` stays fixed during a run. The generator retains the best evaluated design across iterations and records whether each improvement approach improved on the earlier best. An untried or newly justified approach guides three new candidates; an unsuccessful approach is not repeated without new evidence or a materially different design choice addressing its failure. When no such approach is identified, the generator selects the best design across all iterations and copies its artifacts to the main feature paths. The loop is carried out through skill instructions, without a separate runner.
 
@@ -44,7 +44,7 @@ hld-gen/
 - [hld-narrative.md](instructions/hld-narrative.md): narrative scope and six-section structure, with User Flow Steps defining the scope of Core Logic and Dataflow and the Architecture Diff.
 - [hld-architecture-diff.md](instructions/hld-architecture-diff.md): architectural representation, supported by the schema and example in `references/`.
 - [hld-quality.md](instructions/hld-quality.md): score definitions and preferred directions.
-- [hld-variable-exposure.md](instructions/hld-variable-exposure.md): existing variable scope, declaration inventories, and counting rules.
+- [hld-variable-exposure.md](instructions/hld-variable-exposure.md): existing variable scope and declaration inventories.
 
 `references/` contains the Architecture Diff schema and example JSON:
 

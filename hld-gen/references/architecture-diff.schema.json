@@ -245,6 +245,7 @@
         {
           "if": { "properties": { "type": { "const": "dataflow" } } },
           "then": {
+            "required": ["label"],
             "properties": {
               "from": { "$ref": "#/$defs/dataflowEndpoint" },
               "to": { "$ref": "#/$defs/dataflowEndpoint" }
