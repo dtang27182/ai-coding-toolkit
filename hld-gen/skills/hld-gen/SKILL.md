@@ -22,6 +22,8 @@ Read these supporting documents when their corresponding work is needed:
 
 Use the confirmed Desired Behavior and Scope and Assumptions for every candidate. Keep the quality rubric fixed during the run.
 
+Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to the target repository root, for all generated artifacts.
+
 1. Understand the desired behavior.
    - Read the feature context, relevant code, and repository guidance. Identify the core use cases, requirements, decisions, and constraints.
    - Present the user with a concise summary of the desired behavior and what is in and out of scope. Ask them to confirm or correct it.

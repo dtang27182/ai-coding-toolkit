@@ -53,7 +53,7 @@ hld-gen/
 
 ## Output
 
-Artifacts use a stable feature slug as a subdirectory under the configured repository-relative output directory, unless the user supplies paths:
+Artifacts use a stable feature slug as a subdirectory under `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to the target repository root:
 
 - `<feature>/<feature>.hld.md`: narrative design.
 - `<feature>/<feature>.architecture-diff.hld.json`: classes, methods, UI and external I/O components, relationships, and variable exposure inventories.
