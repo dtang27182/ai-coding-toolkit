@@ -153,7 +153,7 @@ test("routes composition edges around unrelated boxes", () => {
   assert.equal(points[0].x, points[1].x);
   assert.equal(points.at(-1).x, points.at(-2).x);
   assert.equal(points[0].y, from.y + from.height);
-  assert.equal(points.at(-1).y, to.y - 12);
+  assert.equal(points.at(-1).y, to.y);
 });
 
 test("preserves unobstructed curves and distinct same-row fan-out", () => {

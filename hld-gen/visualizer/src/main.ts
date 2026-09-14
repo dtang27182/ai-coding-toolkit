@@ -269,7 +269,9 @@ function renderGraph(): string {
       return [node.name, box];
     } else {
       const tab = classTargetRect(classByName.get(node.name)!, box);
-      return [node.name, { x: box.x, y: tab.y, width: Math.max(box.width, tab.x + tab.width - box.x), height: box.y + box.height - tab.y }];
+      return methodsHidden
+        ? [node.name, tab]
+        : [node.name, { x: box.x, y: tab.y, width: Math.max(box.width, tab.x + tab.width - box.x), height: box.y + box.height - tab.y }];
     }
   }));
   function obstaclesFor(relationship: ResolvedRelationship): Rect[] {
@@ -290,18 +292,20 @@ function renderGraph(): string {
     }
   }
 
-  const classFrames = graph.classes
-    .map((classDiff) => {
-      const box = layout.boxes.get(classDiff.name)!;
-      const dimmed = focus !== undefined && !relatedNodes.has(classDiff.name);
-      return `<rect class="class-frame${dimmed ? " dimmed" : ""}" data-node="${escapeHtml(classDiff.name)}" x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="11" fill="oklch(0.212 0.024 255 / 0.72)" stroke="oklch(0.4 0.032 255)" stroke-width="1.25" stroke-dasharray="6 5"></rect>`;
-    })
-    .join("");
+  const classFrames = methodsHidden
+    ? ""
+    : graph.classes
+        .map((classDiff) => {
+          const box = layout.boxes.get(classDiff.name)!;
+          const dimmed = focus !== undefined && !relatedNodes.has(classDiff.name);
+          return `<rect class="class-frame${dimmed ? " dimmed" : ""}" data-node="${escapeHtml(classDiff.name)}" x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="11" fill="oklch(0.212 0.024 255 / 0.72)" stroke="oklch(0.4 0.032 255)" stroke-width="1.25" stroke-dasharray="6 5"></rect>`;
+        })
+        .join("");
 
   const compositionEdges = layout.compositionRelationships
     .map((relationship) => {
-      const from = layout.boxes.get(relationship.from.nodeName)!;
-      const to = layout.boxes.get(relationship.to.nodeName)!;
+      const from = routingBounds.get(relationship.from.nodeName)!;
+      const to = routingBounds.get(relationship.to.nodeName)!;
       const path = routeCompositionEdge(from, to, obstaclesFor(relationship));
       const dimmed = focus !== undefined && !relationshipMatches(relationship, focus);
       return `<path class="edge${dimmed ? " dimmed" : ""}" ${relationshipAttributes(relationship)} d="${path}" fill="none" stroke="oklch(0.305 0.032 255)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#composition-arrow)"></path>`;

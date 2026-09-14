@@ -45,7 +45,7 @@ export function routeEdge(from: Rect, to: Rect, spread = 0, obstacles: Rect[] = 
 
 export function routeCompositionEdge(from: Rect, to: Rect, obstacles: Rect[]): string {
   const start = { x: from.x + from.width / 2, y: from.y + from.height };
-  const end = { x: to.x + to.width / 2, y: to.y - 12 };
+  const end = { x: to.x + to.width / 2, y: to.y };
   const middle = start.y + Math.max(30, (end.y - start.y) / 2);
   const points = [start, { x: start.x, y: middle }, { x: end.x, y: middle }, end];
   const blocked = expandObstacles(obstacles, 20);
