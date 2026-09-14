@@ -42,7 +42,7 @@ test("copies skills and scripts that work after the source checkout is removed",
   assert.equal((await lstat(path.dirname(skillPath))).isSymbolicLink(), false);
   assert.equal(
     await readFile(skillPath, "utf8"),
-    await readFile(path.join(toolkitDirectory, "hld-gen", "skills", "hld-gen", "SKILL.next.md"), "utf8")
+    await readFile(path.join(toolkitDirectory, "hld-gen", "skills", "hld-gen", "SKILL.md"), "utf8")
   );
   await assert.rejects(lstat(path.join(repoDirectory, ".agents", "skills", "hld-eval")), { code: "ENOENT" });
   for (const directoryName of ["hld-gen", "node_modules"]) {

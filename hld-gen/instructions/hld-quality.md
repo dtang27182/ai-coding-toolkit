@@ -2,11 +2,11 @@
 
 Evaluate the narrative design and Architecture Diff as one HLD. Each attribute defines its own raw score and whether higher or lower values are better. Do not normalize or combine the scores.
 
-Use the attributes to measure design complexity while preserving required new and existing behavior. Describe tradeoffs in the qualitative assessment; do not invent weights.
+Use the attributes to measure design complexity while preserving required new and existing behavior. Describe tradeoffs in the iteration summary; do not invent weights.
 
 ## Scoring Preconditions
 
-Score only a valid Architecture Diff that covers the User Flow Steps, matches Core Logic and Dataflow under `hld-narrative.md`, and has code-verified inventories under `hld-variable-exposure.md`. If these checks fail, return no scores and explain why in the qualitative assessment. Relevant Logic and Dataflow does not expand the required coverage.
+Compare only a valid Architecture Diff that covers the User Flow Steps, matches Core Logic and Dataflow under `hld-narrative.md`, and has code-verified inventories under `hld-variable-exposure.md`. If these checks fail, exclude its counts from comparison and explain why in the iteration summary. Relevant Logic and Dataflow does not expand the required coverage.
 
 Count only `added`, `modified`, and `deleted` entries as changed. Do not reward omissions or combining unrelated responsibilities to reduce counts.
 

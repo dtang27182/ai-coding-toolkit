@@ -18,7 +18,7 @@ The target directory must already exist. Relative target paths are resolved from
 npm run install:codex -- ../code-repo --output-dir architecture/plans
 ```
 
-In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the HLD files and installed dependencies into `ai-coding-toolkit`, installs `hld-gen/SKILL.next.md` as `.agents/skills/hld-gen/SKILL.md`, and adds `npm run mermaid` and `npm run visualizer` when the repository has a root `package.json`.
+In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the HLD files and installed dependencies into `ai-coding-toolkit`, installs `hld-gen/SKILL.md` as `.agents/skills/hld-gen/SKILL.md`, and adds `npm run mermaid` and `npm run visualizer` when the repository has a root `package.json`.
 
 Each target repository has its own files and output configuration and works independently of this checkout. Rerun the installer to update its installed copies; this overwrites files in directories marked as toolkit installations. It will not replace unrelated existing directories or npm scripts. Links created by the earlier installer to this checkout are replaced with copies.
 
@@ -34,25 +34,19 @@ Ask the agent:
 Use $hld-gen to develop a design from our workbook-import conversation so far.
 ```
 
-`hld-gen` writes a narrative and Architecture Diff as one HLD. `hld-eval` returns each rubric attribute's raw score, whether higher or lower values are better, and one qualitative assessment without revision suggestions. `hld-gen` revises the same HLD until every score reaches its best possible value or it cannot identify another improvement.
-
-| Skill      | Responsibility                                      |
-| ---------- | --------------------------------------------------- |
-| `hld-gen`  | Create and improve one HLD.                         |
-| `hld-eval` | Score one HLD and write one qualitative assessment. |
-
-You can also invoke `$hld-eval` on an existing HLD for a standalone evaluation.
+`hld-gen` generates three candidate designs per iteration, each with a narrative and Architecture Diff. Shared instructions in `generate-hld.md` and `eval-hld.md` handle candidate generation and quantitative counting. The skill compares the candidates, records their metrics and analysis in an iteration summary, and generates three new candidates when it identifies an improvement approach. Otherwise, it selects the best of the three designs.
 
 Results are grouped by feature under the configured output directory:
 
 - `<feature>/<feature>.hld.md`: narrative, stated intent and constraints, proposed approach, working assumptions, and open questions.
 - `<feature>/<feature>.architecture-diff.hld.json`: current Architecture Diff.
 - `<feature>/<feature>.architecture-diff.hld.mermaid.md`: generated diagram preview.
-- `<feature>/<feature>.hld-evaluation.md`: latest attribute scores, qualitative assessment, and stopping reason.
+- `<feature>/<feature>.hld-iteration-summary.md`: candidate metrics, analysis, improvement approaches, selection rationale, and stopping reason for each iteration.
+- `<feature>/iterations/<iteration>/candidate-<candidate>/`: retained candidate narratives and Architecture Diff files.
 
-The Architecture Diff records each class's `variableExposure` inventory. The counting script writes per-class counts and a deduplicated total; `null` means the exposure is unknown.
+The Architecture Diff records each class's `variableExposure` inventory. The exposure counter writes per-class counts and a deduplicated total; `null` means the exposure is unknown. The design change counter writes the other five quality metrics to the same JSON file.
 
-The report follows `hld-gen/references/hld-evaluation-format.md`. The final artifacts are ready for human review; application implementation is a separate step.
+The final artifacts and iteration summary are ready for human review; application implementation is a separate step.
 
 ## Architecture Diff Visualizer
 
