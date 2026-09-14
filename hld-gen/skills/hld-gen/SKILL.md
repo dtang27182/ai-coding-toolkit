@@ -9,7 +9,7 @@ Create the simplest design that implements the requested behavior. Minimize the 
 
 The HLD consists of a narrative Markdown file and an Architecture Diff JSON file describing the same design. Follow `hld-narrative.md` for narrative structure and scope, and `hld-architecture-diff.md` for diagram scope and representation.
 
-Read these instructions when their corresponding work is needed:
+Read these supporting documents when their corresponding work is needed:
 
 - `ai-coding-toolkit/hld-gen/instructions/hld-narrative.md` before writing or revising the narrative.
 - `ai-coding-toolkit/hld-gen/instructions/hld-architecture-diff.md` before writing or revising the Architecture Diff.

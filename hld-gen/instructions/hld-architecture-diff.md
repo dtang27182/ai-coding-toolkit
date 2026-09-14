@@ -47,9 +47,8 @@ Preserve actual intermediate participants and relationships on core data flows; 
 
 - Use `composition` only from an owning class to an owned class. Components and methods cannot be composition endpoints.
 
-## Scoring and Preview
+## Preview
 
-- Score changed components separately from changed classes, and changed dataflow relationships separately from changed state-update relationships, under `hld-quality.md`.
 - The preview draws individual method nodes, dataflow arrows, and dotted method-to-class state-update arrows. UI and I/O components stay outside the class change scope; composition edges are omitted.
 
 ## Validation
