@@ -11,16 +11,16 @@ The narrative's Relevant Logic and Dataflow section covers the broader end-to-en
 ## Skill and Shared Instructions
 
 - **`hld-gen`** generates and compares three candidates per iteration, records their metrics and analysis, and repeats with an improvement approach or selects a design.
-- **`generate-hld.md`** creates one candidate's narrative and Architecture Diff together in its iteration and candidate directory.
-- **`eval-hld.md`** populates Variable Exposure and runs the two counters, storing all six quality metrics in the candidate's Architecture Diff JSON.
+- **`generate-hld.md`** creates one candidate's narrative and Architecture Diff together in its iteration and candidate directory, updating artifact links and generation status in the iteration record.
+- **`eval-hld.md`** populates Variable Exposure and runs the two counters, storing all six quality metrics in the candidate's Architecture Diff JSON and updating its counts and evaluation status in the iteration record.
 
 ## Evaluation and Revision
 
-`hld-gen` uses the confirmed Desired Behavior and Scope and Assumptions to generate three structurally different candidates. After calculating their metrics, it analyzes their differences, commonalities, patterns, and trends for further improvements. Each iteration's candidate artifacts are retained, and their metrics, analysis, and improvement approach are recorded in one iteration summary.
+`hld-gen` creates or resumes an iteration record before generating three structurally different candidates from the confirmed Desired Behavior and Scope and Assumptions. It updates artifact links, generation and evaluation statuses, and metrics as work proceeds. After calculating their metrics, it analyzes their differences, commonalities, patterns, and trends for further improvements. Each iteration's candidate artifacts are retained, and its analysis and improvement approach are added to the same iteration summary.
 
 The rubric in `instructions/hld-quality.md` stays fixed during a run. The generator retains the best evaluated design across iterations and records whether each improvement approach improved on the earlier best. An untried or newly justified approach guides three new candidates; an unsuccessful approach is not repeated without new evidence or a materially different design choice addressing its failure. When no such approach is identified, the generator selects the best design across all iterations and copies its artifacts to the main feature paths. The loop is carried out through skill instructions, without a separate runner.
 
-The generator reports the evaluated iteration count, selection rationale, and stopping reason, then presents the selected artifacts and iteration summary for human review. Pending or unevaluated iterations and candidates are disclosed. Application implementation is a separate task.
+The generator reports the evaluated iteration count and stopping reason, and links the iteration summary if created. If a design was selected, it presents the selection rationale, selected artifacts, and preview if generated. Otherwise, it states that no design was selected and links available candidate artifacts with their status. Pending, failed, or unevaluated iterations and candidates are disclosed. Application implementation is a separate task.
 
 ## Scripts and Files
 
