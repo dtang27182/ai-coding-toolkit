@@ -38,14 +38,13 @@ test("copies skills and scripts that work after the source checkout is removed",
   }
   await rm(sourceDirectory, { recursive: true });
 
-  for (const skillName of ["hld-gen", "hld-eval"]) {
-    const skillPath = path.join(repoDirectory, ".agents", "skills", skillName, "SKILL.md");
-    assert.equal((await lstat(path.dirname(skillPath))).isSymbolicLink(), false);
-    assert.equal(
-      await readFile(skillPath, "utf8"),
-      await readFile(path.join(toolkitDirectory, "hld-gen", "skills", skillName, "SKILL.md"), "utf8")
-    );
-  }
+  const skillPath = path.join(repoDirectory, ".agents", "skills", "hld-gen", "SKILL.md");
+  assert.equal((await lstat(path.dirname(skillPath))).isSymbolicLink(), false);
+  assert.equal(
+    await readFile(skillPath, "utf8"),
+    await readFile(path.join(toolkitDirectory, "hld-gen", "skills", "hld-gen", "SKILL.next.md"), "utf8")
+  );
+  await assert.rejects(lstat(path.join(repoDirectory, ".agents", "skills", "hld-eval")), { code: "ENOENT" });
   for (const directoryName of ["hld-gen", "node_modules"]) {
     assert.equal(
       (await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isSymbolicLink(),
@@ -162,7 +161,7 @@ test("rejects missing targets and invalid arguments", async (t) => {
 
 test("preserves conflicting skill paths and runtime links", async (t) => {
   const repoDirectory = await createRepository(t);
-  const skillDirectory = path.join(repoDirectory, ".agents", "skills", "hld-eval");
+  const skillDirectory = path.join(repoDirectory, ".agents", "skills", "hld-gen");
   await mkdir(skillDirectory, { recursive: true });
   await writeFile(path.join(skillDirectory, "SKILL.md"), "existing skill");
   const skillConflict = install([repoDirectory]);
@@ -189,7 +188,6 @@ test("replaces earlier toolkit links with independent copies", async (t) => {
   const directories = [
     ["hld-gen", "ai-coding-toolkit/hld-gen"],
     ["hld-gen/skills/hld-gen", ".agents/skills/hld-gen"],
-    ["hld-gen/skills/hld-eval", ".agents/skills/hld-eval"],
   ];
   for (const [sourcePath, destinationPath] of directories) {
     await symlink(

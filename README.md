@@ -18,7 +18,7 @@ The target directory must already exist. Relative target paths are resolved from
 npm run install:codex -- ../code-repo --output-dir architecture/plans
 ```
 
-In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the HLD files and installed dependencies into `ai-coding-toolkit`, copies `hld-gen` and `hld-eval` under `.agents/skills`, and adds `npm run mermaid` and `npm run visualizer` when the repository has a root `package.json`.
+In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the HLD files and installed dependencies into `ai-coding-toolkit`, installs `hld-gen/SKILL.next.md` as `.agents/skills/hld-gen/SKILL.md`, and adds `npm run mermaid` and `npm run visualizer` when the repository has a root `package.json`.
 
 Each target repository has its own files and output configuration and works independently of this checkout. Rerun the installer to update its installed copies; this overwrites files in directories marked as toolkit installations. It will not replace unrelated existing directories or npm scripts. Links created by the earlier installer to this checkout are replaced with copies.
 

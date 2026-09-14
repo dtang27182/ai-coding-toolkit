@@ -16,6 +16,31 @@
       "type": ["integer", "null"],
       "minimum": 0
     },
+    "changedClassCount": {
+      "description": "Derived number of added, modified, or deleted classes.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "changedMethodCount": {
+      "description": "Derived number of added, modified, or deleted methods in changed classes.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "changedComponentCount": {
+      "description": "Derived number of added, modified, or deleted UI and external I/O components.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "changedDataflowRelationshipCount": {
+      "description": "Derived number of added, modified, or deleted dataflow relationships.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "changedStateUpdateRelationshipCount": {
+      "description": "Derived number of added, modified, or deleted state-update relationships.",
+      "type": "integer",
+      "minimum": 0
+    },
     "classes": {
       "type": "array",
       "minItems": 1,
