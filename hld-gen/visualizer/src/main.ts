@@ -21,6 +21,7 @@ const app = document.querySelector<HTMLDivElement>("#app")!;
 const ajv = new Ajv2020({ allErrors: true });
 const validate = ajv.compile(architectureDiffSchema);
 const measureContext = document.createElement("canvas").getContext("2d")!;
+const LAST_OPENED_KEY = "architecture-diff:last-opened";
 
 const CHANGE_COLORS: Record<ChangeType, string> = {
   added: "oklch(0.76 0.16 155)",
@@ -839,29 +840,66 @@ function semanticError(value: ArchitectureDiff): string | undefined {
   return undefined;
 }
 
+function setArchitectureDiff(value: unknown, nextFileName: string): string | undefined {
+  if (!validate(value)) {
+    return validationMessage(validate.errors);
+  } else {
+    const architectureDiff = value as ArchitectureDiff;
+    const error = semanticError(architectureDiff);
+    if (error !== undefined) {
+      return error;
+    } else {
+      diff = architectureDiff;
+      fileName = nextFileName;
+      selection = undefined;
+      hovered = undefined;
+      panX = 0;
+      panY = 0;
+      statusMessage = "";
+      userZoomed = false;
+    }
+  }
+}
+
 async function openFile(file: File): Promise<void> {
   try {
     const value: unknown = JSON.parse(await file.text());
-    if (!validate(value)) {
-      statusMessage = `Could not open ${file.name}: ${validationMessage(validate.errors)}`;
+    const error = setArchitectureDiff(value, file.name);
+    if (error === undefined) {
+      localStorage.setItem(LAST_OPENED_KEY, JSON.stringify({ fileName: file.name, value }));
     } else {
-      const architectureDiff = value as unknown as ArchitectureDiff;
-      const error = semanticError(architectureDiff);
-      if (error !== undefined) {
-        statusMessage = `Could not open ${file.name}: ${error}`;
-      } else {
-        diff = architectureDiff;
-        fileName = file.name;
-        selection = undefined;
-        hovered = undefined;
-        panX = 0;
-        panY = 0;
-        statusMessage = "";
-        userZoomed = false;
-      }
+      statusMessage = `Could not open ${file.name}: ${error}`;
     }
   } catch (error) {
     statusMessage = `Could not open ${file.name}: ${error instanceof Error ? error.message : String(error)}`;
+  }
+  render();
+}
+
+async function openDefaultFile(): Promise<void> {
+  const stored = localStorage.getItem(LAST_OPENED_KEY);
+  let openedStoredFile = false;
+  if (stored !== null) {
+    try {
+      const lastOpened = JSON.parse(stored) as { fileName: string; value: unknown };
+      openedStoredFile = setArchitectureDiff(lastOpened.value, lastOpened.fileName) === undefined;
+      if (!openedStoredFile) localStorage.removeItem(LAST_OPENED_KEY);
+    } catch {
+      localStorage.removeItem(LAST_OPENED_KEY);
+    }
+  }
+
+  if (!openedStoredFile) {
+    try {
+      const response = await fetch("/__architecture-diff/default");
+      if (response.ok && response.status !== 204) {
+        const defaultFile = await response.json() as { fileName: string; contents: string };
+        const error = setArchitectureDiff(JSON.parse(defaultFile.contents), defaultFile.fileName);
+        if (error !== undefined) statusMessage = `Could not open ${defaultFile.fileName}: ${error}`;
+      }
+    } catch {
+      // The bundled example remains the default when no repository file is available.
+    }
   }
   render();
 }
@@ -891,5 +929,5 @@ const observer = new ResizeObserver(() => {
   if (!userZoomed) render();
 });
 
-render();
+void openDefaultFile();
 observer.observe(app);

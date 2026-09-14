@@ -58,7 +58,7 @@ Run the interactive visualizer from this toolkit checkout or an installed target
 npm run visualizer
 ```
 
-The visualizer starts with the workbook-import schema-v5 sample from its design handoff. Open or drag in any schema-v5 `architecture-diff.json` file to inspect its classes, methods, UI and external I/O components, dataflows, state updates, composition, and variable exposure. Its controls can hide unchanged elements, collapse methods, and adjust the graph zoom.
+The visualizer restores the last Architecture Diff opened in the browser. If there is no previous file, it opens the first Architecture Diff under the `outputDirectory` configured in `ai-coding-toolkit/config.json`, falling back to the bundled workbook-import sample when that directory contains none. Open or drag in any schema-v5 `architecture-diff.json` file to inspect its classes, methods, UI and external I/O components, dataflows, state updates, composition, and variable exposure. Its controls can hide unchanged elements, collapse methods, and adjust the graph zoom.
 
 ## Mermaid
 
