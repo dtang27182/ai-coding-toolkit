@@ -54,9 +54,3 @@ Preserve actual intermediate participants and relationships on core data flows; 
 ## Validation
 
 For each unchanged entry and relationship, identify the numbered User Flow Step it implements or the steps it connects; omit it if neither applies. Relevance to design investigation, execution in the same workflow, or downstream carriage of the feature's data does not satisfy this check. Verify that every User Flow Step remains traceable through its unchanged participants. Preserve all required changes regardless of diagram size.
-
-Populate `variableExposure` from changed classes and methods using `hld-variable-exposure.md`. Then validate the JSON and write its exposure counts:
-
-```sh
-node ai-coding-toolkit/hld-gen/scripts/count-variable-exposure.mjs <json-path>
-```

@@ -6,7 +6,7 @@ Describe responsibilities, data, and interactions without writing implementation
 
 Keep the narrative concise and easy to scan. Write each section mostly as short bullet points, with one idea per bullet. Use at most one or two brief sentences per section when they help introduce or connect the points. Avoid repeating information across sections.
 
-Use the following seven sections in order:
+Use the following six sections in order:
 
 ## Desired Behavior
 
@@ -35,10 +35,6 @@ Within this scope, cover:
 - State reads and writes, naming owning classes, instance variables, updating methods, and changes made.
 - I/O requests and results, naming external endpoints and the classes and methods sending requests and consuming results. Include network services, files, and local or session storage where applicable.
 - Returned data, displaying UI components, and the classes and methods that render or update them, including after asynchronous results.
-
-## Variable Exposure
-
-Follow `hld-variable-exposure.md`. Use brief bullets to summarize the existing state that constrains each changed class. Keep individual declarations in the Architecture Diff.
 
 ## Open Questions
 

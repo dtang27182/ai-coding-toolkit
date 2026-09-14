@@ -41,7 +41,7 @@ hld-gen/
 
 - [generate-hld.md](instructions/generate-hld.md): candidate generation and output paths.
 - [eval-hld.md](instructions/eval-hld.md): exposure inventory preparation and quantitative counting.
-- [hld-narrative.md](instructions/hld-narrative.md): narrative scope and seven-section structure, with User Flow Steps defining the scope of Core Logic and Dataflow and the Architecture Diff.
+- [hld-narrative.md](instructions/hld-narrative.md): narrative scope and six-section structure, with User Flow Steps defining the scope of Core Logic and Dataflow and the Architecture Diff.
 - [hld-architecture-diff.md](instructions/hld-architecture-diff.md): architectural representation, supported by the schema and example in `references/`.
 - [hld-quality.md](instructions/hld-quality.md): score definitions and preferred directions.
 - [hld-variable-exposure.md](instructions/hld-variable-exposure.md): existing variable scope, declaration inventories, and counting rules.
