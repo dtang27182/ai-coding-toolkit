@@ -816,6 +816,14 @@ async function openDefaultFile(): Promise<void> {
   render();
 }
 
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && selection !== undefined) {
+    selection = undefined;
+    hovered = undefined;
+    render();
+  }
+});
+
 window.addEventListener("dragenter", (event) => {
   event.preventDefault();
   dragDepth += 1;
