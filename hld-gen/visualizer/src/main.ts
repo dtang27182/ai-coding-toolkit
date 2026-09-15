@@ -380,7 +380,8 @@ function exposureSummary(classDiff: ClassDiff, methodName?: string): string {
 }
 
 function renderInspector(graph: VisibleGraph): string {
-  if (selection === undefined) {
+  const inspected = hovered ?? selection;
+  if (inspected === undefined) {
     const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update");
     const maximumExposure = Math.max(1, ...graph.classes.map((classDiff) => classExposureCount(classDiff) ?? 0));
     const classes = graph.classes
@@ -402,8 +403,8 @@ function renderInspector(graph: VisibleGraph): string {
           return `<button class="flow-row state" style="border-color:${changeColor(relationship.relationship.changeType)}" data-jump="${escapeHtml(JSON.stringify(selected))}"><div class="flow-endpoint">${escapeHtml(endpointLabel(relationship.from))} ↝ ${escapeHtml(endpointLabel(relationship.to))}</div><div class="flow-label">${escapeHtml(relationship.relationship.label ?? "state update")}</div></button>`;
         }).join("")}</div>`;
     return `<div class="overview-inspector"><section class="overview-section"><div class="section-heading"><span>Variable exposure by class</span><span class="inspector-count">${graph.variableExposureCount ?? "?"}</span></div><div class="exposure-ranking">${classes}</div></section><section class="overview-section"><div class="section-heading"><span>State updates</span><span class="inspector-count">${stateUpdates.length}</span></div>${stateRows}</section></div>`;
-  } else if (selection.type === "method") {
-    const methodSelection = selection;
+  } else if (inspected.type === "method") {
+    const methodSelection = inspected;
     const classDiff = graph.classes.find((item) => item.name === methodSelection.className)!;
     const method = classDiff.methods.find((item) => item.name === methodSelection.methodName)!;
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, methodSelection));
@@ -412,14 +413,14 @@ function renderInspector(graph: VisibleGraph): string {
     const inventory = classDiff.variableExposure;
     const exposureCount = inventory === null ? undefined : inventory.filter((variable) => variable.kind === "instance" || variable.method === methodSelection.methodName).length;
     return `${inspectorHeader(classDiff.name, method.name, method.changeType)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${section("State written", flowRows(stateUpdates, "to", true), stateUpdates.length)}${section("Exposure in this scope", exposureSummary(classDiff, method.name), exposureCount)}`;
-  } else if (selection.type === "component") {
-    const componentSelection = selection;
+  } else if (inspected.type === "component") {
+    const componentSelection = inspected;
     const component = graph.components.find((item) => item.name === componentSelection.componentName)!;
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, componentSelection));
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, componentSelection));
     return `${inspectorHeader(component.type === "ui" ? "UI component" : "External I/O", component.name, component.changeType)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
   } else {
-    const classSelection = selection;
+    const classSelection = inspected;
     const classDiff = graph.classes.find((item) => item.name === classSelection.className)!;
     const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update" && relationship.to.nodeName === classDiff.name);
     const methods = classDiff.methods
@@ -428,6 +429,10 @@ function renderInspector(graph: VisibleGraph): string {
     const exposureCount = classExposureCount(classDiff);
     return `${inspectorHeader("Class", classDiff.name, classDiff.changeType, `${exposureCount === null ? "?" : exposureCount} exposed vars`)}${section("Methods", methods.length === 0 ? '<p class="empty-copy">No visible methods</p>' : `<div class="method-list">${methods}</div>`, classDiff.methods.length)}${section("Instance state written by", flowRows(stateUpdates, "from", true), stateUpdates.length)}${section("Variable exposure", exposureSummary(classDiff), exposureCount ?? undefined)}`;
   }
+}
+
+function updateInspector(): void {
+  app.querySelector<HTMLElement>(".inspector")!.innerHTML = renderInspector(visibleGraph());
 }
 
 function shapeLegend(): string {
@@ -612,21 +617,23 @@ function bindEvents(): void {
         hovered = { type: "class", className: element.dataset.class! };
       }
       updateGraphFocus(hovered);
+      updateInspector();
     });
     element.addEventListener("mouseleave", () => {
       hovered = undefined;
       updateGraphFocus(selection);
+      updateInspector();
     });
   }
-  for (const element of app.querySelectorAll<HTMLElement>("[data-jump]")) {
-    element.addEventListener("click", () => {
-      selection = JSON.parse(element.dataset.jump!) as Selection;
+  app.querySelector<HTMLElement>(".inspector")!.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLElement>("[data-jump], [data-close]");
+    if (button?.dataset.jump !== undefined) {
+      selection = JSON.parse(button.dataset.jump) as Selection;
       render();
-    });
-  }
-  app.querySelector<HTMLElement>("[data-close]")?.addEventListener("click", () => {
-    selection = undefined;
-    render();
+    } else if (button?.hasAttribute("data-close")) {
+      selection = undefined;
+      render();
+    }
   });
   app.querySelector<HTMLElement>("[data-toggle-unchanged]")!.addEventListener("click", () => {
     showUnchanged = !showUnchanged;
