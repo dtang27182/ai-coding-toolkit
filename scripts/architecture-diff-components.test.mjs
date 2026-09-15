@@ -40,12 +40,12 @@ test("requires components but accepts an empty collection", async (t) => {
 
 test("rejects invalid component definitions", async (t) => {
   for (const component of [
-    { name: "Panel", type: "unknown", changeType: "added" },
-    { name: "Panel", changeType: "added" },
-    { name: "Panel", type: "ui" },
-    { name: "Panel", type: "ui", changeType: "unknown" },
-    { name: "", type: "external-io", changeType: "unchanged" },
-    { name: "Panel", type: "ui", changeType: "added", variableExposure: [] },
+    { name: "Panel", type: "unknown", userFlow: true, changeType: "added" },
+    { name: "Panel", userFlow: true, changeType: "added" },
+    { name: "Panel", type: "ui", userFlow: true },
+    { name: "Panel", type: "ui", userFlow: true, changeType: "unknown" },
+    { name: "", type: "external-io", userFlow: true, changeType: "unchanged" },
+    { name: "Panel", type: "ui", userFlow: true, changeType: "added", variableExposure: [] },
   ]) {
     const input = JSON.parse(await readFile(examplePath, "utf8"));
     input.components = [component];
@@ -59,7 +59,7 @@ test("rejects invalid component definitions", async (t) => {
 test("rejects ambiguous names across components and classes", async (t) => {
   for (const name of ["ChangeService", "Change Panel"]) {
     const input = JSON.parse(await readFile(examplePath, "utf8"));
-    input.components.push({ name, type: "external-io", changeType: "unchanged" });
+    input.components.push({ name, type: "external-io", userFlow: true, changeType: "unchanged" });
     const result = await runScript(t, input);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Duplicate class or component name/);
@@ -69,7 +69,7 @@ test("rejects ambiguous names across components and classes", async (t) => {
 test("rejects unknown source and target endpoints", async (t) => {
   for (const endpoint of ["from", "to"]) {
     const input = JSON.parse(await readFile(examplePath, "utf8"));
-    input.relationships.push({ from: { component: "Change Panel" }, to: { component: "Source Files on Disk" }, type: "dataflow", changeType: "added", label: "changes" });
+    input.relationships.push({ from: { component: "Change Panel" }, to: { component: "Source Files on Disk" }, type: "dataflow", userFlow: true, changeType: "added", label: "changes" });
     input.relationships.at(-1)[endpoint] = { component: "Missing endpoint" };
     const result = await runScript(t, input);
     assert.notEqual(result.status, 0);
@@ -87,7 +87,7 @@ test("accepts every dataflow pairing of UI components, methods, and I/O componen
   ];
   for (const from of endpoints) {
     for (const to of endpoints) {
-      input.relationships.push({ from, to, type: "dataflow", changeType: "added", label: "changes" });
+      input.relationships.push({ from, to, type: "dataflow", userFlow: true, changeType: "added", label: "changes" });
     }
   }
   const result = await runScript(t, input);
@@ -96,10 +96,12 @@ test("accepts every dataflow pairing of UI components, methods, and I/O componen
 
 test("accepts state updates to the method's own class or another class", async (t) => {
   const input = JSON.parse(await readFile(examplePath, "utf8"));
+  input.classes[0].hasUserFlowState = true;
   input.relationships = ["ChangeService", "ChangeModel"].map((name) => ({
     from: { class: "ChangeService", method: "buildChangeSet" },
     to: { class: name },
     type: "state-update",
+    userFlow: true,
     changeType: "added",
     label: "changes: store computed changes",
   }));
@@ -142,7 +144,7 @@ test("enforces endpoint kinds for each relationship type", async (t) => {
     ["composition", method, method],
   ]) {
     const input = JSON.parse(await readFile(examplePath, "utf8"));
-    input.relationships = [{ from, to, type, changeType: "added", label: "changes" }];
+    input.relationships = [{ from, to, type, ...(type === "composition" ? {} : { userFlow: true }), changeType: "added", label: "changes" }];
     const result = await runScript(t, input);
     assert.notEqual(result.status, 0, JSON.stringify(input.relationships));
     assert.match(result.stderr, /\/relationships\/0/);
@@ -180,7 +182,7 @@ test("resolves methods within their explicit class and keeps class and component
     [{ component: "ChangeService" }, /Unknown relationship component: ChangeService/],
   ]) {
     const input = JSON.parse(await readFile(examplePath, "utf8"));
-    input.relationships = [{ from, to: { component: "Change Panel" }, type: "dataflow", changeType: "added", label: "changes" }];
+    input.relationships = [{ from, to: { component: "Change Panel" }, type: "dataflow", userFlow: true, changeType: "added", label: "changes" }];
     const result = await runScript(t, input);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, error);

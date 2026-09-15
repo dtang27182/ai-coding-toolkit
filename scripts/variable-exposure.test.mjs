@@ -16,9 +16,9 @@ function variable(name, kind, line, method) {
 
 function architectureDiff(variableExposure) {
   return {
-    schemaVersion: 5,
+    schemaVersion: 7,
     stage: "high level design",
-    classes: [{ name: "Service", changeType: "modified", methods: [], variableExposure }],
+    classes: [{ name: "Service", hasUserFlowState: true, changeType: "modified", methods: [], variableExposure }],
     components: [],
     relationships: [],
   };
@@ -48,13 +48,14 @@ test("counts distinct declarations from all changed methods and shared instance 
     variable("result", "local", 21, "prepare"),
   ]);
   input.classes[0].methods.push(
-    { name: "apply", changeType: "modified" },
-    { name: "prepare", changeType: "modified" }
+    { name: "apply", userFlow: true, changeType: "modified" },
+    { name: "prepare", userFlow: false, changeType: "modified" }
   );
   input.classes.push({
     name: "DerivedService",
+    hasUserFlowState: false,
     changeType: "modified",
-    methods: [{ name: "refresh", changeType: "added" }],
+    methods: [{ name: "refresh", userFlow: true, changeType: "added" }],
     variableExposure: fields,
   });
   const validation = await runScript(t, input, validatorPath);
@@ -78,7 +79,7 @@ test("distinguishes unknown inventories from a verified zero", async (t) => {
   assert.equal(JSON.parse(await readFile(empty.inputPath, "utf8")).classes[0].variableExposureCount, 0);
 
   const input = architectureDiff([variable("value", "instance", 2)]);
-  input.classes.push({ name: "OtherService", changeType: "modified", methods: [], variableExposure: null, variableExposureCount: 7 });
+  input.classes.push({ name: "OtherService", hasUserFlowState: true, changeType: "modified", methods: [], variableExposure: null, variableExposureCount: 7 });
   input.variableExposureCount = 8;
   const unknown = await runScript(t, input, counterPath);
   assert.equal(unknown.status, 0, unknown.stderr);

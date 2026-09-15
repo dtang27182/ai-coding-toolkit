@@ -1,14 +1,21 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 7,
   "stage": "high level design",
   "classes": [
     {
       "name": "ChangeService",
       "changeType": "added",
+      "hasUserFlowState": false,
       "methods": [
         {
+          "name": "configure",
+          "changeType": "added",
+          "userFlow": false
+        },
+        {
           "name": "buildChangeSet",
-          "changeType": "added"
+          "changeType": "added",
+          "userFlow": true
         }
       ],
       "variableExposure": [],
@@ -17,6 +24,7 @@
     {
       "name": "ChangeModel",
       "changeType": "added",
+      "hasUserFlowState": true,
       "methods": [],
       "variableExposure": [],
       "variableExposureCount": 0
@@ -24,10 +32,12 @@
     {
       "name": "Repository",
       "changeType": "unchanged",
+      "hasUserFlowState": false,
       "methods": [
         {
           "name": "readSourceFiles",
-          "changeType": "unchanged"
+          "changeType": "unchanged",
+          "userFlow": true
         }
       ],
       "variableExposure": [],
@@ -36,10 +46,12 @@
     {
       "name": "LegacyChangeAdapter",
       "changeType": "deleted",
+      "hasUserFlowState": false,
       "methods": [
         {
           "name": "adaptLegacyChange",
-          "changeType": "deleted"
+          "changeType": "deleted",
+          "userFlow": true
         }
       ],
       "variableExposure": [
@@ -80,12 +92,14 @@
     {
       "name": "Change Panel",
       "type": "ui",
-      "changeType": "added"
+      "changeType": "added",
+      "userFlow": true
     },
     {
       "name": "Source Files on Disk",
       "type": "external-io",
-      "changeType": "unchanged"
+      "changeType": "unchanged",
+      "userFlow": true
     }
   ],
   "relationships": [
@@ -94,7 +108,8 @@
       "to": { "class": "ChangeService", "method": "buildChangeSet" },
       "type": "dataflow",
       "label": "source files",
-      "changeType": "unchanged"
+      "changeType": "unchanged",
+      "userFlow": true
     },
     {
       "from": { "class": "ChangeService" },
@@ -107,49 +122,56 @@
       "to": { "class": "LegacyChangeAdapter", "method": "adaptLegacyChange" },
       "type": "dataflow",
       "label": "legacy source files",
-      "changeType": "deleted"
+      "changeType": "deleted",
+      "userFlow": true
     },
     {
       "from": { "component": "Change Panel" },
       "to": { "class": "ChangeService", "method": "buildChangeSet" },
       "type": "dataflow",
       "label": "user requests changes for selected files",
-      "changeType": "added"
+      "changeType": "added",
+      "userFlow": true
     },
     {
       "from": { "class": "ChangeService", "method": "buildChangeSet" },
       "to": { "class": "Repository", "method": "readSourceFiles" },
       "type": "dataflow",
       "label": "read selected files",
-      "changeType": "added"
+      "changeType": "added",
+      "userFlow": true
     },
     {
       "from": { "class": "Repository", "method": "readSourceFiles" },
       "to": { "component": "Source Files on Disk" },
       "type": "dataflow",
       "label": "read file paths",
-      "changeType": "unchanged"
+      "changeType": "unchanged",
+      "userFlow": true
     },
     {
       "from": { "component": "Source Files on Disk" },
       "to": { "class": "Repository", "method": "readSourceFiles" },
       "type": "dataflow",
       "label": "file contents",
-      "changeType": "unchanged"
+      "changeType": "unchanged",
+      "userFlow": true
     },
     {
       "from": { "class": "ChangeService", "method": "buildChangeSet" },
       "to": { "component": "Change Panel" },
       "type": "dataflow",
       "label": "change set displayed to user",
-      "changeType": "added"
+      "changeType": "added",
+      "userFlow": true
     },
     {
       "from": { "class": "ChangeService", "method": "buildChangeSet" },
       "to": { "class": "ChangeModel" },
       "type": "state-update",
       "label": "changes: store the computed change set",
-      "changeType": "added"
+      "changeType": "added",
+      "userFlow": true
     }
   ],
   "variableExposureCount": 3

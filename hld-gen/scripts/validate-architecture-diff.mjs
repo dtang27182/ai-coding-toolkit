@@ -35,7 +35,7 @@ if (inputArguments.length !== 1) {
       process.exitCode = 1;
     } else {
       const semanticErrors = [];
-      const nodeNames = new Set();
+      const nodeNames = new Map();
       const classMethods = new Map();
       const componentNames = new Set();
 
@@ -43,10 +43,10 @@ if (inputArguments.length !== 1) {
         if (nodeNames.has(classDiff.name)) {
           semanticErrors.push(`Duplicate class name: ${classDiff.name}`);
         } else {
-          nodeNames.add(classDiff.name);
+          nodeNames.set(classDiff.name, classDiff);
         }
 
-        const methodNames = new Set();
+        const methodNames = new Map();
         classMethods.set(classDiff.name, methodNames);
         for (const method of classDiff.methods) {
           if (
@@ -58,7 +58,7 @@ if (inputArguments.length !== 1) {
           if (methodNames.has(method.name)) {
             semanticErrors.push(`Duplicate method name in ${classDiff.name}: ${method.name}`);
           } else {
-            methodNames.add(method.name);
+            methodNames.set(method.name, method);
           }
         }
 
@@ -97,7 +97,7 @@ if (inputArguments.length !== 1) {
         if (nodeNames.has(component.name)) {
           semanticErrors.push(`Duplicate class or component name: ${component.name}`);
         } else {
-          nodeNames.add(component.name);
+          nodeNames.set(component.name, component);
         }
       }
 
@@ -106,12 +106,18 @@ if (inputArguments.length !== 1) {
           if (endpoint.component !== undefined) {
             if (!componentNames.has(endpoint.component)) {
               semanticErrors.push(`Unknown relationship component: ${endpoint.component}`);
+            } else if (relationship.userFlow && !nodeNames.get(endpoint.component).userFlow) {
+              semanticErrors.push(`User-flow relationship references a supporting component: ${endpoint.component}`);
             }
           } else if (endpoint.class !== undefined) {
             if (!classMethods.has(endpoint.class)) {
               semanticErrors.push(`Unknown relationship class: ${endpoint.class}`);
             } else if (endpoint.method !== undefined && !classMethods.get(endpoint.class).has(endpoint.method)) {
               semanticErrors.push(`Unknown relationship method in ${endpoint.class}: ${endpoint.method}`);
+            } else if (relationship.userFlow && endpoint.method !== undefined && !classMethods.get(endpoint.class).get(endpoint.method).userFlow) {
+              semanticErrors.push(`User-flow relationship references a supporting method: ${endpoint.class}.${endpoint.method}`);
+            } else if (relationship.type === "state-update" && relationship.userFlow && endpoint.method === undefined && !nodeNames.get(endpoint.class).hasUserFlowState) {
+              semanticErrors.push(`User-flow state update targets a class without user-flow state: ${endpoint.class}`);
             }
           }
         }

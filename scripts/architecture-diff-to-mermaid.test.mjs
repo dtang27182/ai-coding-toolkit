@@ -30,8 +30,8 @@ test("omits composition while preserving data flows, boundary markers, and edge 
   architectureDiff.relationships[1].label = "owns model";
   architectureDiff.relationships.push(
     { from: { class: "Repository" }, to: { class: "ChangeModel" }, type: "composition", changeType: "deleted", label: "owned model" },
-    { from: { class: "ChangeService", method: "buildChangeSet" }, to: { class: "LegacyChangeAdapter", method: "adaptLegacyChange" }, type: "dataflow", changeType: "modified", label: "changes" },
-    { from: { class: "ChangeService", method: "buildChangeSet" }, to: { class: "Repository", method: "readSourceFiles" }, type: "dataflow", changeType: "added", label: "saved changes" }
+    { from: { class: "ChangeService", method: "buildChangeSet" }, to: { class: "LegacyChangeAdapter", method: "adaptLegacyChange" }, type: "dataflow", userFlow: true, changeType: "modified", label: "changes" },
+    { from: { class: "ChangeService", method: "buildChangeSet" }, to: { class: "Repository", method: "readSourceFiles" }, type: "dataflow", userFlow: true, changeType: "added", label: "saved changes" }
   );
   const markdown = await generateDiagram(t, architectureDiff);
   const diagram = markdown.split("```mermaid\n")[1].split("```")[0];
@@ -57,7 +57,7 @@ test("omits composition while preserving data flows, boundary markers, and edge 
 test("shows unchanged methods in both changed and context classes", async (t) => {
   const architectureDiff = JSON.parse(await readFile(examplePath, "utf8"));
   architectureDiff.classes[0].changeType = "modified";
-  architectureDiff.classes[0].methods.push({ name: "getChangeSet", changeType: "unchanged" });
+  architectureDiff.classes[0].methods.push({ name: "getChangeSet", userFlow: true, changeType: "unchanged" });
   const markdown = await generateDiagram(t, architectureDiff);
   assert.ok(markdown.includes('"+ ChangeService.buildChangeSet"'));
   assert.ok(markdown.includes('"= ChangeService.getChangeSet"'));
@@ -85,11 +85,11 @@ test("renders UI input and output and external I/O requests and results", async 
 
 test("targets methods within their owning classes and draws state updates to classes", async (t) => {
   const architectureDiff = JSON.parse(await readFile(examplePath, "utf8"));
-  architectureDiff.classes[1].methods.push({ name: "buildChangeSet", changeType: "added" });
+  architectureDiff.classes[1].methods.push({ name: "buildChangeSet", userFlow: true, changeType: "added" });
   architectureDiff.relationships = [
-    { from: { class: "ChangeService", method: "buildChangeSet" }, to: { class: "ChangeModel", method: "buildChangeSet" }, type: "dataflow", changeType: "added", label: "changes" },
-    { from: { class: "ChangeModel", method: "buildChangeSet" }, to: { class: "ChangeModel" }, type: "state-update", changeType: "added", label: "changes: store result" },
-    { from: { class: "ChangeService", method: "buildChangeSet" }, to: { class: "ChangeModel" }, type: "state-update", changeType: "added", label: "ready: set true" },
+    { from: { class: "ChangeService", method: "buildChangeSet" }, to: { class: "ChangeModel", method: "buildChangeSet" }, type: "dataflow", userFlow: true, changeType: "added", label: "changes" },
+    { from: { class: "ChangeModel", method: "buildChangeSet" }, to: { class: "ChangeModel" }, type: "state-update", userFlow: true, changeType: "added", label: "changes: store result" },
+    { from: { class: "ChangeService", method: "buildChangeSet" }, to: { class: "ChangeModel" }, type: "state-update", userFlow: true, changeType: "added", label: "ready: set true" },
   ];
   const markdown = await generateDiagram(t, architectureDiff);
   const serviceMethod = markdown.match(/(\w+)\["\+ ChangeService.buildChangeSet"\]/)[1];

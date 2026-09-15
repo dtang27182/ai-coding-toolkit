@@ -6,7 +6,7 @@
   "required": ["schemaVersion", "stage", "classes", "components", "relationships"],
   "properties": {
     "schemaVersion": {
-      "const": 5
+      "const": 7
     },
     "stage": {
       "const": "high level design"
@@ -63,11 +63,16 @@
     }
   },
   "$defs": {
+    "userFlow": {
+      "description": "Whether this entry directly contributes to the numbered User Flow Steps. False for supporting work such as initialization or dependency wiring that does not itself implement a step.",
+      "type": "boolean"
+    },
     "component": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "type", "changeType"],
+      "required": ["name", "type", "changeType", "userFlow"],
       "properties": {
+        "userFlow": { "$ref": "#/$defs/userFlow" },
         "name": {
           "description": "Unique across classes and components; referenced by relationship endpoints.",
           "type": "string",
@@ -85,8 +90,13 @@
     "class": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "changeType", "methods", "variableExposure"],
+      "description": "User-flow participation is derived from hasUserFlowState, any userFlow method, or any connected userFlow dataflow. Composition does not contribute.",
+      "required": ["name", "changeType", "hasUserFlowState", "methods", "variableExposure"],
       "properties": {
+        "hasUserFlowState": {
+          "description": "Whether this class owns state directly read or updated by a User Flow Step. Merely retaining a reference to another contributing object does not qualify. Independent of variable exposure, which counts existing declarations affected by changes.",
+          "type": "boolean"
+        },
         "name": {
           "type": "string",
           "minLength": 1
@@ -118,8 +128,9 @@
     "method": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "changeType"],
+      "required": ["name", "changeType", "userFlow"],
       "properties": {
+        "userFlow": { "$ref": "#/$defs/userFlow" },
         "name": {
           "type": "string",
           "minLength": 1
@@ -222,6 +233,7 @@
       "additionalProperties": false,
       "required": ["from", "to", "type", "changeType"],
       "properties": {
+        "userFlow": { "$ref": "#/$defs/userFlow" },
         "from": {
           "description": "Explicit source reference, constrained by relationship type.",
           "type": "object"
@@ -245,7 +257,7 @@
         {
           "if": { "properties": { "type": { "const": "dataflow" } } },
           "then": {
-            "required": ["label"],
+            "required": ["label", "userFlow"],
             "properties": {
               "from": { "$ref": "#/$defs/dataflowEndpoint" },
               "to": { "$ref": "#/$defs/dataflowEndpoint" }
@@ -255,7 +267,7 @@
         {
           "if": { "properties": { "type": { "const": "state-update" } } },
           "then": {
-            "required": ["label"],
+            "required": ["label", "userFlow"],
             "properties": {
               "from": { "$ref": "#/$defs/methodEndpoint" },
               "to": { "$ref": "#/$defs/classEndpoint" },
@@ -266,6 +278,7 @@
         {
           "if": { "properties": { "type": { "const": "composition" } } },
           "then": {
+            "not": { "required": ["userFlow"] },
             "properties": {
               "from": { "$ref": "#/$defs/classEndpoint" },
               "to": { "$ref": "#/$defs/classEndpoint" }

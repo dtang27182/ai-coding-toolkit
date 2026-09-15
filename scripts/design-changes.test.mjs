@@ -15,20 +15,21 @@ const previewPath = path.join(toolkitDirectory, "hld-gen/scripts/architecture-di
 function architectureDiff() {
   const changeTypes = ["added", "modified", "deleted", "unchanged"];
   return {
-    schemaVersion: 5,
+    schemaVersion: 7,
     stage: "high level design",
     classes: changeTypes.map((changeType) => ({
       name: `Service-${changeType}`,
+      hasUserFlowState: changeType === "modified",
       changeType,
       methods: (changeType === "unchanged" ? ["unchanged"] : changeTypes).map(
-        (methodChangeType) => ({ name: methodChangeType, changeType: methodChangeType })
+        (methodChangeType) => ({ name: methodChangeType, userFlow: true, changeType: methodChangeType })
       ),
       variableExposure: [],
       variableExposureCount: 0,
     })),
     components: changeTypes.flatMap((changeType) => [
-      { name: `Panel-${changeType}`, type: "ui", changeType },
-      { name: `Endpoint-${changeType}`, type: "external-io", changeType },
+      { name: `Panel-${changeType}`, type: "ui", userFlow: true, changeType },
+      { name: `Endpoint-${changeType}`, type: "external-io", userFlow: true, changeType },
     ]),
     relationships: changeTypes.flatMap((changeType) => [
       {
@@ -36,6 +37,7 @@ function architectureDiff() {
         to: { class: "Service-modified", method: "modified" },
         type: "dataflow",
         label: "selected item",
+        userFlow: true,
         changeType,
       },
       {
@@ -43,6 +45,7 @@ function architectureDiff() {
         to: { class: "Service-modified" },
         type: "state-update",
         label: "selection: update the selected item",
+        userFlow: true,
         changeType,
       },
       {
@@ -66,6 +69,9 @@ async function runCounter(t, input) {
 
 test("counts changed entries by rubric scope and excludes unchanged entries and composition", async (t) => {
   const input = architectureDiff();
+  for (const method of input.classes[0].methods) method.userFlow = false;
+  input.components[0].userFlow = false;
+  input.relationships[0].userFlow = false;
   const result = await runCounter(t, input);
   assert.equal(result.status, 0, result.stderr);
   const expected = {
@@ -87,9 +93,9 @@ test("counts changed entries by rubric scope and excludes unchanged entries and 
 
 test("writes zero for empty change sets without replacing unknown exposure with zero", async (t) => {
   const input = {
-    schemaVersion: 5,
+    schemaVersion: 7,
     stage: "high level design",
-    classes: [{ name: "Context", changeType: "unchanged", methods: [], variableExposure: null }],
+    classes: [{ name: "Context", hasUserFlowState: false, changeType: "unchanged", methods: [], variableExposure: null }],
     components: [],
     relationships: [],
     variableExposureCount: null,
@@ -152,8 +158,9 @@ test("rejects changed methods in unchanged classes before validating, counting, 
     const input = architectureDiff();
     input.classes.push({
       name: "InvalidContext",
+      hasUserFlowState: false,
       changeType: "unchanged",
-      methods: [{ name: "run", changeType }],
+      methods: [{ name: "run", userFlow: true, changeType }],
       variableExposure: [],
     });
     const result = await runCounter(t, input);

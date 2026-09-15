@@ -2,24 +2,24 @@ import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
 import architectureDiffSchema from "../../references/architecture-diff.schema.json";
 import exampleDiff from "../workbook-import-hld.architecture-diff.json";
 import { computeLayout } from "./layout";
+import { filterGraph, type VisibleGraph } from "./filter";
 import { routeCompositionEdge, routeEdge } from "./routing";
+import { semanticError } from "./validation";
 import "./styles.css";
 import type {
   ArchitectureDiff,
   ChangeType,
   ClassDiff,
-  ComponentDiff,
-  GraphNode,
   Rect,
   ResolvedEndpoint,
   ResolvedRelationship,
   Selection,
 } from "./types";
-import { mergeClassDataflows, methodKey, resolveEndpoint } from "./types";
+import { mergeClassDataflows, methodKey } from "./types";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const ajv = new Ajv2020({ allErrors: true });
-const validate = ajv.compile(architectureDiffSchema);
+const validate = ajv.compile<ArchitectureDiff>(architectureDiffSchema);
 const measureContext = document.createElement("canvas").getContext("2d")!;
 const LAST_OPENED_KEY = "architecture-diff:last-opened";
 
@@ -33,6 +33,7 @@ const CHANGE_COLORS: Record<ChangeType, string> = {
 let diff = exampleDiff as ArchitectureDiff;
 let fileName = "workbook-import-hld.architecture-diff.json";
 let showUnchanged = true;
+let userFlowOnly = false;
 let methodsHidden = false;
 let zoom = 1;
 let panX = 0;
@@ -86,24 +87,6 @@ function classExposureCount(classDiff: ClassDiff): number | null {
   } else {
     return classDiff.variableExposure.length;
   }
-}
-
-function exposureCountForClasses(classes: ClassDiff[]): number | "?" {
-  if (classes.some((classDiff) => classDiff.variableExposure === null)) {
-    return "?";
-  }
-  return new Set(
-    classes.flatMap((classDiff) =>
-      classDiff.variableExposure!
-        .filter(
-          (variable) =>
-            variable.kind === "instance" || classDiff.methods.some((method) => method.name === variable.method),
-        )
-        .map((variable) =>
-          JSON.stringify([variable.declaredAt.file, variable.declaredAt.line, variable.declaredAt.column]),
-        ),
-    ),
-  ).size;
 }
 
 function endpointLabel(endpoint: ResolvedEndpoint): string {
@@ -176,53 +159,8 @@ function relationshipAttributes(relationship: ResolvedRelationship): string {
   return `data-relation data-from-node="${escapeHtml(relationship.from.nodeName)}" data-from-method="${escapeHtml(relationship.from.methodName ?? "")}" data-from-component="${relationship.from.component}" data-to-node="${escapeHtml(relationship.to.nodeName)}" data-to-method="${escapeHtml(relationship.to.methodName ?? "")}" data-to-component="${relationship.to.component}"`;
 }
 
-function visibleGraph(): {
-  classes: ClassDiff[];
-  components: ComponentDiff[];
-  nodes: GraphNode[];
-  relationships: ResolvedRelationship[];
-} {
-  const classes = diff.classes
-    .filter((classDiff) => showUnchanged || classDiff.changeType !== "unchanged")
-    .map((classDiff) => ({
-      ...classDiff,
-      methods: classDiff.methods.filter((method) => showUnchanged || method.changeType !== "unchanged"),
-    }));
-  const components = diff.components.filter((component) => showUnchanged || component.changeType !== "unchanged");
-  const nodes: GraphNode[] = [
-    ...classes.map((classDiff) => ({
-      name: classDiff.name,
-      changeType: classDiff.changeType,
-      methods: classDiff.methods,
-    })),
-    ...components.map((component) => ({
-      name: component.name,
-      changeType: component.changeType,
-      methods: [],
-      componentType: component.type,
-    })),
-  ];
-  const classNames = new Set(classes.map((classDiff) => classDiff.name));
-  const componentNames = new Set(components.map((component) => component.name));
-  const methodNames = new Set(classes.flatMap((classDiff) => classDiff.methods.map((method) => methodKey(classDiff.name, method.name))));
-  const endpointVisible = (endpoint: ResolvedEndpoint) => {
-    if (endpoint.component) {
-      return componentNames.has(endpoint.nodeName);
-    } else if (endpoint.methodName !== undefined) {
-      return classNames.has(endpoint.nodeName) && methodNames.has(methodKey(endpoint.nodeName, endpoint.methodName));
-    } else {
-      return classNames.has(endpoint.nodeName);
-    }
-  };
-  const relationships = diff.relationships
-    .filter((relationship) => showUnchanged || relationship.changeType !== "unchanged")
-    .map((relationship) => ({
-      relationship,
-      from: resolveEndpoint(relationship.from),
-      to: resolveEndpoint(relationship.to),
-    }))
-    .filter((relationship) => endpointVisible(relationship.from) && endpointVisible(relationship.to));
-  return { classes, components, nodes, relationships };
+function visibleGraph(): VisibleGraph {
+  return filterGraph(diff, showUnchanged, userFlowOnly);
 }
 
 function graphRect(endpoint: ResolvedEndpoint, boxes: Map<string, Rect>, methodRects: Map<string, Rect>): Rect | undefined {
@@ -254,8 +192,7 @@ function renderMarkers(): string {
     </marker>`;
 }
 
-function renderGraph(): string {
-  const graph = visibleGraph();
+function renderGraph(graph: VisibleGraph): string {
   const stateWriters = new Set(
     graph.relationships
       .filter((relationship) => relationship.relationship.type === "state-update" && relationship.from.methodName !== undefined)
@@ -388,14 +325,14 @@ function renderGraph(): string {
     .filter((classDiff) => !methodsHidden && classDiff.methods.length === 0)
     .map((classDiff) => {
       const box = layout.boxes.get(classDiff.name)!;
-      return `<span class="graph-node empty-class" style="left:${box.x + 15}px;top:${box.y + 30}px">No methods in diff</span>`;
+      return `<span class="graph-node empty-class" style="left:${box.x + 15}px;top:${box.y + 30}px">No visible methods</span>`;
     })
     .join("");
 
   queueMicrotask(() => fitGraph(layout.width));
   return `
     <div class="graph-space">
-      ${graph.nodes.length === 0 ? '<div class="empty-graph">No changed nodes to display</div>' : ""}
+      ${graph.nodes.length === 0 ? '<div class="empty-graph">No nodes match the current filters</div>' : ""}
       <div class="graph" style="left:calc(50% + ${panX}px);top:calc(50% + ${panY}px);width:${layout.width}px;height:${layout.height}px;transform:translate(-50%, -50%) scale(${zoom})">
         <svg class="graph-svg" width="${layout.width}" height="${layout.height}">
           <defs>${renderMarkers()}</defs>
@@ -432,14 +369,6 @@ function inspectorHeader(eyebrow: string, title: string, changeType: ChangeType,
   </header>`;
 }
 
-function resolvedRelationships(): ResolvedRelationship[] {
-  return diff.relationships.map((relationship) => ({
-    relationship,
-    from: resolveEndpoint(relationship.from),
-    to: resolveEndpoint(relationship.to),
-  }));
-}
-
 function exposureSummary(classDiff: ClassDiff, methodName?: string): string {
   const variables = classDiff.variableExposure;
   if (variables === null) return '<p class="empty-copy">Exposure inventory is unknown.</p>';
@@ -450,12 +379,11 @@ function exposureSummary(classDiff: ClassDiff, methodName?: string): string {
   return `<div class="exposure-grid"><span>Class instance variables</span><span>${instance}</span><span>Local variables</span><span>${variables.filter((variable) => variable.kind !== "instance" && variable.method === methodName).length}</span></div>`;
 }
 
-function renderInspector(): string {
-  const relationships = resolvedRelationships();
+function renderInspector(graph: VisibleGraph): string {
   if (selection === undefined) {
-    const stateUpdates = relationships.filter((relationship) => relationship.relationship.type === "state-update");
-    const maximumExposure = Math.max(1, ...diff.classes.map((classDiff) => classExposureCount(classDiff) ?? 0));
-    const classes = diff.classes
+    const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update");
+    const maximumExposure = Math.max(1, ...graph.classes.map((classDiff) => classExposureCount(classDiff) ?? 0));
+    const classes = graph.classes
       .slice()
       .sort((left, right) => (classExposureCount(right) ?? -1) - (classExposureCount(left) ?? -1))
       .map((classDiff) => {
@@ -473,32 +401,32 @@ function renderInspector(): string {
           const selected = selectionForEndpoint(relationship.from);
           return `<button class="flow-row state" style="border-color:${changeColor(relationship.relationship.changeType)}" data-jump="${escapeHtml(JSON.stringify(selected))}"><div class="flow-endpoint">${escapeHtml(endpointLabel(relationship.from))} ↝ ${escapeHtml(endpointLabel(relationship.to))}</div><div class="flow-label">${escapeHtml(relationship.relationship.label ?? "state update")}</div></button>`;
         }).join("")}</div>`;
-    return `<div class="overview-inspector"><section class="overview-section"><div class="section-heading"><span>Variable exposure by class</span><span class="inspector-count">${diff.variableExposureCount ?? "?"}</span></div><div class="exposure-ranking">${classes}</div></section><section class="overview-section"><div class="section-heading"><span>State updates</span><span class="inspector-count">${stateUpdates.length}</span></div>${stateRows}</section></div>`;
+    return `<div class="overview-inspector"><section class="overview-section"><div class="section-heading"><span>Variable exposure by class</span><span class="inspector-count">${graph.variableExposureCount ?? "?"}</span></div><div class="exposure-ranking">${classes}</div></section><section class="overview-section"><div class="section-heading"><span>State updates</span><span class="inspector-count">${stateUpdates.length}</span></div>${stateRows}</section></div>`;
   } else if (selection.type === "method") {
     const methodSelection = selection;
-    const classDiff = diff.classes.find((item) => item.name === methodSelection.className)!;
+    const classDiff = graph.classes.find((item) => item.name === methodSelection.className)!;
     const method = classDiff.methods.find((item) => item.name === methodSelection.methodName)!;
-    const inputs = relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, methodSelection));
-    const outputs = relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, methodSelection));
-    const stateUpdates = relationships.filter((relationship) => relationship.relationship.type === "state-update" && endpointMatches(relationship.from, methodSelection));
+    const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, methodSelection));
+    const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, methodSelection));
+    const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update" && endpointMatches(relationship.from, methodSelection));
     const inventory = classDiff.variableExposure;
     const exposureCount = inventory === null ? undefined : inventory.filter((variable) => variable.kind === "instance" || variable.method === methodSelection.methodName).length;
     return `${inspectorHeader(classDiff.name, method.name, method.changeType)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${section("State written", flowRows(stateUpdates, "to", true), stateUpdates.length)}${section("Exposure in this scope", exposureSummary(classDiff, method.name), exposureCount)}`;
   } else if (selection.type === "component") {
     const componentSelection = selection;
-    const component = diff.components.find((item) => item.name === componentSelection.componentName)!;
-    const inputs = relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, componentSelection));
-    const outputs = relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, componentSelection));
+    const component = graph.components.find((item) => item.name === componentSelection.componentName)!;
+    const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, componentSelection));
+    const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, componentSelection));
     return `${inspectorHeader(component.type === "ui" ? "UI component" : "External I/O", component.name, component.changeType)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
   } else {
     const classSelection = selection;
-    const classDiff = diff.classes.find((item) => item.name === classSelection.className)!;
-    const stateUpdates = relationships.filter((relationship) => relationship.relationship.type === "state-update" && relationship.to.nodeName === classDiff.name);
+    const classDiff = graph.classes.find((item) => item.name === classSelection.className)!;
+    const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update" && relationship.to.nodeName === classDiff.name);
     const methods = classDiff.methods
       .map((method) => `<button class="method-row" style="border-color:${changeColor(method.changeType)}" data-jump="${escapeHtml(JSON.stringify({ type: "method", className: classDiff.name, methodName: method.name }))}"><div class="flow-endpoint">${escapeHtml(method.name)}</div><div class="flow-label">${method.changeType}</div></button>`)
       .join("");
     const exposureCount = classExposureCount(classDiff);
-    return `${inspectorHeader("Class", classDiff.name, classDiff.changeType, `${exposureCount === null ? "?" : exposureCount} exposed vars`)}${section("Methods", methods.length === 0 ? '<p class="empty-copy">No methods in diff</p>' : `<div class="method-list">${methods}</div>`, classDiff.methods.length)}${section("Instance state written by", flowRows(stateUpdates, "from", true), stateUpdates.length)}${section("Variable exposure", exposureSummary(classDiff), exposureCount ?? undefined)}`;
+    return `${inspectorHeader("Class", classDiff.name, classDiff.changeType, `${exposureCount === null ? "?" : exposureCount} exposed vars`)}${section("Methods", methods.length === 0 ? '<p class="empty-copy">No visible methods</p>' : `<div class="method-list">${methods}</div>`, classDiff.methods.length)}${section("Instance state written by", flowRows(stateUpdates, "from", true), stateUpdates.length)}${section("Variable exposure", exposureSummary(classDiff), exposureCount ?? undefined)}`;
   }
 }
 
@@ -524,7 +452,7 @@ function render(): void {
     [dataflows, "dataflows"],
     [stateUpdates, "state updates"],
     [graph.components.length, "ui / io"],
-    [exposureCountForClasses(graph.classes), "exposed vars"],
+    [graph.variableExposureCount ?? "?", "exposed vars"],
   ];
   app.innerHTML = `<div class="app-shell">
     <header class="topbar">
@@ -537,6 +465,7 @@ function render(): void {
         <div class="control-group">
           <button class="control-button" data-open>Open JSON</button>
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
+          <button class="control-button${userFlowOnly ? " active" : ""}" data-toggle-user-flow aria-pressed="${userFlowOnly}">User flow only</button>
           <button class="control-button${methodsHidden ? " active" : ""}" data-toggle-methods>${methodsHidden ? "Show methods" : "Hide methods"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
@@ -544,12 +473,12 @@ function render(): void {
     </header>
     <div class="workspace">
       <div class="canvas-wrap">
-        <main class="canvas" aria-label="Architecture diff graph">${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}${renderGraph()}</main>
+        <main class="canvas" aria-label="Architecture diff graph">${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}${renderGraph(graph)}</main>
         ${shapeLegend()}
         ${dragDepth > 0 ? '<div class="drop-overlay">Drop an architecture-diff.json file</div>' : ""}
       </div>
       <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuenow="${Math.round(inspectorWidth)}" tabindex="0"></div>
-      <aside class="inspector" style="width:${inspectorWidth}px;flex-basis:${inspectorWidth}px" aria-label="Architecture inspector">${renderInspector()}</aside>
+      <aside class="inspector" style="width:${inspectorWidth}px;flex-basis:${inspectorWidth}px" aria-label="Architecture inspector">${renderInspector(graph)}</aside>
     </div>
     <input type="file" accept="application/json,.json" data-file-input hidden>
   </div>`;
@@ -702,6 +631,16 @@ function bindEvents(): void {
   app.querySelector<HTMLElement>("[data-toggle-unchanged]")!.addEventListener("click", () => {
     showUnchanged = !showUnchanged;
     selection = undefined;
+    hovered = undefined;
+    panX = 0;
+    panY = 0;
+    userZoomed = false;
+    render();
+  });
+  app.querySelector<HTMLElement>("[data-toggle-user-flow]")!.addEventListener("click", () => {
+    userFlowOnly = !userFlowOnly;
+    selection = undefined;
+    hovered = undefined;
     panX = 0;
     panY = 0;
     userZoomed = false;
@@ -813,38 +752,11 @@ function validationMessage(errors: ErrorObject[] | null | undefined): string {
   return (errors ?? []).slice(0, 3).map((error) => `${error.instancePath || "/"} ${error.message}`).join("; ");
 }
 
-function semanticError(value: ArchitectureDiff): string | undefined {
-  const names = [...value.classes.map((classDiff) => classDiff.name), ...value.components.map((component) => component.name)];
-  if (new Set(names).size !== names.length) {
-    return "Class and component names must be unique.";
-  }
-  const classes = new Map(value.classes.map((classDiff) => [classDiff.name, new Set(classDiff.methods.map((method) => method.name))]));
-  const components = new Set(value.components.map((component) => component.name));
-  for (const classDiff of value.classes) {
-    if (new Set(classDiff.methods.map((method) => method.name)).size !== classDiff.methods.length) {
-      return `Method names in “${classDiff.name}” must be unique.`;
-    }
-  }
-  for (const relationship of value.relationships) {
-    for (const endpoint of [relationship.from, relationship.to]) {
-      const resolved = resolveEndpoint(endpoint);
-      if (resolved.component && !components.has(resolved.nodeName)) {
-        return `Relationship references unknown component “${resolved.nodeName}”.`;
-      } else if (!resolved.component && !classes.has(resolved.nodeName)) {
-        return `Relationship references unknown class “${resolved.nodeName}”.`;
-      } else if (!resolved.component && resolved.methodName !== undefined && !classes.get(resolved.nodeName)!.has(resolved.methodName)) {
-        return `Relationship references unknown method “${resolved.nodeName}.${resolved.methodName}”.`;
-      }
-    }
-  }
-  return undefined;
-}
-
 function setArchitectureDiff(value: unknown, nextFileName: string): string | undefined {
   if (!validate(value)) {
     return validationMessage(validate.errors);
   } else {
-    const architectureDiff = value as ArchitectureDiff;
+    const architectureDiff = value;
     const error = semanticError(architectureDiff);
     if (error !== undefined) {
       return error;

@@ -4,6 +4,7 @@ export type ComponentType = "ui" | "external-io";
 export interface MethodDiff {
   name: string;
   changeType: ChangeType;
+  userFlow: boolean;
 }
 
 export interface DeclaredAt {
@@ -22,6 +23,7 @@ export interface ExposedVariable {
 export interface ClassDiff {
   name: string;
   changeType: ChangeType;
+  hasUserFlowState: boolean;
   methods: MethodDiff[];
   variableExposure: ExposedVariable[] | null;
   variableExposureCount?: number | null;
@@ -31,6 +33,7 @@ export interface ComponentDiff {
   name: string;
   type: ComponentType;
   changeType: ChangeType;
+  userFlow: boolean;
 }
 
 export interface ClassEndpoint {
@@ -47,16 +50,20 @@ export interface ComponentEndpoint {
 
 export type RelationshipEndpoint = ClassEndpoint | MethodEndpoint | ComponentEndpoint;
 
-export interface Relationship {
+interface RelationshipBase {
   from: RelationshipEndpoint;
   to: RelationshipEndpoint;
-  type: "dataflow" | "state-update" | "composition";
   label?: string;
   changeType: ChangeType;
 }
 
+export type Relationship = RelationshipBase & (
+  | { type: "dataflow" | "state-update"; userFlow: boolean }
+  | { type: "composition"; userFlow?: never }
+);
+
 export interface ArchitectureDiff {
-  schemaVersion: 5;
+  schemaVersion: 7;
   stage: "high level design";
   classes: ClassDiff[];
   components: ComponentDiff[];
