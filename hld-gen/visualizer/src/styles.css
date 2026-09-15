@@ -219,6 +219,18 @@ button:focus-visible,
   background: oklch(0.255 0.045 255);
 }
 
+.control-button.open-button {
+  margin-right: 6px;
+  border-color: var(--accent);
+  color: var(--header);
+  background: var(--accent);
+  font-weight: 600;
+}
+
+.control-button.open-button:hover {
+  background: color-mix(in oklch, var(--accent) 85%, white);
+}
+
 .zoom-controls {
   display: flex;
   align-items: stretch;
