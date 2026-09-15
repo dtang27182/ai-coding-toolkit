@@ -10,7 +10,6 @@ const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url
 const counterPath = path.join(toolkitDirectory, "hld-gen/scripts/count-design-changes.mjs");
 const exposureCounterPath = path.join(toolkitDirectory, "hld-gen/scripts/count-variable-exposure.mjs");
 const validatorPath = path.join(toolkitDirectory, "hld-gen/scripts/validate-architecture-diff.mjs");
-const previewPath = path.join(toolkitDirectory, "hld-gen/scripts/architecture-diff-to-mermaid.mjs");
 
 function architectureDiff() {
   const changeTypes = ["added", "modified", "deleted", "unchanged"];
@@ -84,7 +83,7 @@ test("counts changed entries by rubric scope and excludes unchanged entries and 
   };
   assert.deepEqual(JSON.parse(await readFile(result.inputPath, "utf8")), expected);
 
-  for (const scriptPath of [validatorPath, exposureCounterPath, previewPath]) {
+  for (const scriptPath of [validatorPath, exposureCounterPath]) {
     const compatibility = spawnSync(process.execPath, [scriptPath, result.inputPath], { encoding: "utf8" });
     assert.equal(compatibility.status, 0, compatibility.stderr);
   }
@@ -153,7 +152,7 @@ test("rejects invalid architecture diffs and derived counts without changing the
   }
 });
 
-test("rejects changed methods in unchanged classes before validating, counting, or previewing", async (t) => {
+test("rejects changed methods in unchanged classes before validating or counting", async (t) => {
   for (const changeType of ["added", "modified", "deleted"]) {
     const input = architectureDiff();
     input.classes.push({
@@ -168,7 +167,7 @@ test("rejects changed methods in unchanged classes before validating, counting, 
     assert.match(result.stderr, /Unchanged class has changed method: InvalidContext.run/);
     assert.equal(await readFile(result.inputPath, "utf8"), JSON.stringify(input));
 
-    for (const scriptPath of [validatorPath, exposureCounterPath, previewPath]) {
+    for (const scriptPath of [validatorPath, exposureCounterPath]) {
       const rejected = spawnSync(process.execPath, [scriptPath, result.inputPath], { encoding: "utf8" });
       assert.notEqual(rejected.status, 0);
       assert.match(rejected.stderr, /Unchanged class has changed method: InvalidContext.run/);

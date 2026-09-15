@@ -68,13 +68,8 @@ test("copies skills and scripts that work after the source checkout is removed",
   assert.equal(count.status, 0, count.stderr);
   assert.equal(JSON.parse(await readFile(path.join(repoDirectory, inputPath), "utf8")).variableExposureCount, 3);
 
-  const previewPath = "docs/plans/example.mermaid.md";
-  const preview = spawnSync("npm", ["run", "mermaid", "--", inputPath, previewPath], {
-    cwd: repoDirectory,
-    encoding: "utf8",
-  });
-  assert.equal(preview.status, 0, preview.stderr);
-  assert.match(await readFile(path.join(repoDirectory, previewPath), "utf8"), /```mermaid/);
+  assert.equal(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts.mermaid, undefined);
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs")), { code: "ENOENT" });
 
   await rm(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen", "visualizer", "dist"), {
     recursive: true,
@@ -123,6 +118,7 @@ test("removes retired toolkit files on upgrade while preserving other installed 
     "ai-coding-toolkit/hld-gen/skills/hld-gen/SKILL.next.md",
     "ai-coding-toolkit/hld-gen/skills/hld-eval/SKILL.md",
     "ai-coding-toolkit/hld-gen/references/hld-evaluation-format.md",
+    "ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs",
   ];
   for (const relativePath of retiredPaths) {
     await mkdir(path.dirname(path.join(repoDirectory, relativePath)), { recursive: true });
@@ -134,6 +130,15 @@ test("removes retired toolkit files on upgrade while preserving other installed 
   );
   const notesPath = path.join(repoDirectory, ".agents/skills/hld-gen/notes.md");
   await writeFile(notesPath, "local notes");
+  await writeFile(path.join(repoDirectory, "package.json"), JSON.stringify({
+    scripts: {
+      test: "existing",
+      mermaid: "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs",
+      visualizer: "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer",
+    },
+  }));
+  const diagramPath = path.join(repoDirectory, "docs/plans/example.mermaid.md");
+  await writeFile(diagramPath, "saved diagram");
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const upgrade = install([repoDirectory]);
@@ -143,6 +148,11 @@ test("removes retired toolkit files on upgrade while preserving other installed 
     }
     await assert.rejects(lstat(path.join(repoDirectory, ".agents/skills/hld-eval")), { code: "ENOENT" });
     assert.equal(await readFile(notesPath, "utf8"), "local notes");
+    assert.equal(await readFile(diagramPath, "utf8"), "saved diagram");
+    assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
+      test: "existing",
+      visualizer: "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer",
+    });
     assert.equal(
       await readFile(path.join(repoDirectory, ".agents/skills/hld-gen/SKILL.md"), "utf8"),
       await readFile(path.join(toolkitDirectory, "hld-gen/skills/hld-gen/SKILL.md"), "utf8")

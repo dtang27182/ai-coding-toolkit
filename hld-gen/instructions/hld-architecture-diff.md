@@ -47,10 +47,6 @@ Preserve actual intermediate participants and relationships on core data flows; 
 
 - Use `composition` only from an owning class to an owned class. Components and methods cannot be composition endpoints.
 
-## Preview
-
-- The preview draws individual method nodes, dataflow arrows, and dotted method-to-class state-update arrows. UI and I/O components stay outside the class change scope; composition edges are omitted.
-
 ## Validation
 
 For each unchanged entry and relationship, identify the numbered User Flow Step it implements or the steps it connects; omit it if neither applies. Relevance to design investigation, execution in the same workflow, or downstream carriage of the feature's data does not satisfy this check. Verify that every User Flow Step remains traceable through its unchanged participants. Preserve all required changes regardless of diagram size.

@@ -45,6 +45,6 @@ If required context remains unavailable, preserve the candidates, record the mis
 
 Record the stopping reason and current candidate statuses in the iteration summary, if created, and link it. Report the evaluated iteration count and disclose pending, failed, or unevaluated iterations and candidates.
 
-If a design was selected, generate its preview with `node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs <json-path>`, disclose preview failures separately from design quality, and link the selected narrative, Architecture Diff JSON, and preview if generated. State whether the selected HLD was evaluated after its last edit. If no design was selected, say so and link available candidate artifacts with their status.
+If a design was selected, link the selected narrative and Architecture Diff JSON. State whether the selected HLD was evaluated after its last edit. If no design was selected, say so and link available candidate artifacts with their status.
 
 State why the loop stopped. Do not implement application code or claim human approval as part of this workflow.

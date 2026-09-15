@@ -20,7 +20,7 @@ The narrative's Relevant Logic and Dataflow section covers the broader end-to-en
 
 The rubric in `instructions/hld-quality.md` stays fixed during a run. The generator retains the best evaluated design across iterations and records whether each improvement approach improved on the earlier best. An untried or newly justified approach guides three new candidates; an unsuccessful approach is not repeated without new evidence or a materially different design choice addressing its failure. When no such approach is identified, the generator selects the best design across all iterations and copies its artifacts to the main feature paths. The loop is carried out through skill instructions, without a separate runner.
 
-The generator reports the evaluated iteration count and stopping reason, and links the iteration summary if created. If a design was selected, it presents the selection rationale, selected artifacts, and preview if generated. Otherwise, it states that no design was selected and links available candidate artifacts with their status. Pending, failed, or unevaluated iterations and candidates are disclosed. Application implementation is a separate task.
+The generator reports the evaluated iteration count and stopping reason, and links the iteration summary if created. If a design was selected, it presents the selection rationale and selected artifacts. Otherwise, it states that no design was selected and links available candidate artifacts with their status. Pending, failed, or unevaluated iterations and candidates are disclosed. Application implementation is a separate task.
 
 ## Scripts and Files
 
@@ -35,7 +35,7 @@ hld-gen/
   references/
 ```
 
-`scripts/` contains the JSON validator, Variable Exposure counter, design change counter, and Mermaid converter. Each can run directly from the command line. The toolkit's shared initializer and agent adapters expose the skill from `hld-gen/skills/`.
+`scripts/` contains the JSON validator, Variable Exposure counter, and design change counter. Each can run directly from the command line. The toolkit's shared initializer and agent adapters expose the skill from `hld-gen/skills/`.
 
 `instructions/` contains the shared guidance for generation and evaluation:
 
@@ -60,4 +60,3 @@ Artifacts use a stable feature slug as a subdirectory under `outputDirectory` fr
 - `<feature>/<feature>.architecture-diff.hld.json`: classes, methods, UI and external I/O components, relationships, and variable exposure inventories.
 - `<feature>/<feature>.hld-iteration-summary.md`: candidate metrics, analysis, improvement approaches, selection rationale, and stopping reason for each iteration.
 - `<feature>/iterations/<iteration>/candidate-<candidate>/`: retained candidate narratives and Architecture Diff files.
-- `<feature>/<feature>.architecture-diff.hld.mermaid.md`: diagram generated from the current JSON. Preview failures are reported separately from design quality.

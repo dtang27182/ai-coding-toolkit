@@ -59,10 +59,14 @@ async function installRootCommands() {
 
   if (packageJson !== undefined) {
     const commands = {
-      mermaid: "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs",
       visualizer: "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer",
     };
     let packageChanged = false;
+    if (packageJson.scripts?.mermaid === "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs") {
+      delete packageJson.scripts.mermaid;
+      packageChanged = true;
+      console.log("Removed retired npm command: npm run mermaid");
+    }
     for (const [name, command] of Object.entries(commands)) {
       const existingCommand = packageJson.scripts?.[name];
       if (existingCommand === undefined) {
@@ -107,7 +111,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
       path.join(installedToolkitDirectory, directoryName)
     );
   }
-  for (const relativePath of ["skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md"]) {
+  for (const relativePath of ["skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md", "scripts/architecture-diff-to-mermaid.mjs"]) {
     await rm(path.join(installedToolkitDirectory, "hld-gen", relativePath), { recursive: true, force: true });
   }
   await installCodexSkills(repoDirectory, toolkitDirectory);

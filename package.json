@@ -7,7 +7,6 @@
     "install:codex": "node scripts/init.mjs --agent codex",
     "visualizer": "vite hld-gen/visualizer",
     "build:visualizer": "vite build hld-gen/visualizer",
-    "mermaid": "node hld-gen/scripts/architecture-diff-to-mermaid.mjs",
     "validate": "node hld-gen/scripts/validate-architecture-diff.mjs"
   },
   "dependencies": {
