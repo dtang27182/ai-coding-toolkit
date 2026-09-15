@@ -15,7 +15,7 @@ import type {
   ResolvedRelationship,
   Selection,
 } from "./types";
-import { mergeClassDataflows, methodKey } from "./types";
+import { edgeKey, mergeClassDataflows, methodKey } from "./types";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const ajv = new Ajv2020({ allErrors: true });
@@ -116,6 +116,8 @@ function selectionKey(value: Selection | undefined): string {
     return `component:${value.componentName}`;
   } else if (value.type === "method") {
     return `method:${value.className}:${value.methodName}`;
+  } else if (value.type === "relationship") {
+    return `relationship:${value.edge}`;
   } else {
     return `class:${value.className}`;
   }
@@ -126,13 +128,28 @@ function endpointMatches(endpoint: ResolvedEndpoint, value: Selection): boolean 
     return endpoint.component && endpoint.nodeName === value.componentName;
   } else if (value.type === "method") {
     return !endpoint.component && endpoint.nodeName === value.className && endpoint.methodName === value.methodName;
+  } else if (value.type === "relationship") {
+    return false;
   } else {
     return !endpoint.component && endpoint.nodeName === value.className;
   }
 }
 
 function relationshipMatches(relationship: ResolvedRelationship, value: Selection | undefined): boolean {
-  return value !== undefined && (endpointMatches(relationship.from, value) || endpointMatches(relationship.to, value));
+  if (value === undefined) {
+    return false;
+  } else if (value.type === "relationship") {
+    return edgeKey(relationship, methodsHidden) === value.edge;
+  } else {
+    return endpointMatches(relationship.from, value) || endpointMatches(relationship.to, value);
+  }
+}
+
+/** Every relationship drawn as the given edge; more than one when collapsing methods merged them. */
+function relationshipsForEdge(graph: VisibleGraph, edge: string): ResolvedRelationship[] {
+  return graph.relationships.filter(
+    (relationship) => relationship.relationship.type !== "composition" && edgeKey(relationship, methodsHidden) === edge,
+  );
 }
 
 function graphFocus(value: Selection | undefined): Selection | undefined {
@@ -150,13 +167,15 @@ function nodeMatches(nodeName: string, methodName: string | undefined, value: Se
     return nodeName === value.componentName;
   } else if (value.type === "method") {
     return nodeName === value.className && (methodName === undefined || methodName === value.methodName);
+  } else if (value.type === "relationship") {
+    return false;
   } else {
     return nodeName === value.className;
   }
 }
 
 function relationshipAttributes(relationship: ResolvedRelationship): string {
-  return `data-relation data-from-node="${escapeHtml(relationship.from.nodeName)}" data-from-method="${escapeHtml(relationship.from.methodName ?? "")}" data-from-component="${relationship.from.component}" data-to-node="${escapeHtml(relationship.to.nodeName)}" data-to-method="${escapeHtml(relationship.to.methodName ?? "")}" data-to-component="${relationship.to.component}"`;
+  return `data-relation data-edge="${escapeHtml(edgeKey(relationship, methodsHidden))}" data-from-node="${escapeHtml(relationship.from.nodeName)}" data-from-method="${escapeHtml(relationship.from.methodName ?? "")}" data-from-component="${relationship.from.component}" data-to-node="${escapeHtml(relationship.to.nodeName)}" data-to-method="${escapeHtml(relationship.to.methodName ?? "")}" data-to-component="${relationship.to.component}"`;
 }
 
 function visibleGraph(): VisibleGraph {
@@ -221,7 +240,7 @@ function renderGraph(graph: VisibleGraph): string {
   if (focus !== undefined) {
     if (focus.type === "component") {
       relatedNodes.add(focus.componentName);
-    } else {
+    } else if (focus.type !== "relationship") {
       relatedNodes.add(focus.className);
     }
     for (const relationship of graph.relationships.filter((item) => relationshipMatches(item, focus))) {
@@ -267,9 +286,11 @@ function renderGraph(graph: VisibleGraph): string {
       const dimmed = focus !== undefined && !relationshipMatches(relationship, focus);
       const dash = stateUpdate ? "2 5" : changeType === "deleted" ? "7 5" : "";
       const marker = stateUpdate ? `state-${changeType}` : `arrow-${changeType}`;
+      const selected = selectionKey(selection) === selectionKey({ type: "relationship", edge: edgeKey(relationship, methodsHidden) });
       return `
-        <path class="edge${dimmed ? " dimmed" : ""}" ${relationshipAttributes(relationship)} d="${route.path}" fill="none" stroke="${changeColor(changeType)}" stroke-width="${stateUpdate ? 1.75 : 1.6}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#${marker})"></path>
-        <circle class="edge${dimmed ? " dimmed" : ""}" ${relationshipAttributes(relationship)} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${changeColor(changeType)}" stroke="oklch(0.198 0.024 255)" stroke-width="1.5"></circle>`;
+        <path class="edge${dimmed ? " dimmed" : ""}${selected ? " selected" : ""}" ${relationshipAttributes(relationship)} d="${route.path}" fill="none" stroke="${changeColor(changeType)}" stroke-width="${stateUpdate ? 1.75 : 1.6}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#${marker})"></path>
+        <circle class="edge${dimmed ? " dimmed" : ""}" ${relationshipAttributes(relationship)} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${changeColor(changeType)}" stroke="oklch(0.198 0.024 255)" stroke-width="1.5"></circle>
+        <path class="edge-hit" ${relationshipAttributes(relationship)} data-select="relationship" d="${route.path}" fill="none" stroke="transparent" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"></path>`;
     })
     .join("");
 
@@ -349,9 +370,11 @@ function flowRows(relationships: ResolvedRelationship[], endpoint: "from" | "to"
     .map((relationship) => {
       const other = endpoint === "from" ? relationship.from : relationship.to;
       const selected = selectionForEndpoint(other);
+      const { dataDescription, purpose, type } = relationship.relationship;
       return `<button class="flow-row${state ? " state" : ""}" style="border-color:${changeColor(relationship.relationship.changeType)}" data-jump="${escapeHtml(JSON.stringify(selected))}">
         <div class="flow-endpoint">${endpoint === "to" && !state ? "→ " : ""}${escapeHtml(endpointLabel(other))}</div>
-        <div class="flow-label">${escapeHtml(relationship.relationship.label ?? relationship.relationship.type)}</div>
+        <div class="flow-label">${escapeHtml(dataDescription ?? type)}</div>
+        ${purpose === undefined ? "" : `<div class="flow-purpose">${escapeHtml(purpose)}</div>`}
       </button>`;
     })
     .join("")}</div>`;
@@ -400,7 +423,7 @@ function renderInspector(graph: VisibleGraph): string {
       ? '<p class="empty-copy">None</p>'
       : `<div class="flow-list">${stateUpdates.map((relationship) => {
           const selected = selectionForEndpoint(relationship.from);
-          return `<button class="flow-row state" style="border-color:${changeColor(relationship.relationship.changeType)}" data-jump="${escapeHtml(JSON.stringify(selected))}"><div class="flow-endpoint">${escapeHtml(endpointLabel(relationship.from))} ↝ ${escapeHtml(endpointLabel(relationship.to))}</div><div class="flow-label">${escapeHtml(relationship.relationship.label ?? "state update")}</div></button>`;
+          return `<button class="flow-row state" style="border-color:${changeColor(relationship.relationship.changeType)}" data-jump="${escapeHtml(JSON.stringify(selected))}"><div class="flow-endpoint">${escapeHtml(endpointLabel(relationship.from))} ↝ ${escapeHtml(endpointLabel(relationship.to))}</div><div class="flow-label">${escapeHtml(relationship.relationship.dataDescription ?? "state update")}</div></button>`;
         }).join("")}</div>`;
     return `<div class="overview-inspector"><section class="overview-section"><div class="section-heading"><span>Variable exposure by class</span><span class="inspector-count">${graph.variableExposureCount ?? "?"}</span></div><div class="exposure-ranking">${classes}</div></section><section class="overview-section"><div class="section-heading"><span>State updates</span><span class="inspector-count">${stateUpdates.length}</span></div>${stateRows}</section></div>`;
   } else if (inspected.type === "method") {
@@ -419,6 +442,30 @@ function renderInspector(graph: VisibleGraph): string {
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, componentSelection));
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, componentSelection));
     return `${inspectorHeader(component.type === "ui" ? "UI component" : "External I/O", component.name, component.changeType)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
+  } else if (inspected.type === "relationship") {
+    const edges = relationshipsForEdge(graph, inspected.edge);
+    if (edges.length === 0) {
+      return `${inspectorHeader("Relationship", "Not visible", "unchanged")}<p class="empty-copy">The current filters hide this relationship.</p>`;
+    }
+    const arrow = (item: ResolvedRelationship) => (item.relationship.type === "state-update" ? "↝" : "→");
+    const merged = edges.length > 1;
+    const first = edges[0];
+    const entries = edges
+      .map((item) => {
+        const { dataDescription, purpose, changeType, userFlow } = item.relationship;
+        return `<div class="relationship-entry" style="border-color:${changeColor(changeType)}">
+          ${merged ? `<button class="entry-endpoints" data-jump="${escapeHtml(JSON.stringify(selectionForEndpoint(item.to)))}">${escapeHtml(endpointLabel(item.from))} ${arrow(item)} ${escapeHtml(endpointLabel(item.to))}</button><div class="entry-chips"><span class="change-chip" style="${chipStyle(changeType)}">${changeType}</span><span class="change-chip neutral">${userFlow === true ? "user flow" : "supporting"}</span></div>` : ""}
+          <div class="entry-heading">Data</div>
+          <p class="entry-copy">${escapeHtml(dataDescription ?? "Not described.")}</p>
+          <div class="entry-heading">Purpose</div>
+          <p class="entry-copy">${escapeHtml(purpose ?? "Not described.")}</p>
+        </div>`;
+      })
+      .join("");
+    const title = merged ? `${first.from.nodeName} → ${first.to.nodeName}` : `${endpointLabel(first.from)} ${arrow(first)} ${endpointLabel(first.to)}`;
+    const eyebrow = merged ? "Merged relationships" : first.relationship.type === "state-update" ? "State update" : "Dataflow";
+    const detail = merged ? `${edges.length} relationships` : first.relationship.userFlow === true ? "user flow" : "supporting";
+    return `${inspectorHeader(eyebrow, title, first.relationship.changeType, detail)}${section("Description", entries, merged ? edges.length : undefined)}`;
   } else {
     const classSelection = inspected;
     const classDiff = graph.classes.find((item) => item.name === classSelection.className)!;
@@ -594,28 +641,24 @@ function bindEvents(): void {
     }
   });
   for (const element of app.querySelectorAll<HTMLElement>("[data-select]")) {
-    const select = () => {
+    const target = (): Selection => {
       if (element.dataset.select === "component") {
-        selection = { type: "component", componentName: element.dataset.component! };
+        return { type: "component", componentName: element.dataset.component! };
       } else if (element.dataset.select === "method") {
-        selection = { type: "method", className: element.dataset.class!, methodName: element.dataset.method! };
+        return { type: "method", className: element.dataset.class!, methodName: element.dataset.method! };
+      } else if (element.dataset.select === "relationship") {
+        return { type: "relationship", edge: element.dataset.edge! };
       } else {
-        selection = { type: "class", className: element.dataset.class! };
+        return { type: "class", className: element.dataset.class! };
       }
-      render();
     };
     element.addEventListener("click", (event) => {
       event.stopPropagation();
-      select();
+      selection = target();
+      render();
     });
     element.addEventListener("mouseenter", () => {
-      if (element.dataset.select === "component") {
-        hovered = { type: "component", componentName: element.dataset.component! };
-      } else if (element.dataset.select === "method") {
-        hovered = { type: "method", className: element.dataset.class!, methodName: element.dataset.method! };
-      } else {
-        hovered = { type: "class", className: element.dataset.class! };
-      }
+      hovered = target();
       updateGraphFocus(hovered);
       updateInspector();
     });
@@ -712,9 +755,14 @@ function updateGraphFocus(value: Selection | undefined): void {
   const relatedNodes = new Set<string>();
   const relatedMethods = new Set<string>();
   if (value !== undefined) {
-    const ownNode = value.type === "component" ? value.componentName : value.className;
-    relatedNodes.add(ownNode);
-    if (value.type === "method") relatedMethods.add(methodKey(value.className, value.methodName));
+    if (value.type === "component") {
+      relatedNodes.add(value.componentName);
+    } else if (value.type === "method") {
+      relatedNodes.add(value.className);
+      relatedMethods.add(methodKey(value.className, value.methodName));
+    } else if (value.type === "class") {
+      relatedNodes.add(value.className);
+    }
     for (const relationship of relationships.filter((item) => relationshipMatches(item, value))) {
       relatedNodes.add(relationship.from.nodeName);
       relatedNodes.add(relationship.to.nodeName);
@@ -731,7 +779,9 @@ function updateGraphFocus(value: Selection | undefined): void {
     element.classList.toggle("dimmed", value !== undefined && !relatedNodes.has(element.dataset.node!));
   }
   for (const element of app.querySelectorAll<SVGElement>("[data-relation]")) {
-    const relevant = value !== undefined && (endpointDatasetMatches(element, "from", value) || endpointDatasetMatches(element, "to", value));
+    const relevant = value !== undefined && (value.type === "relationship"
+      ? element.getAttribute("data-edge") === value.edge
+      : endpointDatasetMatches(element, "from", value) || endpointDatasetMatches(element, "to", value));
     element.classList.toggle("dimmed", value !== undefined && !relevant);
   }
 }

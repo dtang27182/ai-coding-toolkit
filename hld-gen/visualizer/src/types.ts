@@ -53,18 +53,28 @@ export type RelationshipEndpoint = ClassEndpoint | MethodEndpoint | ComponentEnd
 interface RelationshipBase {
   from: RelationshipEndpoint;
   to: RelationshipEndpoint;
-  label?: string;
   changeType: ChangeType;
 }
 
 export type Relationship = RelationshipBase & (
-  | { type: "dataflow" | "state-update"; userFlow: boolean }
-  | { type: "composition"; userFlow?: never }
+  | { type: "dataflow" | "state-update"; userFlow: boolean; dataDescription: string; purpose: string }
+  | { type: "composition"; userFlow?: never; dataDescription?: never; purpose?: never }
 );
 
+export interface UserFlowStep {
+  id: number;
+  text: string;
+}
+
+export interface UserFlowSet {
+  name: string;
+  steps: UserFlowStep[];
+}
+
 export interface ArchitectureDiff {
-  schemaVersion: 7;
+  schemaVersion: 8;
   stage: "high level design";
+  userFlows: UserFlowSet[];
   classes: ClassDiff[];
   components: ComponentDiff[];
   relationships: Relationship[];
@@ -79,7 +89,19 @@ export interface MethodRef {
 export type Selection =
   | { type: "class"; className: string }
   | { type: "method"; className: string; methodName: string }
-  | { type: "component"; componentName: string };
+  | { type: "component"; componentName: string }
+  | { type: "relationship"; edge: string };
+
+/**
+ * Identifies a drawn edge. Collapsing methods merges dataflows between the same
+ * classes into one line, so the key drops method names in that mode and a single
+ * key then stands for every relationship merged into it.
+ */
+export function edgeKey(relationship: ResolvedRelationship, collapsed: boolean): string {
+  const side = (endpoint: ResolvedEndpoint) =>
+    collapsed || endpoint.methodName === undefined ? endpoint.nodeName : `${endpoint.nodeName}.${endpoint.methodName}`;
+  return JSON.stringify([relationship.relationship.type, side(relationship.from), side(relationship.to)]);
+}
 
 export interface Rect {
   x: number;
