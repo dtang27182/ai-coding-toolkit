@@ -11,7 +11,7 @@ The narrative's Relevant Logic and Dataflow section covers the broader end-to-en
 ## Skill and Shared Instructions
 
 - **`hld-gen`** generates and compares three candidates per iteration, records their metrics and analysis, and repeats with an improvement approach or selects a design.
-- **`generate-hld.md`** creates one candidate's narrative and Architecture Diff together in its iteration and candidate directory, updating artifact links and generation status in the iteration record.
+- **`generate-hld.md`** creates one candidate's narrative and Architecture Diff together in its iteration and candidate directory, then labels user-flow participation before marking generation complete.
 - **`eval-hld.md`** populates Variable Exposure and runs the two counters, storing all six quality metrics in the candidate's Architecture Diff JSON and updating its counts and evaluation status in the iteration record.
 
 ## Evaluation and Revision
@@ -43,6 +43,7 @@ hld-gen/
 - [eval-hld.md](instructions/eval-hld.md): exposure inventory preparation and quantitative counting.
 - [hld-narrative.md](instructions/hld-narrative.md): narrative scope and six-section structure, with User Flow Steps defining the scope of Core Logic and Dataflow and the Architecture Diff.
 - [hld-architecture-diff.md](instructions/hld-architecture-diff.md): architectural representation, supported by the schema and example in `references/`.
+- [hld-user-flow.md](instructions/hld-user-flow.md): post-creation user-flow labeling and validation of the Architecture Diff.
 - [hld-quality.md](instructions/hld-quality.md): score definitions and preferred directions.
 - [hld-variable-exposure.md](instructions/hld-variable-exposure.md): existing variable scope and declaration inventories.
 

@@ -64,7 +64,7 @@
   },
   "$defs": {
     "userFlow": {
-      "description": "Whether this entry directly contributes to the numbered User Flow Steps. False for supporting work such as initialization or dependency wiring that does not itself implement a step.",
+      "description": "Whether this entry lies on a dataflow/state-update path from a user action in the User Flow Steps to final state persistence, output back to the user, or output to an external component. Setup and ownership alone do not qualify.",
       "type": "boolean"
     },
     "component": {
@@ -94,7 +94,7 @@
       "required": ["name", "changeType", "hasUserFlowState", "methods", "variableExposure"],
       "properties": {
         "hasUserFlowState": {
-          "description": "Whether this class owns state directly read or updated by a User Flow Step. Merely retaining a reference to another contributing object does not qualify. Independent of variable exposure, which counts existing declarations affected by changes.",
+          "description": "Whether this class owns state read or updated along a user-action data path defined by userFlow. Merely retaining a reference to a participating object does not qualify. Independent of variable exposure, which counts existing declarations affected by changes.",
           "type": "boolean"
         },
         "name": {

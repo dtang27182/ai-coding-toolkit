@@ -10,20 +10,10 @@ Use the Architecture Diff to show how the existing architecture changes to imple
 - Defer adjustments for interference with existing behavior to low level design, as defined in `hld-narrative.md`.
 - Ground every entry in the feature context, narrative, or current code.
 
-## User Flow Classification
-
-- Set `userFlow` explicitly on every method, component, dataflow, and state-update relationship. Use `true` when it directly contributes to a numbered User Flow Step; use `false` for required supporting work that does not itself implement a step, including dependency wiring, initialization, registration, or internal instrumentation. Do not put `userFlow` on classes or composition edges.
-- Judge the responsibility against the User Flow Steps, not its name or when it runs. Loading initial content or displaying a result can directly implement a step. Shared helpers that process the flow's data remain `true`.
-- Classify methods individually. Set `hasUserFlowState` explicitly on every class: `true` if it owns state directly read or updated by a User Flow Step, even without listed methods or state-update edges; otherwise `false`. Merely retaining a reference to a contributing object does not qualify. Do not infer this flag from variable exposure, which inventories existing declarations affected by changes, not all state used by the flow.
-- The visualizer derives class participation from `hasUserFlowState`, any method marked `userFlow: true`, or any incoming or outgoing dataflow marked `userFlow: true`. Composition never contributes to this decision.
-- Classify dataflows and state updates independently: a supporting interaction between contributing endpoints can be `false`. A relationship marked `true` must reference contributing methods and components; a user-flow state update must target a class with `hasUserFlowState: true`.
-- Keep all required changes in the JSON, including entries marked `false`. This classification does not expand the scope for unchanged context. The visualizer's User flow only filter hides noncontributing classes, `false` methods/components/interactions, and relationships with hidden endpoints.
-- The filter applies to the graph, inspector, and displayed metrics. Displayed variable exposure includes instance fields of visible classes and parameters and locals of visible methods, deduplicated by declaration for the total. Collapsing methods changes presentation only. Saved evaluation counts cover the full diff.
-
 ## Classes Methods and Components
 
 - Include all required class and method changes. Apply the scope criteria separately to unchanged classes, methods within included classes, and components.
-- Use `components` for UI surfaces (`ui`) and external I/O endpoints (`external-io`), such as network services, files, and browser storage. Each has `name`, `type`, `changeType`, and `userFlow`; use `[]` when none participate.
+- Use `components` for UI surfaces (`ui`) and external I/O endpoints (`external-io`), such as network services, files, and browser storage. Each has `name`, `type`, and `changeType`; use `[]` when none participate.
 - Keep implementation classes and methods, including UI handlers and I/O adapters, in `classes`. Variable exposure belongs to those classes.
 - Mark reused entries `unchanged`. Participation or a new connection alone does not modify an endpoint.
 - A class with an added, modified, or deleted method must be marked changed.
@@ -56,7 +46,6 @@ Preserve actual intermediate participants and relationships on core data flows; 
 ### Composition
 
 - Use `composition` only from an owning class to an owned class. Components and methods cannot be composition endpoints.
-- Omit `userFlow`. The visualizer shows composition only when both endpoint classes are visible; composition does not keep either endpoint visible.
 
 ## Preview
 
