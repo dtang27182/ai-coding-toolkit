@@ -92,6 +92,21 @@ if (inputArguments.length !== 1) {
         }
       }
 
+      const flowNames = new Set();
+      for (const userFlow of architectureDiff.userFlows) {
+        if (flowNames.has(userFlow.name)) {
+          semanticErrors.push(`Duplicate user flow name: ${userFlow.name}`);
+        }
+        flowNames.add(userFlow.name);
+        userFlow.steps.forEach((step, index) => {
+          if (step.id !== index + 1) {
+            semanticErrors.push(
+              `Steps in user flow "${userFlow.name}" must be numbered 1..n in order; found ${step.id} at position ${index + 1}`
+            );
+          }
+        });
+      }
+
       for (const component of architectureDiff.components) {
         componentNames.add(component.name);
         if (nodeNames.has(component.name)) {

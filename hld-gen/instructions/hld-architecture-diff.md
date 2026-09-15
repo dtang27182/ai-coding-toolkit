@@ -36,12 +36,12 @@ Preserve actual intermediate participants and relationships on core data flows; 
 
 - Connect UI components, methods, or external I/O components in the direction data travels. Classes are not endpoints.
 - Route user input to handling methods, method outputs to consuming methods, display updates to UI components, I/O requests to external endpoints, and results to consuming methods.
-- Use separate edges for each direction. Label the data passed and relevant operation.
+- Use separate edges for each direction.
 
 ### State Update
 
 - Use `state-update` from a method to the class whose instance variable it updates, whether its own class or another.
-- Require a `label` naming the variable and describing the update. State reads alone are not updates.
+- State reads alone are not updates.
 
 ### Composition
 

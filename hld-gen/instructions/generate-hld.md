@@ -23,6 +23,10 @@ Use `null` for inventories not yet populated and omit derived counts until evalu
 
 4. Label the Architecture Diff using `ai-coding-toolkit/hld-gen/instructions/hld-user-flow.md`.
 
+## Describe the Dataflow
+
+5. Write the user flows and the dataflow and state-update descriptions using `ai-coding-toolkit/hld-gen/instructions/hld-dataflow-narrative.md`.
+
 ## Update the Iteration Record
 
-5. Record the candidate's narrative and Architecture Diff links, including any artifacts written before a failure. Mark generation complete after the preceding steps succeed; otherwise record the failed status and reason.
+6. Record the candidate's narrative and Architecture Diff links, including any artifacts written before a failure. Mark generation complete after the preceding steps succeed; otherwise record the failed status and reason.

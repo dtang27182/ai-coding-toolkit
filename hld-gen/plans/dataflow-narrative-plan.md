@@ -84,15 +84,19 @@ One pass owns everything drawn from the narrative's User Flow Steps section: tra
 
 ## Visualizer
 
-Hover only. No step UI.
+Hovering an edge shows its description **in the inspector**, not in a floating tooltip. Commit `8a32e4c` already made the inspector follow the pointer for nodes (`const inspected = hovered ?? selection` at `visualizer/src/main.ts:383`, repainted by `updateInspector()`), so edges should join that mechanism rather than introduce a second one beside it.
 
-- **Hit areas.** Edges are 1.6px strokes and are effectively unhoverable. Each edge needs a transparent companion path roughly 12px wide with `pointer-events: stroke`.
-- **Tooltip.** A custom HTML card that follows the pointer and shows both sentences. Not SVG `<title>`: the native delay and lack of wrapping make two sentences unreadable.
-- **Collapsed methods.** `mergeClassDataflows` collapses several dataflows into one line. The card stacks every merged relationship's description rather than showing only the first.
-- **No regressions.** Right-drag panning and wheel zoom on the canvas must keep working.
-- **Inspector rows.** Render both sentences in the existing flow rows. Near-free, and it makes the text reachable without hunting for a thin line.
+That makes the change small and consistent: an edge becomes another thing you can hover or click, and everything the inspector already does — pin on click, clear on Escape, repaint on filter change — follows for free.
 
-Removing `label` has two render sites to update, both currently falling back to it: the flow rows at `visualizer/src/main.ts:354` and the overview state-update rows near `visualizer/src/main.ts:402`.
+- **Selection gains a relationship variant.** Extend `Selection` in `types.ts` with a case identifying one relationship by its endpoints and type, and give `selectionKey`, `renderInspector`, and the hover handlers a branch for it.
+- **Relationship view.** A new `renderInspector` branch showing the two endpoints, the change type, `dataDescription`, and `purpose`.
+- **Hit areas.** Edges are 1.6px strokes and are effectively unhoverable. Each needs a transparent companion path roughly 12px wide with `pointer-events: stroke`, carrying the same `data-` attributes and the hover and click handlers. It must not intercept hover on the nodes beneath it.
+- **Focus.** `updateGraphFocus` dims by node today. An inspected relationship should keep itself and its two endpoints lit.
+- **Collapsed methods.** `mergeClassDataflows` collapses several dataflows into one line. The panel lists every merged relationship rather than only the first — easier in a panel than it would have been in a tooltip.
+- **No regressions.** Right-drag panning and wheel zoom must keep working, and hovering a node must still show that node.
+- **Inspector rows.** Render both sentences in the existing flow rows too, so the text is reachable without hunting for a thin line.
+
+Removing `label` has two render sites to update, both currently falling back to it: the flow rows at `visualizer/src/main.ts:354` and the overview state-update rows at `visualizer/src/main.ts:403`.
 
 ## Implementation order
 
@@ -101,13 +105,15 @@ Removing `label` has two render sites to update, both currently falling back to 
 3. `scripts/validate-architecture-diff.mjs`: required fields, step ids contiguous within each flow, unique flow names — with negative tests for each.
 4. Instructions: drop the two `label` rules from `hld-architecture-diff.md`, folding "name the instance variable" into the state-update guidance; write `hld-dataflow-narrative.md` covering `userFlows` and both description fields; add the final step to `generate-hld.md`.
 5. Migrate `visualizer/workbook-import-hld.architecture-diff.json`.
-6. Visualizer: types, then the two label render sites, then hit areas, then the tooltip.
+6. Visualizer: types (drop `label`, add both fields, extend `Selection`), then the two label render sites, then the relationship branch in `renderInspector`, then hit areas and their handlers, then focus handling.
 7. Verify: validator, typecheck, build, and a headless browser pass over the hover behavior.
 
 ## Decisions
 
+- Each user flow is written under a short heading in the narrative, which becomes its `name`.
 - Supporting (`userFlow: false`) edges require both fields. Everything in the diff is in core scope, so an edge that is not on a flow still has to say why it is there.
 - Two fields, not one combined description.
 - `purpose` replaces the earlier `userFlowRelevance` so one field covers both user-flow and supporting edges.
-- The hover card stacks all descriptions when methods are hidden.
+- Edge hover drives the inspector panel, reusing the hover mechanism added in `8a32e4c`, rather than adding a floating tooltip.
+- The relationship panel lists all merged descriptions when methods are hidden.
 - The narrative pass transcribes `userFlows` as well, so one pass owns everything taken from the User Flow Steps section and the diagram pass keeps a single job.

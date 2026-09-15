@@ -18,7 +18,7 @@ Use bullets for included and excluded scope, explicit constraints, and working a
 
 ## User Flow Steps
 
-There can be more than one user flow. Write a separate set of steps for each user flow. Use a short numbered sequence of user actions and app responses that directly realize the requested behavior, including retained state and its later use where required. Omit implementation names and surrounding workflows; these steps define the core scope. The steps may include conditional branches or loop back to earlier steps.
+There can be more than one user flow. Write a separate set of steps for each user flow, under a short heading naming the user's goal in that flow. Use a short numbered sequence of user actions and app responses that directly realize the requested behavior, including retained state and its later use where required. Omit implementation names and surrounding workflows; these steps define the core scope. The steps may include conditional branches or loop back to earlier steps.
 
 ## Relevant Logic and Dataflow
 

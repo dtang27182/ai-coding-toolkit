@@ -13,6 +13,7 @@ Read these supporting documents when their corresponding work is needed:
 
 - `ai-coding-toolkit/hld-gen/instructions/hld-narrative.md` before writing or revising the narrative.
 - `ai-coding-toolkit/hld-gen/instructions/hld-architecture-diff.md` before writing or revising the Architecture Diff.
+- `ai-coding-toolkit/hld-gen/instructions/hld-dataflow-narrative.md` when describing dataflow and state-update relationships.
 - `ai-coding-toolkit/hld-gen/instructions/hld-variable-exposure.md` when identifying touched methods and existing variables exposed to the change.
 - `ai-coding-toolkit/hld-gen/instructions/hld-quality.md` before choosing a design.
 - `ai-coding-toolkit/hld-gen/instructions/generate-hld.md` before generating a candidate design.
