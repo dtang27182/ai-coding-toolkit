@@ -435,7 +435,7 @@ function renderInspector(graph: VisibleGraph): string {
     const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update" && endpointMatches(relationship.from, methodSelection));
     const inventory = classDiff.variableExposure;
     const exposureCount = inventory === null ? undefined : inventory.filter((variable) => variable.kind === "instance" || variable.method === methodSelection.methodName).length;
-    return `${inspectorHeader(classDiff.name, method.name, method.changeType)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${section("State written", flowRows(stateUpdates, "to", true), stateUpdates.length)}${section("Exposure in this scope", exposureSummary(classDiff, method.name), exposureCount)}`;
+    return `${inspectorHeader(classDiff.name, method.name, method.changeType)}${section("Exposure in this scope", exposureSummary(classDiff, method.name), exposureCount)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${section("State written", flowRows(stateUpdates, "to", true), stateUpdates.length)}`;
   } else if (inspected.type === "component") {
     const componentSelection = inspected;
     const component = graph.components.find((item) => item.name === componentSelection.componentName)!;
@@ -474,7 +474,7 @@ function renderInspector(graph: VisibleGraph): string {
       .map((method) => `<button class="method-row" style="border-color:${changeColor(method.changeType)}" data-jump="${escapeHtml(JSON.stringify({ type: "method", className: classDiff.name, methodName: method.name }))}"><div class="flow-endpoint">${escapeHtml(method.name)}</div><div class="flow-label">${method.changeType}</div></button>`)
       .join("");
     const exposureCount = classExposureCount(classDiff);
-    return `${inspectorHeader("Class", classDiff.name, classDiff.changeType, `${exposureCount === null ? "?" : exposureCount} exposed vars`)}${section("Methods", methods.length === 0 ? '<p class="empty-copy">No visible methods</p>' : `<div class="method-list">${methods}</div>`, classDiff.methods.length)}${section("Instance state written by", flowRows(stateUpdates, "from", true), stateUpdates.length)}${section("Variable exposure", exposureSummary(classDiff), exposureCount ?? undefined)}`;
+    return `${inspectorHeader("Class", classDiff.name, classDiff.changeType, `${exposureCount === null ? "?" : exposureCount} exposed vars`)}${section("Variable exposure", exposureSummary(classDiff), exposureCount ?? undefined)}${section("Methods", methods.length === 0 ? '<p class="empty-copy">No visible methods</p>' : `<div class="method-list">${methods}</div>`, classDiff.methods.length)}${section("Instance state written by", flowRows(stateUpdates, "from", true), stateUpdates.length)}`;
   }
 }
 
