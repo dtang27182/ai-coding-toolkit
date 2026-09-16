@@ -445,7 +445,7 @@ function renderInspector(graph: VisibleGraph): string {
     const component = graph.components.find((item) => item.name === componentSelection.componentName)!;
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, componentSelection));
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, componentSelection));
-    return `${inspectorHeader(component.type === "ui" ? "UI component" : "External I/O", component.name, component.changeType)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${entityDescriptions(component.generalDescription, component.designRole)}`;
+    return `${inspectorHeader(component.type === "ui" ? "UI component" : "External I/O", component.name, component.changeType)}${entityDescriptions(component.generalDescription, component.designRole)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
   } else if (inspected.type === "relationship") {
     const edges = relationshipsForEdge(graph, inspected.edge);
     if (edges.length === 0) {
