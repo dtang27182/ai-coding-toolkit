@@ -3,6 +3,8 @@ export type ComponentType = "ui" | "external-io";
 
 export interface MethodDiff {
   name: string;
+  generalDescription?: string;
+  designRole?: string;
   changeType: ChangeType;
   userFlow: boolean;
 }
@@ -22,6 +24,8 @@ export interface ExposedVariable {
 
 export interface ClassDiff {
   name: string;
+  generalDescription?: string;
+  designRole?: string;
   changeType: ChangeType;
   hasUserFlowState: boolean;
   methods: MethodDiff[];
@@ -31,6 +35,8 @@ export interface ClassDiff {
 
 export interface ComponentDiff {
   name: string;
+  generalDescription?: string;
+  designRole?: string;
   type: ComponentType;
   changeType: ChangeType;
   userFlow: boolean;

@@ -138,6 +138,16 @@
         "userFlow"
       ],
       "properties": {
+        "generalDescription": {
+          "description": "Visualizer text added only after design selection: the entity's overall system responsibility, in three sentences or fewer.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "designRole": {
+          "description": "Visualizer text added only after design selection: the entity's part in this HLD, in three sentences or fewer.",
+          "type": "string",
+          "pattern": "\\S"
+        },
         "userFlow": {
           "$ref": "#/$defs/userFlow"
         },
@@ -175,6 +185,16 @@
         "variableExposure"
       ],
       "properties": {
+        "generalDescription": {
+          "description": "Visualizer text added only after design selection: the entity's overall system responsibility, in three sentences or fewer.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "designRole": {
+          "description": "Visualizer text added only after design selection: the entity's part in this HLD, in three sentences or fewer.",
+          "type": "string",
+          "pattern": "\\S"
+        },
         "hasUserFlowState": {
           "description": "Whether this class owns state read or updated along a user-action data path defined by userFlow. Merely retaining a reference to a participating object does not qualify. Independent of variable exposure, which counts existing declarations affected by changes.",
           "type": "boolean"
@@ -227,6 +247,16 @@
         "userFlow"
       ],
       "properties": {
+        "generalDescription": {
+          "description": "Visualizer text added only after design selection: the entity's overall system responsibility, in three sentences or fewer.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "designRole": {
+          "description": "Visualizer text added only after design selection: the entity's part in this HLD, in three sentences or fewer.",
+          "type": "string",
+          "pattern": "\\S"
+        },
         "userFlow": {
           "$ref": "#/$defs/userFlow"
         },

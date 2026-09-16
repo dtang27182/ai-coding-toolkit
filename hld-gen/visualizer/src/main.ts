@@ -384,6 +384,10 @@ function section(title: string, content: string, count?: number): string {
   return `<section class="inspector-section"><div class="section-heading"><span>${escapeHtml(title)}</span>${count === undefined ? "" : `<span class="inspector-count">${count}</span>`}</div>${content}</section>`;
 }
 
+function entityDescriptions(generalDescription: string | undefined, designRole: string | undefined): string {
+  return `${generalDescription === undefined ? "" : section("General description", `<p class="entry-copy">${escapeHtml(generalDescription)}</p>`)}${designRole === undefined ? "" : section("Design role", `<p class="entry-copy">${escapeHtml(designRole)}</p>`)}`;
+}
+
 function inspectorHeader(eyebrow: string, title: string, changeType: ChangeType, detail?: string): string {
   return `<header class="inspector-header">
     <div class="inspector-eyebrow">${escapeHtml(eyebrow)}</div>
@@ -435,13 +439,13 @@ function renderInspector(graph: VisibleGraph): string {
     const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update" && endpointMatches(relationship.from, methodSelection));
     const inventory = classDiff.variableExposure;
     const exposureCount = inventory === null ? undefined : inventory.filter((variable) => variable.kind === "instance" || variable.method === methodSelection.methodName).length;
-    return `${inspectorHeader(classDiff.name, method.name, method.changeType)}${section("Exposure in this scope", exposureSummary(classDiff, method.name), exposureCount)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${section("State written", flowRows(stateUpdates, "to", true), stateUpdates.length)}`;
+    return `${inspectorHeader(classDiff.name, method.name, method.changeType)}${section("Exposure in this scope", exposureSummary(classDiff, method.name), exposureCount)}${entityDescriptions(method.generalDescription, method.designRole)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${section("State written", flowRows(stateUpdates, "to", true), stateUpdates.length)}`;
   } else if (inspected.type === "component") {
     const componentSelection = inspected;
     const component = graph.components.find((item) => item.name === componentSelection.componentName)!;
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, componentSelection));
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, componentSelection));
-    return `${inspectorHeader(component.type === "ui" ? "UI component" : "External I/O", component.name, component.changeType)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
+    return `${inspectorHeader(component.type === "ui" ? "UI component" : "External I/O", component.name, component.changeType)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${entityDescriptions(component.generalDescription, component.designRole)}`;
   } else if (inspected.type === "relationship") {
     const edges = relationshipsForEdge(graph, inspected.edge);
     if (edges.length === 0) {
@@ -474,7 +478,7 @@ function renderInspector(graph: VisibleGraph): string {
       .map((method) => `<button class="method-row" style="border-color:${changeColor(method.changeType)}" data-jump="${escapeHtml(JSON.stringify({ type: "method", className: classDiff.name, methodName: method.name }))}"><div class="flow-endpoint">${escapeHtml(method.name)}</div><div class="flow-label">${method.changeType}</div></button>`)
       .join("");
     const exposureCount = classExposureCount(classDiff);
-    return `${inspectorHeader("Class", classDiff.name, classDiff.changeType, `${exposureCount === null ? "?" : exposureCount} exposed vars`)}${section("Variable exposure", exposureSummary(classDiff), exposureCount ?? undefined)}${section("Methods", methods.length === 0 ? '<p class="empty-copy">No visible methods</p>' : `<div class="method-list">${methods}</div>`, classDiff.methods.length)}${section("Instance state written by", flowRows(stateUpdates, "from", true), stateUpdates.length)}`;
+    return `${inspectorHeader("Class", classDiff.name, classDiff.changeType, `${exposureCount === null ? "?" : exposureCount} exposed vars`)}${section("Variable exposure", exposureSummary(classDiff), exposureCount ?? undefined)}${entityDescriptions(classDiff.generalDescription, classDiff.designRole)}${section("Methods", methods.length === 0 ? '<p class="empty-copy">No visible methods</p>' : `<div class="method-list">${methods}</div>`, classDiff.methods.length)}${section("Instance state written by", flowRows(stateUpdates, "from", true), stateUpdates.length)}`;
   }
 }
 

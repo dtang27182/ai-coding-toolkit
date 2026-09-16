@@ -22,6 +22,8 @@ The rubric in `instructions/hld-quality.md` stays fixed during a run. The genera
 
 The generator reports the evaluated iteration count and stopping reason, and links the iteration summary if created. If a design was selected, it presents the selection rationale and selected artifacts. Otherwise, it states that no design was selected and links available candidate artifacts with their status. Pending, failed, or unevaluated iterations and candidates are disclosed. Application implementation is a separate task.
 
+After selection, a visualizer-only pass adds `generalDescription` and `designRole` directly to entities in the selected Architecture Diff. These descriptions do not participate in candidate generation, user-flow classification, evaluation, or selection. All other fields, including user-flow labels and metrics, remain unchanged.
+
 ## Scripts and Files
 
 The tool's source lives under `hld-gen/`:
@@ -45,6 +47,7 @@ hld-gen/
 - [hld-architecture-diff.md](instructions/hld-architecture-diff.md): architectural representation, supported by the schema and example in `references/`.
 - [hld-user-flow.md](instructions/hld-user-flow.md): post-creation user-flow labeling and validation of the Architecture Diff.
 - [hld-dataflow-narrative.md](instructions/hld-dataflow-narrative.md): post-labeling transcription of the user flows and description of each dataflow and state-update relationship.
+- [hld-entity-descriptions.md](instructions/hld-entity-descriptions.md): visualizer descriptions added to the selected Architecture Diff after selection.
 - [hld-quality.md](instructions/hld-quality.md): score definitions and preferred directions.
 - [hld-variable-exposure.md](instructions/hld-variable-exposure.md): existing variable scope and declaration inventories.
 

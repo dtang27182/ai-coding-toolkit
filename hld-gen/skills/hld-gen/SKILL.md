@@ -18,6 +18,7 @@ Read these supporting documents when their corresponding work is needed:
 - `ai-coding-toolkit/hld-gen/instructions/hld-quality.md` before choosing a design.
 - `ai-coding-toolkit/hld-gen/instructions/generate-hld.md` before generating a candidate design.
 - `ai-coding-toolkit/hld-gen/instructions/eval-hld.md` before evaluating a candidate design.
+- `ai-coding-toolkit/hld-gen/instructions/hld-entity-descriptions.md` only after selecting a design.
 
 ## Workflow
 
@@ -38,7 +39,8 @@ Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to
    - Compare the candidates with the best evaluated design from earlier iterations and retain the best design across the run, explaining any tradeoffs. Keep the earlier design on a tie.
    - Check the iteration history before proposing another approach. Record whether the previous approach improved on the earlier best design. Do not repeat an unsuccessful approach without new evidence or a materially different design choice that addresses why it failed.
    - Update the iteration record with the analysis, the best design across the run, the previous approach's outcome, and the next improvement approach, or explicitly state that none was identified.
-6. If an untried or newly justified improvement approach exists, repeat from step 3. Otherwise, select the best evaluated design across all iterations and record the selection rationale and tradeoffs in the iteration summary. Copy its narrative and Architecture Diff to `<outputDirectory>/<feature>/<feature>.hld.md` and `<outputDirectory>/<feature>/<feature>.architecture-diff.hld.json`, preserving all candidate artifacts. Stop with `best-scores` if every metric reaches its rubric-defined best value, or `no-identifiable-improvement` otherwise.
+6. If an untried or newly justified improvement approach exists, repeat from step 3. Otherwise, select the best evaluated design across all iterations and record the selection rationale and tradeoffs in the iteration summary. Copy its narrative and Architecture Diff to `<outputDirectory>/<feature>/<feature>.hld.md` and `<outputDirectory>/<feature>/<feature>.architecture-diff.hld.json`, preserving all candidate artifacts. Record the stopping reason as `best-scores` if every metric reaches its rubric-defined best value, or `no-identifiable-improvement` otherwise.
+7. After selection, follow `ai-coding-toolkit/hld-gen/instructions/hld-entity-descriptions.md` only on the selected design's Architecture Diff. This visualizer-only pass does not require reevaluation. Then stop.
 
 If required context remains unavailable, preserve the candidates, record the missing context in the iteration summary, and stop with `needs-input`. If an execution failure prevents completion, record it and stop with `execution-error`.
 
@@ -46,6 +48,6 @@ If required context remains unavailable, preserve the candidates, record the mis
 
 Record the stopping reason and current candidate statuses in the iteration summary, if created, and link it. Report the evaluated iteration count and disclose pending, failed, or unevaluated iterations and candidates.
 
-If a design was selected, link the selected narrative and Architecture Diff JSON. State whether the selected HLD was evaluated after its last edit. If no design was selected, say so and link available candidate artifacts with their status.
+If a design was selected, link the selected narrative and Architecture Diff JSON. State whether the selected HLD was evaluated after its last design edit. If no design was selected, say so and link available candidate artifacts with their status.
 
 State why the loop stopped. Do not implement application code or claim human approval as part of this workflow.
