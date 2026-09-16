@@ -35,6 +35,7 @@ test("copies skills and scripts that work after the source checkout is removed",
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const result = install([path.relative(sourceDirectory, repoDirectory)], sourceDirectory);
     assert.equal(result.status, 0, result.stderr);
+    await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/hld-gen/hld-architecture.md")), { code: "ENOENT" });
   }
   await rm(sourceDirectory, { recursive: true });
 
@@ -113,6 +114,7 @@ test("removes retired toolkit files on upgrade while preserving other installed 
   const firstInstall = install([repoDirectory]);
   assert.equal(firstInstall.status, 0, firstInstall.stderr);
   const retiredPaths = [
+    "ai-coding-toolkit/hld-gen/hld-architecture.md",
     ".agents/skills/hld-gen/SKILL.next.md",
     ".agents/skills/hld-eval/SKILL.md",
     "ai-coding-toolkit/hld-gen/skills/hld-gen/SKILL.next.md",

@@ -111,7 +111,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
       path.join(installedToolkitDirectory, directoryName)
     );
   }
-  for (const relativePath of ["skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md", "scripts/architecture-diff-to-mermaid.mjs"]) {
+  for (const relativePath of ["hld-architecture.md", "skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md", "scripts/architecture-diff-to-mermaid.mjs"]) {
     await rm(path.join(installedToolkitDirectory, "hld-gen", relativePath), { recursive: true, force: true });
   }
   await installCodexSkills(repoDirectory, toolkitDirectory);
