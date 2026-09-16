@@ -15,7 +15,7 @@ import type {
   ResolvedRelationship,
   Selection,
 } from "./types";
-import { edgeKey, mergeClassDataflows, methodKey } from "./types";
+import { edgeKey, flowPanelEntries, mergeClassDataflows, methodKey } from "./types";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const ajv = new Ajv2020({ allErrors: true });
@@ -39,6 +39,8 @@ let zoom = 1;
 let panX = 0;
 let panY = 0;
 let inspectorWidth = 356;
+let flowPanelWidth = 300;
+let flowPanelOpen = true;
 let currentGraphWidth = 320;
 let userZoomed = false;
 let selection: Selection | undefined;
@@ -486,6 +488,28 @@ function updateInspector(): void {
   app.querySelector<HTMLElement>(".inspector")!.innerHTML = renderInspector(visibleGraph());
 }
 
+function renderFlowPanel(): string {
+  if (flowPanelOpen) {
+    const flows = flowPanelEntries(diff);
+    return `<aside class="flow-panel" style="width:${flowPanelWidth}px;flex-basis:${flowPanelWidth}px" aria-label="User flows">
+      <header class="flow-panel-header">
+        <span>User flows</span><span class="inspector-count">${flows.length}</span>
+        <button class="flow-collapse" data-toggle-flow-panel aria-expanded="true" aria-label="Collapse user flows">‹</button>
+      </header>
+      ${flows.length === 0 ? '<div class="flow-entry"><p class="empty-copy">This file has no user flows.</p></div>' : flows.map((flow) => `<section class="flow-entry">
+        <div class="flow-entry-heading"><span class="flow-name">${escapeHtml(flow.name)}</span><span class="flow-step-count">${flow.steps.length} ${flow.steps.length === 1 ? "step" : "steps"}</span></div>
+        <ol class="flow-steps">${flow.steps.map((step) => `<li class="flow-step" value="${step.id}"><span class="flow-step-id">${escapeHtml(step.id)}</span><span class="flow-step-text">${escapeHtml(step.text)}</span></li>`).join("")}</ol>
+      </section>`).join("")}
+    </aside>
+    <div class="inspector-resizer" data-flow-resizer role="separator" aria-label="Resize user flows" aria-orientation="vertical" aria-valuemin="240" aria-valuenow="${Math.round(flowPanelWidth)}" tabindex="0"></div>`;
+  } else {
+    return `<aside class="flow-panel collapsed" aria-label="User flows">
+      <span class="flow-spine-label">FLOWS</span>
+      <button class="flow-collapse" data-toggle-flow-panel aria-expanded="false" aria-label="Expand user flows">›</button>
+    </aside>`;
+  }
+}
+
 function shapeLegend(): string {
   return `<div class="graph-legend" aria-hidden="true">
     <div class="shape-key"><span class="shape-sample"></span><span>class</span></div>
@@ -520,6 +544,7 @@ function render(): void {
         <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}</div>
         <div class="control-group">
           <button class="control-button open-button" data-open>Open JSON</button>
+          <button class="control-button${flowPanelOpen ? " active" : ""}" data-toggle-flow-panel aria-pressed="${flowPanelOpen}">Flows</button>
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
           <button class="control-button${userFlowOnly ? " active" : ""}" data-toggle-user-flow aria-pressed="${userFlowOnly}">User flow only</button>
           <button class="control-button${methodsHidden ? " active" : ""}" data-toggle-methods>${methodsHidden ? "Show methods" : "Hide methods"}</button>
@@ -528,6 +553,7 @@ function render(): void {
       </div>
     </header>
     <div class="workspace">
+      ${renderFlowPanel()}
       <div class="canvas-wrap">
         <main class="canvas" aria-label="Architecture diff graph">${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}${renderGraph(graph)}</main>
         ${shapeLegend()}
@@ -538,6 +564,8 @@ function render(): void {
     </div>
     <input type="file" accept="application/json,.json" data-file-input hidden>
   </div>`;
+  setInspectorWidth(inspectorWidth);
+  if (flowPanelOpen) setFlowPanelWidth(flowPanelWidth);
   bindEvents();
   updateGraphFocus(hovered ?? selection);
 }
@@ -545,50 +573,53 @@ function render(): void {
 function bindEvents(): void {
   const canvas = app.querySelector<HTMLElement>(".canvas")!;
   const workspace = app.querySelector<HTMLElement>(".workspace")!;
-  const inspectorResizer = app.querySelector<HTMLElement>("[data-inspector-resizer]")!;
   let rightDragPointer: number | undefined;
-  let resizePointer: number | undefined;
   let dragStartX = 0;
   let dragStartY = 0;
   let dragStartPanX = 0;
   let dragStartPanY = 0;
-  let resizeStartX = 0;
-  let resizeStartWidth = 0;
-  inspectorResizer.addEventListener("pointerdown", (event) => {
-    if (event.button === 0) {
-      resizePointer = event.pointerId;
-      resizeStartX = event.clientX;
-      resizeStartWidth = inspectorWidth;
-      inspectorResizer.setPointerCapture(event.pointerId);
-      workspace.classList.add("resizing-inspector");
-      event.preventDefault();
-    }
-  });
-  inspectorResizer.addEventListener("pointermove", (event) => {
-    if (event.pointerId === resizePointer) {
-      setInspectorWidth(resizeStartWidth - (event.clientX - resizeStartX));
-    }
-  });
-  inspectorResizer.addEventListener("pointerup", (event) => {
-    if (event.pointerId === resizePointer) {
-      inspectorResizer.releasePointerCapture(event.pointerId);
+  for (const resizer of app.querySelectorAll<HTMLElement>("[data-inspector-resizer], [data-flow-resizer]")) {
+    const isFlowPanel = resizer.hasAttribute("data-flow-resizer");
+    const setWidth = isFlowPanel ? setFlowPanelWidth : setInspectorWidth;
+    let resizePointer: number | undefined;
+    let resizeStartX = 0;
+    let resizeStartWidth = 0;
+    resizer.addEventListener("pointerdown", (event) => {
+      if (event.button === 0) {
+        resizePointer = event.pointerId;
+        resizeStartX = event.clientX;
+        resizeStartWidth = isFlowPanel ? flowPanelWidth : inspectorWidth;
+        resizer.setPointerCapture(event.pointerId);
+        workspace.classList.add("resizing-inspector");
+        event.preventDefault();
+      }
+    });
+    resizer.addEventListener("pointermove", (event) => {
+      if (event.pointerId === resizePointer) {
+        setWidth(resizeStartWidth + (isFlowPanel ? 1 : -1) * (event.clientX - resizeStartX));
+      }
+    });
+    resizer.addEventListener("pointerup", (event) => {
+      if (event.pointerId === resizePointer) {
+        resizer.releasePointerCapture(event.pointerId);
+        workspace.classList.remove("resizing-inspector");
+        resizePointer = undefined;
+      }
+    });
+    resizer.addEventListener("pointercancel", () => {
       workspace.classList.remove("resizing-inspector");
       resizePointer = undefined;
-    }
-  });
-  inspectorResizer.addEventListener("pointercancel", () => {
-    workspace.classList.remove("resizing-inspector");
-    resizePointer = undefined;
-  });
-  inspectorResizer.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowLeft") {
-      setInspectorWidth(inspectorWidth + 16);
-      event.preventDefault();
-    } else if (event.key === "ArrowRight") {
-      setInspectorWidth(inspectorWidth - 16);
-      event.preventDefault();
-    }
-  });
+    });
+    resizer.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") {
+        setWidth(isFlowPanel ? flowPanelWidth - 16 : inspectorWidth + 16);
+        event.preventDefault();
+      } else if (event.key === "ArrowRight") {
+        setWidth(isFlowPanel ? flowPanelWidth + 16 : inspectorWidth - 16);
+        event.preventDefault();
+      }
+    });
+  }
   canvas.addEventListener("pointerdown", (event) => {
     if (event.button === 2) {
       rightDragPointer = event.pointerId;
@@ -682,6 +713,13 @@ function bindEvents(): void {
       render();
     }
   });
+  for (const button of app.querySelectorAll<HTMLElement>("[data-toggle-flow-panel]")) {
+    button.addEventListener("click", () => {
+      flowPanelOpen = !flowPanelOpen;
+      userZoomed = false;
+      render();
+    });
+  }
   app.querySelector<HTMLElement>("[data-toggle-unchanged]")!.addEventListener("click", () => {
     showUnchanged = !showUnchanged;
     selection = undefined;
@@ -725,11 +763,21 @@ function bindEvents(): void {
 
 function setInspectorWidth(nextWidth: number): void {
   const workspace = app.querySelector<HTMLElement>(".workspace")!;
-  inspectorWidth = Math.min(Math.max(240, workspace.clientWidth - 260), Math.max(240, nextWidth));
+  inspectorWidth = Math.min(Math.max(240, workspace.clientWidth - 260 - 7 - (flowPanelOpen ? flowPanelWidth + 7 : 34)), Math.max(240, nextWidth));
   const inspector = app.querySelector<HTMLElement>(".inspector")!;
   inspector.style.width = `${inspectorWidth}px`;
   inspector.style.flexBasis = `${inspectorWidth}px`;
   app.querySelector<HTMLElement>("[data-inspector-resizer]")!.setAttribute("aria-valuenow", String(Math.round(inspectorWidth)));
+  fitGraph(currentGraphWidth);
+}
+
+function setFlowPanelWidth(nextWidth: number): void {
+  const workspace = app.querySelector<HTMLElement>(".workspace")!;
+  flowPanelWidth = Math.min(Math.max(240, workspace.clientWidth - 260 - inspectorWidth - 14), Math.max(240, nextWidth));
+  const panel = app.querySelector<HTMLElement>(".flow-panel")!;
+  panel.style.width = `${flowPanelWidth}px`;
+  panel.style.flexBasis = `${flowPanelWidth}px`;
+  app.querySelector<HTMLElement>("[data-flow-resizer]")!.setAttribute("aria-valuenow", String(Math.round(flowPanelWidth)));
   fitGraph(currentGraphWidth);
 }
 
