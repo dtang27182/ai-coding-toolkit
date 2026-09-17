@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { findFirstArchitectureDiff } from "../hld-gen/visualizer/default-architecture-diff.mjs";
+import { findNewestArchitectureDiff } from "../hld-gen/visualizer/default-architecture-diff.mjs";
 
-test("finds the first architecture diff in the configured output directory", async (t) => {
+test("finds the most recently modified architecture diff in the configured output directory", async (t) => {
   const repositoryDirectory = await mkdtemp(path.join(os.tmpdir(), "visualizer repository "));
   const toolkitDirectory = path.join(repositoryDirectory, "ai-coding-toolkit");
   t.after(() => rm(repositoryDirectory, { recursive: true, force: true }));
@@ -15,11 +15,17 @@ test("finds the first architecture diff in the configured output directory", asy
   await mkdir(toolkitDirectory, { recursive: true });
   await writeFile(path.join(toolkitDirectory, "config.json"), '{"outputDirectory":"docs/plans"}\n');
   await writeFile(path.join(repositoryDirectory, "docs", "plans", "notes.json"), "{}");
-  await writeFile(path.join(repositoryDirectory, "docs", "plans", "bravo", "bravo.architecture-diff.hld.json"), "{}");
+  const newestPath = path.join(repositoryDirectory, "docs", "plans", "bravo", "bravo.architecture-diff.hld.json");
+  await writeFile(newestPath, "{}");
   const firstPath = path.join(repositoryDirectory, "docs", "plans", "alpha", "alpha.architecture-diff.hld.json");
   await writeFile(firstPath, "{}");
+  await utimes(firstPath, 1000, 1000);
+  await utimes(newestPath, 2000, 2000);
 
-  assert.equal(await findFirstArchitectureDiff(repositoryDirectory, toolkitDirectory), firstPath);
+  assert.equal(await findNewestArchitectureDiff(repositoryDirectory, toolkitDirectory), newestPath);
+
+  await utimes(firstPath, 3000, 3000);
+  assert.equal(await findNewestArchitectureDiff(repositoryDirectory, toolkitDirectory), firstPath);
 });
 
 test("returns no default when the configured output directory has no architecture diff", async (t) => {
@@ -29,5 +35,5 @@ test("returns no default when the configured output directory has no architectur
   await mkdir(toolkitDirectory, { recursive: true });
   await writeFile(path.join(toolkitDirectory, "config.json"), '{"outputDirectory":"docs/plans"}\n');
 
-  assert.equal(await findFirstArchitectureDiff(repositoryDirectory, toolkitDirectory), undefined);
+  assert.equal(await findNewestArchitectureDiff(repositoryDirectory, toolkitDirectory), undefined);
 });
