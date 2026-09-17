@@ -486,38 +486,12 @@ function updateInspector(): void {
   app.querySelector<HTMLElement>(".inspector")!.innerHTML = renderInspector(visibleGraph());
 }
 
-function shapeLegend(): string {
-  return `<div class="graph-legend" aria-hidden="true">
-    <div class="shape-key"><span class="shape-sample"></span><span>class</span></div>
-    <div class="shape-key"><span class="shape-sample method"></span><span>method</span></div>
-    <div class="shape-key"><span class="shape-sample ui"></span><span>ui</span></div>
-    <div class="shape-key"><span class="shape-sample io"></span><span>external i/o</span></div>
-    <div class="shape-key"><svg width="26" height="14"><path d="M 1 10 C 9 10 12 4 25 4" fill="none" stroke="var(--added)" stroke-width="1.6"></path><path d="M 19 1.4 L 25 4 L 19 6.6 z" fill="var(--added)"></path></svg><span>data flow</span></div>
-    <div class="shape-key"><svg width="26" height="14"><path d="M 1 7 L 19 7" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="2 4"></path><rect x="20" y="4.2" width="5.4" height="5.4" rx="1" fill="var(--accent)"></rect></svg><span>state update</span></div>
-    <div class="shape-key"><svg width="26" height="14"><path d="M 13 1 L 13 6 M 3 6 L 23 6 M 3 6 L 3 10 M 23 6 L 23 10" fill="none" stroke="oklch(0.4 0.032 255)" stroke-width="2.4" stroke-linecap="round"></path><path d="M 0 9 L 3 14 L 6 9 z M 20 9 L 23 14 L 26 9 z" fill="oklch(0.4 0.032 255)"></path></svg><span>composition</span></div>
-  </div>`;
-}
-
 function render(): void {
   const graph = visibleGraph();
-  const methods = graph.classes.reduce((count, classDiff) => count + classDiff.methods.length, 0);
-  const dataflows = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow").length;
-  const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update").length;
-  const metrics = [
-    [methods, "methods"],
-    [dataflows, "dataflows"],
-    [stateUpdates, "state updates"],
-    [graph.components.length, "ui / io"],
-    [graph.variableExposureCount ?? "?", "exposed vars"],
-  ];
   app.innerHTML = `<div class="app-shell">
     <header class="topbar">
       <div class="summary-row">
-        <div class="brand"><span class="brand-title">Architecture Diff</span><span class="stage-chip">${escapeHtml(diff.stage)}</span><span class="schema-label">schema v${diff.schemaVersion}</span><span class="file-label" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span></div>
-        <div class="metrics">${metrics.map(([value, label]) => `<div class="metric"><span class="metric-value">${value}</span><span class="metric-label">${label}</span></div>`).join("")}</div>
-      </div>
-      <div class="controls-row">
-        <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}</div>
+        <div class="brand"><span class="file-label" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span><span class="stage-chip">${escapeHtml(diff.stage)}</span></div>
         <div class="control-group">
           <button class="control-button open-button" data-open>Open JSON</button>
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
@@ -530,7 +504,7 @@ function render(): void {
     <div class="workspace">
       <div class="canvas-wrap">
         <main class="canvas" aria-label="Architecture diff graph">${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}${renderGraph(graph)}</main>
-        ${shapeLegend()}
+        <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}</div>
         ${dragDepth > 0 ? '<div class="drop-overlay">Drop an architecture-diff.json file</div>' : ""}
       </div>
       <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuenow="${Math.round(inspectorWidth)}" tabindex="0"></div>
