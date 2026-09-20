@@ -10,42 +10,29 @@ Use the Architecture Diff to show how the existing architecture changes to imple
 - Defer adjustments for interference with existing behavior to low level design, as defined in `hld-narrative.md`.
 - Ground every entry in the feature context, narrative, or current code.
 
-## Classes Methods and Components
+## Classes, State Variables, Methods, and Components
 
-- Include all required class and method changes. Apply the scope criteria separately to unchanged classes, methods within included classes, and components.
+- Include all required class, state-variable, and method changes. Apply the scope criteria separately to unchanged classes, state variables and methods within included classes, and components.
 - Use `components` for UI surfaces (`ui`) and external I/O endpoints (`external-io`), such as network services, files, and browser storage. Each has `name`, `type`, and `changeType`; use `[]` when none participate.
 - Keep implementation classes and methods, including UI handlers and I/O adapters, in `classes`. Variable exposure belongs to those classes.
 - Mark reused entries `unchanged`. Participation or a new connection alone does not modify an endpoint.
-- A class with an added, modified, or deleted method must be marked changed.
+- A class with an added, modified, or deleted method or state variable must be marked changed.
 - Keep class and component names globally unique, and method names unique within each class.
+
+### State Variables
+
+- Give every class a `stateVariables` array. Include every mutable instance variable added, modified, or deleted by the design and every unchanged mutable instance variable read or written by Core Logic and Dataflow. Use `[]` when none qualify.
+- Exclude static/class variables, method-local variables, unrelated fields, explicitly read-only fields, and fields initialized at declaration or construction but never written afterward. Constructor assignment is initialization, not a state update.
+- Exclude fields used only to reference owned child objects. Represent ownership with `composition`; do not duplicate the backing reference as state or create state relationships for ordinary access to it.
+- Set a state variable's `changeType` from changes to its declaration or architectural meaning. Writing a new runtime value does not by itself make an existing variable `modified`.
+- Keep state-variable names unique within their class.
 
 ## Relationships
 
-Every `from` and `to` reference must resolve to a listed entry:
-
-| Endpoint  | Reference                                            |
-| --------- | ---------------------------------------------------- |
-| Method    | `{"class": "ClassName", "method": "methodName"}`     |
-| Component | `{"component": "ComponentName"}`                     |
-| Class     | `{"class": "ClassName"}`                             |
-
-Explain sequencing and state changes in the narrative.
-Preserve actual intermediate participants and relationships on core data flows; do not replace an unchanged path with an inferred direct edge or a prose summary.
-
-### Dataflow
-
-- Connect UI components, methods, or external I/O components in the direction data travels. Classes are not endpoints.
-- Route user input to handling methods, method outputs to consuming methods, display updates to UI components, I/O requests to external endpoints, and results to consuming methods.
-- Use separate edges for each direction.
-
-### State Update
-
-- Use `state-update` from a method to the class whose instance variable it updates, whether its own class or another.
-- State reads alone are not updates.
-
-### Composition
-
-- Use `composition` only from an owning class to an owned class. Components and methods cannot be composition endpoints.
+- Preserve actual intermediate participants in dataflow and use separate relationships for request and response paths.
+- Add state relationships for all state variables read or written by Core Logic and Dataflow, including cross-class access.
+- Use `composition` only for class ownership, including child-object references excluded from `stateVariables`.
+- Explain ordering and state transitions in the narrative; relationships do not represent execution sequence.
 
 ## Validation
 

@@ -1,5 +1,5 @@
 import type { ArchitectureDiff, ChangeType, ClassDiff, ComponentDiff, GraphNode, ResolvedEndpoint, ResolvedRelationship } from "./types.ts";
-import { methodKey, resolveEndpoint } from "./types.ts";
+import { methodKey, resolveEndpoint, stateVariableKey } from "./types.ts";
 
 export interface VisibleGraph {
   classes: ClassDiff[];
@@ -14,7 +14,7 @@ export function filterGraph(diff: ArchitectureDiff, showUnchanged: boolean, user
     (showUnchanged || entry.changeType !== "unchanged") && (!userFlowOnly || entry.userFlow);
   const classes = diff.classes.filter((classDiff) =>
     (showUnchanged || classDiff.changeType !== "unchanged") &&
-    (!userFlowOnly || classDiff.hasUserFlowState || classDiff.methods.some((method) => method.userFlow) || diff.relationships.some(
+    (!userFlowOnly || classDiff.stateVariables.some((stateVariable) => stateVariable.userFlow) || classDiff.methods.some((method) => method.userFlow) || diff.relationships.some(
       (relationship) => relationship.type === "dataflow" && relationship.userFlow &&
         (("class" in relationship.from && relationship.from.class === classDiff.name) ||
           ("class" in relationship.to && relationship.to.class === classDiff.name)),
@@ -37,22 +37,27 @@ export function filterGraph(diff: ArchitectureDiff, showUnchanged: boolean, user
       name: classDiff.name,
       changeType: classDiff.changeType,
       methods: classDiff.methods,
+      stateVariables: classDiff.stateVariables,
     })),
     ...components.map((component) => ({
       name: component.name,
       changeType: component.changeType,
       methods: [],
+      stateVariables: [],
       componentType: component.type,
     })),
   ];
   const classNames = new Set(classes.map((classDiff) => classDiff.name));
   const componentNames = new Set(components.map((component) => component.name));
   const methodNames = new Set(classes.flatMap((classDiff) => classDiff.methods.map((method) => methodKey(classDiff.name, method.name))));
+  const stateVariableNames = new Set(classes.flatMap((classDiff) => classDiff.stateVariables.map((stateVariable) => stateVariableKey(classDiff.name, stateVariable.name))));
   const endpointVisible = (endpoint: ResolvedEndpoint) => {
     if (endpoint.component) {
       return componentNames.has(endpoint.nodeName);
     } else if (endpoint.methodName !== undefined) {
       return classNames.has(endpoint.nodeName) && methodNames.has(methodKey(endpoint.nodeName, endpoint.methodName));
+    } else if (endpoint.stateVariableName !== undefined) {
+      return classNames.has(endpoint.nodeName) && stateVariableNames.has(stateVariableKey(endpoint.nodeName, endpoint.stateVariableName));
     } else {
       return classNames.has(endpoint.nodeName);
     }

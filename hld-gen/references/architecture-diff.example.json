@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "stage": "high level design",
   "userFlows": [
     {
@@ -15,7 +15,6 @@
     {
       "name": "ChangeService",
       "changeType": "added",
-      "hasUserFlowState": false,
       "methods": [
         {
           "name": "configure",
@@ -28,21 +27,33 @@
           "userFlow": true
         }
       ],
+      "stateVariables": [],
       "variableExposure": [],
       "variableExposureCount": 0
     },
     {
       "name": "ChangeModel",
       "changeType": "added",
-      "hasUserFlowState": true,
-      "methods": [],
+      "methods": [
+        {
+          "name": "currentChanges",
+          "changeType": "added",
+          "userFlow": true
+        }
+      ],
+      "stateVariables": [
+        {
+          "name": "changes",
+          "changeType": "added",
+          "userFlow": true
+        }
+      ],
       "variableExposure": [],
       "variableExposureCount": 0
     },
     {
       "name": "Repository",
       "changeType": "unchanged",
-      "hasUserFlowState": false,
       "methods": [
         {
           "name": "readSourceFiles",
@@ -50,13 +61,13 @@
           "userFlow": true
         }
       ],
+      "stateVariables": [],
       "variableExposure": [],
       "variableExposureCount": 0
     },
     {
       "name": "LegacyChangeAdapter",
       "changeType": "deleted",
-      "hasUserFlowState": false,
       "methods": [
         {
           "name": "adaptLegacyChange",
@@ -64,6 +75,7 @@
           "userFlow": true
         }
       ],
+      "stateVariables": [],
       "variableExposure": [
         {
           "name": "repository",
@@ -189,20 +201,29 @@
       "userFlow": true
     },
     {
-      "from": { "class": "ChangeService", "method": "buildChangeSet" },
+      "from": { "class": "ChangeModel", "method": "currentChanges" },
       "to": { "component": "Change Panel" },
       "type": "dataflow",
       "dataDescription": "The finished change set: one entry per file with its diff hunks, plus the counts of changed and skipped files.",
-      "purpose": "Delivers the outcome the user asked for, completing step 3. Until it arrives the panel still shows the state from before the request.",
+      "purpose": "Delivers the retained outcome the user asked for, completing step 3. Until it arrives the panel still shows the state from before the request.",
       "changeType": "added",
       "userFlow": true
     },
     {
       "from": { "class": "ChangeService", "method": "buildChangeSet" },
-      "to": { "class": "ChangeModel" },
+      "to": { "class": "ChangeModel", "stateVariable": "changes" },
       "type": "state-update",
       "dataDescription": "Writes the finished change set into `changes`, replacing any set retained from an earlier request.",
       "purpose": "Retains the result across the request so step 3 can redisplay it without recomputing the diff or re-reading the files.",
+      "changeType": "added",
+      "userFlow": true
+    },
+    {
+      "from": { "class": "ChangeModel", "stateVariable": "changes" },
+      "to": { "class": "ChangeModel", "method": "currentChanges" },
+      "type": "state-read",
+      "dataDescription": "Reads the retained change set, including its file entries and summary counts.",
+      "purpose": "Supplies the result that step 3 displays without recomputing the diff or re-reading the files.",
       "changeType": "added",
       "userFlow": true
     }

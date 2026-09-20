@@ -22,13 +22,19 @@ export interface ExposedVariable {
   declaredAt: DeclaredAt;
 }
 
+export interface StateVariableDiff {
+  name: string;
+  changeType: ChangeType;
+  userFlow: boolean;
+}
+
 export interface ClassDiff {
   name: string;
   generalDescription?: string;
   designRole?: string;
   changeType: ChangeType;
-  hasUserFlowState: boolean;
   methods: MethodDiff[];
+  stateVariables: StateVariableDiff[];
   variableExposure: ExposedVariable[] | null;
   variableExposureCount?: number | null;
 }
@@ -50,11 +56,15 @@ export interface MethodEndpoint extends ClassEndpoint {
   method: string;
 }
 
+export interface StateVariableEndpoint extends ClassEndpoint {
+  stateVariable: string;
+}
+
 export interface ComponentEndpoint {
   component: string;
 }
 
-export type RelationshipEndpoint = ClassEndpoint | MethodEndpoint | ComponentEndpoint;
+export type RelationshipEndpoint = ClassEndpoint | MethodEndpoint | StateVariableEndpoint | ComponentEndpoint;
 
 interface RelationshipBase {
   from: RelationshipEndpoint;
@@ -63,7 +73,7 @@ interface RelationshipBase {
 }
 
 export type Relationship = RelationshipBase & (
-  | { type: "dataflow" | "state-update"; userFlow: boolean; dataDescription: string; purpose: string }
+  | { type: "dataflow" | "state-read" | "state-update"; userFlow: boolean; dataDescription: string; purpose: string }
   | { type: "composition"; userFlow?: never; dataDescription?: never; purpose?: never }
 );
 
@@ -78,7 +88,7 @@ export interface UserFlowSet {
 }
 
 export interface ArchitectureDiff {
-  schemaVersion: 8;
+  schemaVersion: 9;
   stage: "high level design";
   userFlows: UserFlowSet[];
   classes: ClassDiff[];
@@ -104,8 +114,15 @@ export type Selection =
  * key then stands for every relationship merged into it.
  */
 export function edgeKey(relationship: ResolvedRelationship, collapsed: boolean): string {
-  const side = (endpoint: ResolvedEndpoint) =>
-    collapsed || endpoint.methodName === undefined ? endpoint.nodeName : `${endpoint.nodeName}.${endpoint.methodName}`;
+  const side = (endpoint: ResolvedEndpoint) => {
+    if (endpoint.stateVariableName !== undefined) {
+      return `${endpoint.nodeName}.${endpoint.stateVariableName}`;
+    } else if (collapsed || endpoint.methodName === undefined) {
+      return endpoint.nodeName;
+    } else {
+      return `${endpoint.nodeName}.${endpoint.methodName}`;
+    }
+  };
   return JSON.stringify([relationship.relationship.type, side(relationship.from), side(relationship.to)]);
 }
 
@@ -120,12 +137,14 @@ export interface GraphNode {
   name: string;
   changeType: ChangeType;
   methods: MethodDiff[];
+  stateVariables: StateVariableDiff[];
   componentType?: ComponentType;
 }
 
 export interface ResolvedEndpoint {
   nodeName: string;
   methodName?: string;
+  stateVariableName?: string;
   component: boolean;
 }
 
@@ -138,6 +157,7 @@ export interface ResolvedRelationship {
 export interface GraphLayout {
   boxes: Map<string, Rect>;
   methodRects: Map<string, Rect>;
+  stateRects: Map<string, Rect>;
   compositionRelationships: ResolvedRelationship[];
   width: number;
   height: number;
@@ -147,11 +167,17 @@ export function methodKey(className: string, methodName: string): string {
   return `${className}\u0000${methodName}`;
 }
 
+export function stateVariableKey(className: string, stateVariableName: string): string {
+  return `${className}\u0000${stateVariableName}`;
+}
+
 export function resolveEndpoint(endpoint: RelationshipEndpoint): ResolvedEndpoint {
   if ("component" in endpoint) {
     return { nodeName: endpoint.component, component: true };
   } else if ("method" in endpoint) {
     return { nodeName: endpoint.class, methodName: endpoint.method, component: false };
+  } else if ("stateVariable" in endpoint) {
+    return { nodeName: endpoint.class, stateVariableName: endpoint.stateVariable, component: false };
   } else {
     return { nodeName: endpoint.class, component: false };
   }

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "stage": "high level design",
   "userFlows": [
     {
@@ -43,7 +43,13 @@
       "generalDescription": "Coordinates workbook imports and retains the result of each run.",
       "designRole": "Connects workbook reading and column mapping, accumulates mapped rows, and reports the import outcome to the user.",
       "changeType": "modified",
-      "hasUserFlowState": true,
+      "stateVariables": [
+        {
+          "name": "result",
+          "changeType": "unchanged",
+          "userFlow": true
+        }
+      ],
       "methods": [
         {
           "name": "run",
@@ -183,7 +189,13 @@
       "generalDescription": "Reads workbook files and makes their sheets available for parsing.",
       "designRole": "Opens the selected workbook, streams sheet rows to the parser, and retains the current decoded sheet alongside run diagnostics.",
       "changeType": "modified",
-      "hasUserFlowState": true,
+      "stateVariables": [
+        {
+          "name": "buffer",
+          "changeType": "unchanged",
+          "userFlow": true
+        }
+      ],
       "methods": [
         {
           "name": "open",
@@ -274,7 +286,7 @@
       "generalDescription": "Maps sheet columns to target columns and converts sheet rows into target records.",
       "designRole": "Proposes a column mapping for user review, applies the confirmed mapping through TypeCoercer, and adds mapped rows to the run result.",
       "changeType": "added",
-      "hasUserFlowState": false,
+      "stateVariables": [],
       "methods": [
         {
           "name": "constructor",
@@ -306,7 +318,7 @@
       "generalDescription": "Parses sheet headers and rows into structured data.",
       "designRole": "Processes decoded sheet rows and reports each unreadable cell to ParseDiagnostics so skipped data can be explained in the final report.",
       "changeType": "modified",
-      "hasUserFlowState": false,
+      "stateVariables": [],
       "methods": [
         {
           "name": "parseRows",
@@ -439,7 +451,13 @@
       "generalDescription": "Stores parsing warnings and summarizes them for reporting.",
       "designRole": "Accumulates unreadable-cell warnings across all sheets and supplies a per-stage summary for the final import outcome.",
       "changeType": "added",
-      "hasUserFlowState": true,
+      "stateVariables": [
+        {
+          "name": "entries",
+          "changeType": "added",
+          "userFlow": true
+        }
+      ],
       "methods": [
         {
           "name": "record",
@@ -464,7 +482,7 @@
       "generalDescription": "Matches source header names to candidate target columns.",
       "designRole": "Ranks possible column mappings using normalized header names so the user receives a consistent proposal to review.",
       "changeType": "added",
-      "hasUserFlowState": false,
+      "stateVariables": [],
       "methods": [
         {
           "name": "match",
@@ -496,7 +514,7 @@
       "generalDescription": "Converts cell values to the types required by target columns.",
       "designRole": "Supplies the existing conversion behavior reused by SheetMapper after the user confirms the column mapping.",
       "changeType": "unchanged",
-      "hasUserFlowState": false,
+      "stateVariables": [],
       "methods": [
         {
           "name": "coerceCell",
@@ -807,7 +825,8 @@
         "method": "run"
       },
       "to": {
-        "class": "ImportOrchestrator"
+        "class": "ImportOrchestrator",
+        "stateVariable": "result"
       },
       "type": "state-update",
       "dataDescription": "Writes the finished run into `result`, replacing whatever the previous import left there.",
@@ -821,7 +840,8 @@
         "method": "readSheet"
       },
       "to": {
-        "class": "WorkbookReader"
+        "class": "WorkbookReader",
+        "stateVariable": "buffer"
       },
       "type": "state-update",
       "dataDescription": "Writes the decoded sheet into `buffer`, replacing the sheet decoded before it.",
@@ -835,7 +855,8 @@
         "method": "parseRows"
       },
       "to": {
-        "class": "ParseDiagnostics"
+        "class": "ParseDiagnostics",
+        "stateVariable": "entries"
       },
       "type": "state-update",
       "dataDescription": "Appends each row's warnings to `entries`, which accumulates across every sheet in the run.",
@@ -849,11 +870,57 @@
         "method": "mapSheet"
       },
       "to": {
-        "class": "ImportOrchestrator"
+        "class": "ImportOrchestrator",
+        "stateVariable": "result"
       },
       "type": "state-update",
       "dataDescription": "Adds the sheet's mapped rows to `result`, alongside rows already recorded for earlier sheets.",
       "purpose": "Writes step 3 of Confirm the column mapping onto the shared run result, which is what the final report reads.",
+      "userFlow": true,
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "class": "ImportOrchestrator",
+        "stateVariable": "result"
+      },
+      "to": {
+        "class": "ImportOrchestrator",
+        "method": "handleStageFailure"
+      },
+      "type": "state-read",
+      "dataDescription": "Reads the retained mapped rows and run status needed to assemble the final report.",
+      "purpose": "Supplies the accumulated result that step 3 reports to the user.",
+      "userFlow": true,
+      "changeType": "modified"
+    },
+    {
+      "from": {
+        "class": "WorkbookReader",
+        "stateVariable": "buffer"
+      },
+      "to": {
+        "class": "WorkbookReader",
+        "method": "readSheet"
+      },
+      "type": "state-read",
+      "dataDescription": "Reads the retained decoded sheet when the same sheet is requested again.",
+      "purpose": "Allows step 2 to reuse a decoded sheet without decoding the workbook again.",
+      "userFlow": true,
+      "changeType": "modified"
+    },
+    {
+      "from": {
+        "class": "ParseDiagnostics",
+        "stateVariable": "entries"
+      },
+      "to": {
+        "class": "ParseDiagnostics",
+        "method": "summarize"
+      },
+      "type": "state-read",
+      "dataDescription": "Reads all accumulated parsing warnings with their sheet and cell locations.",
+      "purpose": "Produces the diagnostic summary consumed when step 3 reports the import outcome.",
       "userFlow": true,
       "changeType": "added"
     }

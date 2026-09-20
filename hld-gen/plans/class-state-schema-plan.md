@@ -85,7 +85,7 @@ Both state relationship types require `dataDescription`, `purpose`, `changeType`
 
    - Update `hld-architecture-diff.md` with the `stateVariables` definition, exclusions, exact state-variable endpoints, and state-read/state-update rules.
    - Update the JSON Schema to version 9 and migrate `architecture-diff.example.json` and the bundled visualizer sample. Include at least one state read and one state update.
-   - Update the visualizer types and rendering only as needed to load schema-v9 files, display state variables within their classes, and draw state-read and state-update edges to the exact variables.
+   - Update the visualizer types and rendering only as needed to load schema-v9 files and show one state box, marked `s`, at the left of the method row inside each class. List all state variables in that box and route every state-read and state-update edge to it while retaining the exact variable in the relationship data.
 
 2. Align the remaining authoring instructions and finish the visualizer integration.
 

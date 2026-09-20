@@ -13,7 +13,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 8
+      "const": 9
     },
     "stage": {
       "const": "high level design"
@@ -82,7 +82,7 @@
   },
   "$defs": {
     "userFlow": {
-      "description": "Whether this entry lies on a dataflow/state-update path from a user action in the User Flow Steps to final state persistence, output back to the user, or output to an external component. Setup and ownership alone do not qualify.",
+      "description": "Whether this entry lies on a dataflow/state-read/state-update path from a user action in the User Flow Steps to final state persistence, output back to the user, or output to an external component. Setup and ownership alone do not qualify.",
       "type": "boolean"
     },
     "userFlowSet": {
@@ -176,12 +176,12 @@
     "class": {
       "type": "object",
       "additionalProperties": false,
-      "description": "User-flow participation is derived from hasUserFlowState, any userFlow method, or any connected userFlow dataflow. Composition does not contribute.",
+      "description": "User-flow participation is derived from any userFlow state variable or method, or any connected userFlow dataflow. Composition does not contribute.",
       "required": [
         "name",
         "changeType",
-        "hasUserFlowState",
         "methods",
+        "stateVariables",
         "variableExposure"
       ],
       "properties": {
@@ -194,10 +194,6 @@
           "description": "Visualizer text added only after design selection: the entity's part in this HLD, in three sentences or fewer.",
           "type": "string",
           "pattern": "\\S"
-        },
-        "hasUserFlowState": {
-          "description": "Whether this class owns state read or updated along a user-action data path defined by userFlow. Merely retaining a reference to a participating object does not qualify. Independent of variable exposure, which counts existing declarations affected by changes.",
-          "type": "boolean"
         },
         "name": {
           "type": "string",
@@ -216,6 +212,13 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/method"
+          }
+        },
+        "stateVariables": {
+          "description": "Mutable instance state changed by the design or read or written by the Core Logic and Dataflow. Excludes immutable configuration and composition references.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stateVariable"
           }
         },
         "variableExposureCount": {
@@ -271,6 +274,32 @@
             "deleted",
             "unchanged"
           ]
+        }
+      }
+    },
+    "stateVariable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "changeType",
+        "userFlow"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changeType": {
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "unchanged"
+          ]
+        },
+        "userFlow": {
+          "$ref": "#/$defs/userFlow"
         }
       }
     },
@@ -391,6 +420,24 @@
         }
       }
     },
+    "stateVariableEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "stateVariable"
+      ],
+      "properties": {
+        "class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stateVariable": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
     "componentEndpoint": {
       "type": "object",
       "additionalProperties": false,
@@ -438,12 +485,13 @@
         "type": {
           "enum": [
             "dataflow",
+            "state-read",
             "state-update",
             "composition"
           ]
         },
         "dataDescription": {
-          "description": "What data this relationship transfers, reads, or modifies. A state update names the instance variable being written and describes the change to it.",
+          "description": "What data this relationship transfers, reads, or modifies.",
           "type": "string",
           "minLength": 1
         },
@@ -462,6 +510,30 @@
         }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "state-read"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "dataDescription",
+              "purpose",
+              "userFlow"
+            ],
+            "properties": {
+              "from": {
+                "$ref": "#/$defs/stateVariableEndpoint"
+              },
+              "to": {
+                "$ref": "#/$defs/methodEndpoint"
+              }
+            }
+          }
+        },
         {
           "if": {
             "properties": {
@@ -505,7 +577,7 @@
                 "$ref": "#/$defs/methodEndpoint"
               },
               "to": {
-                "$ref": "#/$defs/classEndpoint"
+                "$ref": "#/$defs/stateVariableEndpoint"
               }
             }
           }

@@ -37,6 +37,7 @@ if (inputArguments.length !== 1) {
       const semanticErrors = [];
       const nodeNames = new Map();
       const classMethods = new Map();
+      const classStateVariables = new Map();
       const componentNames = new Set();
 
       for (const classDiff of architectureDiff.classes) {
@@ -59,6 +60,22 @@ if (inputArguments.length !== 1) {
             semanticErrors.push(`Duplicate method name in ${classDiff.name}: ${method.name}`);
           } else {
             methodNames.set(method.name, method);
+          }
+        }
+
+        const stateVariableNames = new Map();
+        classStateVariables.set(classDiff.name, stateVariableNames);
+        for (const stateVariable of classDiff.stateVariables) {
+          if (
+            classDiff.changeType === "unchanged" &&
+            (stateVariable.changeType === "added" || stateVariable.changeType === "modified" || stateVariable.changeType === "deleted")
+          ) {
+            semanticErrors.push(`Unchanged class has changed state variable: ${classDiff.name}.${stateVariable.name}`);
+          }
+          if (stateVariableNames.has(stateVariable.name)) {
+            semanticErrors.push(`Duplicate state variable name in ${classDiff.name}: ${stateVariable.name}`);
+          } else {
+            stateVariableNames.set(stateVariable.name, stateVariable);
           }
         }
 
@@ -129,10 +146,12 @@ if (inputArguments.length !== 1) {
               semanticErrors.push(`Unknown relationship class: ${endpoint.class}`);
             } else if (endpoint.method !== undefined && !classMethods.get(endpoint.class).has(endpoint.method)) {
               semanticErrors.push(`Unknown relationship method in ${endpoint.class}: ${endpoint.method}`);
+            } else if (endpoint.stateVariable !== undefined && !classStateVariables.get(endpoint.class).has(endpoint.stateVariable)) {
+              semanticErrors.push(`Unknown relationship state variable in ${endpoint.class}: ${endpoint.stateVariable}`);
             } else if (relationship.userFlow && endpoint.method !== undefined && !classMethods.get(endpoint.class).get(endpoint.method).userFlow) {
               semanticErrors.push(`User-flow relationship references a supporting method: ${endpoint.class}.${endpoint.method}`);
-            } else if (relationship.type === "state-update" && relationship.userFlow && endpoint.method === undefined && !nodeNames.get(endpoint.class).hasUserFlowState) {
-              semanticErrors.push(`User-flow state update targets a class without user-flow state: ${endpoint.class}`);
+            } else if (relationship.userFlow && endpoint.stateVariable !== undefined && !classStateVariables.get(endpoint.class).get(endpoint.stateVariable).userFlow) {
+              semanticErrors.push(`User-flow relationship references a supporting state variable: ${endpoint.class}.${endpoint.stateVariable}`);
             }
           }
         }

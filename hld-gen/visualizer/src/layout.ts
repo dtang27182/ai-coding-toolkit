@@ -1,7 +1,10 @@
-import type { GraphLayout, GraphNode, Rect, ResolvedRelationship } from "./types";
-import { methodKey } from "./types";
+import type { GraphLayout, GraphNode, Rect, ResolvedRelationship } from "./types.ts";
+import { methodKey } from "./types.ts";
 
 export const METHOD_HEIGHT = 32;
+export const STATE_VARIABLE_HEIGHT = 20;
+const STATE_VERTICAL_PADDING = 10;
+const STATE_BORDER = 2;
 const METHOD_GAP = 10;
 const BOX_PADDING = 14;
 const TAB_HEIGHT = 26;
@@ -43,11 +46,12 @@ export function computeLayout(
   relationships: ResolvedRelationship[],
   collapsed: boolean,
   measureMethod: (name: string, writesState: boolean) => number,
+  measureStateVariable: (name: string) => number,
   measureComponent: (name: string) => number,
   stateWriters: Set<string>,
 ): GraphLayout {
   if (nodes.length === 0) {
-    return { boxes: new Map(), methodRects: new Map(), compositionRelationships: [], width: 320, height: 240 };
+    return { boxes: new Map(), methodRects: new Map(), stateRects: new Map(), compositionRelationships: [], width: 320, height: 240 };
   }
 
   const names = nodes.map((node) => node.name);
@@ -117,20 +121,45 @@ export function computeLayout(
     return collapsed || node.componentType !== undefined ? [] : node.methods;
   }
 
+  function visibleStateVariables(node: GraphNode) {
+    return node.componentType !== undefined ? [] : node.stateVariables;
+  }
+
+  function stateHeight(node: GraphNode): number {
+    const stateVariables = visibleStateVariables(node);
+    if (stateVariables.length === 0) {
+      return 0;
+    } else {
+      return STATE_BORDER + stateVariables.length * STATE_VARIABLE_HEIGHT + STATE_VERTICAL_PADDING;
+    }
+  }
+
+  function stateWidth(node: GraphNode): number {
+    const stateVariables = visibleStateVariables(node);
+    return stateVariables.length === 0 ? 0 : Math.max(...stateVariables.map((stateVariable) => measureStateVariable(stateVariable.name)));
+  }
+
   function widthOf(node: GraphNode): number {
     if (node.componentType !== undefined) return Math.max(164, measureComponent(node.name) + 62);
     const methods = visibleMethods(node);
-    if (methods.length === 0) return Math.max(216, node.name.length * 7.4 + 120);
-    const innerWidth = methods.reduce(
+    const methodWidth = methods.reduce(
       (total, method) => total + measureMethod(method.name, stateWriters.has(methodKey(node.name, method.name))) + METHOD_GAP,
       -METHOD_GAP,
     );
-    return Math.max(innerWidth + BOX_PADDING * 2, node.name.length * 7.4 + 120);
+    const stateBoxWidth = stateWidth(node);
+    const contentWidth = stateBoxWidth + (stateBoxWidth > 0 && methodWidth > 0 ? METHOD_GAP : 0) + Math.max(0, methodWidth);
+    return Math.max(contentWidth + BOX_PADDING * 2, node.name.length * 7.4 + 120, 216);
   }
 
   function heightOf(node: GraphNode): number {
     if (node.componentType !== undefined) return COMPONENT_HEIGHT;
-    return TAB_HEIGHT + (visibleMethods(node).length > 0 ? METHOD_HEIGHT + BOX_PADDING : BOX_PADDING + 8) + BOX_PADDING - 4;
+    const methodHeight = visibleMethods(node).length > 0 ? METHOD_HEIGHT : 0;
+    const contentHeight = Math.max(methodHeight, stateHeight(node));
+    if (contentHeight === 0) {
+      return TAB_HEIGHT + BOX_PADDING * 2 + 4;
+    } else {
+      return TAB_HEIGHT + contentHeight + BOX_PADDING;
+    }
   }
 
   const maximumRank = Math.max(...names.map((name) => rank.get(name)!));
@@ -194,6 +223,7 @@ export function computeLayout(
   const minimumX = Math.min(...names.map((name) => x.get(name)!));
   const boxes = new Map<string, Rect>();
   const methodRects = new Map<string, Rect>();
+  const stateRects = new Map<string, Rect>();
   for (const node of nodes) {
     const box = {
       x: x.get(node.name)! - minimumX,
@@ -203,6 +233,16 @@ export function computeLayout(
     };
     boxes.set(node.name, box);
     let methodX = box.x + BOX_PADDING;
+    if (visibleStateVariables(node).length > 0) {
+      const width = stateWidth(node);
+      stateRects.set(node.name, {
+        x: methodX,
+        y: box.y + TAB_HEIGHT,
+        width,
+        height: stateHeight(node),
+      });
+      methodX += width + METHOD_GAP;
+    }
     for (const method of visibleMethods(node)) {
       const width = measureMethod(method.name, stateWriters.has(methodKey(node.name, method.name)));
       methodRects.set(methodKey(node.name, method.name), {
@@ -218,6 +258,7 @@ export function computeLayout(
   return {
     boxes,
     methodRects,
+    stateRects,
     compositionRelationships: composition,
     width: Math.max(320, ...nodes.map((node) => boxes.get(node.name)!.x + boxes.get(node.name)!.width)),
     height: Math.max(240, y - GAP_Y),

@@ -68,6 +68,11 @@ function methodWidth(name: string, writesState: boolean): number {
   return Math.ceil(measureContext.measureText(name).width) + (writesState ? 57 : 42);
 }
 
+function stateVariableWidth(name: string): number {
+  measureContext.font = "500 12px IBM Plex Mono, monospace";
+  return Math.ceil(measureContext.measureText(name).width) + 56;
+}
+
 function componentWidth(name: string): number {
   measureContext.font = "500 12.5px IBM Plex Sans, sans-serif";
   return Math.ceil(measureContext.measureText(name).width);
@@ -94,6 +99,8 @@ function endpointLabel(endpoint: ResolvedEndpoint): string {
     return endpoint.nodeName;
   } else if (endpoint.methodName !== undefined) {
     return `${endpoint.nodeName}.${endpoint.methodName}`;
+  } else if (endpoint.stateVariableName !== undefined) {
+    return `${endpoint.nodeName}.${endpoint.stateVariableName}`;
   } else {
     return endpoint.nodeName;
   }
@@ -182,8 +189,15 @@ function visibleGraph(): VisibleGraph {
   return filterGraph(diff, showUnchanged, userFlowOnly);
 }
 
-function graphRect(endpoint: ResolvedEndpoint, boxes: Map<string, Rect>, methodRects: Map<string, Rect>): Rect | undefined {
-  if (endpoint.methodName !== undefined && !methodsHidden) {
+function graphRect(
+  endpoint: ResolvedEndpoint,
+  boxes: Map<string, Rect>,
+  methodRects: Map<string, Rect>,
+  stateRects: Map<string, Rect>,
+): Rect | undefined {
+  if (endpoint.stateVariableName !== undefined) {
+    return stateRects.get(endpoint.nodeName);
+  } else if (endpoint.methodName !== undefined && !methodsHidden) {
     return methodRects.get(methodKey(endpoint.nodeName, endpoint.methodName));
   }
   return boxes.get(endpoint.nodeName);
@@ -200,8 +214,8 @@ function renderMarkers(): string {
         <marker id="arrow-${changeType}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path d="M 0 1 L 7 4 L 0 7 z" fill="${changeColor(changeType)}"></path>
         </marker>
-        <marker id="state-${changeType}" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <rect x="1.5" y="1.5" width="5" height="5" rx="1" fill="${changeColor(changeType)}"></rect>
+        <marker id="state-${changeType}" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+          <rect x="1" y="1" width="6" height="6" rx="1" fill="${changeColor(changeType)}" stroke="oklch(0.198 0.024 255)" stroke-width="0.75"></rect>
         </marker>`,
     )
     .join("");
@@ -217,7 +231,7 @@ function renderGraph(graph: VisibleGraph): string {
       .filter((relationship) => relationship.relationship.type === "state-update" && relationship.from.methodName !== undefined)
       .map((relationship) => methodKey(relationship.from.nodeName, relationship.from.methodName!)),
   );
-  const layout = computeLayout(graph.nodes, graph.relationships, methodsHidden, methodWidth, componentWidth, stateWriters);
+  const layout = computeLayout(graph.nodes, graph.relationships, methodsHidden, methodWidth, stateVariableWidth, componentWidth, stateWriters);
   currentGraphWidth = layout.width;
   const classByName = new Map(graph.classes.map((classDiff) => [classDiff.name, classDiff]));
   const routingBounds = new Map(graph.nodes.map((node): [string, Rect] => {
@@ -272,19 +286,16 @@ function renderGraph(graph: VisibleGraph): string {
   const drawableRelationships = graph.relationships.filter((relationship) => relationship.relationship.type !== "composition");
   const edges = (methodsHidden ? mergeClassDataflows(drawableRelationships) : drawableRelationships)
     .map((relationship, index) => {
-      const from = graphRect(relationship.from, routingBounds, layout.methodRects);
-      let to = graphRect(relationship.to, routingBounds, layout.methodRects);
-      if (relationship.relationship.type === "state-update") {
-        const targetClass = classByName.get(relationship.to.nodeName)!;
-        to = classTargetRect(targetClass, layout.boxes.get(relationship.to.nodeName)!);
-      }
+      const from = graphRect(relationship.from, routingBounds, layout.methodRects, layout.stateRects);
+      const to = graphRect(relationship.to, routingBounds, layout.methodRects, layout.stateRects);
       if (from === undefined || to === undefined) return "";
       const spread = ((index % 5) - 2) * 4;
       const route = routeEdge(from, to, spread, obstaclesFor(relationship));
       const changeType = relationship.relationship.changeType;
       const stateUpdate = relationship.relationship.type === "state-update";
+      const stateRead = relationship.relationship.type === "state-read";
       const dimmed = focus !== undefined && !relationshipMatches(relationship, focus);
-      const dash = stateUpdate ? "2 5" : changeType === "deleted" ? "7 5" : "";
+      const dash = stateUpdate ? "2 5" : stateRead ? "7 4" : changeType === "deleted" ? "7 5" : "";
       const marker = stateUpdate ? `state-${changeType}` : `arrow-${changeType}`;
       const selected = selectionKey(selection) === selectionKey({ type: "relationship", edge: edgeKey(relationship, methodsHidden) });
       return `
@@ -327,6 +338,24 @@ function renderGraph(graph: VisibleGraph): string {
     )
     .join("");
 
+  const stateBoxes = graph.classes
+    .filter((classDiff) => classDiff.stateVariables.length > 0)
+    .map((classDiff) => {
+      const rect = layout.stateRects.get(classDiff.name)!;
+      const dimmed = focus !== undefined && !relatedNodes.has(classDiff.name);
+      const variables = classDiff.stateVariables
+        .map((stateVariable) => `<div class="state-variable-row">
+          <span class="state-variable-accent" style="background:${changeColor(stateVariable.changeType)}"></span>
+          <span class="state-variable-name">${escapeHtml(stateVariable.name)}</span>
+        </div>`)
+        .join("");
+      return `<div class="graph-node class-state-box${dimmed ? " dimmed" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;height:${rect.height}px" data-node="${escapeHtml(classDiff.name)}">
+        <span class="state-box-glyph" title="State variables">s</span>
+        <div class="state-variable-list">${variables}</div>
+      </div>`;
+    })
+    .join("");
+
   const components = graph.components
     .map((component) => {
       const box = layout.boxes.get(component.name)!;
@@ -343,7 +372,7 @@ function renderGraph(graph: VisibleGraph): string {
     .join("");
 
   const emptyNotes = graph.classes
-    .filter((classDiff) => !methodsHidden && classDiff.methods.length === 0)
+    .filter((classDiff) => !methodsHidden && classDiff.methods.length === 0 && classDiff.stateVariables.length === 0)
     .map((classDiff) => {
       const box = layout.boxes.get(classDiff.name)!;
       return `<span class="graph-node empty-class" style="left:${box.x + 15}px;top:${box.y + 30}px">No visible methods</span>`;
@@ -359,7 +388,7 @@ function renderGraph(graph: VisibleGraph): string {
           <defs>${renderMarkers()}</defs>
           ${classFrames}${compositionEdges}${edges}
         </svg>
-        ${classTabs}${components}${methods}${emptyNotes}
+        ${classTabs}${components}${methods}${stateBoxes}${emptyNotes}
       </div>
     </div>`;
 }
@@ -451,7 +480,15 @@ function renderInspector(graph: VisibleGraph): string {
     if (edges.length === 0) {
       return `${inspectorHeader("Relationship", "Not visible", "unchanged")}<p class="empty-copy">The current filters hide this relationship.</p>`;
     }
-    const arrow = (item: ResolvedRelationship) => (item.relationship.type === "state-update" ? "↝" : "→");
+    const arrow = (item: ResolvedRelationship) => {
+      if (item.relationship.type === "state-update") {
+        return "↝";
+      } else if (item.relationship.type === "state-read") {
+        return "⇢";
+      } else {
+        return "→";
+      }
+    };
     const merged = edges.length > 1;
     const first = edges[0];
     const entries = edges
@@ -467,7 +504,14 @@ function renderInspector(graph: VisibleGraph): string {
       })
       .join("");
     const title = merged ? `${first.from.nodeName} → ${first.to.nodeName}` : `${endpointLabel(first.from)} ${arrow(first)} ${endpointLabel(first.to)}`;
-    const eyebrow = merged ? "Merged relationships" : first.relationship.type === "state-update" ? "State update" : "Dataflow";
+    let eyebrow = "Dataflow";
+    if (merged) {
+      eyebrow = "Merged relationships";
+    } else if (first.relationship.type === "state-update") {
+      eyebrow = "State update";
+    } else if (first.relationship.type === "state-read") {
+      eyebrow = "State read";
+    }
     const detail = merged ? `${edges.length} relationships` : first.relationship.userFlow === true ? "user flow" : "supporting";
     return `${inspectorHeader(eyebrow, title, first.relationship.changeType, detail)}${section("Description", entries, merged ? edges.length : undefined)}`;
   } else {

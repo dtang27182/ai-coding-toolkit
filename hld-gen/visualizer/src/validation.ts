@@ -12,6 +12,9 @@ export function semanticError(value: ArchitectureDiff): string | undefined {
     if (new Set(classDiff.methods.map((method) => method.name)).size !== classDiff.methods.length) {
       return `Method names in “${classDiff.name}” must be unique.`;
     }
+    if (new Set(classDiff.stateVariables.map((stateVariable) => stateVariable.name)).size !== classDiff.stateVariables.length) {
+      return `State variable names in “${classDiff.name}” must be unique.`;
+    }
   }
   for (const relationship of value.relationships) {
     for (const endpoint of [relationship.from, relationship.to]) {
@@ -22,12 +25,14 @@ export function semanticError(value: ArchitectureDiff): string | undefined {
         return `Relationship references unknown class “${resolved.nodeName}”.`;
       } else if (!resolved.component && resolved.methodName !== undefined && !classes.get(resolved.nodeName)!.methods.some((method) => method.name === resolved.methodName)) {
         return `Relationship references unknown method “${resolved.nodeName}.${resolved.methodName}”.`;
+      } else if (!resolved.component && resolved.stateVariableName !== undefined && !classes.get(resolved.nodeName)!.stateVariables.some((stateVariable) => stateVariable.name === resolved.stateVariableName)) {
+        return `Relationship references unknown state variable “${resolved.nodeName}.${resolved.stateVariableName}”.`;
       } else if (relationship.userFlow && resolved.component && !components.get(resolved.nodeName)!.userFlow) {
         return `User-flow relationship references a supporting component: ${resolved.nodeName}`;
       } else if (relationship.userFlow && !resolved.component && resolved.methodName !== undefined && !classes.get(resolved.nodeName)!.methods.find((method) => method.name === resolved.methodName)!.userFlow) {
         return `User-flow relationship references a supporting method: ${resolved.nodeName}.${resolved.methodName}`;
-      } else if (relationship.type === "state-update" && relationship.userFlow && !resolved.component && resolved.methodName === undefined && !classes.get(resolved.nodeName)!.hasUserFlowState) {
-        return `User-flow state update targets a class without user-flow state: ${resolved.nodeName}`;
+      } else if (relationship.userFlow && !resolved.component && resolved.stateVariableName !== undefined && !classes.get(resolved.nodeName)!.stateVariables.find((stateVariable) => stateVariable.name === resolved.stateVariableName)!.userFlow) {
+        return `User-flow relationship references a supporting state variable: ${resolved.nodeName}.${resolved.stateVariableName}`;
       }
     }
   }
