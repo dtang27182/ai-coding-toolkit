@@ -1,6 +1,44 @@
 import type { Rect } from "./types";
 
-export function routeEdge(from: Rect, to: Rect, spread = 0, obstacles: Rect[] = []): { path: string; start: Point; end: Point } {
+export interface EdgeSpread {
+  start: number;
+  end: number;
+}
+
+interface EdgeAttachment {
+  fromKey: string;
+  toKey: string;
+  from: Rect;
+  to: Rect;
+}
+
+const EDGE_PORT_GAP = 16;
+const EDGE_PORT_MARGIN = 10;
+
+export function edgePortSpreads(edges: EdgeAttachment[]): EdgeSpread[] {
+  const spreads = edges.map(() => ({ start: 0, end: 0 }));
+  const attachments = new Map<string, { edge: number; side: keyof EdgeSpread; oppositeX: number; width: number }[]>();
+  for (const [edge, item] of edges.entries()) {
+    const from = attachments.get(item.fromKey) ?? [];
+    from.push({ edge, side: "start", oppositeX: item.to.x + item.to.width / 2, width: item.from.width });
+    attachments.set(item.fromKey, from);
+    const to = attachments.get(item.toKey) ?? [];
+    to.push({ edge, side: "end", oppositeX: item.from.x + item.from.width / 2, width: item.to.width });
+    attachments.set(item.toKey, to);
+  }
+  for (const group of attachments.values()) {
+    group.sort((a, b) => a.oppositeX - b.oppositeX || a.edge - b.edge || a.side.localeCompare(b.side));
+    const spacing = group.length === 1 ? 0 : Math.min(EDGE_PORT_GAP, (group[0].width - EDGE_PORT_MARGIN * 2) / (group.length - 1));
+    for (const [position, attachment] of group.entries()) {
+      spreads[attachment.edge][attachment.side] = (position - (group.length - 1) / 2) * spacing;
+    }
+  }
+  return spreads;
+}
+
+export function routeEdge(from: Rect, to: Rect, spread: number | EdgeSpread = 0, obstacles: Rect[] = []): { path: string; start: Point; end: Point } {
+  const startSpread = typeof spread === "number" ? spread : spread.start;
+  const endSpread = typeof spread === "number" ? spread : spread.end;
   const fromCenterX = from.x + from.width / 2;
   const fromCenterY = from.y + from.height / 2;
   const toCenterX = to.x + to.width / 2;
@@ -10,27 +48,27 @@ export function routeEdge(from: Rect, to: Rect, spread = 0, obstacles: Rect[] = 
   let firstControl: Point;
   let lastControl: Point;
   if (from === to || (Math.abs(toCenterX - fromCenterX) < 1 && Math.abs(toCenterY - fromCenterY) < 1)) {
-    start = { x: from.x + from.width * 0.34 + spread, y: from.y + from.height };
-    end = { x: to.x + to.width * 0.66 + spread, y: to.y + to.height };
-    const bow = 46 + Math.abs(spread);
+    start = { x: from.x + from.width * 0.34 + startSpread, y: from.y + from.height };
+    end = { x: to.x + to.width * 0.66 + endSpread, y: to.y + to.height };
+    const bow = 46 + Math.max(Math.abs(startSpread), Math.abs(endSpread));
     firstControl = { x: start.x, y: start.y + bow };
     lastControl = { x: end.x, y: end.y + bow };
   } else if (toCenterY > from.y + from.height + 12 || toCenterY < from.y - 12) {
     const down = toCenterY > fromCenterY;
-    start = { x: fromCenterX + spread, y: down ? from.y + from.height : from.y };
-    end = { x: toCenterX + spread, y: down ? to.y : to.y + to.height };
+    start = { x: fromCenterX + startSpread, y: down ? from.y + from.height : from.y };
+    end = { x: toCenterX + endSpread, y: down ? to.y : to.y + to.height };
     const bend = Math.max(36, Math.abs(end.y - start.y) / 2);
     firstControl = { x: start.x, y: down ? start.y + bend : start.y - bend };
     lastControl = { x: end.x, y: down ? end.y - bend : end.y + bend };
   } else {
-    start = { x: fromCenterX + spread, y: from.y + from.height };
-    end = { x: toCenterX + spread, y: to.y + to.height };
-    const bend = 48 + Math.abs(end.x - start.x) / 8 + Math.abs(spread);
+    start = { x: fromCenterX + startSpread, y: from.y + from.height };
+    end = { x: toCenterX + endSpread, y: to.y + to.height };
+    const bend = 48 + Math.abs(end.x - start.x) / 8 + Math.max(Math.abs(startSpread), Math.abs(endSpread));
     firstControl = { x: start.x, y: start.y + bend };
     lastControl = { x: end.x, y: end.y + bend };
   }
 
-  const clearance = 20 + spread;
+  const clearance = 20 + Math.max(Math.abs(startSpread), Math.abs(endSpread));
   const blocked = expandObstacles(obstacles, clearance);
   let path: string;
   if (curveBlocked([start, firstControl, lastControl, end], blocked)) {

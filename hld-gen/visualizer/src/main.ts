@@ -3,7 +3,7 @@ import architectureDiffSchema from "../../references/architecture-diff.schema.js
 import exampleDiff from "../workbook-import-hld.architecture-diff.json";
 import { computeLayout } from "./layout";
 import { filterGraph, type VisibleGraph } from "./filter";
-import { routeCompositionEdge, routeEdge } from "./routing";
+import { edgePortSpreads, routeCompositionEdge, routeEdge } from "./routing";
 import { semanticError } from "./validation";
 import "./styles.css";
 import type {
@@ -203,6 +203,16 @@ function graphRect(
   return boxes.get(endpoint.nodeName);
 }
 
+function graphEndpointKey(endpoint: ResolvedEndpoint): string {
+  if (endpoint.stateVariableName !== undefined) {
+    return `state:${endpoint.nodeName}`;
+  } else if (endpoint.methodName !== undefined && !methodsHidden) {
+    return `method:${endpoint.nodeName}:${endpoint.methodName}`;
+  } else {
+    return `node:${endpoint.nodeName}`;
+  }
+}
+
 function classTargetRect(classDiff: ClassDiff, box: Rect): Rect {
   return { x: box.x + 10, y: box.y - 12, width: tabWidth(classDiff), height: 24 };
 }
@@ -213,9 +223,6 @@ function renderMarkers(): string {
       (changeType) => `
         <marker id="arrow-${changeType}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path d="M 0 1 L 7 4 L 0 7 z" fill="${changeColor(changeType)}"></path>
-        </marker>
-        <marker id="state-${changeType}" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
-          <rect x="1" y="1" width="6" height="6" rx="1" fill="${changeColor(changeType)}" stroke="oklch(0.198 0.024 255)" stroke-width="0.75"></rect>
         </marker>`,
     )
     .join("");
@@ -284,22 +291,31 @@ function renderGraph(graph: VisibleGraph): string {
     .join("");
 
   const drawableRelationships = graph.relationships.filter((relationship) => relationship.relationship.type !== "composition");
-  const edges = (methodsHidden ? mergeClassDataflows(drawableRelationships) : drawableRelationships)
-    .map((relationship, index) => {
-      const from = graphRect(relationship.from, routingBounds, layout.methodRects, layout.stateRects);
-      const to = graphRect(relationship.to, routingBounds, layout.methodRects, layout.stateRects);
-      if (from === undefined || to === undefined) return "";
-      const spread = ((index % 5) - 2) * 4;
-      const route = routeEdge(from, to, spread, obstaclesFor(relationship));
+  const edgeLayouts = (methodsHidden ? mergeClassDataflows(drawableRelationships) : drawableRelationships)
+    .map((relationship) => ({
+      relationship,
+      from: graphRect(relationship.from, routingBounds, layout.methodRects, layout.stateRects),
+      to: graphRect(relationship.to, routingBounds, layout.methodRects, layout.stateRects),
+    }))
+    .filter((edge): edge is { relationship: ResolvedRelationship; from: Rect; to: Rect } => edge.from !== undefined && edge.to !== undefined);
+  const edgeSpreads = edgePortSpreads(edgeLayouts.map((edge) => ({
+    fromKey: graphEndpointKey(edge.relationship.from),
+    toKey: graphEndpointKey(edge.relationship.to),
+    from: edge.from,
+    to: edge.to,
+  })));
+  const edges = edgeLayouts
+    .map((edge, index) => {
+      const { relationship, from, to } = edge;
+      const route = routeEdge(from, to, edgeSpreads[index], obstaclesFor(relationship));
       const changeType = relationship.relationship.changeType;
       const stateUpdate = relationship.relationship.type === "state-update";
       const stateRead = relationship.relationship.type === "state-read";
       const dimmed = focus !== undefined && !relationshipMatches(relationship, focus);
-      const dash = stateUpdate ? "2 5" : stateRead ? "7 4" : changeType === "deleted" ? "7 5" : "";
-      const marker = stateUpdate ? `state-${changeType}` : `arrow-${changeType}`;
+      const dash = stateUpdate || stateRead ? "7 4" : changeType === "deleted" ? "7 5" : "";
       const selected = selectionKey(selection) === selectionKey({ type: "relationship", edge: edgeKey(relationship, methodsHidden) });
       return `
-        <path class="edge${dimmed ? " dimmed" : ""}${selected ? " selected" : ""}" ${relationshipAttributes(relationship)} d="${route.path}" fill="none" stroke="${changeColor(changeType)}" stroke-width="${stateUpdate ? 1.75 : 1.6}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#${marker})"></path>
+        <path class="edge${dimmed ? " dimmed" : ""}${selected ? " selected" : ""}" ${relationshipAttributes(relationship)} d="${route.path}" fill="none" stroke="${changeColor(changeType)}" stroke-width="${stateUpdate ? 1.75 : 1.6}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${changeType})"></path>
         <circle class="edge${dimmed ? " dimmed" : ""}" ${relationshipAttributes(relationship)} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${changeColor(changeType)}" stroke="oklch(0.198 0.024 255)" stroke-width="1.5"></circle>
         <path class="edge-hit" ${relationshipAttributes(relationship)} data-select="relationship" d="${route.path}" fill="none" stroke="transparent" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"></path>`;
     })
