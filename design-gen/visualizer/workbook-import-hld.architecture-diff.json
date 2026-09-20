@@ -1,0 +1,929 @@
+{
+  "schemaVersion": 9,
+  "stage": "high level design",
+  "userFlows": [
+    {
+      "name": "Import a workbook",
+      "steps": [
+        {
+          "id": 1,
+          "text": "The user picks a workbook and starts the import."
+        },
+        {
+          "id": 2,
+          "text": "The app reads the workbook and parses each sheet, recording a warning for every cell it cannot read."
+        },
+        {
+          "id": 3,
+          "text": "The app reports the outcome, including the rows imported, the rows skipped, and any stage that failed."
+        }
+      ]
+    },
+    {
+      "name": "Confirm the column mapping",
+      "steps": [
+        {
+          "id": 1,
+          "text": "The app proposes a column mapping for the sheet being imported."
+        },
+        {
+          "id": 2,
+          "text": "The user confirms the proposal or corrects it."
+        },
+        {
+          "id": 3,
+          "text": "The app coerces each cell using the confirmed mapping and records the mapped rows on the run."
+        }
+      ]
+    }
+  ],
+  "classes": [
+    {
+      "name": "ImportOrchestrator",
+      "generalDescription": "Coordinates workbook imports and retains the result of each run.",
+      "designRole": "Connects workbook reading and column mapping, accumulates mapped rows, and reports the import outcome to the user.",
+      "changeType": "modified",
+      "stateVariables": [
+        {
+          "name": "result",
+          "changeType": "unchanged",
+          "userFlow": true
+        }
+      ],
+      "methods": [
+        {
+          "name": "run",
+          "generalDescription": "Executes a workbook import using the selected file and import options.",
+          "designRole": "Passes parsed sheets to the mapper and stores the completed run in result so the outcome can be displayed again.",
+          "userFlow": true,
+          "changeType": "modified"
+        },
+        {
+          "name": "planStages",
+          "generalDescription": "Builds the ordered stages of an import run.",
+          "designRole": "Determines which sheets to open, their read order, and which may be skipped so failures can be attributed to a stage.",
+          "userFlow": true,
+          "changeType": "added"
+        },
+        {
+          "name": "handleStageFailure",
+          "generalDescription": "Processes stage failures and prepares the run outcome for display.",
+          "designRole": "Uses the diagnostic summary to report imported rows, skipped rows, and any failed stage to the Import Panel.",
+          "userFlow": true,
+          "changeType": "modified"
+        }
+      ],
+      "variableExposure": [
+        {
+          "name": "result",
+          "kind": "instance",
+          "declaredAt": {
+            "file": "src/import/import-orchestrator.ts",
+            "line": 20,
+            "column": 7
+          }
+        },
+        {
+          "name": "buffer1",
+          "kind": "instance",
+          "declaredAt": {
+            "file": "src/import/import-orchestrator.ts",
+            "line": 24,
+            "column": 5
+          }
+        },
+        {
+          "name": "retries2",
+          "kind": "instance",
+          "declaredAt": {
+            "file": "src/import/import-orchestrator.ts",
+            "line": 28,
+            "column": 7
+          }
+        },
+        {
+          "name": "options",
+          "kind": "local",
+          "method": "run",
+          "declaredAt": {
+            "file": "src/import/import-orchestrator.ts",
+            "line": 274,
+            "column": 8
+          }
+        },
+        {
+          "name": "target1",
+          "kind": "parameter",
+          "method": "run",
+          "declaredAt": {
+            "file": "src/import/import-orchestrator.ts",
+            "line": 259,
+            "column": 11
+          }
+        },
+        {
+          "name": "state2",
+          "kind": "local",
+          "method": "run",
+          "declaredAt": {
+            "file": "src/import/import-orchestrator.ts",
+            "line": 185,
+            "column": 14
+          }
+        },
+        {
+          "name": "target3",
+          "kind": "local",
+          "method": "run",
+          "declaredAt": {
+            "file": "src/import/import-orchestrator.ts",
+            "line": 148,
+            "column": 10
+          }
+        },
+        {
+          "name": "context",
+          "kind": "local",
+          "method": "handleStageFailure",
+          "declaredAt": {
+            "file": "src/import/import-orchestrator.ts",
+            "line": 150,
+            "column": 7
+          }
+        },
+        {
+          "name": "payload1",
+          "kind": "local",
+          "method": "handleStageFailure",
+          "declaredAt": {
+            "file": "src/import/import-orchestrator.ts",
+            "line": 120,
+            "column": 5
+          }
+        },
+        {
+          "name": "logger2",
+          "kind": "local",
+          "method": "handleStageFailure",
+          "declaredAt": {
+            "file": "src/import/import-orchestrator.ts",
+            "line": 283,
+            "column": 7
+          }
+        },
+        {
+          "name": "options3",
+          "kind": "parameter",
+          "method": "handleStageFailure",
+          "declaredAt": {
+            "file": "src/import/import-orchestrator.ts",
+            "line": 251,
+            "column": 10
+          }
+        }
+      ],
+      "variableExposureCount": 11
+    },
+    {
+      "name": "WorkbookReader",
+      "generalDescription": "Reads workbook files and makes their sheets available for parsing.",
+      "designRole": "Opens the selected workbook, streams sheet rows to the parser, and retains the current decoded sheet alongside run diagnostics.",
+      "changeType": "modified",
+      "stateVariables": [
+        {
+          "name": "buffer",
+          "changeType": "unchanged",
+          "userFlow": true
+        }
+      ],
+      "methods": [
+        {
+          "name": "open",
+          "generalDescription": "Opens a workbook file and reads its contents.",
+          "designRole": "Reads the selected file from disk according to the stage plan, with a read error ending the run before sheet parsing.",
+          "userFlow": true,
+          "changeType": "modified"
+        },
+        {
+          "name": "readSheet",
+          "generalDescription": "Decodes a workbook sheet and supplies its rows for parsing.",
+          "designRole": "Streams raw rows to SheetParser and replaces buffer with the decoded sheet so it can be read again without decoding the workbook.",
+          "userFlow": true,
+          "changeType": "modified"
+        },
+        {
+          "name": "collectDiagnostics",
+          "generalDescription": "Collects diagnostics produced while reading and parsing a workbook.",
+          "designRole": "Makes sheet parsing warnings available for the import's final diagnostic summary.",
+          "userFlow": true,
+          "changeType": "added"
+        }
+      ],
+      "variableExposure": [
+        {
+          "name": "buffer",
+          "kind": "instance",
+          "declaredAt": {
+            "file": "src/import/reader/workbook-reader.ts",
+            "line": 20,
+            "column": 3
+          }
+        },
+        {
+          "name": "index1",
+          "kind": "instance",
+          "declaredAt": {
+            "file": "src/import/reader/workbook-reader.ts",
+            "line": 24,
+            "column": 4
+          }
+        },
+        {
+          "name": "logger",
+          "kind": "local",
+          "method": "open",
+          "declaredAt": {
+            "file": "src/import/reader/workbook-reader.ts",
+            "line": 157,
+            "column": 14
+          }
+        },
+        {
+          "name": "retries1",
+          "kind": "local",
+          "method": "open",
+          "declaredAt": {
+            "file": "src/import/reader/workbook-reader.ts",
+            "line": 296,
+            "column": 10
+          }
+        },
+        {
+          "name": "sheetBuffer",
+          "kind": "parameter",
+          "method": "readSheet",
+          "declaredAt": {
+            "file": "src/import/reader/workbook-reader.ts",
+            "line": 108,
+            "column": 5
+          }
+        },
+        {
+          "name": "result1",
+          "kind": "parameter",
+          "method": "readSheet",
+          "declaredAt": {
+            "file": "src/import/reader/workbook-reader.ts",
+            "line": 295,
+            "column": 8
+          }
+        }
+      ],
+      "variableExposureCount": 6
+    },
+    {
+      "name": "SheetMapper",
+      "generalDescription": "Maps sheet columns to target columns and converts sheet rows into target records.",
+      "designRole": "Proposes a column mapping for user review, applies the confirmed mapping through TypeCoercer, and adds mapped rows to the run result.",
+      "changeType": "added",
+      "stateVariables": [],
+      "methods": [
+        {
+          "name": "constructor",
+          "generalDescription": "Initializes the sheet mapper and its dependencies.",
+          "designRole": "Sets up the ColumnMatcher and TypeCoercer used for mapping proposals and cell conversion.",
+          "userFlow": false,
+          "changeType": "added"
+        },
+        {
+          "name": "mapSheet",
+          "generalDescription": "Transforms a parsed sheet into records using a column mapping.",
+          "designRole": "Applies the mapping accepted in Mapping Review, coerces each cell to its target type, and appends mapped rows to the orchestrator's result.",
+          "userFlow": true,
+          "changeType": "added"
+        },
+        {
+          "name": "proposeColumns",
+          "generalDescription": "Prepares a proposed mapping from sheet headers to target columns.",
+          "designRole": "Asks ColumnMatcher to rank candidate columns and presents the suggested mapping and confidence scores in Mapping Review.",
+          "userFlow": true,
+          "changeType": "added"
+        }
+      ],
+      "variableExposure": [],
+      "variableExposureCount": 0
+    },
+    {
+      "name": "SheetParser",
+      "generalDescription": "Parses sheet headers and rows into structured data.",
+      "designRole": "Processes decoded sheet rows and reports each unreadable cell to ParseDiagnostics so skipped data can be explained in the final report.",
+      "changeType": "modified",
+      "stateVariables": [],
+      "methods": [
+        {
+          "name": "parseRows",
+          "generalDescription": "Parses raw sheet rows into values for downstream processing.",
+          "designRole": "Processes rows in sheet order and records warnings with the location and raw text of every unreadable cell.",
+          "userFlow": true,
+          "changeType": "modified"
+        },
+        {
+          "name": "parseHeader",
+          "generalDescription": "Parses a sheet's header row into column names.",
+          "designRole": "Provides the header names used to propose mappings between source columns and target columns.",
+          "userFlow": true,
+          "changeType": "modified"
+        }
+      ],
+      "variableExposure": [
+        {
+          "name": "column",
+          "kind": "instance",
+          "declaredAt": {
+            "file": "src/import/reader/sheet-parser.ts",
+            "line": 20,
+            "column": 5
+          }
+        },
+        {
+          "name": "state1",
+          "kind": "instance",
+          "declaredAt": {
+            "file": "src/import/reader/sheet-parser.ts",
+            "line": 24,
+            "column": 3
+          }
+        },
+        {
+          "name": "context2",
+          "kind": "instance",
+          "declaredAt": {
+            "file": "src/import/reader/sheet-parser.ts",
+            "line": 28,
+            "column": 3
+          }
+        },
+        {
+          "name": "state",
+          "kind": "local",
+          "method": "parseRows",
+          "declaredAt": {
+            "file": "src/import/reader/sheet-parser.ts",
+            "line": 156,
+            "column": 8
+          }
+        },
+        {
+          "name": "column1",
+          "kind": "local",
+          "method": "parseRows",
+          "declaredAt": {
+            "file": "src/import/reader/sheet-parser.ts",
+            "line": 154,
+            "column": 13
+          }
+        },
+        {
+          "name": "handle2",
+          "kind": "local",
+          "method": "parseRows",
+          "declaredAt": {
+            "file": "src/import/reader/sheet-parser.ts",
+            "line": 310,
+            "column": 7
+          }
+        },
+        {
+          "name": "column3",
+          "kind": "parameter",
+          "method": "parseRows",
+          "declaredAt": {
+            "file": "src/import/reader/sheet-parser.ts",
+            "line": 319,
+            "column": 11
+          }
+        },
+        {
+          "name": "buffer",
+          "kind": "local",
+          "method": "parseHeader",
+          "declaredAt": {
+            "file": "src/import/reader/sheet-parser.ts",
+            "line": 265,
+            "column": 9
+          }
+        },
+        {
+          "name": "headerCells",
+          "kind": "local",
+          "method": "parseHeader",
+          "declaredAt": {
+            "file": "src/import/reader/sheet-parser.ts",
+            "line": 131,
+            "column": 13
+          }
+        },
+        {
+          "name": "handle2",
+          "kind": "parameter",
+          "method": "parseHeader",
+          "declaredAt": {
+            "file": "src/import/reader/sheet-parser.ts",
+            "line": 83,
+            "column": 9
+          }
+        },
+        {
+          "name": "result3",
+          "kind": "local",
+          "method": "parseHeader",
+          "declaredAt": {
+            "file": "src/import/reader/sheet-parser.ts",
+            "line": 144,
+            "column": 9
+          }
+        }
+      ],
+      "variableExposureCount": 11
+    },
+    {
+      "name": "ParseDiagnostics",
+      "generalDescription": "Stores parsing warnings and summarizes them for reporting.",
+      "designRole": "Accumulates unreadable-cell warnings across all sheets and supplies a per-stage summary for the final import outcome.",
+      "changeType": "added",
+      "stateVariables": [
+        {
+          "name": "entries",
+          "changeType": "added",
+          "userFlow": true
+        }
+      ],
+      "methods": [
+        {
+          "name": "record",
+          "generalDescription": "Records an individual parsing warning with its source context.",
+          "designRole": "Retains each unreadable cell's sheet, row, column, and raw text so the report can explain skipped data.",
+          "userFlow": true,
+          "changeType": "added"
+        },
+        {
+          "name": "summarize",
+          "generalDescription": "Condenses collected diagnostics into a reportable summary.",
+          "designRole": "Groups warnings by stage and severity, with representative examples, for ImportOrchestrator to include in the run outcome.",
+          "userFlow": true,
+          "changeType": "added"
+        }
+      ],
+      "variableExposure": [],
+      "variableExposureCount": 0
+    },
+    {
+      "name": "ColumnMatcher",
+      "generalDescription": "Matches source header names to candidate target columns.",
+      "designRole": "Ranks possible column mappings using normalized header names so the user receives a consistent proposal to review.",
+      "changeType": "added",
+      "stateVariables": [],
+      "methods": [
+        {
+          "name": "match",
+          "generalDescription": "Finds and ranks target columns for source headers.",
+          "designRole": "Produces the candidate matches used by SheetMapper to propose a column mapping.",
+          "userFlow": true,
+          "changeType": "added"
+        },
+        {
+          "name": "scoreCandidate",
+          "generalDescription": "Scores how well a source header matches a candidate target column.",
+          "designRole": "Uses normalized header text to keep candidate rankings stable across differences in casing, spacing, and punctuation.",
+          "userFlow": true,
+          "changeType": "added"
+        },
+        {
+          "name": "normalizeHeader",
+          "generalDescription": "Converts header text into a consistent form for comparison.",
+          "designRole": "Lowercases and trims header names and removes punctuation before candidate scoring.",
+          "userFlow": true,
+          "changeType": "added"
+        }
+      ],
+      "variableExposure": [],
+      "variableExposureCount": 0
+    },
+    {
+      "name": "TypeCoercer",
+      "generalDescription": "Converts cell values to the types required by target columns.",
+      "designRole": "Supplies the existing conversion behavior reused by SheetMapper after the user confirms the column mapping.",
+      "changeType": "unchanged",
+      "stateVariables": [],
+      "methods": [
+        {
+          "name": "coerceCell",
+          "generalDescription": "Converts one raw cell value to a requested target type.",
+          "designRole": "Applies the type assigned by the confirmed column mapping to produce values for the mapped rows.",
+          "userFlow": true,
+          "changeType": "unchanged"
+        }
+      ],
+      "variableExposure": [],
+      "variableExposureCount": 0
+    }
+  ],
+  "components": [
+    {
+      "name": "Import Panel",
+      "generalDescription": "Provides the user interface for starting workbook imports and viewing their outcomes.",
+      "designRole": "Sends the selected workbook and import options to the orchestrator and displays imported rows, skipped rows, and any failed stage.",
+      "type": "ui",
+      "userFlow": true,
+      "changeType": "modified"
+    },
+    {
+      "name": "Mapping Review",
+      "generalDescription": "Lets users review and adjust mappings between source and target columns.",
+      "designRole": "Displays proposed mappings with confidence scores and returns the user's confirmed mapping before cells are coerced.",
+      "type": "ui",
+      "userFlow": true,
+      "changeType": "added"
+    },
+    {
+      "name": "Workbook File on Disk",
+      "generalDescription": "The workbook file that supplies the source data for an import.",
+      "designRole": "Provides raw workbook bytes to WorkbookReader, or a read error if the selected file cannot be opened.",
+      "type": "external-io",
+      "userFlow": true,
+      "changeType": "unchanged"
+    }
+  ],
+  "relationships": [
+    {
+      "from": {
+        "class": "ImportOrchestrator"
+      },
+      "to": {
+        "class": "WorkbookReader"
+      },
+      "type": "composition",
+      "changeType": "unchanged"
+    },
+    {
+      "from": {
+        "class": "ImportOrchestrator"
+      },
+      "to": {
+        "class": "SheetMapper"
+      },
+      "type": "composition",
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "class": "WorkbookReader"
+      },
+      "to": {
+        "class": "SheetParser"
+      },
+      "type": "composition",
+      "changeType": "unchanged"
+    },
+    {
+      "from": {
+        "class": "WorkbookReader"
+      },
+      "to": {
+        "class": "ParseDiagnostics"
+      },
+      "type": "composition",
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "class": "SheetMapper"
+      },
+      "to": {
+        "class": "ColumnMatcher"
+      },
+      "type": "composition",
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "class": "SheetMapper"
+      },
+      "to": {
+        "class": "TypeCoercer"
+      },
+      "type": "composition",
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "component": "Import Panel"
+      },
+      "to": {
+        "class": "ImportOrchestrator",
+        "method": "run"
+      },
+      "type": "dataflow",
+      "dataDescription": "The selected workbook's path and the import options the user chose: target table, header row, and whether to replace existing rows.",
+      "purpose": "Opens step 1 of Import a workbook. Nothing downstream runs until this arrives, and the options it carries decide how every later stage behaves.",
+      "userFlow": true,
+      "changeType": "modified"
+    },
+    {
+      "from": {
+        "class": "ImportOrchestrator",
+        "method": "planStages"
+      },
+      "to": {
+        "class": "WorkbookReader",
+        "method": "open"
+      },
+      "type": "dataflow",
+      "dataDescription": "The ordered stage plan: which sheets to open, in what order, and which may be skipped.",
+      "purpose": "Fixes the read order before any I/O, so a failure in step 2 can name the stage it happened in rather than an arbitrary sheet.",
+      "userFlow": true,
+      "changeType": "modified"
+    },
+    {
+      "from": {
+        "class": "WorkbookReader",
+        "method": "open"
+      },
+      "to": {
+        "component": "Workbook File on Disk"
+      },
+      "type": "dataflow",
+      "dataDescription": "A read request for the workbook at the selected path.",
+      "purpose": "The only point at which the import touches the filesystem, so step 2 works from the file as it is on disk rather than anything cached.",
+      "userFlow": true,
+      "changeType": "unchanged"
+    },
+    {
+      "from": {
+        "component": "Workbook File on Disk"
+      },
+      "to": {
+        "class": "WorkbookReader",
+        "method": "open"
+      },
+      "type": "dataflow",
+      "dataDescription": "The workbook's raw bytes, or a read error when the file is missing or locked.",
+      "purpose": "Supplies the only content the import can be built from; a read error here ends the run before any sheet is parsed.",
+      "userFlow": true,
+      "changeType": "unchanged"
+    },
+    {
+      "from": {
+        "class": "WorkbookReader",
+        "method": "readSheet"
+      },
+      "to": {
+        "class": "SheetParser",
+        "method": "parseRows"
+      },
+      "type": "dataflow",
+      "dataDescription": "Decoded rows from one sheet, streamed in sheet order, each still holding raw cell text.",
+      "purpose": "Streams rather than materialising the sheet, so step 2 can handle workbooks larger than memory.",
+      "userFlow": true,
+      "changeType": "modified"
+    },
+    {
+      "from": {
+        "class": "SheetParser",
+        "method": "parseRows"
+      },
+      "to": {
+        "class": "ParseDiagnostics",
+        "method": "record"
+      },
+      "type": "dataflow",
+      "dataDescription": "One warning per unreadable cell, carrying its sheet, row, column, and the raw text that failed.",
+      "purpose": "Reports bad cells as they are found instead of dropping them, so step 3 can tell the user which rows were skipped and why.",
+      "userFlow": true,
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "class": "ImportOrchestrator",
+        "method": "run"
+      },
+      "to": {
+        "class": "SheetMapper",
+        "method": "mapSheet"
+      },
+      "type": "dataflow",
+      "dataDescription": "The parsed sheet: its header row and the rows produced by parsing, typed where parsing succeeded.",
+      "purpose": "Hands parsing's output to mapping, where sheet rows become records for the target table. This begins Confirm the column mapping.",
+      "userFlow": true,
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "class": "SheetMapper",
+        "method": "proposeColumns"
+      },
+      "to": {
+        "class": "ColumnMatcher",
+        "method": "match"
+      },
+      "type": "dataflow",
+      "dataDescription": "Each header name paired with the target columns it might map to.",
+      "purpose": "Produces a ranked proposal rather than a guess, so step 1 of Confirm the column mapping shows the user something worth correcting.",
+      "userFlow": true,
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "class": "ColumnMatcher",
+        "method": "scoreCandidate"
+      },
+      "to": {
+        "class": "ColumnMatcher",
+        "method": "normalizeHeader"
+      },
+      "type": "dataflow",
+      "dataDescription": "One header name on its way to being lowercased, trimmed, and stripped of punctuation.",
+      "purpose": "Keeps scoring stable across casing and spacing, so the same workbook exported twice proposes the same mapping.",
+      "userFlow": true,
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "class": "SheetMapper",
+        "method": "proposeColumns"
+      },
+      "to": {
+        "component": "Mapping Review"
+      },
+      "type": "dataflow",
+      "dataDescription": "The ranked mapping proposal: each header, its suggested target column, and a confidence score.",
+      "purpose": "Shows the proposal before any data is coerced, which is what makes step 1 of Confirm the column mapping a review rather than a notification.",
+      "userFlow": true,
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "component": "Mapping Review"
+      },
+      "to": {
+        "class": "SheetMapper",
+        "method": "mapSheet"
+      },
+      "type": "dataflow",
+      "dataDescription": "The mapping the user accepted, including any column they redirected or excluded.",
+      "purpose": "Returns the decision from step 2 of Confirm the column mapping. It is the contract every later coercion follows.",
+      "userFlow": true,
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "class": "SheetMapper",
+        "method": "mapSheet"
+      },
+      "to": {
+        "class": "TypeCoercer",
+        "method": "coerceCell"
+      },
+      "type": "dataflow",
+      "dataDescription": "Each cell's raw value together with the target column type the confirmed mapping assigns it.",
+      "purpose": "Applies the confirmed mapping value by value, producing the typed rows recorded in step 3 of Confirm the column mapping.",
+      "userFlow": true,
+      "changeType": "unchanged"
+    },
+    {
+      "from": {
+        "class": "ParseDiagnostics",
+        "method": "summarize"
+      },
+      "to": {
+        "class": "ImportOrchestrator",
+        "method": "handleStageFailure"
+      },
+      "type": "dataflow",
+      "dataDescription": "A per-stage summary of the collected warnings: counts by severity and the first few examples of each.",
+      "purpose": "Turns accumulated warnings into a run-level verdict, so step 3 reports one outcome instead of a stream of individual failures.",
+      "userFlow": true,
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "class": "ImportOrchestrator",
+        "method": "handleStageFailure"
+      },
+      "to": {
+        "component": "Import Panel"
+      },
+      "type": "dataflow",
+      "dataDescription": "The run report: rows imported, rows skipped, and the stage that failed when one did.",
+      "purpose": "Delivers the outcome of step 3. Until it arrives the panel still shows the import as running.",
+      "userFlow": true,
+      "changeType": "modified"
+    },
+    {
+      "from": {
+        "class": "ImportOrchestrator",
+        "method": "run"
+      },
+      "to": {
+        "class": "ImportOrchestrator",
+        "stateVariable": "result"
+      },
+      "type": "state-update",
+      "dataDescription": "Writes the finished run into `result`, replacing whatever the previous import left there.",
+      "purpose": "Retains the outcome past the run so step 3 can redisplay it without repeating the import.",
+      "userFlow": true,
+      "changeType": "modified"
+    },
+    {
+      "from": {
+        "class": "WorkbookReader",
+        "method": "readSheet"
+      },
+      "to": {
+        "class": "WorkbookReader",
+        "stateVariable": "buffer"
+      },
+      "type": "state-update",
+      "dataDescription": "Writes the decoded sheet into `buffer`, replacing the sheet decoded before it.",
+      "purpose": "Holds one sheet at a time so re-reading a sheet during step 2 does not decode the workbook again.",
+      "userFlow": true,
+      "changeType": "modified"
+    },
+    {
+      "from": {
+        "class": "SheetParser",
+        "method": "parseRows"
+      },
+      "to": {
+        "class": "ParseDiagnostics",
+        "stateVariable": "entries"
+      },
+      "type": "state-update",
+      "dataDescription": "Appends each row's warnings to `entries`, which accumulates across every sheet in the run.",
+      "purpose": "Accumulates rather than replaces, so step 3 can judge the run as a whole instead of reporting only the last sheet.",
+      "userFlow": true,
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "class": "SheetMapper",
+        "method": "mapSheet"
+      },
+      "to": {
+        "class": "ImportOrchestrator",
+        "stateVariable": "result"
+      },
+      "type": "state-update",
+      "dataDescription": "Adds the sheet's mapped rows to `result`, alongside rows already recorded for earlier sheets.",
+      "purpose": "Writes step 3 of Confirm the column mapping onto the shared run result, which is what the final report reads.",
+      "userFlow": true,
+      "changeType": "added"
+    },
+    {
+      "from": {
+        "class": "ImportOrchestrator",
+        "stateVariable": "result"
+      },
+      "to": {
+        "class": "ImportOrchestrator",
+        "method": "handleStageFailure"
+      },
+      "type": "state-read",
+      "dataDescription": "Reads the retained mapped rows and run status needed to assemble the final report.",
+      "purpose": "Supplies the accumulated result that step 3 reports to the user.",
+      "userFlow": true,
+      "changeType": "modified"
+    },
+    {
+      "from": {
+        "class": "WorkbookReader",
+        "stateVariable": "buffer"
+      },
+      "to": {
+        "class": "WorkbookReader",
+        "method": "readSheet"
+      },
+      "type": "state-read",
+      "dataDescription": "Reads the retained decoded sheet when the same sheet is requested again.",
+      "purpose": "Allows step 2 to reuse a decoded sheet without decoding the workbook again.",
+      "userFlow": true,
+      "changeType": "modified"
+    },
+    {
+      "from": {
+        "class": "ParseDiagnostics",
+        "stateVariable": "entries"
+      },
+      "to": {
+        "class": "ParseDiagnostics",
+        "method": "summarize"
+      },
+      "type": "state-read",
+      "dataDescription": "Reads all accumulated parsing warnings with their sheet and cell locations.",
+      "purpose": "Produces the diagnostic summary consumed when step 3 reports the import outcome.",
+      "userFlow": true,
+      "changeType": "added"
+    }
+  ],
+  "variableExposureCount": 28
+}

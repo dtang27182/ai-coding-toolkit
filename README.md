@@ -12,17 +12,23 @@ npm install
 npm run install:codex -- /path/to/code-repo
 ```
 
+To install only `design-gen`, run:
+
+```sh
+npm run install:design-gen -- /path/to/code-repo
+```
+
 The target directory must already exist. Relative target paths are resolved from the current working directory. The output directory defaults to `docs/plans` under the target repository root. To choose another repository-relative directory, run:
 
 ```sh
 npm run install:codex -- ../code-repo --output-dir architecture/plans
 ```
 
-In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the HLD files and installed dependencies into `ai-coding-toolkit`, installs `hld-gen/SKILL.md` as `.agents/skills/hld-gen/SKILL.md`, and adds `npm run visualizer` when the repository has a root `package.json`.
+In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the selected design tools and installed dependencies into `ai-coding-toolkit`, installs their skills under `.agents/skills/`, and adds their visualizer commands when the repository has a root `package.json`.
 
 Each target repository has its own files and output configuration and works independently of this checkout. Rerun the installer to update its installed copies; this overwrites files in directories marked as toolkit installations. It will not replace unrelated existing directories or npm scripts. Links created by the earlier installer to this checkout are replaced with copies.
 
-Upgrades remove the retired toolkit-owned `hld-eval` skill, `SKILL.next.md` files, evaluation report format, and Mermaid converter and npm command. Unrelated skills, links, custom commands, and previously generated diagrams are preserved.
+Full toolkit upgrades remove the retired toolkit-owned `hld-eval` skill, `SKILL.next.md` files, evaluation report format, and Mermaid converter and npm command. Unrelated skills, links, custom commands, and previously generated diagrams are preserved.
 
 ## Generate a High-Level Design
 
@@ -48,6 +54,14 @@ Results are grouped by feature under the configured output directory:
 The Architecture Diff records each class's `variableExposure` inventory. The exposure counter writes per-class counts and a deduplicated total; `null` means the exposure is unknown. The design change counter writes the other five quality metrics to the same JSON file.
 
 The final artifacts and iteration summary are ready for human review; application implementation is a separate step.
+
+## Generate a Design
+
+Use `$design-gen` for the candidate generation, evaluation, comparison, and selection workflow without the separate user-flow labeling, dataflow-narrative, or visualizer-description passes used by `$hld-gen`.
+
+`design-gen` retains the same narrative, Architecture Diff, quality metrics, iteration structure, and output paths as `hld-gen`.
+
+It has independent validation and counting scripts and its own Architecture Diff visualizer, available through `npm run design-visualizer`.
 
 ## Architecture Diff Visualizer
 

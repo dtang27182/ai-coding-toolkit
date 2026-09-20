@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "install:codex": "node scripts/init.mjs --agent codex",
+    "install:design-gen": "node scripts/init.mjs --agent codex --tool design-gen",
     "visualizer": "vite hld-gen/visualizer",
+    "design-visualizer": "vite design-gen/visualizer",
     "build:visualizer": "vite build hld-gen/visualizer",
+    "build:design-visualizer": "vite build design-gen/visualizer",
     "validate": "node hld-gen/scripts/validate-architecture-diff.mjs"
   },
   "dependencies": {

@@ -1,0 +1,626 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI Coding Toolkit Architecture Diff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "stage",
+    "userFlows",
+    "classes",
+    "components",
+    "relationships"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 9
+    },
+    "stage": {
+      "const": "high level design"
+    },
+    "userFlows": {
+      "description": "The narrative's User Flow Steps, one entry per user flow.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/userFlowSet"
+      }
+    },
+    "variableExposureCount": {
+      "description": "Derived total; null when any inventory is unknown.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "changedClassCount": {
+      "description": "Derived number of added, modified, or deleted classes.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "changedMethodCount": {
+      "description": "Derived number of added, modified, or deleted methods in changed classes.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "changedComponentCount": {
+      "description": "Derived number of added, modified, or deleted UI and external I/O components.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "changedDataflowRelationshipCount": {
+      "description": "Derived number of added, modified, or deleted dataflow relationships.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "changedStateUpdateRelationshipCount": {
+      "description": "Derived number of added, modified, or deleted state-update relationships.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "classes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/class"
+      }
+    },
+    "components": {
+      "description": "UI and external I/O endpoints participating in the dataflow. Use an empty array when none participate.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/component"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relationship"
+      }
+    }
+  },
+  "$defs": {
+    "userFlow": {
+      "description": "Whether this entry lies on a dataflow/state-read/state-update path from a user action in the User Flow Steps to final state persistence, output back to the user, or output to an external component. Setup and ownership alone do not qualify.",
+      "type": "boolean"
+    },
+    "userFlowSet": {
+      "description": "One user flow from the narrative, with its numbered steps.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "steps"
+      ],
+      "properties": {
+        "name": {
+          "description": "Names this user flow; unique across user flows.",
+          "type": "string",
+          "minLength": 1
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/userFlowStep"
+          }
+        }
+      }
+    },
+    "userFlowStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text"
+      ],
+      "properties": {
+        "id": {
+          "description": "The step's position within its user flow, starting at 1.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "text": {
+          "description": "The step as written in the narrative's User Flow Steps. Conditional branches and loops stay in this text.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "changeType",
+        "userFlow"
+      ],
+      "properties": {
+        "generalDescription": {
+          "description": "Visualizer text added only after design selection: the entity's overall system responsibility, in three sentences or fewer.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "designRole": {
+          "description": "Visualizer text added only after design selection: the entity's part in this HLD, in three sentences or fewer.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "userFlow": {
+          "$ref": "#/$defs/userFlow"
+        },
+        "name": {
+          "description": "Unique across classes and components; referenced by relationship endpoints.",
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "description": "A user-facing UI surface or an external I/O endpoint such as a network service, file, or browser storage.",
+          "enum": [
+            "ui",
+            "external-io"
+          ]
+        },
+        "changeType": {
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "unchanged"
+          ]
+        }
+      }
+    },
+    "class": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "User-flow participation is derived from any userFlow state variable or method, or any connected userFlow dataflow. Composition does not contribute.",
+      "required": [
+        "name",
+        "changeType",
+        "methods",
+        "stateVariables",
+        "variableExposure"
+      ],
+      "properties": {
+        "generalDescription": {
+          "description": "Visualizer text added only after design selection: the entity's overall system responsibility, in three sentences or fewer.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "designRole": {
+          "description": "Visualizer text added only after design selection: the entity's part in this HLD, in three sentences or fewer.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changeType": {
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "unchanged"
+          ]
+        },
+        "methods": {
+          "description": "Every changed method and every unchanged method participating in the core logic's end-to-end dataflow.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/method"
+          }
+        },
+        "stateVariables": {
+          "description": "Mutable instance state changed by the design or read or written by the Core Logic and Dataflow. Excludes immutable configuration and composition references.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stateVariable"
+          }
+        },
+        "variableExposureCount": {
+          "description": "Derived class count; null when its inventory is unknown.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "variableExposure": {
+          "description": "Existing declarations exposed to this class's changes; null when unknown.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/exposedVariable"
+          }
+        }
+      }
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "changeType",
+        "userFlow"
+      ],
+      "properties": {
+        "generalDescription": {
+          "description": "Visualizer text added only after design selection: the entity's overall system responsibility, in three sentences or fewer.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "designRole": {
+          "description": "Visualizer text added only after design selection: the entity's part in this HLD, in three sentences or fewer.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "userFlow": {
+          "$ref": "#/$defs/userFlow"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changeType": {
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "unchanged"
+          ]
+        }
+      }
+    },
+    "stateVariable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "changeType",
+        "userFlow"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changeType": {
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "unchanged"
+          ]
+        },
+        "userFlow": {
+          "$ref": "#/$defs/userFlow"
+        }
+      }
+    },
+    "exposedVariable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "kind",
+        "declaredAt"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "instance",
+            "parameter",
+            "local"
+          ]
+        },
+        "method": {
+          "description": "Existing method containing the parameter or local.",
+          "type": "string",
+          "minLength": 1
+        },
+        "declaredAt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "file",
+            "line",
+            "column"
+          ],
+          "properties": {
+            "file": {
+              "description": "Canonical repository-relative path to the declaration in current code.",
+              "type": "string",
+              "minLength": 1
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "column": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "parameter",
+                  "local"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "method"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "instance"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "method"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "classEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class"
+      ],
+      "properties": {
+        "class": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "methodEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "method"
+      ],
+      "properties": {
+        "class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "stateVariableEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "stateVariable"
+      ],
+      "properties": {
+        "class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stateVariable": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "componentEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component"
+      ],
+      "properties": {
+        "component": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "dataflowEndpoint": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/methodEndpoint"
+        },
+        {
+          "$ref": "#/$defs/componentEndpoint"
+        }
+      ]
+    },
+    "relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "type",
+        "changeType"
+      ],
+      "properties": {
+        "userFlow": {
+          "$ref": "#/$defs/userFlow"
+        },
+        "from": {
+          "description": "Explicit source reference, constrained by relationship type.",
+          "type": "object"
+        },
+        "to": {
+          "description": "Explicit target reference, constrained by relationship type.",
+          "type": "object"
+        },
+        "type": {
+          "enum": [
+            "dataflow",
+            "state-read",
+            "state-update",
+            "composition"
+          ]
+        },
+        "dataDescription": {
+          "description": "What data this relationship transfers, reads, or modifies.",
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "description": "Why this relationship is needed. On a user-flow relationship, its role in the flow, naming a step where one depends on it; otherwise why the relationship exists at all.",
+          "type": "string",
+          "minLength": 1
+        },
+        "changeType": {
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "unchanged"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "state-read"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "dataDescription",
+              "purpose",
+              "userFlow"
+            ],
+            "properties": {
+              "from": {
+                "$ref": "#/$defs/stateVariableEndpoint"
+              },
+              "to": {
+                "$ref": "#/$defs/methodEndpoint"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "dataflow"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "dataDescription",
+              "purpose",
+              "userFlow"
+            ],
+            "properties": {
+              "from": {
+                "$ref": "#/$defs/dataflowEndpoint"
+              },
+              "to": {
+                "$ref": "#/$defs/dataflowEndpoint"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "state-update"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "dataDescription",
+              "purpose",
+              "userFlow"
+            ],
+            "properties": {
+              "from": {
+                "$ref": "#/$defs/methodEndpoint"
+              },
+              "to": {
+                "$ref": "#/$defs/stateVariableEndpoint"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "composition"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "userFlow"
+                  ]
+                },
+                {
+                  "required": [
+                    "dataDescription"
+                  ]
+                },
+                {
+                  "required": [
+                    "purpose"
+                  ]
+                }
+              ]
+            },
+            "properties": {
+              "from": {
+                "$ref": "#/$defs/classEndpoint"
+              },
+              "to": {
+                "$ref": "#/$defs/classEndpoint"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
