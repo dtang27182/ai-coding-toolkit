@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "stage": "high-level-design",
+  "feature": "Model selector",
+  "nodes": [
+    {
+      "type": [
+        "system-input",
+        "system-output"
+      ],
+      "name": "Model dropdown",
+      "description": "Displays the current model and lets the user select the model used by subsequent chat requests.",
+      "medium": "HTML select",
+      "location": "ModelSelector select",
+      "changeType": "added"
+    },
+    {
+      "type": "system-input",
+      "name": "Chat request",
+      "description": "The next main chat, clarification, scenario comparison, or post-edit analysis request started by the user workflow.",
+      "medium": "UI event",
+      "location": "ChatInput",
+      "changeType": "unchanged"
+    },
+    {
+      "type": "static-data",
+      "name": "Chat model catalog",
+      "description": "The predefined model IDs, display labels, and complete model, provider, and reasoning configurations.",
+      "medium": "Immutable TypeScript constant",
+      "location": "CHAT_MODELS catalog",
+      "changeType": "added"
+    },
+    {
+      "type": "system-state",
+      "name": "Selected model ID",
+      "description": "The model selected for the next request in the current task-pane session.",
+      "medium": "In-memory instance variable",
+      "location": "ModelSelector.selectedModelId",
+      "changeType": "added"
+    },
+    {
+      "type": "data-processing",
+      "name": "Resolve selected model configuration",
+      "description": "Resolves the selected model ID to one complete immutable request configuration.",
+      "medium": "TypeScript",
+      "location": "ModelSelector.getSelectedModelConfig",
+      "changeType": "added",
+      "algorithm": "Look up selectedModelId in the chat model catalog and return that entry's complete model, provider, and reasoning configuration. Use the explicit model ID as the key; never use the display label as an identifier."
+    },
+    {
+      "type": "data-processing",
+      "name": "Assemble chat request",
+      "description": "Builds a fresh request body using the current request inputs and the model configuration sampled when the request starts.",
+      "medium": "TypeScript",
+      "location": "LLMManager.runMainQueryPrompt, LLMManager.runClarificationResponsePrompt, LLMManager.runScenarioComparisonPrompt, LLMManager.runUpdateAnalysisPrompt; llm-manager request builders.buildMainQueryRequestBody, llm-manager request builders.buildClarificationResponseRequestBody, llm-manager request builders.buildUpdateAnalysisRequestBody",
+      "changeType": "modified",
+      "algorithm": "At each chat request boundary: sample the current model configuration once; create a fresh request body from the request inputs and that complete configuration; serialize the body without retaining a reference to mutable selection state. Do not merge settings over a previous model configuration."
+    },
+    {
+      "type": "system-output",
+      "name": "OpenRouter Responses endpoint",
+      "description": "Receives the serialized request body containing the model selection captured for that request.",
+      "medium": "HTTPS API",
+      "location": "https://openrouter.ai/api/v1/responses",
+      "changeType": "unchanged"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "relationship-1",
+      "from": "Chat model catalog",
+      "to": "Model dropdown",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "Model option IDs and display labels, including the default option.",
+      "purpose": "Populates the selector with the predefined choices and displays the configured default when the task pane opens."
+    },
+    {
+      "id": "relationship-2",
+      "from": "Model dropdown",
+      "to": "Selected model ID",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The model ID chosen by the user.",
+      "purpose": "Retains the latest selection for the next request without submitting a message or resetting the workflow."
+    },
+    {
+      "id": "relationship-3",
+      "from": "Selected model ID",
+      "to": "Model dropdown",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The currently retained model ID.",
+      "purpose": "Keeps the displayed option synchronized with session state through running, review, Clear, and Restore states."
+    },
+    {
+      "id": "relationship-4",
+      "from": "Selected model ID",
+      "to": "Resolve selected model configuration",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The model ID current when a chat request starts.",
+      "purpose": "Selects the configuration for the new request while leaving already submitted requests unchanged."
+    },
+    {
+      "id": "relationship-5",
+      "from": "Chat model catalog",
+      "to": "Resolve selected model configuration",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "Immutable catalog entries keyed by model ID, each containing complete request settings.",
+      "purpose": "Provides an entire configuration so settings absent from one model cannot leak from a previously selected model."
+    },
+    {
+      "id": "relationship-6",
+      "from": "Chat request",
+      "to": "Assemble chat request",
+      "type": "dataflow",
+      "changeType": "unchanged",
+      "data": "The prompt, conversation history, tools, response schema, and other existing request inputs.",
+      "purpose": "Supplies the request-specific content that is combined with the selected model configuration."
+    },
+    {
+      "id": "relationship-7",
+      "from": "Resolve selected model configuration",
+      "to": "Assemble chat request",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The complete model, provider-routing, and reasoning configuration sampled for this request.",
+      "purpose": "Makes the latest selection apply to this request while isolating its body from later selection changes."
+    },
+    {
+      "id": "relationship-8",
+      "from": "Assemble chat request",
+      "to": "OpenRouter Responses endpoint",
+      "type": "dataflow",
+      "changeType": "modified",
+      "data": "A serialized Responses request body containing the captured model settings and existing chat request content.",
+      "purpose": "Sends the request with the selected model while preserving the existing transport and response handling."
+    }
+  ]
+}

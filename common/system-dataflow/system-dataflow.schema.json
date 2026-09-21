@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI Coding Toolkit System Dataflow",
+  "description": "A very-high-level graph of how data moves through a system. It can explain a feature's user workflows or visualize system dataflow for general system understanding, focusing on system boundaries, persistent state, and critical data processing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "stage",
+    "feature",
+    "nodes",
+    "relationships"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of the System Dataflow schema used by this document.",
+      "const": 1
+    },
+    "stage": {
+      "description": "The development stage represented by the dataflow: proposed behavior during high-level design or implemented behavior during code review.",
+      "enum": [
+        "high-level-design",
+        "code-review"
+      ]
+    },
+    "feature": {
+      "description": "Name of the feature whose behavior the dataflow explains.",
+      "type": "string",
+      "minLength": 1
+    },
+    "nodes": {
+      "description": "System inputs, outputs, persistent state, static data, and critical data processing in the dataflow.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "relationships": {
+      "description": "Directed data flows connecting the nodes.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relationship"
+      }
+    }
+  },
+  "$defs": {
+    "node": {
+      "description": "A high-level system component in the dataflow. Include system boundaries, persistent state, static data, and critical data processing.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "name",
+        "description",
+        "medium",
+        "location"
+      ],
+      "properties": {
+        "type": {
+          "description": "The node's semantic role in the system dataflow.",
+          "oneOf": [
+            {
+              "description": "Data entering the system from a user interface, external service, or external data source.",
+              "const": "system-input"
+            },
+            {
+              "description": "Data leaving the system for a user interface, database, external service, file, or other dependency.",
+              "const": "system-output"
+            },
+            {
+              "description": "Persistent state read or updated by the dataflow, including but not limited to instance, static, or global variables and browser, file, database, or object storage.",
+              "const": "system-state"
+            },
+            {
+              "description": "Fixed data used by the system that is not changed by the represented dataflow, such as configuration, constants, schemas, or static lookup data.",
+              "const": "static-data"
+            },
+            {
+              "description": "Critical or non-trivial data processing or an algorithm that transforms data in the dataflow.",
+              "const": "data-processing"
+            },
+            {
+              "description": "A single system boundary that both supplies input and presents or sends output.",
+              "const": [
+                "system-input",
+                "system-output"
+              ]
+            }
+          ]
+        },
+        "name": {
+          "description": "Unique name of the node within the document; relationships use this value as the node identifier.",
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "description": "What the node represents and the responsibility it has in the dataflow.",
+          "type": "string",
+          "minLength": 1
+        },
+        "medium": {
+          "description": "The concrete medium through which the node exists or operates, such as a UI, database, file, browser storage, or external service. For data processing, this is the programming language",
+          "type": "string",
+          "minLength": 1
+        },
+        "location": {
+          "description": "The concrete system location, such as a UI component name, storage location, external service URI, or class and method name. Do not use a source-code file or line location.",
+          "type": "string",
+          "minLength": 1
+        },
+        "changeType": {
+          "description": "How the node changes relative to the comparison baseline.",
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "unchanged"
+          ]
+        },
+        "algorithm": {
+          "description": "The critical processing logic as pseudocode, actual source code, or a reference to the relevant diff.",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "data-processing"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "algorithm"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "algorithm"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "relationship": {
+      "description": "A directed flow of data between two nodes.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "from",
+        "to",
+        "type",
+        "data",
+        "purpose"
+      ],
+      "properties": {
+        "id": {
+          "description": "Unique identifier for the relationship within the document.",
+          "type": "string",
+          "minLength": 1
+        },
+        "from": {
+          "description": "Name of the node that supplies the data.",
+          "type": "string",
+          "minLength": 1
+        },
+        "to": {
+          "description": "Name of the node that receives the data.",
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "description": "Kind of relationship between the nodes.",
+          "const": "dataflow"
+        },
+        "changeType": {
+          "description": "How the relationship changes relative to the comparison baseline.",
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "unchanged"
+          ]
+        },
+        "data": {
+          "description": "The description of the data transferred between the nodes, including a short name and the shape of the data.",
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "description": "Why this dataflow is needed and what system behavior it enables.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
