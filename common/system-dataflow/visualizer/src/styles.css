@@ -97,8 +97,6 @@ button:focus-visible,
 
 .stage-chip,
 .file-label,
-.node-type,
-.node-medium,
 .change-chip,
 .detail-chip,
 .interaction-hint,
@@ -248,74 +246,78 @@ button:focus-visible,
 .graph-node {
   position: absolute;
   z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 13px 15px 13px 19px;
-  overflow: hidden;
-  border: 1px solid color-mix(in oklch, var(--type-color) 43%, var(--border));
-  border-radius: 10px;
+  padding: 0;
+  border: 0;
   color: inherit;
-  background: linear-gradient(135deg, color-mix(in oklch, var(--type-color) 9%, var(--raised)), var(--raised));
-  box-shadow: 0 7px 20px oklch(0.1 0.02 255 / 0.3);
+  background: transparent;
   text-align: left;
   cursor: pointer;
-  transition: opacity 120ms ease, border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  transition: opacity 120ms ease, filter 120ms ease;
 }
 
-.graph-node:hover,
-.graph-node.selected {
-  border-color: var(--type-color);
-  background: linear-gradient(135deg, color-mix(in oklch, var(--type-color) 15%, var(--raised)), var(--raised));
-}
-
-.graph-node.selected {
-  box-shadow: 0 0 0 2px color-mix(in oklch, var(--type-color) 35%, transparent), 0 8px 24px oklch(0.1 0.02 255 / 0.45);
-}
-
-.change-stripe {
+.node-shape {
   position: absolute;
-  inset: 9px auto 9px 0;
-  width: 4px;
-  border-radius: 0 3px 3px 0;
-  background: var(--change-color);
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
 }
 
-.node-glyph {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
-  place-items: center;
-  border: 1px solid color-mix(in oklch, var(--type-color) 48%, transparent);
-  border-radius: 8px;
-  color: var(--type-color);
-  background: color-mix(in oklch, var(--type-color) 10%, transparent);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 17px;
-  font-weight: 600;
+.node-outline {
+  fill: color-mix(in oklch, var(--type-color) 9%, var(--raised));
+  stroke: color-mix(in oklch, var(--change-color) 72%, var(--border));
+  stroke-width: 1.9;
+  stroke-linejoin: round;
+  transition: stroke 120ms ease;
 }
 
-.node-copy {
+.node-detail {
+  fill: none;
+  stroke: color-mix(in oklch, var(--type-color) 52%, transparent);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+
+.graph-node:hover .node-outline,
+.graph-node.selected .node-outline {
+  stroke: var(--change-color);
+}
+
+.graph-node.selected {
+  filter: drop-shadow(0 0 7px color-mix(in oklch, var(--type-color) 45%, transparent));
+}
+
+.node-body {
+  position: absolute;
+  inset: 0;
   display: flex;
-  min-width: 0;
-  flex: 1 1 auto;
+  overflow: hidden;
   flex-direction: column;
-  gap: 3px;
+  padding: 11px 24px 10px;
 }
 
-.node-type {
+.node-badge {
+  display: flex;
+  height: 27px;
+  align-self: stretch;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  border: 1px solid color-mix(in oklch, var(--type-color) 44%, transparent);
+  border-radius: 6px;
   color: var(--type-color);
-  font-size: 9px;
+  background: color-mix(in oklch, var(--type-color) 17%, transparent);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11.5px;
   font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  white-space: nowrap;
 }
 
 .node-name {
+  margin-top: 8px;
   overflow: hidden;
   color: var(--bright);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.01em;
   text-overflow: ellipsis;
@@ -323,11 +325,21 @@ button:focus-visible,
 }
 
 .node-medium {
+  margin-top: 3px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 10.5px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.graph-node.deleted {
+  opacity: 0.66;
+}
+
+.graph-node.deleted .node-name {
+  text-decoration: line-through;
 }
 
 .graph-node.dimmed,
@@ -373,7 +385,13 @@ button:focus-visible,
   font-size: 11px;
 }
 
-.legend i,
+.legend i {
+  width: 3px;
+  height: 12px;
+  flex: 0 0 auto;
+  border-radius: 2px;
+}
+
 .type-dot {
   width: 7px;
   height: 7px;

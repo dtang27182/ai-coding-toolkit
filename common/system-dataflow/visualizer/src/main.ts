@@ -28,15 +28,24 @@ const CHANGE_COLORS: Record<DisplayChangeType, string> = {
   unspecified: "oklch(0.67 0.035 250)",
 };
 
-const NODE_TYPES: Record<NodeType, { label: string; shortLabel: string; glyph: string; color: string }> = {
-  "user-input": { label: "User input", shortLabel: "User input", glyph: "↘", color: "oklch(0.78 0.12 225)" },
-  "user-output": { label: "User output", shortLabel: "User output", glyph: "↗", color: "oklch(0.74 0.15 315)" },
-  "external-dependency": { label: "External dependency", shortLabel: "External", glyph: "⇄", color: "oklch(0.74 0.12 265)" },
-  "system-input": { label: "System input", shortLabel: "System input", glyph: "⇥", color: "oklch(0.78 0.12 195)" },
-  "system-output": { label: "System output", shortLabel: "System output", glyph: "⇤", color: "oklch(0.72 0.16 20)" },
-  "system-state": { label: "System state", shortLabel: "State", glyph: "◆", color: "oklch(0.78 0.14 55)" },
-  "static-data": { label: "Static data", shortLabel: "Static", glyph: "▤", color: "oklch(0.82 0.12 100)" },
-  "data-processing": { label: "Data processing", shortLabel: "Processing", glyph: "ƒ", color: "oklch(0.76 0.14 155)" },
+type Silhouette =
+  | "rect"
+  | "dashed"
+  | "stadium-left"
+  | "stadium-right"
+  | "cylinder"
+  | "dogear"
+  | "hexagon";
+
+const NODE_TYPES: Record<NodeType, { label: string; badge: string; shape: Silhouette; color: string }> = {
+  "user-input": { label: "User input", badge: "USER →", shape: "rect", color: "oklch(0.80 0.095 232)" },
+  "user-output": { label: "User output", badge: "→ USER", shape: "rect", color: "oklch(0.78 0.095 300)" },
+  "external-dependency": { label: "External dependency", badge: "EXTERNAL", shape: "dashed", color: "oklch(0.75 0.085 278)" },
+  "system-input": { label: "System input", badge: "SYSTEM →", shape: "stadium-left", color: "oklch(0.80 0.085 205)" },
+  "system-output": { label: "System output", badge: "→ SYSTEM", shape: "stadium-right", color: "oklch(0.76 0.095 325)" },
+  "system-state": { label: "System state", badge: "STATE", shape: "cylinder", color: "oklch(0.80 0.075 185)" },
+  "static-data": { label: "Static data", badge: "STATIC", shape: "dogear", color: "oklch(0.71 0.03 250)" },
+  "data-processing": { label: "Data processing", badge: "PROCESSING", shape: "hexagon", color: "oklch(0.85 0.09 255)" },
 };
 
 let dataflow = example as SystemDataflow;
@@ -111,6 +120,53 @@ function related(relationship: SystemDataflowRelationship, value: Selection | un
   }
 }
 
+/** The card outline for a node type. Shape carries the type; the stroke colour carries the change. */
+function silhouette(shape: Silhouette, width: number, height: number): { outline: string; details: string[]; dashed: boolean } {
+  const round = (value: number): number => Math.round(value * 100) / 100;
+  const half = round(height / 2);
+  const inset = round(height * 0.076);
+  const cap = round(width * 0.0565);
+  const cut = round(height * 0.239);
+  const chamfer = round(width * 0.0806);
+
+  function roundedRect(radius: number): string {
+    const r = round(radius);
+    return `M ${r} 0 L ${width - r} 0 A ${r} ${r} 0 0 1 ${width} ${r} L ${width} ${height - r} A ${r} ${r} 0 0 1 ${width - r} ${height} L ${r} ${height} A ${r} ${r} 0 0 1 0 ${height - r} L 0 ${r} A ${r} ${r} 0 0 1 ${r} 0 Z`;
+  }
+
+  const stadium = `M ${half} 0 L ${width - half} 0 A ${half} ${half} 0 0 1 ${width - half} ${height} L ${half} ${height} A ${half} ${half} 0 0 1 ${half} 0 Z`;
+  const innerCap = round(half - inset);
+
+  if (shape === "stadium-left") {
+    return { outline: stadium, details: [`M ${half} ${inset} A ${innerCap} ${innerCap} 0 0 0 ${half} ${height - inset}`], dashed: false };
+  } else if (shape === "stadium-right") {
+    return { outline: stadium, details: [`M ${width - half} ${inset} A ${innerCap} ${innerCap} 0 0 1 ${width - half} ${height - inset}`], dashed: false };
+  } else if (shape === "cylinder") {
+    return {
+      outline: `M ${cap} 0 L ${width - cap} 0 A ${cap} ${half} 0 0 1 ${width - cap} ${height} L ${cap} ${height} A ${cap} ${half} 0 0 1 ${cap} 0 Z`,
+      details: [`M ${cap} 0 A ${cap} ${half} 0 0 0 ${cap} ${height}`],
+      dashed: false,
+    };
+  } else if (shape === "hexagon") {
+    return {
+      outline: `M ${chamfer} 0 L ${width - chamfer} 0 L ${width} ${half} L ${width - chamfer} ${height} L ${chamfer} ${height} L 0 ${half} Z`,
+      details: [],
+      dashed: false,
+    };
+  } else if (shape === "dogear") {
+    const r = round(height * 0.109);
+    return {
+      outline: `M ${r} 0 L ${width - cut} 0 L ${width} ${cut} L ${width} ${height - r} A ${r} ${r} 0 0 1 ${width - r} ${height} L ${r} ${height} A ${r} ${r} 0 0 1 0 ${height - r} L 0 ${r} A ${r} ${r} 0 0 1 ${r} 0 Z`,
+      details: [`M ${width - cut} 0 L ${width - cut} ${cut} L ${width} ${cut}`],
+      dashed: false,
+    };
+  } else if (shape === "dashed") {
+    return { outline: roundedRect(height * 0.152), details: [], dashed: true };
+  } else {
+    return { outline: roundedRect(height * 0.065), details: [], dashed: false };
+  }
+}
+
 function renderMarkers(): string {
   return (Object.keys(CHANGE_COLORS) as DisplayChangeType[])
     .map(
@@ -164,13 +220,16 @@ function renderGraph(): string {
     .map((node) => {
       const box = layout.boxes.get(node.name)!;
       const type = NODE_TYPES[node.type];
+      const form = silhouette(type.shape, box.width, box.height);
       const selected = selectionKey(selection) === selectionKey({ type: "node", name: node.name });
       const dimmed = focus !== undefined && !relatedNodes.has(node.name);
-      return `<button class="graph-node type-${node.type}${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;--type-color:${type.color};--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(node.name)}" aria-label="Inspect ${escapeHtml(type.label)} ${escapeHtml(node.name)}">
-        <span class="change-stripe"></span>
-        <span class="node-glyph">${type.glyph}</span>
-        <span class="node-copy">
-          <span class="node-type">${escapeHtml(type.label)}</span>
+      const details = form.details.map((detail) => `<path class="node-detail" d="${detail}"></path>`).join("");
+      return `<button class="graph-node${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}${node.changeType === "deleted" ? " deleted" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;--type-color:${type.color};--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(node.name)}" aria-label="Inspect ${escapeHtml(type.label)} ${escapeHtml(node.name)}">
+        <svg class="node-shape" width="${box.width}" height="${box.height}" viewBox="0 0 ${box.width} ${box.height}" aria-hidden="true">
+          <path class="node-outline" d="${form.outline}"${form.dashed ? ' stroke-dasharray="7 5"' : ""}></path>${details}
+        </svg>
+        <span class="node-body">
+          <span class="node-badge">${type.badge}</span>
           <span class="node-name">${escapeHtml(node.name)}</span>
           <span class="node-medium">${escapeHtml(node.medium)}</span>
         </span>
@@ -263,8 +322,9 @@ function renderInspector(): string {
 }
 
 function renderLegend(): string {
-  return `<div class="legend">${(Object.keys(NODE_TYPES) as NodeType[])
-    .map((type) => `<span><i style="background:${NODE_TYPES[type].color}"></i>${NODE_TYPES[type].shortLabel}</span>`)
+  const changeTypes: DisplayChangeType[] = ["added", "modified", "deleted", "unchanged"];
+  return `<div class="legend">${changeTypes
+    .map((changeType) => `<span><i style="background:${CHANGE_COLORS[changeType]}"></i>${changeType}</span>`)
     .join("")}</div>`;
 }
 
