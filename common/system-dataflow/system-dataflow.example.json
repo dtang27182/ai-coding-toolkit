@@ -4,14 +4,35 @@
   "feature": "Delivery promise estimator",
   "nodes": [
     {
-      "type": [
-        "system-input",
-        "system-output"
-      ],
-      "name": "Delivery options panel",
-      "description": "Accepts the customer's delivery address and selected option, then presents priced delivery promises for the current cart.",
+      "type": "user-input",
+      "name": "Delivery options input",
+      "description": "Captures the customer's delivery address and their eventual delivery-option selection.",
       "medium": "React UI",
       "location": "DeliveryOptionsPanel",
+      "changeType": "added"
+    },
+    {
+      "type": "user-output",
+      "name": "Delivery options display",
+      "description": "Presents priced delivery promises and the current selection to the customer.",
+      "medium": "React UI",
+      "location": "DeliveryOptionsPanel",
+      "changeType": "added"
+    },
+    {
+      "type": "system-input",
+      "name": "Checkout quote request",
+      "description": "Starts delivery estimation with the cart and checkout context supplied by the checkout workflow.",
+      "medium": "Application command",
+      "location": "CheckoutOrchestrator.requestDeliveryQuote",
+      "changeType": "added"
+    },
+    {
+      "type": "system-output",
+      "name": "Selected delivery promise",
+      "description": "Returns the customer's final delivery choice to the checkout workflow for order placement.",
+      "medium": "Application event",
+      "location": "CheckoutOrchestrator.acceptDeliveryPromise",
       "changeType": "added"
     },
     {
@@ -39,10 +60,7 @@
       "changeType": "modified"
     },
     {
-      "type": [
-        "system-input",
-        "system-output"
-      ],
+      "type": "external-dependency",
       "name": "Address validation service",
       "description": "Normalizes the entered address and returns its deliverability, geographic coordinates, and postal region.",
       "medium": "HTTPS API",
@@ -50,10 +68,7 @@
       "changeType": "unchanged"
     },
     {
-      "type": [
-        "system-input",
-        "system-output"
-      ],
+      "type": "external-dependency",
       "name": "Carrier rates service",
       "description": "Returns shipping prices, service levels, and estimated transit times for proposed packages and routes.",
       "medium": "HTTPS API",
@@ -90,7 +105,7 @@
   "relationships": [
     {
       "id": "relationship-1",
-      "from": "Delivery options panel",
+      "from": "Delivery options input",
       "to": "Address validation service",
       "type": "dataflow",
       "changeType": "added",
@@ -181,7 +196,7 @@
     {
       "id": "relationship-11",
       "from": "Delivery quote session",
-      "to": "Delivery options panel",
+      "to": "Delivery options display",
       "type": "dataflow",
       "changeType": "added",
       "data": "The active delivery options and the currently selected option ID.",
@@ -189,12 +204,30 @@
     },
     {
       "id": "relationship-12",
-      "from": "Delivery options panel",
+      "from": "Delivery options input",
       "to": "Delivery quote session",
       "type": "dataflow",
       "changeType": "added",
       "data": "The option ID selected by the customer.",
       "purpose": "Retains the chosen delivery promise for the remainder of checkout without recalculating the quote."
+    },
+    {
+      "id": "relationship-13",
+      "from": "Checkout quote request",
+      "to": "Build candidate fulfillment plans",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The cart ID, checkout ID, currency, and customer delivery preferences.",
+      "purpose": "Supplies the external workflow context needed to load and evaluate delivery plans."
+    },
+    {
+      "id": "relationship-14",
+      "from": "Delivery quote session",
+      "to": "Selected delivery promise",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The selected option's plan ID, service level, price, promised date, and quote expiration.",
+      "purpose": "Hands the final delivery commitment back to checkout for inclusion in the order."
     }
   ]
 }

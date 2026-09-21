@@ -1,6 +1,13 @@
 export type ChangeType = "added" | "modified" | "deleted" | "unchanged";
-export type SingleNodeType = "system-input" | "system-output" | "system-state" | "static-data" | "data-processing";
-export type NodeType = SingleNodeType | ["system-input", "system-output"];
+export type NodeType =
+  | "user-input"
+  | "user-output"
+  | "external-dependency"
+  | "system-input"
+  | "system-output"
+  | "system-state"
+  | "static-data"
+  | "data-processing";
 
 export interface SystemDataflowNode {
   type: NodeType;

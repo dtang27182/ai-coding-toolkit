@@ -29,7 +29,7 @@
       "minLength": 1
     },
     "nodes": {
-      "description": "System inputs, outputs, persistent state, static data, and critical data processing in the dataflow.",
+      "description": "User inputs and outputs, external dependencies, system inputs and outputs, persistent state, static data, and critical data processing in the dataflow.",
       "type": "array",
       "minItems": 1,
       "items": {
@@ -46,7 +46,7 @@
   },
   "$defs": {
     "node": {
-      "description": "A high-level system component in the dataflow. Include system boundaries, persistent state, static data, and critical data processing.",
+      "description": "A high-level component in the dataflow. Its type determines whether relationships may enter it, leave it, or both.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -61,31 +61,36 @@
           "description": "The node's semantic role in the system dataflow.",
           "oneOf": [
             {
-              "description": "Data entering the system from a user interface, external service, or external data source.",
+              "description": "Data or an action supplied by a user through a user interface. Dataflow relationships may leave this node but may not enter it.",
+              "const": "user-input"
+            },
+            {
+              "description": "Information presented to a user through a user interface. Dataflow relationships may enter this node but may not leave it. Represent a UI component separately as user input and user output when it serves both roles.",
+              "const": "user-output"
+            },
+            {
+              "description": "A service, datastore, or other system outside the modeled system boundary that receives requests or data and supplies responses or data. Dataflow relationships may enter and leave this node.",
+              "const": "external-dependency"
+            },
+            {
+              "description": "Data sent into the modeled feature or system by an external system. Dataflow relationships may leave this node but may not enter it.",
               "const": "system-input"
             },
             {
-              "description": "Data leaving the system for a user interface, database, external service, file, or other dependency.",
+              "description": "A final output sent by the modeled feature or system to an external system. Dataflow relationships may enter this node but may not leave it.",
               "const": "system-output"
             },
             {
-              "description": "Persistent state read or updated by the dataflow, including but not limited to instance, static, or global variables and browser, file, database, or object storage.",
+              "description": "Persistent state read or updated by the dataflow, including but not limited to instance, static, or global variables and browser, file, database, or object storage. Dataflow relationships may enter and leave this node.",
               "const": "system-state"
             },
             {
-              "description": "Fixed data used by the system that is not changed by the represented dataflow, such as configuration, constants, schemas, or static lookup data.",
+              "description": "Fixed data used by the system that is not changed by the represented dataflow, such as configuration, constants, schemas, or static lookup data. Dataflow relationships may leave this node but may not enter it.",
               "const": "static-data"
             },
             {
-              "description": "Critical or non-trivial data processing or an algorithm that transforms data in the dataflow.",
+              "description": "Critical or non-trivial data processing or an algorithm that transforms data in the dataflow. Dataflow relationships may enter and leave this node.",
               "const": "data-processing"
-            },
-            {
-              "description": "A single system boundary that both supplies input and presents or sends output.",
-              "const": [
-                "system-input",
-                "system-output"
-              ]
             }
           ]
         },

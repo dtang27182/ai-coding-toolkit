@@ -5,6 +5,7 @@ import { computeLayout } from "./layout.ts";
 import { routeEdge } from "./routing.ts";
 import type {
   ChangeType,
+  NodeType,
   Selection,
   SystemDataflow,
   SystemDataflowNode,
@@ -14,7 +15,6 @@ import { semanticError } from "./validation.ts";
 import "./styles.css";
 
 type DisplayChangeType = ChangeType | "unspecified";
-type NodeTypeKey = "system-input" | "system-output" | "system-state" | "static-data" | "data-processing" | "system-input-output";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const ajv = new Ajv2020({ allErrors: true });
@@ -28,10 +28,12 @@ const CHANGE_COLORS: Record<DisplayChangeType, string> = {
   unspecified: "oklch(0.67 0.035 250)",
 };
 
-const NODE_TYPES: Record<NodeTypeKey, { label: string; shortLabel: string; glyph: string; color: string }> = {
-  "system-input": { label: "System input", shortLabel: "Input", glyph: "↘", color: "oklch(0.78 0.12 225)" },
-  "system-output": { label: "System output", shortLabel: "Output", glyph: "↗", color: "oklch(0.74 0.15 315)" },
-  "system-input-output": { label: "System input + output", shortLabel: "Input + output", glyph: "⇄", color: "oklch(0.76 0.13 270)" },
+const NODE_TYPES: Record<NodeType, { label: string; shortLabel: string; glyph: string; color: string }> = {
+  "user-input": { label: "User input", shortLabel: "User input", glyph: "↘", color: "oklch(0.78 0.12 225)" },
+  "user-output": { label: "User output", shortLabel: "User output", glyph: "↗", color: "oklch(0.74 0.15 315)" },
+  "external-dependency": { label: "External dependency", shortLabel: "External", glyph: "⇄", color: "oklch(0.74 0.12 265)" },
+  "system-input": { label: "System input", shortLabel: "System input", glyph: "⇥", color: "oklch(0.78 0.12 195)" },
+  "system-output": { label: "System output", shortLabel: "System output", glyph: "⇤", color: "oklch(0.72 0.16 20)" },
   "system-state": { label: "System state", shortLabel: "State", glyph: "◆", color: "oklch(0.78 0.14 55)" },
   "static-data": { label: "Static data", shortLabel: "Static", glyph: "▤", color: "oklch(0.82 0.12 100)" },
   "data-processing": { label: "Data processing", shortLabel: "Processing", glyph: "ƒ", color: "oklch(0.76 0.14 155)" },
@@ -58,14 +60,6 @@ function escapeHtml(value: string | number): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
-}
-
-function nodeTypeKey(node: SystemDataflowNode): NodeTypeKey {
-  if (Array.isArray(node.type)) {
-    return "system-input-output";
-  } else {
-    return node.type;
-  }
 }
 
 function displayChangeType(changeType: ChangeType | undefined): DisplayChangeType {
@@ -169,10 +163,10 @@ function renderGraph(): string {
   const nodes = graph.nodes
     .map((node) => {
       const box = layout.boxes.get(node.name)!;
-      const type = NODE_TYPES[nodeTypeKey(node)];
+      const type = NODE_TYPES[node.type];
       const selected = selectionKey(selection) === selectionKey({ type: "node", name: node.name });
       const dimmed = focus !== undefined && !relatedNodes.has(node.name);
-      return `<button class="graph-node type-${nodeTypeKey(node)}${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;--type-color:${type.color};--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(node.name)}" aria-label="Inspect ${escapeHtml(type.label)} ${escapeHtml(node.name)}">
+      return `<button class="graph-node type-${node.type}${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;--type-color:${type.color};--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(node.name)}" aria-label="Inspect ${escapeHtml(type.label)} ${escapeHtml(node.name)}">
         <span class="change-stripe"></span>
         <span class="node-glyph">${type.glyph}</span>
         <span class="node-copy">
@@ -224,9 +218,9 @@ function relationshipRows(relationships: SystemDataflowRelationship[], direction
 
 function renderOverview(): string {
   const graph = visibleDataflow();
-  const counts = new Map<NodeTypeKey, number>();
-  for (const node of graph.nodes) counts.set(nodeTypeKey(node), (counts.get(nodeTypeKey(node)) ?? 0) + 1);
-  const typeRows = (Object.keys(NODE_TYPES) as NodeTypeKey[])
+  const counts = new Map<NodeType, number>();
+  for (const node of graph.nodes) counts.set(node.type, (counts.get(node.type) ?? 0) + 1);
+  const typeRows = (Object.keys(NODE_TYPES) as NodeType[])
     .filter((type) => (counts.get(type) ?? 0) > 0)
     .map((type) => `<div class="type-count"><span class="type-dot" style="background:${NODE_TYPES[type].color}"></span><span>${escapeHtml(NODE_TYPES[type].label)}</span><strong>${counts.get(type)}</strong></div>`)
     .join("");
@@ -245,7 +239,7 @@ function renderInspector(): string {
     return renderOverview();
   } else if (inspected.type === "node") {
     const node = dataflow.nodes.find((item) => item.name === inspected.name)!;
-    const type = NODE_TYPES[nodeTypeKey(node)];
+    const type = NODE_TYPES[node.type];
     const incoming = dataflow.relationships.filter((relationship) => relationship.to === node.name);
     const outgoing = dataflow.relationships.filter((relationship) => relationship.from === node.name);
     const algorithm = node.algorithm === undefined ? "" : section("Algorithm", `<pre class="algorithm">${escapeHtml(node.algorithm)}</pre>`);
@@ -269,7 +263,7 @@ function renderInspector(): string {
 }
 
 function renderLegend(): string {
-  return `<div class="legend">${(["system-input", "system-output", "system-state", "static-data", "data-processing"] as NodeTypeKey[])
+  return `<div class="legend">${(Object.keys(NODE_TYPES) as NodeType[])
     .map((type) => `<span><i style="background:${NODE_TYPES[type].color}"></i>${NODE_TYPES[type].shortLabel}</span>`)
     .join("")}</div>`;
 }
