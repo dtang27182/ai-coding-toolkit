@@ -1,142 +1,200 @@
 {
   "schemaVersion": 1,
   "stage": "high-level-design",
-  "feature": "Model selector",
+  "feature": "Delivery promise estimator",
   "nodes": [
     {
       "type": [
         "system-input",
         "system-output"
       ],
-      "name": "Model dropdown",
-      "description": "Displays the current model and lets the user select the model used by subsequent chat requests.",
-      "medium": "HTML select",
-      "location": "ModelSelector select",
-      "changeType": "added"
-    },
-    {
-      "type": "system-input",
-      "name": "Chat request",
-      "description": "The next main chat, clarification, scenario comparison, or post-edit analysis request started by the user workflow.",
-      "medium": "UI event",
-      "location": "ChatInput",
-      "changeType": "unchanged"
-    },
-    {
-      "type": "static-data",
-      "name": "Chat model catalog",
-      "description": "The predefined model IDs, display labels, and complete model, provider, and reasoning configurations.",
-      "medium": "Immutable TypeScript constant",
-      "location": "CHAT_MODELS catalog",
+      "name": "Delivery options panel",
+      "description": "Accepts the customer's delivery address and selected option, then presents priced delivery promises for the current cart.",
+      "medium": "React UI",
+      "location": "DeliveryOptionsPanel",
       "changeType": "added"
     },
     {
       "type": "system-state",
-      "name": "Selected model ID",
-      "description": "The model selected for the next request in the current task-pane session.",
-      "medium": "In-memory instance variable",
-      "location": "ModelSelector.selectedModelId",
-      "changeType": "added"
-    },
-    {
-      "type": "data-processing",
-      "name": "Resolve selected model configuration",
-      "description": "Resolves the selected model ID to one complete immutable request configuration.",
-      "medium": "TypeScript",
-      "location": "ModelSelector.getSelectedModelConfig",
-      "changeType": "added",
-      "algorithm": "Look up selectedModelId in the chat model catalog and return that entry's complete model, provider, and reasoning configuration. Use the explicit model ID as the key; never use the display label as an identifier."
-    },
-    {
-      "type": "data-processing",
-      "name": "Assemble chat request",
-      "description": "Builds a fresh request body using the current request inputs and the model configuration sampled when the request starts.",
-      "medium": "TypeScript",
-      "location": "LLMManager.runMainQueryPrompt, LLMManager.runClarificationResponsePrompt, LLMManager.runScenarioComparisonPrompt, LLMManager.runUpdateAnalysisPrompt; llm-manager request builders.buildMainQueryRequestBody, llm-manager request builders.buildClarificationResponseRequestBody, llm-manager request builders.buildUpdateAnalysisRequestBody",
-      "changeType": "modified",
-      "algorithm": "At each chat request boundary: sample the current model configuration once; create a fresh request body from the request inputs and that complete configuration; serialize the body without retaining a reference to mutable selection state. Do not merge settings over a previous model configuration."
-    },
-    {
-      "type": "system-output",
-      "name": "OpenRouter Responses endpoint",
-      "description": "Receives the serialized request body containing the model selection captured for that request.",
-      "medium": "HTTPS API",
-      "location": "https://openrouter.ai/api/v1/responses",
+      "name": "Shopping cart",
+      "description": "Stores the products and quantities that must be fulfilled together with the dimensions and weight needed for shipping.",
+      "medium": "PostgreSQL",
+      "location": "shopping_carts and cart_items tables",
       "changeType": "unchanged"
+    },
+    {
+      "type": "system-state",
+      "name": "Warehouse inventory",
+      "description": "Stores available-to-promise quantities by product and fulfillment center.",
+      "medium": "PostgreSQL",
+      "location": "warehouse_inventory table",
+      "changeType": "unchanged"
+    },
+    {
+      "type": "static-data",
+      "name": "Fulfillment policy",
+      "description": "Defines eligible fulfillment centers, handling times, carrier restrictions, split-shipment penalties, and the allowed delivery window.",
+      "medium": "Source-controlled YAML",
+      "location": "FulfillmentPolicy catalog",
+      "changeType": "modified"
+    },
+    {
+      "type": [
+        "system-input",
+        "system-output"
+      ],
+      "name": "Address validation service",
+      "description": "Normalizes the entered address and returns its deliverability, geographic coordinates, and postal region.",
+      "medium": "HTTPS API",
+      "location": "Address Validation API /v1/validate",
+      "changeType": "unchanged"
+    },
+    {
+      "type": [
+        "system-input",
+        "system-output"
+      ],
+      "name": "Carrier rates service",
+      "description": "Returns shipping prices, service levels, and estimated transit times for proposed packages and routes.",
+      "medium": "HTTPS API",
+      "location": "Carrier Rates API /v2/rates",
+      "changeType": "unchanged"
+    },
+    {
+      "type": "data-processing",
+      "name": "Build candidate fulfillment plans",
+      "description": "Constructs feasible ways to allocate the cart across fulfillment centers and package the allocated items.",
+      "medium": "TypeScript",
+      "location": "DeliveryPlanner.buildCandidatePlans",
+      "changeType": "added",
+      "algorithm": "For each cart item, find fulfillment centers with enough available-to-promise inventory and permitted service to the destination region. Build allocations incrementally, pruning any partial allocation that exceeds the maximum shipment count or cannot fulfill every remaining item. Consolidate items assigned to the same center into packages using the policy's weight and dimension limits. Deduplicate equivalent plans by their center, item, and package assignments."
+    },
+    {
+      "type": "data-processing",
+      "name": "Rank delivery options",
+      "description": "Combines candidate plans with carrier quotes and selects a small set of meaningful delivery choices.",
+      "medium": "TypeScript",
+      "location": "DeliveryPlanner.rankOptions",
+      "changeType": "added",
+      "algorithm": "For each quoted plan, calculate its total shipping price and promised date from warehouse handling time plus carrier transit time. Discard plans outside the allowed delivery window. Remove plans dominated by another plan that is both cheaper and no slower. Score the remainder using shipping price, split-shipment penalty, and delivery-risk buffer; return the cheapest, fastest, and best-scoring options with deterministic ties by promised date and plan ID."
+    },
+    {
+      "type": "system-state",
+      "name": "Delivery quote session",
+      "description": "Retains the ranked options, their expiration time, and the customer's selected option for the active checkout.",
+      "medium": "Redis JSON document",
+      "location": "delivery-quotes:{cartId}",
+      "changeType": "added"
     }
   ],
   "relationships": [
     {
       "id": "relationship-1",
-      "from": "Chat model catalog",
-      "to": "Model dropdown",
+      "from": "Delivery options panel",
+      "to": "Address validation service",
       "type": "dataflow",
       "changeType": "added",
-      "data": "Model option IDs and display labels, including the default option.",
-      "purpose": "Populates the selector with the predefined choices and displays the configured default when the task pane opens."
+      "data": "The street address, locality, postal code, and country entered by the customer.",
+      "purpose": "Obtains a normalized, deliverable destination before fulfillment work begins."
     },
     {
       "id": "relationship-2",
-      "from": "Model dropdown",
-      "to": "Selected model ID",
+      "from": "Address validation service",
+      "to": "Build candidate fulfillment plans",
       "type": "dataflow",
       "changeType": "added",
-      "data": "The model ID chosen by the user.",
-      "purpose": "Retains the latest selection for the next request without submitting a message or resetting the workflow."
+      "data": "The normalized address, deliverability result, coordinates, and postal region.",
+      "purpose": "Supplies the destination used to filter fulfillment centers and construct carrier routes."
     },
     {
       "id": "relationship-3",
-      "from": "Selected model ID",
-      "to": "Model dropdown",
+      "from": "Shopping cart",
+      "to": "Build candidate fulfillment plans",
       "type": "dataflow",
       "changeType": "added",
-      "data": "The currently retained model ID.",
-      "purpose": "Keeps the displayed option synchronized with session state through running, review, Clear, and Restore states."
+      "data": "Cart lines containing product ID, quantity, unit weight, and package dimensions.",
+      "purpose": "Defines the items every candidate plan must allocate and package completely."
     },
     {
       "id": "relationship-4",
-      "from": "Selected model ID",
-      "to": "Resolve selected model configuration",
+      "from": "Warehouse inventory",
+      "to": "Build candidate fulfillment plans",
       "type": "dataflow",
       "changeType": "added",
-      "data": "The model ID current when a chat request starts.",
-      "purpose": "Selects the configuration for the new request while leaving already submitted requests unchanged."
+      "data": "Available-to-promise quantities for the cart's products, grouped by fulfillment center.",
+      "purpose": "Prevents the planner from proposing allocations that a warehouse cannot fulfill."
     },
     {
       "id": "relationship-5",
-      "from": "Chat model catalog",
-      "to": "Resolve selected model configuration",
+      "from": "Fulfillment policy",
+      "to": "Build candidate fulfillment plans",
       "type": "dataflow",
-      "changeType": "added",
-      "data": "Immutable catalog entries keyed by model ID, each containing complete request settings.",
-      "purpose": "Provides an entire configuration so settings absent from one model cannot leak from a previously selected model."
+      "changeType": "modified",
+      "data": "Center eligibility, packaging constraints, carrier restrictions, and the maximum shipment count.",
+      "purpose": "Constrains the search to operationally valid fulfillment plans."
     },
     {
       "id": "relationship-6",
-      "from": "Chat request",
-      "to": "Assemble chat request",
+      "from": "Build candidate fulfillment plans",
+      "to": "Carrier rates service",
       "type": "dataflow",
-      "changeType": "unchanged",
-      "data": "The prompt, conversation history, tools, response schema, and other existing request inputs.",
-      "purpose": "Supplies the request-specific content that is combined with the selected model configuration."
+      "changeType": "added",
+      "data": "Candidate packages with origin, destination, dimensions, weight, and permitted carrier services.",
+      "purpose": "Requests comparable prices and transit estimates for every feasible shipment leg."
     },
     {
       "id": "relationship-7",
-      "from": "Resolve selected model configuration",
-      "to": "Assemble chat request",
+      "from": "Build candidate fulfillment plans",
+      "to": "Rank delivery options",
       "type": "dataflow",
       "changeType": "added",
-      "data": "The complete model, provider-routing, and reasoning configuration sampled for this request.",
-      "purpose": "Makes the latest selection apply to this request while isolating its body from later selection changes."
+      "data": "Candidate plan IDs with their warehouse allocations, packages, and handling times.",
+      "purpose": "Provides the plan structure needed to combine carrier quotes and calculate complete delivery promises."
     },
     {
       "id": "relationship-8",
-      "from": "Assemble chat request",
-      "to": "OpenRouter Responses endpoint",
+      "from": "Carrier rates service",
+      "to": "Rank delivery options",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "Per-package carrier quotes containing service level, price, transit time, and quote expiration.",
+      "purpose": "Supplies the external cost and timing information used to compare candidate plans."
+    },
+    {
+      "id": "relationship-9",
+      "from": "Fulfillment policy",
+      "to": "Rank delivery options",
       "type": "dataflow",
       "changeType": "modified",
-      "data": "A serialized Responses request body containing the captured model settings and existing chat request content.",
-      "purpose": "Sends the request with the selected model while preserving the existing transport and response handling."
+      "data": "Handling times, delivery-window limits, split-shipment penalty, and delivery-risk buffer.",
+      "purpose": "Defines how raw carrier quotes become customer-facing prices and promised dates."
+    },
+    {
+      "id": "relationship-10",
+      "from": "Rank delivery options",
+      "to": "Delivery quote session",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The cheapest, fastest, and balanced delivery options with prices, promised dates, plan IDs, and expiration time.",
+      "purpose": "Retains a stable set of options so display and later selection refer to the same underlying quotes."
+    },
+    {
+      "id": "relationship-11",
+      "from": "Delivery quote session",
+      "to": "Delivery options panel",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The active delivery options and the currently selected option ID.",
+      "purpose": "Shows the customer the available prices and dates while keeping the displayed selection synchronized."
+    },
+    {
+      "id": "relationship-12",
+      "from": "Delivery options panel",
+      "to": "Delivery quote session",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The option ID selected by the customer.",
+      "purpose": "Retains the chosen delivery promise for the remainder of checkout without recalculating the quote."
     }
   ]
 }
