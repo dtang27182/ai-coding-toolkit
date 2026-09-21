@@ -6,7 +6,7 @@ Constrain the design only by Desired Behavior and Scope and Assumptions, not by 
 
 ## Understand the Design Quality Criteria
 
-1. Read `ai-coding-toolkit/design-gen/instructions/hld-quality.md` to understand the design quality criteria. Use these criteria to guide candidate generation and comparison.
+1. Read `ai-coding-toolkit/hld-gen-new/instructions/hld-quality.md` to understand the design quality criteria. Use these criteria to guide candidate generation and comparison.
 
 ## Create the Candidate
 
@@ -14,7 +14,7 @@ Constrain the design only by Desired Behavior and Scope and Assumptions, not by 
 
 3. Create the narrative and Architecture Diff in parallel as complementary parts of the same design; do not derive one from the other.
    - Use `outputDirectory` from `ai-coding-toolkit/config.json` and the caller's feature slug. Write `<feature>.hld.md` and `<feature>.architecture-diff.hld.json` under `<outputDirectory>/<feature>/iterations/<iteration>/candidate-<candidate>/` (candidates 1–3). Preserve earlier candidates and iterations.
-   - Write the narrative using `ai-coding-toolkit/design-gen/instructions/hld-narrative.md` and the complete Architecture Diff using `ai-coding-toolkit/design-gen/instructions/hld-architecture-diff.md`. When revising existing artifacts, retain the user's edits unless they conflict with the requested behavior.
+   - Write the narrative using `ai-coding-toolkit/hld-gen-new/instructions/hld-narrative.md` and the complete Architecture Diff using `ai-coding-toolkit/hld-gen-new/instructions/hld-architecture-diff.md`. When revising existing artifacts, retain the user's edits unless they conflict with the requested behavior.
 
 Use `null` for inventories not yet populated and omit derived counts until evaluation.
 

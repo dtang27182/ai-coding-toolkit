@@ -45,8 +45,8 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
   }
 }
 
-const supportedTools = ["hld-gen", "design-gen"];
-const toolNames = selectedTool === undefined ? supportedTools : [selectedTool];
+const supportedTools = ["hld-gen", "hld-gen-new"];
+const toolNames = selectedTool === undefined ? ["hld-gen"] : [selectedTool];
 const relativeOutputDirectory = path.normalize(outputDirectory);
 const outputIsRepoSubdirectory =
   relativeOutputDirectory !== "." &&
@@ -71,8 +71,8 @@ async function installRootCommands() {
     if (toolNames.includes("hld-gen")) {
       commands.visualizer = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer";
     }
-    if (toolNames.includes("design-gen")) {
-      commands["design-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/design-gen/visualizer";
+    if (toolNames.includes("hld-gen-new")) {
+      commands["hld-gen-new-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer";
     }
     let packageChanged = false;
     if (toolNames.includes("hld-gen") && packageJson.scripts?.mermaid === "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs") {
@@ -102,7 +102,7 @@ async function installRootCommands() {
 if (argumentError !== undefined || repoDirectory === undefined) {
   console.error(argumentError ?? "Target repository path is required.");
   console.error(
-    "Usage: node scripts/init.mjs <target-repo> [--agent codex] [--tool <hld-gen|design-gen>] [--output-dir <relative-directory>]"
+    "Usage: node scripts/init.mjs <target-repo> [--agent codex] [--tool <hld-gen|hld-gen-new>] [--output-dir <relative-directory>]"
   );
   process.exitCode = 1;
 } else if (agentName !== "codex") {

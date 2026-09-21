@@ -12,11 +12,13 @@ npm install
 npm run install:codex -- /path/to/code-repo
 ```
 
-To install only `design-gen`, run:
+To install only the alternative `hld-gen-new` implementation, run:
 
 ```sh
-npm run install:design-gen -- /path/to/code-repo
+npm run install:hld-gen-new -- /path/to/code-repo
 ```
+
+Both implementations expose the skill as `$hld-gen`; install one implementation into a target repository at a time.
 
 The target directory must already exist. Relative target paths are resolved from the current working directory. The output directory defaults to `docs/plans` under the target repository root. To choose another repository-relative directory, run:
 
@@ -55,13 +57,13 @@ The Architecture Diff records each class's `variableExposure` inventory. The exp
 
 The final artifacts and iteration summary are ready for human review; application implementation is a separate step.
 
-## Generate a Design
+## Alternative HLD Generator
 
-Use `$design-gen` for the candidate generation, evaluation, comparison, and selection workflow without the separate user-flow labeling, dataflow-narrative, or visualizer-description passes used by `$hld-gen`.
+The `hld-gen-new` tool installs as `$hld-gen` and provides the candidate generation, evaluation, comparison, and selection workflow without separate user-flow labeling, dataflow-narrative, or visualizer-description passes.
 
-`design-gen` retains the same narrative, Architecture Diff, quality metrics, iteration structure, and output paths as `hld-gen`.
+`hld-gen-new` retains the same narrative, Architecture Diff, quality metrics, iteration structure, and output paths as `hld-gen`.
 
-It has independent validation and counting scripts and its own Architecture Diff visualizer, available through `npm run design-visualizer`.
+It has independent validation and counting scripts and its own Architecture Diff visualizer, available through `npm run hld-gen-new-visualizer`.
 
 ## Architecture Diff Visualizer
 

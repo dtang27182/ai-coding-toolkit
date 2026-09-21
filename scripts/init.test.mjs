@@ -23,7 +23,7 @@ async function createRepository(t) {
 
 test("copies skills and scripts that work after the source checkout is removed", async (t) => {
   const sourceDirectory = await createRepository(t);
-  for (const directoryName of ["scripts", "adapters", "hld-gen", "design-gen", "node_modules"]) {
+  for (const directoryName of ["scripts", "adapters", "hld-gen", "node_modules"]) {
     await cp(path.join(toolkitDirectory, directoryName), path.join(sourceDirectory, directoryName), {
       recursive: true,
       dereference: true,
@@ -38,16 +38,14 @@ test("copies skills and scripts that work after the source checkout is removed",
   }
   await rm(sourceDirectory, { recursive: true });
 
-  for (const skillName of ["hld-gen", "design-gen"]) {
-    const skillPath = path.join(repoDirectory, ".agents", "skills", skillName, "SKILL.md");
-    assert.equal((await lstat(path.dirname(skillPath))).isSymbolicLink(), false);
-    assert.equal(
-      await readFile(skillPath, "utf8"),
-      await readFile(path.join(toolkitDirectory, skillName, "skills", skillName, "SKILL.md"), "utf8")
-    );
-  }
+  const skillPath = path.join(repoDirectory, ".agents", "skills", "hld-gen", "SKILL.md");
+  assert.equal((await lstat(path.dirname(skillPath))).isSymbolicLink(), false);
+  assert.equal(
+    await readFile(skillPath, "utf8"),
+    await readFile(path.join(toolkitDirectory, "hld-gen", "skills", "hld-gen", "SKILL.md"), "utf8")
+  );
   await assert.rejects(lstat(path.join(repoDirectory, ".agents", "skills", "hld-eval")), { code: "ENOENT" });
-  for (const directoryName of ["hld-gen", "design-gen", "node_modules"]) {
+  for (const directoryName of ["hld-gen", "node_modules"]) {
     assert.equal(
       (await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isSymbolicLink(),
       false
@@ -70,22 +68,10 @@ test("copies skills and scripts that work after the source checkout is removed",
   assert.equal(count.status, 0, count.stderr);
   assert.equal(JSON.parse(await readFile(path.join(repoDirectory, inputPath), "utf8")).variableExposureCount, 3);
 
-  const designInputPath = "ai-coding-toolkit/design-gen/references/architecture-diff.example.json";
-  const designValidation = spawnSync(process.execPath, [
-    "ai-coding-toolkit/design-gen/scripts/validate-architecture-diff.mjs", designInputPath,
-  ], { cwd: repoDirectory, encoding: "utf8" });
-  assert.equal(designValidation.status, 0, designValidation.stderr);
-
-  const designCount = spawnSync(process.execPath, [
-    "ai-coding-toolkit/design-gen/scripts/count-variable-exposure.mjs", designInputPath,
-  ], { cwd: repoDirectory, encoding: "utf8" });
-  assert.equal(designCount.status, 0, designCount.stderr);
-  assert.equal(JSON.parse(await readFile(path.join(repoDirectory, designInputPath), "utf8")).variableExposureCount, 3);
-
   assert.equal(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts.mermaid, undefined);
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs")), { code: "ENOENT" });
 
-  for (const toolName of ["hld-gen", "design-gen"]) {
+  for (const toolName of ["hld-gen"]) {
     await rm(path.join(repoDirectory, "ai-coding-toolkit", toolName, "visualizer", "dist"), {
       recursive: true,
       force: true,
@@ -103,24 +89,42 @@ test("copies skills and scripts that work after the source checkout is removed",
   }
 });
 
-test("installs only design-gen when selected", async (t) => {
+test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => {
   const repoDirectory = await createRepository(t);
   await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing"}}\n');
 
-  const result = install([repoDirectory, "--tool", "design-gen"]);
+  const result = install([repoDirectory, "--tool", "hld-gen-new"]);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(
-    await readFile(path.join(repoDirectory, ".agents", "skills", "design-gen", "SKILL.md"), "utf8"),
-    await readFile(path.join(toolkitDirectory, "design-gen", "skills", "design-gen", "SKILL.md"), "utf8")
+    await readFile(path.join(repoDirectory, ".agents", "skills", "hld-gen", "SKILL.md"), "utf8"),
+    await readFile(path.join(toolkitDirectory, "hld-gen-new", "skills", "hld-gen", "SKILL.md"), "utf8")
   );
-  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "design-gen"))).isDirectory(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "node_modules"))).isDirectory(), true);
-  await assert.rejects(lstat(path.join(repoDirectory, ".agents", "skills", "hld-gen")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen")), { code: "ENOENT" });
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "design-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/design-gen/visualizer",
+    "hld-gen-new-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer",
   });
+
+  const inputPath = "ai-coding-toolkit/hld-gen-new/references/architecture-diff.example.json";
+  const validation = spawnSync(process.execPath, [
+    "ai-coding-toolkit/hld-gen-new/scripts/validate-architecture-diff.mjs", inputPath,
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(validation.status, 0, validation.stderr);
+
+  const count = spawnSync(process.execPath, [
+    "ai-coding-toolkit/hld-gen-new/scripts/count-variable-exposure.mjs", inputPath,
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(count.status, 0, count.stderr);
+  assert.equal(JSON.parse(await readFile(path.join(repoDirectory, inputPath), "utf8")).variableExposureCount, 3);
+
+  const visualizerBuild = spawnSync(process.execPath, [
+    "ai-coding-toolkit/node_modules/vite/bin/vite.js",
+    "build",
+    "ai-coding-toolkit/hld-gen-new/visualizer",
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
 });
 
 test("refreshes installed copies on repeat installation", async (t) => {
@@ -129,9 +133,7 @@ test("refreshes installed copies on repeat installation", async (t) => {
   assert.equal(firstInstall.status, 0, firstInstall.stderr);
   const relativePaths = [
     ".agents/skills/hld-gen/SKILL.md",
-    ".agents/skills/design-gen/SKILL.md",
     "ai-coding-toolkit/hld-gen/instructions/hld-narrative.md",
-    "ai-coding-toolkit/design-gen/instructions/hld-narrative.md",
     "ai-coding-toolkit/node_modules/ajv/package.json",
   ];
   const installedContents = [];
@@ -190,7 +192,6 @@ test("removes retired toolkit files on upgrade while preserving other installed 
     assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
       test: "existing",
       visualizer: "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer",
-      "design-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/design-gen/visualizer",
     });
     assert.equal(
       await readFile(path.join(repoDirectory, ".agents/skills/hld-gen/SKILL.md"), "utf8"),
@@ -268,10 +269,6 @@ test("keeps configuration in each target and preserves an existing mermaid comma
     installedPackage.scripts.visualizer,
     "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer"
   );
-  assert.equal(
-    installedPackage.scripts["design-visualizer"],
-    "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/design-gen/visualizer"
-  );
 });
 
 test("rejects missing targets and invalid arguments", async (t) => {
@@ -323,8 +320,6 @@ test("replaces earlier toolkit links with independent copies", async (t) => {
   const directories = [
     ["hld-gen", "ai-coding-toolkit/hld-gen"],
     ["hld-gen/skills/hld-gen", ".agents/skills/hld-gen"],
-    ["design-gen", "ai-coding-toolkit/design-gen"],
-    ["design-gen/skills/design-gen", ".agents/skills/design-gen"],
   ];
   for (const [sourcePath, destinationPath] of directories) {
     await symlink(
