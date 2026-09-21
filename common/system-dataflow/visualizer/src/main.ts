@@ -292,13 +292,20 @@ function renderGraph(): string {
   </div>`;
 }
 
+/** The type badge, as the graph cards wear it. */
+function typeBadge(nodeType: NodeType): string {
+  const type = NODE_TYPES[nodeType];
+  return `<span class="type-badge" style="--type-color:${type.color}" title="${escapeHtml(type.label)}">${type.badge}</span>`;
+}
+
 function section(title: string, content: string, count?: number): string {
   return `<section class="inspector-section"><div class="section-heading"><span>${escapeHtml(title)}</span>${count === undefined ? "" : `<span class="inspector-count">${count}</span>`}</div>${content}</section>`;
 }
 
-function inspectorHeader(eyebrow: string, title: string, changeType?: ChangeType, detail?: string): string {
+function inspectorHeader(eyebrow: string, title: string, changeType?: ChangeType, detail?: string, badgeType?: NodeType): string {
+  const lead = badgeType === undefined ? escapeHtml(eyebrow) : typeBadge(badgeType);
   return `<header class="inspector-header">
-    <div class="inspector-eyebrow">${escapeHtml(eyebrow)}</div>
+    <div class="inspector-eyebrow">${lead}</div>
     <div class="inspector-title-row"><div class="inspector-title">${escapeHtml(title)}</div><button class="close-button" data-close aria-label="Clear selection">✕</button></div>
     ${chip(changeType)}${detail === undefined ? "" : `<span class="detail-chip">${escapeHtml(detail)}</span>`}
   </header>`;
@@ -326,14 +333,28 @@ function renderOverview(): string {
   for (const node of graph.nodes) counts.set(node.type, (counts.get(node.type) ?? 0) + 1);
   const typeRows = (Object.keys(NODE_TYPES) as NodeType[])
     .filter((type) => (counts.get(type) ?? 0) > 0)
-    .map((type) => `<div class="type-count"><span class="type-dot" style="background:${NODE_TYPES[type].color}"></span><span>${escapeHtml(NODE_TYPES[type].label)}</span><strong>${counts.get(type)}</strong></div>`)
+    .map((type) => `<div class="type-count">${typeBadge(type)}<span>${escapeHtml(NODE_TYPES[type].label)}</span><strong>${counts.get(type)}</strong></div>`)
     .join("");
+
+  const changeCounts = new Map<DisplayChangeType, number>();
+  for (const node of graph.nodes) {
+    const key = displayChangeType(node.changeType);
+    changeCounts.set(key, (changeCounts.get(key) ?? 0) + 1);
+  }
+  const changeRows = (Object.keys(CHANGE_COLORS) as DisplayChangeType[])
+    .filter((changeType) => (changeCounts.get(changeType) ?? 0) > 0)
+    .map((changeType) => `<div class="type-count change-count"><span class="change-swatch" style="background:${CHANGE_COLORS[changeType]}"></span><span>${escapeHtml(changeType)}</span><strong>${changeCounts.get(changeType)}</strong></div>`)
+    .join("");
+
   return `<div class="overview">
     <div class="overview-kicker">System dataflow</div>
     <h1>${escapeHtml(dataflow.feature)}</h1>
     <p>Select a node or connection to inspect its role in the flow.</p>
     <div class="overview-counts"><div><strong>${graph.nodes.length}</strong><span>nodes</span></div><div><strong>${graph.relationships.length}</strong><span>dataflows</span></div></div>
+    <div class="overview-group">By type</div>
     <div class="type-counts">${typeRows}</div>
+    <div class="overview-group">By change</div>
+    <div class="type-counts">${changeRows}</div>
   </div>`;
 }
 
@@ -347,7 +368,7 @@ function renderInspector(): string {
     const incoming = dataflow.relationships.filter((relationship) => relationship.to === node.name);
     const outgoing = dataflow.relationships.filter((relationship) => relationship.from === node.name);
     const algorithm = node.algorithm === undefined ? "" : section("Algorithm", `<pre class="algorithm">${escapeHtml(node.algorithm)}</pre>`);
-    return `${inspectorHeader(type.label, node.name, node.changeType, node.medium)}
+    return `${inspectorHeader(type.label, node.name, node.changeType, node.medium, node.type)}
       ${section("Responsibility", `<p class="entry-copy">${escapeHtml(node.description)}</p>`)}
       ${section("Location", `<p class="location-copy">${escapeHtml(node.location)}</p>`)}
       ${algorithm}
@@ -355,11 +376,15 @@ function renderInspector(): string {
       ${section("Data out", relationshipRows(outgoing, "out"), outgoing.length)}`;
   } else {
     const relationship = dataflow.relationships.find((item) => item.id === inspected.id)!;
-    return `${inspectorHeader("Dataflow", `${relationship.from} → ${relationship.to}`, relationship.changeType)}
+    const source = dataflow.nodes.find((item) => item.name === relationship.from);
+    const destination = dataflow.nodes.find((item) => item.name === relationship.to);
+    const endpoint = (role: string, name: string, node: SystemDataflowNode | undefined): string =>
+      `<button data-jump-node="${escapeHtml(name)}"><span class="endpoint-role">${role}</span>${node === undefined ? "" : typeBadge(node.type)}<span class="endpoint-name">${escapeHtml(name)}</span></button>`;
+    return `${inspectorHeader("Dataflow", `${relationship.from} → ${relationship.to}`, relationship.changeType, relationship.id)}
       <div class="endpoint-pair">
-        <button data-jump-node="${escapeHtml(relationship.from)}"><span>From</span>${escapeHtml(relationship.from)}</button>
+        ${endpoint("From", relationship.from, source)}
         <span class="endpoint-arrow">→</span>
-        <button data-jump-node="${escapeHtml(relationship.to)}"><span>To</span>${escapeHtml(relationship.to)}</button>
+        ${endpoint("To", relationship.to, destination)}
       </div>
       ${section("Data", `<p class="entry-copy">${escapeHtml(relationship.data)}</p>`)}
       ${section("Purpose", `<p class="entry-copy">${escapeHtml(relationship.purpose)}</p>`)}`;

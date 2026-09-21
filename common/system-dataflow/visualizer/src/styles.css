@@ -397,11 +397,32 @@ button:focus-visible,
   border-radius: 2px;
 }
 
-.type-dot {
-  width: 7px;
-  height: 7px;
+.type-badge {
+  display: inline-flex;
+  height: 19px;
+  align-items: center;
+  padding: 0 7px;
+  border: 1px solid color-mix(in oklch, var(--type-color) 44%, transparent);
+  border-radius: 5px;
+  color: var(--type-color);
+  background: color-mix(in oklch, var(--type-color) 17%, transparent);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  white-space: nowrap;
+}
+
+.inspector-eyebrow .type-badge {
+  height: 22px;
+  font-size: 10px;
+}
+
+.change-swatch {
+  width: 3px;
+  height: 12px;
   flex: 0 0 auto;
-  border-radius: 50%;
+  border-radius: 2px;
 }
 
 .inspector {
@@ -477,13 +498,32 @@ button:focus-visible,
   gap: 8px;
 }
 
+.overview-group {
+  margin-bottom: 11px;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.overview-group ~ .overview-group {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--subtle-border);
+}
+
 .type-count {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 104px 1fr auto;
   align-items: center;
   gap: 9px;
   color: oklch(0.88 0.015 250);
   font-size: 13px;
+}
+
+.type-count.change-count {
+  grid-template-columns: 12px 1fr auto;
 }
 
 .type-count strong {
@@ -661,7 +701,7 @@ button:focus-visible,
 .endpoint-pair {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
   padding: 16px 20px 2px;
 }
@@ -684,16 +724,22 @@ button:focus-visible,
   border-color: var(--accent);
 }
 
-.endpoint-pair button span {
+.endpoint-pair button .endpoint-role {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 7px;
   color: var(--muted);
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
+.endpoint-pair button .endpoint-name {
+  display: block;
+  margin-top: 7px;
+}
+
 .endpoint-arrow {
+  align-self: center;
   color: var(--accent);
   font-family: "IBM Plex Mono", monospace;
 }
