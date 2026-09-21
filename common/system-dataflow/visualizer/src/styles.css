@@ -251,7 +251,8 @@ button:focus-visible,
   color: inherit;
   background: transparent;
   text-align: left;
-  cursor: pointer;
+  /* only the silhouette below takes pointer events, never the bounding box */
+  pointer-events: none;
   transition: opacity 120ms ease, filter 120ms ease;
 }
 
@@ -267,6 +268,8 @@ button:focus-visible,
   stroke: color-mix(in oklch, var(--change-color) 72%, var(--border));
   stroke-width: 1.9;
   stroke-linejoin: round;
+  cursor: pointer;
+  pointer-events: fill;
   transition: stroke 120ms ease;
 }
 
@@ -293,6 +296,8 @@ button:focus-visible,
   overflow: hidden;
   flex-direction: column;
   padding: 11px 24px 10px;
+  /* clicks fall through the copy to the silhouette underneath */
+  pointer-events: none;
 }
 
 .node-badge {

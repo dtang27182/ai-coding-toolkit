@@ -37,6 +37,10 @@ type Silhouette =
   | "dogear"
   | "hexagon";
 
+/** Pixels between two connections meeting the same node edge, and the clearance kept from its corners. */
+const ATTACHMENT_GAP = 22;
+const ATTACHMENT_MARGIN = 10;
+
 const NODE_TYPES: Record<NodeType, { label: string; badge: string; shape: Silhouette; color: string }> = {
   "user-input": { label: "User input", badge: "USER →", shape: "rect", color: "oklch(0.80 0.095 232)" },
   "user-output": { label: "User output", badge: "→ USER", shape: "rect", color: "oklch(0.78 0.095 300)" },
@@ -120,6 +124,23 @@ function related(relationship: SystemDataflowRelationship, value: Selection | un
   }
 }
 
+/** Half the width of a silhouette's flat top and bottom edge: how far an attachment point may slide. */
+function flatHalfSpan(shape: Silhouette, width: number, height: number): number {
+  if (shape === "stadium-left" || shape === "stadium-right") {
+    return width / 2 - height / 2;
+  } else if (shape === "cylinder") {
+    return width / 2 - width * 0.0565;
+  } else if (shape === "hexagon") {
+    return width / 2 - width * 0.0806;
+  } else if (shape === "dogear") {
+    return width / 2 - height * 0.239;
+  } else if (shape === "dashed") {
+    return width / 2 - height * 0.152;
+  } else {
+    return width / 2 - height * 0.065;
+  }
+}
+
 /** The card outline for a node type. Shape carries the type; the stroke colour carries the change. */
 function silhouette(shape: Silhouette, width: number, height: number): { outline: string; details: string[]; dashed: boolean } {
   const round = (value: number): number => Math.round(value * 100) / 100;
@@ -196,15 +217,39 @@ function renderGraph(): string {
     relatedNodes.add(relationship.to);
   }
 
+  const outgoingIds = new Map<string, string[]>();
+  const incomingIds = new Map<string, string[]>();
+  for (const relationship of graph.relationships) {
+    if (!outgoingIds.has(relationship.from)) outgoingIds.set(relationship.from, []);
+    outgoingIds.get(relationship.from)!.push(relationship.id);
+    if (!incomingIds.has(relationship.to)) incomingIds.set(relationship.to, []);
+    incomingIds.get(relationship.to)!.push(relationship.id);
+  }
+
+  /** Spaces a node's connections evenly along its edge instead of stacking them at the centre. */
+  function attachmentOffset(nodeName: string, relationshipId: string, groups: Map<string, string[]>): number {
+    const group = groups.get(nodeName) ?? [];
+    const node = graph.nodes.find((item) => item.name === nodeName);
+    const box = layout.boxes.get(nodeName);
+    if (group.length < 2 || node === undefined || box === undefined) {
+      return 0;
+    }
+    const room = Math.max(0, flatHalfSpan(NODE_TYPES[node.type].shape, box.width, box.height) - ATTACHMENT_MARGIN);
+    const gap = Math.min(ATTACHMENT_GAP, (room * 2) / (group.length - 1));
+    return (group.indexOf(relationshipId) - (group.length - 1) / 2) * gap;
+  }
+
   const edges = graph.relationships
-    .map((relationship, index) => {
+    .map((relationship) => {
       const from = layout.boxes.get(relationship.from);
       const to = layout.boxes.get(relationship.to);
       if (from === undefined || to === undefined) return "";
       const obstacles = [...layout.boxes]
         .filter(([name]) => name !== relationship.from && name !== relationship.to)
         .map(([, box]) => box);
-      const route = routeEdge(from, to, ((index % 5) - 2) * 4, obstacles);
+      const startSpread = attachmentOffset(relationship.from, relationship.id, outgoingIds);
+      const endSpread = attachmentOffset(relationship.to, relationship.id, incomingIds);
+      const route = routeEdge(from, to, startSpread, endSpread, obstacles);
       const visualChangeType = displayChangeType(relationship.changeType);
       const color = changeColor(relationship.changeType);
       const dimmed = focus !== undefined && !related(relationship, focus);

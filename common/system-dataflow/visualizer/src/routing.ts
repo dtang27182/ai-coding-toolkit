@@ -5,7 +5,14 @@ interface Point {
   y: number;
 }
 
-export function routeEdge(from: Rect, to: Rect, spread = 0, obstacles: Rect[] = []): { path: string; start: Point; end: Point } {
+export function routeEdge(
+  from: Rect,
+  to: Rect,
+  startSpread = 0,
+  endSpread = 0,
+  obstacles: Rect[] = [],
+): { path: string; start: Point; end: Point } {
+  const widestSpread = Math.max(Math.abs(startSpread), Math.abs(endSpread));
   const fromCenterX = from.x + from.width / 2;
   const fromCenterY = from.y + from.height / 2;
   const toCenterX = to.x + to.width / 2;
@@ -15,27 +22,27 @@ export function routeEdge(from: Rect, to: Rect, spread = 0, obstacles: Rect[] = 
   let firstControl: Point;
   let lastControl: Point;
   if (from === to || (Math.abs(toCenterX - fromCenterX) < 1 && Math.abs(toCenterY - fromCenterY) < 1)) {
-    start = { x: from.x + from.width * 0.34 + spread, y: from.y + from.height };
-    end = { x: to.x + to.width * 0.66 + spread, y: to.y + to.height };
-    const bow = 46 + Math.abs(spread);
+    start = { x: from.x + from.width * 0.34 + startSpread, y: from.y + from.height };
+    end = { x: to.x + to.width * 0.66 + endSpread, y: to.y + to.height };
+    const bow = 46 + widestSpread;
     firstControl = { x: start.x, y: start.y + bow };
     lastControl = { x: end.x, y: end.y + bow };
   } else if (toCenterY > from.y + from.height + 12 || toCenterY < from.y - 12) {
     const down = toCenterY > fromCenterY;
-    start = { x: fromCenterX + spread, y: down ? from.y + from.height : from.y };
-    end = { x: toCenterX + spread, y: down ? to.y : to.y + to.height };
+    start = { x: fromCenterX + startSpread, y: down ? from.y + from.height : from.y };
+    end = { x: toCenterX + endSpread, y: down ? to.y : to.y + to.height };
     const bend = Math.max(36, Math.abs(end.y - start.y) / 2);
     firstControl = { x: start.x, y: down ? start.y + bend : start.y - bend };
     lastControl = { x: end.x, y: down ? end.y - bend : end.y + bend };
   } else {
-    start = { x: fromCenterX + spread, y: from.y + from.height };
-    end = { x: toCenterX + spread, y: to.y + to.height };
-    const bend = 48 + Math.abs(end.x - start.x) / 8 + Math.abs(spread);
+    start = { x: fromCenterX + startSpread, y: from.y + from.height };
+    end = { x: toCenterX + endSpread, y: to.y + to.height };
+    const bend = 48 + Math.abs(end.x - start.x) / 8 + widestSpread;
     firstControl = { x: start.x, y: start.y + bend };
     lastControl = { x: end.x, y: end.y + bend };
   }
 
-  const clearance = 20 + spread;
+  const clearance = 20 + Math.min(10, widestSpread * 0.25);
   const blocked = expandObstacles(obstacles, clearance);
   let path: string;
   if (curveBlocked([start, firstControl, lastControl, end], blocked)) {
