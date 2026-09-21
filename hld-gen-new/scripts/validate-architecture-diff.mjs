@@ -10,7 +10,7 @@ const inputArguments = process.argv.slice(2);
 
 if (inputArguments.length !== 1) {
   console.error(
-    "Usage: node ai-coding-toolkit/hld-gen/scripts/validate-architecture-diff.mjs <architecture-diff.json>"
+    "Usage: node ai-coding-toolkit/hld-gen-new/scripts/validate-architecture-diff.mjs <arch-diff.json>"
   );
   process.exitCode = 1;
 } else {
@@ -18,7 +18,7 @@ if (inputArguments.length !== 1) {
   const schemaPath = path.join(
     hldGeneratorDirectory,
     "references",
-    "architecture-diff.schema.json"
+    "arch-diff.schema.json"
   );
 
   try {

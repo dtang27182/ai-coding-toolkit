@@ -72,20 +72,60 @@ test("copies skills and scripts that work after the source checkout is removed",
   assert.equal(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts.mermaid, undefined);
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs")), { code: "ENOENT" });
 
-  await rm(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen", "visualizer", "dist"), {
-    recursive: true,
-    force: true,
+  for (const toolName of ["hld-gen"]) {
+    await rm(path.join(repoDirectory, "ai-coding-toolkit", toolName, "visualizer", "dist"), {
+      recursive: true,
+      force: true,
+    });
+    const visualizerBuild = spawnSync(process.execPath, [
+      "ai-coding-toolkit/node_modules/vite/bin/vite.js",
+      "build",
+      `ai-coding-toolkit/${toolName}/visualizer`,
+    ], { cwd: repoDirectory, encoding: "utf8" });
+    assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
+    assert.match(
+      await readFile(path.join(repoDirectory, "ai-coding-toolkit", toolName, "visualizer", "dist", "index.html"), "utf8"),
+      /Architecture Diff Viewer/
+    );
+  }
+});
+
+test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => {
+  const repoDirectory = await createRepository(t);
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing"}}\n');
+
+  const result = install([repoDirectory, "--tool", "hld-gen-new"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(
+    await readFile(path.join(repoDirectory, ".agents", "skills", "hld-gen", "SKILL.md"), "utf8"),
+    await readFile(path.join(toolkitDirectory, "hld-gen-new", "skills", "hld-gen", "SKILL.md"), "utf8")
+  );
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new"))).isDirectory(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "node_modules"))).isDirectory(), true);
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen")), { code: "ENOENT" });
+  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
+    test: "existing",
+    "hld-gen-new-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer",
   });
+
+  const inputPath = "ai-coding-toolkit/hld-gen-new/references/arch-diff.example.json";
+  const validation = spawnSync(process.execPath, [
+    "ai-coding-toolkit/hld-gen-new/scripts/validate-architecture-diff.mjs", inputPath,
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(validation.status, 0, validation.stderr);
+
+  const count = spawnSync(process.execPath, [
+    "ai-coding-toolkit/hld-gen-new/scripts/count-variable-exposure.mjs", inputPath,
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(count.status, 0, count.stderr);
+  assert.equal(JSON.parse(await readFile(path.join(repoDirectory, inputPath), "utf8")).variableExposureCount, 3);
+
   const visualizerBuild = spawnSync(process.execPath, [
     "ai-coding-toolkit/node_modules/vite/bin/vite.js",
     "build",
-    "ai-coding-toolkit/hld-gen/visualizer",
+    "ai-coding-toolkit/hld-gen-new/visualizer",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
-  assert.match(
-    await readFile(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen", "visualizer", "dist", "index.html"), "utf8"),
-    /Architecture Diff Viewer/
-  );
 });
 
 test("refreshes installed copies on repeat installation", async (t) => {
@@ -243,6 +283,8 @@ test("rejects missing targets and invalid arguments", async (t) => {
     [repoDirectory, "--output-dir", "../outside"],
     [repoDirectory, "--output-dir", repoDirectory],
     [repoDirectory, "--output-dir", "."],
+    [repoDirectory, "--tool"],
+    [repoDirectory, "--tool", "unknown"],
     [repoDirectory, "--unknown"],
   ]) {
     assert.notEqual(install(argumentsList).status, 0, JSON.stringify(argumentsList));

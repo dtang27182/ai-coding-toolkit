@@ -11,6 +11,7 @@ const inputArguments = process.argv.slice(2);
 let repoDirectory;
 let agentName = "codex";
 let outputDirectory = "docs/plans";
+let selectedTool;
 let argumentError;
 
 for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
@@ -27,6 +28,12 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
     outputDirectory = inputArguments[argumentIndex + 1];
     argumentIndex += 2;
   } else if (
+    inputArguments[argumentIndex] === "--tool" &&
+    inputArguments[argumentIndex + 1] !== undefined
+  ) {
+    selectedTool = inputArguments[argumentIndex + 1];
+    argumentIndex += 2;
+  } else if (
     !inputArguments[argumentIndex].startsWith("-") &&
     repoDirectory === undefined
   ) {
@@ -38,6 +45,8 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
   }
 }
 
+const supportedTools = ["hld-gen", "hld-gen-new"];
+const toolNames = selectedTool === undefined ? ["hld-gen"] : [selectedTool];
 const relativeOutputDirectory = path.normalize(outputDirectory);
 const outputIsRepoSubdirectory =
   relativeOutputDirectory !== "." &&
@@ -58,11 +67,15 @@ async function installRootCommands() {
   }
 
   if (packageJson !== undefined) {
-    const commands = {
-      visualizer: "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer",
-    };
+    const commands = {};
+    if (toolNames.includes("hld-gen")) {
+      commands.visualizer = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer";
+    }
+    if (toolNames.includes("hld-gen-new")) {
+      commands["hld-gen-new-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer";
+    }
     let packageChanged = false;
-    if (packageJson.scripts?.mermaid === "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs") {
+    if (toolNames.includes("hld-gen") && packageJson.scripts?.mermaid === "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs") {
       delete packageJson.scripts.mermaid;
       packageChanged = true;
       console.log("Removed retired npm command: npm run mermaid");
@@ -89,11 +102,14 @@ async function installRootCommands() {
 if (argumentError !== undefined || repoDirectory === undefined) {
   console.error(argumentError ?? "Target repository path is required.");
   console.error(
-    "Usage: node scripts/init.mjs <target-repo> [--agent codex] [--output-dir <relative-directory>]"
+    "Usage: node scripts/init.mjs <target-repo> [--agent codex] [--tool <hld-gen|hld-gen-new>] [--output-dir <relative-directory>]"
   );
   process.exitCode = 1;
 } else if (agentName !== "codex") {
   console.error(`Unsupported agent: ${agentName}`);
+  process.exitCode = 1;
+} else if (selectedTool !== undefined && !supportedTools.includes(selectedTool)) {
+  console.error(`Unsupported tool: ${selectedTool}`);
   process.exitCode = 1;
 } else if (!outputIsRepoSubdirectory) {
   console.error("Output directory must be a relative directory under the repository root.");
@@ -105,21 +121,23 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   repoDirectory = await realpath(repoDirectory);
   const installedToolkitDirectory = path.join(repoDirectory, "ai-coding-toolkit");
   const outputPath = path.resolve(repoDirectory, relativeOutputDirectory);
-  for (const directoryName of ["hld-gen", "node_modules"]) {
+  for (const directoryName of [...toolNames, "node_modules"]) {
     await copyDirectory(
       path.join(toolkitDirectory, directoryName),
       path.join(installedToolkitDirectory, directoryName)
     );
   }
-  for (const relativePath of ["hld-architecture.md", "skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md", "scripts/architecture-diff-to-mermaid.mjs"]) {
-    await rm(path.join(installedToolkitDirectory, "hld-gen", relativePath), { recursive: true, force: true });
+  if (toolNames.includes("hld-gen")) {
+    for (const relativePath of ["skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md", "scripts/architecture-diff-to-mermaid.mjs"]) {
+      await rm(path.join(installedToolkitDirectory, "hld-gen", relativePath), { recursive: true, force: true });
+    }
   }
-  await installCodexSkills(repoDirectory, toolkitDirectory);
+  await installCodexSkills(repoDirectory, toolkitDirectory, toolNames);
   await installRootCommands();
   await mkdir(outputPath, { recursive: true });
   await writeFile(
     path.join(installedToolkitDirectory, "config.json"),
     `${JSON.stringify({ outputDirectory: relativeOutputDirectory }, null, 2)}\n`
   );
-  console.log(`Configured HLD output: ${outputPath}`);
+  console.log(`Configured design output: ${outputPath}`);
 }

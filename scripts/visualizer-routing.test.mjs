@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { routeCompositionEdge, routeEdge } from "../hld-gen/visualizer/src/routing.ts";
+import { edgePortSpreads, routeCompositionEdge, routeEdge } from "../hld-gen/visualizer/src/routing.ts";
 
 function pathPoints(path) {
   const commands = path.match(/[MLC][^MLC]*/g);
@@ -168,4 +168,21 @@ test("preserves unobstructed curves and distinct same-row fan-out", () => {
     paths.push(route.path);
   }
   assert.equal(new Set(paths).size, 4);
+});
+
+test("spaces dense fan-in and fan-out at their shared entities", () => {
+  const source = { x: 200, y: 0, width: 200, height: 32 };
+  const target = { x: 200, y: 500, width: 200, height: 32 };
+  const fanOutTargets = [0, 150, 300, 450].map((x) => ({ x, y: 250, width: 100, height: 32 }));
+  const fanInSources = [0, 150, 300, 450].map((x) => ({ x, y: 250, width: 100, height: 32 }));
+  const edges = [
+    ...fanOutTargets.map((to, index) => ({ fromKey: "source", toKey: `out-${index}`, from: source, to })),
+    ...fanInSources.map((from, index) => ({ fromKey: `in-${index}`, toKey: "target", from, to: target })),
+  ];
+  const spreads = edgePortSpreads(edges);
+  const fanOutStarts = fanOutTargets.map((to, index) => routeEdge(source, to, spreads[index]).start.x);
+  const fanInEnds = fanInSources.map((from, index) => routeEdge(from, target, spreads[index + fanOutTargets.length]).end.x);
+
+  assert.deepEqual(fanOutStarts, [276, 292, 308, 324]);
+  assert.deepEqual(fanInEnds, [276, 292, 308, 324]);
 });
