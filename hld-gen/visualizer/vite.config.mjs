@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { defineConfig } from "vite";
 
-import { findFirstArchitectureDiff } from "./default-architecture-diff.mjs";
+import { findNewestArchitectureDiff } from "./default-architecture-diff.mjs";
 
 const visualizerDirectory = path.dirname(fileURLToPath(import.meta.url));
 const toolkitDirectory = path.resolve(visualizerDirectory, "../..");
@@ -17,7 +17,7 @@ export default defineConfig({
       server.middlewares.use(async (request, response, next) => {
         if (request.method === "GET" && request.url === "/__architecture-diff/default") {
           try {
-            const filePath = await findFirstArchitectureDiff(repositoryDirectory, toolkitDirectory);
+            const filePath = await findNewestArchitectureDiff(repositoryDirectory, toolkitDirectory);
             if (filePath === undefined) {
               response.statusCode = 204;
               response.end();

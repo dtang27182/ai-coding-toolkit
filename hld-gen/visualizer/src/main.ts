@@ -524,24 +524,10 @@ function shapeLegend(): string {
 
 function render(): void {
   const graph = visibleGraph();
-  const methods = graph.classes.reduce((count, classDiff) => count + classDiff.methods.length, 0);
-  const dataflows = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow").length;
-  const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update").length;
-  const metrics = [
-    [methods, "methods"],
-    [dataflows, "dataflows"],
-    [stateUpdates, "state updates"],
-    [graph.components.length, "ui / io"],
-    [graph.variableExposureCount ?? "?", "exposed vars"],
-  ];
   app.innerHTML = `<div class="app-shell">
     <header class="topbar">
       <div class="summary-row">
-        <div class="brand"><span class="brand-title">Architecture Diff</span><span class="stage-chip">${escapeHtml(diff.stage)}</span><span class="schema-label">schema v${diff.schemaVersion}</span><span class="file-label" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span></div>
-        <div class="metrics">${metrics.map(([value, label]) => `<div class="metric"><span class="metric-value">${value}</span><span class="metric-label">${label}</span></div>`).join("")}</div>
-      </div>
-      <div class="controls-row">
-        <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}</div>
+        <div class="brand"><span class="file-label" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span><span class="stage-chip">${escapeHtml(diff.stage)}</span></div>
         <div class="control-group">
           <button class="control-button open-button" data-open>Open JSON</button>
           <button class="control-button${flowPanelOpen ? " active" : ""}" data-toggle-flow-panel aria-pressed="${flowPanelOpen}">Flows</button>
@@ -556,7 +542,7 @@ function render(): void {
       ${renderFlowPanel()}
       <div class="canvas-wrap">
         <main class="canvas" aria-label="Architecture diff graph">${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}${renderGraph(graph)}</main>
-        ${shapeLegend()}
+        <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}</div>
         ${dragDepth > 0 ? '<div class="drop-overlay">Drop an architecture-diff.json file</div>' : ""}
       </div>
       <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuenow="${Math.round(inspectorWidth)}" tabindex="0"></div>

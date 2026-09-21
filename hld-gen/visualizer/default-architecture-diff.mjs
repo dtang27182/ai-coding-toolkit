@@ -1,4 +1,4 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 
 async function architectureDiffFiles(directory) {
@@ -25,8 +25,17 @@ async function architectureDiffFiles(directory) {
   return files;
 }
 
-export async function findFirstArchitectureDiff(repositoryDirectory, toolkitDirectory) {
+export async function findNewestArchitectureDiff(repositoryDirectory, toolkitDirectory) {
   const config = JSON.parse(await readFile(path.join(toolkitDirectory, "config.json"), "utf8"));
   const files = await architectureDiffFiles(path.resolve(repositoryDirectory, config.outputDirectory));
-  return files[0];
+  let newestFile;
+  let newestModifiedTime = -Infinity;
+  for (const file of files) {
+    const { mtimeMs } = await stat(file);
+    if (mtimeMs > newestModifiedTime) {
+      newestFile = file;
+      newestModifiedTime = mtimeMs;
+    }
+  }
+  return newestFile;
 }
