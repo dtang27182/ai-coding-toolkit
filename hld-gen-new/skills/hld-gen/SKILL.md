@@ -7,7 +7,7 @@ description: Create and refine the simplest high-level design that implements re
 
 Create the simplest design that implements the requested behavior. Minimize the rubric's complexity measures while preserving explicit requirements, existing behavior, and clear responsibilities. Do not omit necessary changes or combine unrelated responsibilities to improve a score.
 
-The design consists of a narrative Markdown file and an Architecture Diff JSON file describing the same design. Follow `hld-narrative.md` for narrative structure and scope, and `hld-architecture-diff.md` for diagram scope and representation.
+The design consists of a narrative Markdown file and an Architecture Diff JSON file describing the same design. `arch-diff` is shorthand for Architecture Diff and is used in its filenames. Follow `hld-narrative.md` for narrative structure and scope, and `hld-architecture-diff.md` for diagram scope and representation.
 
 Read these supporting documents when their corresponding work is needed:
 
@@ -37,7 +37,7 @@ Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to
    - Compare the candidates with the best evaluated design from earlier iterations and retain the best design across the run, explaining any tradeoffs. Keep the earlier design on a tie.
    - Check the iteration history before proposing another approach. Record whether the previous approach improved on the earlier best design. Do not repeat an unsuccessful approach without new evidence or a materially different design choice that addresses why it failed.
    - Update the iteration record with the analysis, the best design across the run, the previous approach's outcome, and the next improvement approach, or explicitly state that none was identified.
-6. If an untried or newly justified improvement approach exists, repeat from step 3. Otherwise, select the best evaluated design across all iterations and record the selection rationale and tradeoffs in the iteration summary. Copy its narrative and Architecture Diff to `<outputDirectory>/<feature>/<feature>.hld.md` and `<outputDirectory>/<feature>/<feature>.architecture-diff.hld.json`, preserving all candidate artifacts. Record the stopping reason as `best-scores` if every metric reaches its rubric-defined best value, or `no-identifiable-improvement` otherwise. Then stop.
+6. If an untried or newly justified improvement approach exists, repeat from step 3. Otherwise, select the best evaluated design across all iterations and record the selection rationale and tradeoffs in the iteration summary. Copy its narrative and Architecture Diff to `<outputDirectory>/<feature>/<feature>.hld.md` and `<outputDirectory>/<feature>/<feature>.arch-diff.hld.json`, preserving all candidate artifacts. Record the stopping reason as `best-scores` if every metric reaches its rubric-defined best value, or `no-identifiable-improvement` otherwise. Then stop.
 
 If required context remains unavailable, preserve the candidates, record the missing context in the iteration summary, and stop with `needs-input`. If an execution failure prevents completion, record it and stop with `execution-error`.
 

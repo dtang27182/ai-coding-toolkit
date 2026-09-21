@@ -13,7 +13,7 @@ Constrain the design only by Desired Behavior and Scope and Assumptions, not by 
 2. Before editing an existing candidate, mark its evaluation pending in the iteration record.
 
 3. Create the narrative and Architecture Diff in parallel as complementary parts of the same design; do not derive one from the other.
-   - Use `outputDirectory` from `ai-coding-toolkit/config.json` and the caller's feature slug. Write `<feature>.hld.md` and `<feature>.architecture-diff.hld.json` under `<outputDirectory>/<feature>/iterations/<iteration>/candidate-<candidate>/` (candidates 1–3). Preserve earlier candidates and iterations.
+   - Use `outputDirectory` from `ai-coding-toolkit/config.json` and the caller's feature slug. Write `<feature>.hld.md` and `<feature>.arch-diff.hld.json` under `<outputDirectory>/<feature>/iterations/<iteration>/candidate-<candidate>/` (candidates 1–3). Preserve earlier candidates and iterations.
    - Write the narrative using `ai-coding-toolkit/hld-gen-new/instructions/hld-narrative.md` and the complete Architecture Diff using `ai-coding-toolkit/hld-gen-new/instructions/hld-architecture-diff.md`. When revising existing artifacts, retain the user's edits unless they conflict with the requested behavior.
 
 Use `null` for inventories not yet populated and omit derived counts until evaluation.

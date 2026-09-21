@@ -107,7 +107,7 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
     "hld-gen-new-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer",
   });
 
-  const inputPath = "ai-coding-toolkit/hld-gen-new/references/architecture-diff.example.json";
+  const inputPath = "ai-coding-toolkit/hld-gen-new/references/arch-diff.example.json";
   const validation = spawnSync(process.execPath, [
     "ai-coding-toolkit/hld-gen-new/scripts/validate-architecture-diff.mjs", inputPath,
   ], { cwd: repoDirectory, encoding: "utf8" });

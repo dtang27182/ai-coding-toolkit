@@ -1,6 +1,6 @@
 import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
-import architectureDiffSchema from "../../references/architecture-diff.schema.json";
-import exampleDiff from "../workbook-import-hld.architecture-diff.json";
+import architectureDiffSchema from "../../references/arch-diff.schema.json";
+import exampleDiff from "../workbook-import-hld.arch-diff.json";
 import { computeLayout } from "./layout";
 import { filterGraph, type VisibleGraph } from "./filter";
 import { edgePortSpreads, routeCompositionEdge, routeEdge } from "./routing";
@@ -31,7 +31,7 @@ const CHANGE_COLORS: Record<ChangeType, string> = {
 };
 
 let diff = exampleDiff as ArchitectureDiff;
-let fileName = "workbook-import-hld.architecture-diff.json";
+let fileName = "workbook-import-hld.arch-diff.json";
 let showUnchanged = true;
 let userFlowOnly = false;
 let methodsHidden = false;
@@ -565,7 +565,7 @@ function render(): void {
       <div class="canvas-wrap">
         <main class="canvas" aria-label="Architecture diff graph">${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}${renderGraph(graph)}</main>
         <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}</div>
-        ${dragDepth > 0 ? '<div class="drop-overlay">Drop an architecture-diff.json file</div>' : ""}
+        ${dragDepth > 0 ? '<div class="drop-overlay">Drop an arch-diff.json file</div>' : ""}
       </div>
       <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuenow="${Math.round(inspectorWidth)}" tabindex="0"></div>
       <aside class="inspector" style="width:${inspectorWidth}px;flex-basis:${inspectorWidth}px" aria-label="Architecture inspector">${renderInspector(graph)}</aside>

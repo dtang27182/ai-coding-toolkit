@@ -18,7 +18,7 @@ async function architectureDiffFiles(directory) {
     const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       files.push(...await architectureDiffFiles(entryPath));
-    } else if (/architecture-diff.*\.json$/.test(entry.name)) {
+    } else if (/arch-diff.*\.json$/.test(entry.name)) {
       files.push(entryPath);
     }
   }

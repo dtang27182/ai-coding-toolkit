@@ -9,7 +9,7 @@ const inputArguments = process.argv.slice(2);
 
 if (inputArguments.length !== 1) {
   console.error(
-    "Usage: node ai-coding-toolkit/hld-gen-new/scripts/count-variable-exposure.mjs <architecture-diff.json>"
+    "Usage: node ai-coding-toolkit/hld-gen-new/scripts/count-variable-exposure.mjs <arch-diff.json>"
   );
   process.exitCode = 1;
 } else {

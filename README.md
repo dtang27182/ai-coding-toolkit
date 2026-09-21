@@ -61,7 +61,7 @@ The final artifacts and iteration summary are ready for human review; applicatio
 
 The `hld-gen-new` tool installs as `$hld-gen` and provides the candidate generation, evaluation, comparison, and selection workflow without separate user-flow labeling, dataflow-narrative, or visualizer-description passes.
 
-`hld-gen-new` retains the same narrative, Architecture Diff, quality metrics, iteration structure, and output paths as `hld-gen`.
+`hld-gen-new` retains the same narrative, Architecture Diff, quality metrics, and iteration structure as `hld-gen`. It uses `arch-diff` as shorthand for Architecture Diff and writes Architecture Diff artifacts as `<feature>.arch-diff.hld.json`.
 
 It has independent validation and counting scripts and its own Architecture Diff visualizer, available through `npm run hld-gen-new-visualizer`.
 
