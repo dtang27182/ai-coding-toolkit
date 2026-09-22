@@ -3,8 +3,6 @@ export type ComponentType = "ui" | "external-io";
 
 export interface MethodDiff {
   name: string;
-  generalDescription?: string;
-  designRole?: string;
   changeType: ChangeType;
   userFlow: boolean;
 }
@@ -30,8 +28,6 @@ export interface StateVariableDiff {
 
 export interface ClassDiff {
   name: string;
-  generalDescription?: string;
-  designRole?: string;
   changeType: ChangeType;
   methods: MethodDiff[];
   stateVariables: StateVariableDiff[];
@@ -41,8 +37,6 @@ export interface ClassDiff {
 
 export interface ComponentDiff {
   name: string;
-  generalDescription?: string;
-  designRole?: string;
   type: ComponentType;
   changeType: ChangeType;
   userFlow: boolean;
@@ -88,8 +82,8 @@ export interface UserFlowSet {
 }
 
 export interface ArchitectureDiff {
-  schemaVersion: 9;
-  stage: "high level design";
+  schemaVersion: 10;
+  stage: "high-level-design" | "code-review";
   userFlows: UserFlowSet[];
   classes: ClassDiff[];
   components: ComponentDiff[];

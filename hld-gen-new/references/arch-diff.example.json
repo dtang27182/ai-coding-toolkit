@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 9,
-  "stage": "high level design",
+  "schemaVersion": 10,
+  "stage": "high-level-design",
   "userFlows": [
     {
       "name": "Request a change set",
