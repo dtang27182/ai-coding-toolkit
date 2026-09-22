@@ -154,6 +154,11 @@ export interface ResolvedRelationship {
   to: ResolvedEndpoint;
 }
 
+export function isInternalStateRelationship(relationship: ResolvedRelationship): boolean {
+  return (relationship.relationship.type === "state-read" || relationship.relationship.type === "state-update")
+    && relationship.from.nodeName === relationship.to.nodeName;
+}
+
 export interface GraphLayout {
   boxes: Map<string, Rect>;
   methodRects: Map<string, Rect>;
