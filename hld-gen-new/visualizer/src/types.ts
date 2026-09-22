@@ -97,10 +97,6 @@ export interface ArchitectureDiff {
   variableExposureCount?: number | null;
 }
 
-export function flowPanelEntries(diff: { userFlows?: UserFlowSet[] }): UserFlowSet[] {
-  return diff.userFlows ?? [];
-}
-
 export interface MethodRef {
   className: string;
   methodName: string;
@@ -156,6 +152,11 @@ export interface ResolvedRelationship {
   relationship: Relationship;
   from: ResolvedEndpoint;
   to: ResolvedEndpoint;
+}
+
+export function isInternalStateRelationship(relationship: ResolvedRelationship): boolean {
+  return (relationship.relationship.type === "state-read" || relationship.relationship.type === "state-update")
+    && relationship.from.nodeName === relationship.to.nodeName;
 }
 
 export interface GraphLayout {

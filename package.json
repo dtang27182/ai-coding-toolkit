@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "install:codex": "node scripts/init.mjs --agent codex",
+    "install:hld-gen-new": "node scripts/init.mjs --agent codex --tool hld-gen-new",
     "visualizer": "vite hld-gen/visualizer",
+    "hld-gen-new-visualizer": "vite hld-gen-new/visualizer",
     "build:visualizer": "vite build hld-gen/visualizer",
     "system-dataflow-visualizer": "vite common/system-dataflow/visualizer",
     "build:system-dataflow-visualizer": "vite build common/system-dataflow/visualizer",
+    "build:hld-gen-new-visualizer": "vite build hld-gen-new/visualizer",
     "validate": "node hld-gen/scripts/validate-architecture-diff.mjs"
   },
   "dependencies": {
