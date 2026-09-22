@@ -18,6 +18,12 @@ To install only the alternative `hld-gen-new` implementation, run:
 npm run install:hld-gen-new -- /path/to/code-repo
 ```
 
+To install the `$annotate-diff` skill, run:
+
+```sh
+npm run install:annotate-diff -- /path/to/code-repo
+```
+
 Both implementations expose the skill as `$hld-gen`; install one implementation into a target repository at a time.
 
 The target directory must already exist. Relative target paths are resolved from the current working directory. The output directory defaults to `docs/plans` under the target repository root. To choose another repository-relative directory, run:
@@ -64,6 +70,16 @@ The `hld-gen-new` tool installs as `$hld-gen` and provides the candidate generat
 `hld-gen-new` retains the same narrative, Architecture Diff, quality metrics, and iteration structure as `hld-gen`. It uses `arch-diff` as shorthand for Architecture Diff and writes Architecture Diff artifacts as `<feature>.arch-diff.hld.json`.
 
 It has independent validation and counting scripts and its own Architecture Diff visualizer, available through `npm run hld-gen-new-visualizer`.
+
+## Annotate the Current Diff
+
+After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$annotate-diff`. The skill reads the most recently modified selected HLD, compares the current files with `HEAD`, and writes `<feature>.system-dataflow.code-review.json` beside the HLD. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
+
+Run the installed System Dataflow visualizer from the target repository:
+
+```sh
+npm run system-dataflow-visualizer
+```
 
 ## Architecture Diff Visualizer
 

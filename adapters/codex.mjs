@@ -5,10 +5,13 @@ import { copyDirectory } from "../scripts/copy-directory.mjs";
 
 export async function installCodexSkills(repoDirectory, toolkitDirectory, toolNames) {
   for (const toolName of toolNames) {
-    const skillDirectory = path.join(toolkitDirectory, toolName, "skills", "hld-gen");
-    const installedSkillDirectory = path.join(repoDirectory, ".agents", "skills", "hld-gen");
+    const skillName = toolName === "hld-gen-new" ? "hld-gen" : toolName;
+    const skillDirectory = path.join(toolkitDirectory, toolName, "skills", skillName);
+    const installedSkillDirectory = path.join(repoDirectory, ".agents", "skills", skillName);
     await copyDirectory(skillDirectory, installedSkillDirectory);
-    await rm(path.join(installedSkillDirectory, "SKILL.next.md"), { force: true });
+    if (skillName === "hld-gen") {
+      await rm(path.join(installedSkillDirectory, "SKILL.next.md"), { force: true });
+    }
   }
 
   if (toolNames.includes("hld-gen")) {
