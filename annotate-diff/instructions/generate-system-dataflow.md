@@ -37,6 +37,10 @@
 - Never include one-time initialization, dependency setup, or object construction that occurs before the triggering user action or system input.
 - Within each subgraph, represent each system component once per semantic role. For a component used by multiple user flows, create distinct flow-specific nodes with the same grounded `location` when appropriate.
 - Set `changeType` from the diff, using `unchanged` only when the component is necessary to connect a trigger to a named effect.
+- Associate each changed node with the smallest set of diff hunks that establishes its represented behavior.
+- Associate each changed relationship with the smallest set of diff hunks that shows the represented data transfer, such as an assignment, argument, return value, request field, or state update.
+- Allow a diff hunk to support multiple nodes and relationships. Do not associate every hunk from a containing file or method.
+- Do not add diff hunk references to unchanged nodes or relationships.
 - Create a data-processing node only when the algorithm directly implements a named action or effect and has at least one of these properties:
   - Conditional logic that meaningfully changes the user workflow's high-level direction, often corresponding to a branch in the diff-description's user workflow steps.
   - Loop logic that meaningfully changes the user workflow's high-level direction, often corresponding to a branch in the diff-description, or that expresses a meaningful pattern for processing a large data set.
@@ -48,6 +52,9 @@
 
 - Write `<outputDirectory>/<feature>/<feature>.system-dataflow.code-review.json`.
 - Set `stage` to `code-review`.
+- Add only referenced hunks to `diffHunks`, using simple monotonically increasing IDs.
+- Store each hunk's repository-relative file path and its exact unified diff text, including the `@@` header.
+- Reference those IDs from the relevant nodes and relationships with `diffHunkIds`.
 
 ## 7. Validate the Dataflow Artifact
 

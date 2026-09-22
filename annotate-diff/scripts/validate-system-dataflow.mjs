@@ -34,6 +34,8 @@ if (inputPath === undefined) {
     const errors = [];
     const names = new Set();
     const relationshipIds = new Set();
+    const diffHunkIds = new Set();
+    const referencedDiffHunkIds = new Set();
     for (const node of dataflow.nodes) {
       if (names.has(node.name)) {
         errors.push(`Node names must be unique: ${node.name}`);
@@ -46,6 +48,29 @@ if (inputPath === undefined) {
         errors.push(`Relationship IDs must be unique: ${relationship.id}`);
       } else {
         relationshipIds.add(relationship.id);
+      }
+    }
+    if (dataflow.stage === "code-review") {
+      for (const diffHunk of dataflow.diffHunks) {
+        if (diffHunkIds.has(diffHunk.id)) {
+          errors.push(`Diff hunk IDs must be unique: ${diffHunk.id}`);
+        } else {
+          diffHunkIds.add(diffHunk.id);
+        }
+      }
+      for (const entity of [...dataflow.nodes, ...dataflow.relationships]) {
+        for (const diffHunkId of entity.diffHunkIds ?? []) {
+          if (diffHunkIds.has(diffHunkId)) {
+            referencedDiffHunkIds.add(diffHunkId);
+          } else {
+            errors.push(`Unknown diff hunk reference: ${diffHunkId}`);
+          }
+        }
+      }
+      for (const diffHunkId of diffHunkIds) {
+        if (!referencedDiffHunkIds.has(diffHunkId)) {
+          errors.push(`Diff hunk must be referenced: ${diffHunkId}`);
+        }
       }
     }
     const nodesByName = new Map(dataflow.nodes.map((node) => [node.name, node]));

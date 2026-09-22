@@ -29,7 +29,7 @@ function dataflow(type, direction) {
   const endpoint = node(type, "Endpoint");
   const processor = node("data-processing", "Processor");
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     stage: "high-level-design",
     feature: "Direction validation",
     nodes: [endpoint, processor],

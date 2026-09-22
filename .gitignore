@@ -2,3 +2,4 @@ node_modules/
 adiff-visualize-design/
 hld-gen/visualizer/dist/
 hld-gen-new/visualizer/dist/
+.DS_Store
