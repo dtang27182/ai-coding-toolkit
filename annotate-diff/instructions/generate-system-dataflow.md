@@ -5,9 +5,14 @@
 - Read `outputDirectory` from `ai-coding-toolkit/config.json`.
 - Find the most recently modified final HLD matching `<outputDirectory>/<feature>/<feature>.hld.md`.
 - Do not select an HLD under an `iterations` directory.
-- Use the HLD only for the feature description, scope, and user workflows.
+- Use the HLD only to initialize the diff-description.
 
-## 2. Inspect the Implementation
+## 2. Initialize the Diff Description
+
+- Read and follow `ai-coding-toolkit/annotate-diff/instructions/generate-diff-description.md`.
+- After creating the diff-description, use it instead of the HLD for all feature scope and user-flow references.
+
+## 3. Inspect the Implementation
 
 - Run `git diff HEAD --` to compare the current index and working tree with the most recent commit on the current branch.
 - Read the changed files and enough surrounding code to understand the implemented dataflow.
@@ -15,39 +20,42 @@
 - Ground every changed node in an actual change in the diff.
 - Ground every unchanged node in actual current code.
 - Include only dataflow connections supported by the diff or current code.
-- Do not assume that any proposed design from the HLD was implemented.
+- Do not assume that planned implementation details were implemented unless the diff or current code supports them.
 
-## 3. Read the Format
+## 4. Read the Format
 
 - Read `ai-coding-toolkit/common/system-dataflow/system-dataflow.schema.json`.
 - Read `ai-coding-toolkit/common/system-dataflow/system-dataflow.example.json`.
 
-## 4. Build the Graph
+## 5. Build the Graph
 
-- Build one separate connected subgraph for each user flow specified in the HLD.
-- Start each subgraph with its triggering user action or system input and trace the runtime dataflow through its final outputs and state changes.
-- Create nodes for the major system components defined by the schema that participate in that event chain.
+- Treat each `###` user flow in the diff-description as the scope of one separate connected subgraph.
+- Start each subgraph with the flow's triggering user action, or with a system input when the described flow is externally triggered.
+- Trace the implemented runtime dataflow only far enough to represent the outputs and high-level state updates named in that flow's numbered steps.
+- Create nodes for the major system components defined by the schema that directly participate in producing those named effects.
+- Stop the subgraph after all named effects are represented. Do not continue through unchanged downstream behavior or related workflows that the steps do not name.
 - Never include one-time initialization, dependency setup, or object construction that occurs before the triggering user action or system input.
 - Within each subgraph, represent each system component once per semantic role. For a component used by multiple user flows, create distinct flow-specific nodes with the same grounded `location` when appropriate.
-- Set `changeType` from the diff, using `unchanged` only for context required to understand the changed flow.
-- Create a data-processing node for an algorithm with at least one of these properties:
-  - Conditional logic that meaningfully changes the user workflow's high-level direction, often corresponding to a branch in the HLD's user workflow steps.
-  - Loop logic that meaningfully changes the user workflow's high-level direction, often corresponding to a branch in the HLD, or that expresses a meaningful pattern for processing a large data set.
+- Set `changeType` from the diff, using `unchanged` only when the component is necessary to connect a trigger to a named effect.
+- Create a data-processing node only when the algorithm directly implements a named action or effect and has at least one of these properties:
+  - Conditional logic that meaningfully changes the user workflow's high-level direction, often corresponding to a branch in the diff-description's user workflow steps.
+  - Loop logic that meaningfully changes the user workflow's high-level direction, often corresponding to a branch in the diff-description, or that expresses a meaningful pattern for processing a large data set.
   - A non-trivial algorithm such as search, sorting, or tree or graph traversal.
+- Represent simple data forwarding and request construction with relationships between participating components rather than a data-processing node.
 - Represent an algorithm implemented by multiple cooperating methods as one data-processing node.
 
-## 5. Write the Artifact
+## 6. Write the Dataflow Artifact
 
 - Write `<outputDirectory>/<feature>/<feature>.system-dataflow.code-review.json`.
 - Set `stage` to `code-review`.
 
-## 6. Validate the Artifact
+## 7. Validate the Dataflow Artifact
 
 - Run `node ai-coding-toolkit/annotate-diff/scripts/validate-system-dataflow.mjs <output-path>`.
 - Correct every validation error.
 
-## 7. Report the Result
+## 8. Report the Result
 
-- Report the HLD path.
+- Report the diff-description path.
 - Report the diff base as `HEAD`.
 - Report the generated JSON path.
