@@ -265,7 +265,7 @@ button:focus-visible,
 
 .node-outline {
   fill: color-mix(in oklch, var(--type-color) 9%, var(--raised));
-  stroke: color-mix(in oklch, var(--change-color) 72%, var(--border));
+  stroke: var(--change-color);
   stroke-width: 1.9;
   stroke-linejoin: round;
   cursor: pointer;
@@ -282,7 +282,7 @@ button:focus-visible,
 
 .graph-node:hover .node-outline,
 .graph-node.selected .node-outline {
-  stroke: var(--change-color);
+  stroke-width: 2.6;
 }
 
 .graph-node.selected {
