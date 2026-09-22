@@ -97,6 +97,10 @@ export interface ArchitectureDiff {
   variableExposureCount?: number | null;
 }
 
+export function flowPanelEntries(diff: { userFlows?: UserFlowSet[] }): UserFlowSet[] {
+  return diff.userFlows ?? [];
+}
+
 export interface MethodRef {
   className: string;
   methodName: string;

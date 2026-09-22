@@ -122,7 +122,7 @@ export function computeLayout(
   }
 
   function visibleStateVariables(node: GraphNode) {
-    return node.componentType !== undefined ? [] : node.stateVariables;
+    return collapsed || node.componentType !== undefined ? [] : node.stateVariables;
   }
 
   function stateHeight(node: GraphNode): number {

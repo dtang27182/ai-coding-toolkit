@@ -15,7 +15,7 @@ import type {
   ResolvedRelationship,
   Selection,
 } from "./types";
-import { edgeKey, mergeClassDataflows, methodKey } from "./types";
+import { edgeKey, isInternalStateRelationship, mergeClassDataflows, methodKey } from "./types";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const ajv = new Ajv2020({ allErrors: true });
@@ -195,7 +195,7 @@ function graphRect(
   methodRects: Map<string, Rect>,
   stateRects: Map<string, Rect>,
 ): Rect | undefined {
-  if (endpoint.stateVariableName !== undefined) {
+  if (endpoint.stateVariableName !== undefined && !methodsHidden) {
     return stateRects.get(endpoint.nodeName);
   } else if (endpoint.methodName !== undefined && !methodsHidden) {
     return methodRects.get(methodKey(endpoint.nodeName, endpoint.methodName));
@@ -204,7 +204,7 @@ function graphRect(
 }
 
 function graphEndpointKey(endpoint: ResolvedEndpoint): string {
-  if (endpoint.stateVariableName !== undefined) {
+  if (endpoint.stateVariableName !== undefined && !methodsHidden) {
     return `state:${endpoint.nodeName}`;
   } else if (endpoint.methodName !== undefined && !methodsHidden) {
     return `method:${endpoint.nodeName}:${endpoint.methodName}`;
@@ -290,7 +290,9 @@ function renderGraph(graph: VisibleGraph): string {
     })
     .join("");
 
-  const drawableRelationships = graph.relationships.filter((relationship) => relationship.relationship.type !== "composition");
+  const drawableRelationships = graph.relationships.filter(
+    (relationship) => relationship.relationship.type !== "composition" && (!methodsHidden || !isInternalStateRelationship(relationship)),
+  );
   const edgeLayouts = (methodsHidden ? mergeClassDataflows(drawableRelationships) : drawableRelationships)
     .map((relationship) => ({
       relationship,
@@ -355,7 +357,7 @@ function renderGraph(graph: VisibleGraph): string {
     .join("");
 
   const stateBoxes = graph.classes
-    .filter((classDiff) => classDiff.stateVariables.length > 0)
+    .filter((classDiff) => !methodsHidden && classDiff.stateVariables.length > 0)
     .map((classDiff) => {
       const rect = layout.stateRects.get(classDiff.name)!;
       const dimmed = focus !== undefined && !relatedNodes.has(classDiff.name);
