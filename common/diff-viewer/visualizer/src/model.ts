@@ -6,6 +6,7 @@ export interface DirectoryNode {
   id: string;
   name: string;
   path: string;
+  sortKey: string;
   children: TreeNode[];
 }
 
@@ -13,25 +14,35 @@ export interface ElementNode {
   kind: "element";
   id: string;
   element: DiffElement;
+  sortKey: string;
   children: ElementNode[];
 }
 
 export type TreeNode = DirectoryNode | ElementNode;
 
-function sourceLine(element: DiffElement): number {
-  const location = element.locations[0];
-  return location?.newLines?.[0] ?? location?.oldLines?.[0] ?? 0;
+function elementSortKey(index: DiffIndex, id: string): string {
+  const element = index.elements[id];
+  let key;
+  if (element.parentId === undefined) {
+    key = element.name;
+  } else {
+    key = `${elementSortKey(index, element.parentId)}/${element.name}`;
+  }
+  return key;
 }
 
-function compareElements(left: ElementNode, right: ElementNode): number {
-  return sourceLine(left.element) - sourceLine(right.element) || left.element.name.localeCompare(right.element.name);
+function sortNodes(nodes: TreeNode[]): void {
+  nodes.sort((left, right) => left.sortKey.localeCompare(right.sortKey));
+  for (const node of nodes) {
+    sortNodes(node.children);
+  }
 }
 
 export function buildTree(index: DiffIndex): TreeNode[] {
   const nodes = new Map<string, ElementNode>();
   const roots: ElementNode[] = [];
   for (const [id, element] of Object.entries(index.elements)) {
-    nodes.set(id, { kind: "element", id, element, children: [] });
+    nodes.set(id, { kind: "element", id, element, sortKey: elementSortKey(index, id), children: [] });
   }
   for (const node of nodes.values()) {
     if (node.element.parentId === undefined) {
@@ -40,12 +51,8 @@ export function buildTree(index: DiffIndex): TreeNode[] {
       nodes.get(node.element.parentId)!.children.push(node);
     }
   }
-  for (const node of nodes.values()) {
-    node.children.sort(compareElements);
-  }
-
   const tree: TreeNode[] = [];
-  for (const fileNode of roots.sort((left, right) => left.element.name.localeCompare(right.element.name))) {
+  for (const fileNode of roots) {
     const segments = fileNode.element.name.split("/");
     let children = tree;
     let directoryPath = "";
@@ -55,13 +62,21 @@ export function buildTree(index: DiffIndex): TreeNode[] {
         (candidate): candidate is DirectoryNode => candidate.kind === "directory" && candidate.name === segment,
       );
       if (directory === undefined) {
-        directory = { kind: "directory", id: `directory:${directoryPath}`, name: segment, path: directoryPath, children: [] };
+        directory = {
+          kind: "directory",
+          id: `directory:${directoryPath}`,
+          name: segment,
+          path: directoryPath,
+          sortKey: directoryPath,
+          children: [],
+        };
         children.push(directory);
       }
       children = directory.children;
     }
     children.push(fileNode);
   }
+  sortNodes(tree);
   return tree;
 }
 

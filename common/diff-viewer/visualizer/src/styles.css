@@ -166,11 +166,44 @@ button {
 
 .sidebar {
   display: flex;
-  width: 330px;
-  min-width: 330px;
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
   flex-direction: column;
-  border-right: 1px solid var(--line);
   background: rgba(12, 21, 29, 0.94);
+}
+
+.sidebar-resizer {
+  position: relative;
+  z-index: 2;
+  width: 7px;
+  flex: none;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.sidebar-resizer::before {
+  position: absolute;
+  inset: 0 3px;
+  background: var(--line);
+  content: "";
+  transition: background 100ms ease, box-shadow 100ms ease;
+}
+
+.sidebar-resizer:hover::before,
+.sidebar-resizer:focus-visible::before,
+body.resizing-sidebar .sidebar-resizer::before {
+  background: var(--blue);
+  box-shadow: 0 0 0 1px rgba(88, 166, 255, 0.18);
+}
+
+.sidebar-resizer:focus-visible {
+  outline: none;
+}
+
+body.resizing-sidebar,
+body.resizing-sidebar * {
+  cursor: col-resize !important;
+  user-select: none !important;
 }
 
 .sidebar-heading {
@@ -615,10 +648,6 @@ body.dragging .drop-overlay {
     margin-left: auto;
   }
 
-  .sidebar {
-    width: 285px;
-    min-width: 285px;
-  }
 }
 
 @media (max-width: 620px) {
@@ -632,6 +661,10 @@ body.dragging .drop-overlay {
     height: 42%;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+
+  .sidebar-resizer {
+    display: none;
   }
 
   .summary-card {

@@ -137,3 +137,14 @@ export function parsePatch(patch: string): DiffFile[] {
 export function lineIsInRange(line: number | undefined, range: [number, number] | null): boolean {
   return line !== undefined && range !== null && line >= range[0] && line <= range[1];
 }
+
+export function firstChangedLine(file: DiffFile): { side: "old" | "new"; line: number } | undefined {
+  const row = file.rows.find((candidate) => candidate.kind === "add" || candidate.kind === "delete");
+  let target;
+  if (row?.kind === "add") {
+    target = { side: "new" as const, line: row.newLine! };
+  } else if (row?.kind === "delete") {
+    target = { side: "old" as const, line: row.oldLine! };
+  }
+  return target;
+}

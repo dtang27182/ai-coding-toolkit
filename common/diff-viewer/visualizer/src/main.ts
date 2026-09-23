@@ -1,8 +1,9 @@
 import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
 import diffIndexSchema from "../../diff-index.schema.json";
 import { exampleIndex } from "./example.ts";
+import { clampSidebarWidth, MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH } from "./layout.ts";
 import { buildTree, semanticError, statsForElement, unmatchedCount, type TreeNode } from "./model.ts";
-import { parsePatch } from "./patch.ts";
+import { firstChangedLine, parsePatch } from "./patch.ts";
 import { isLineWrapShortcut } from "./shortcuts.ts";
 import "./styles.css";
 import type { DiffElement, DiffFile, DiffIndex } from "./types.ts";
@@ -25,6 +26,7 @@ let expandedIds = expandedNodes(index);
 let statusMessage = "";
 let dragDepth = 0;
 let wrapLines = false;
+let sidebarWidth = 330;
 
 function escapeHtml(value: string | number): string {
   return String(value)
@@ -155,7 +157,7 @@ function render(): void {
         <input type="file" id="file-input" accept="application/json,.json" hidden>
       </header>
       ${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}
-      <div class="workspace">
+      <div class="workspace" style="--sidebar-width:${sidebarWidth}px">
         <aside class="sidebar">
           <div class="sidebar-heading"><span>File structure</span><span>${fileElements.length}</span></div>
           <section class="summary-card">
@@ -165,6 +167,7 @@ function render(): void {
           </section>
           <nav class="file-tree" aria-label="Changed files and code entities">${renderTree(buildTree(index))}</nav>
         </aside>
+        <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-label="Resize file navigation" aria-orientation="vertical" aria-valuemin="${MIN_SIDEBAR_WIDTH}" aria-valuemax="${MAX_SIDEBAR_WIDTH}" aria-valuenow="${sidebarWidth}" tabindex="0"></div>
         <main class="file-panel">
           <div class="file-bar">
             <span class="file-icon">${icon("file")}</span>
@@ -196,6 +199,67 @@ function render(): void {
   for (const button of app.querySelectorAll<HTMLButtonElement>("[data-select]")) {
     button.addEventListener("click", () => selectElement(button.dataset.select!));
   }
+  bindSidebarResizer();
+}
+
+function bindSidebarResizer(): void {
+  const resizer = app.querySelector<HTMLElement>("#sidebar-resizer")!;
+  const sidebar = app.querySelector<HTMLElement>(".sidebar")!;
+  let dragging = false;
+  let startX = 0;
+  let startWidth = 0;
+
+  function finishDragging(): void {
+    if (dragging) {
+      dragging = false;
+      document.body.classList.remove("resizing-sidebar");
+    }
+  }
+
+  resizer.addEventListener("pointerdown", (event) => {
+    if (event.button === 0) {
+      dragging = true;
+      startX = event.clientX;
+      startWidth = sidebar.getBoundingClientRect().width;
+      resizer.setPointerCapture(event.pointerId);
+      document.body.classList.add("resizing-sidebar");
+      event.preventDefault();
+    }
+  });
+  resizer.addEventListener("pointermove", (event) => {
+    if (dragging) {
+      setSidebarWidth(startWidth + event.clientX - startX);
+    }
+  });
+  resizer.addEventListener("pointerup", finishDragging);
+  resizer.addEventListener("pointercancel", finishDragging);
+  resizer.addEventListener("keydown", (event) => {
+    let requestedWidth;
+    if (event.key === "ArrowLeft") {
+      requestedWidth = sidebarWidth - 16;
+    } else if (event.key === "ArrowRight") {
+      requestedWidth = sidebarWidth + 16;
+    } else if (event.key === "Home") {
+      requestedWidth = MIN_SIDEBAR_WIDTH;
+    } else if (event.key === "End") {
+      requestedWidth = MAX_SIDEBAR_WIDTH;
+    }
+    if (requestedWidth !== undefined) {
+      event.preventDefault();
+      setSidebarWidth(requestedWidth);
+    }
+  });
+  if (matchMedia("(min-width: 621px)").matches) {
+    setSidebarWidth(sidebarWidth);
+  }
+}
+
+function setSidebarWidth(width: number): void {
+  const workspace = app.querySelector<HTMLElement>(".workspace")!;
+  const resizer = app.querySelector<HTMLElement>("#sidebar-resizer")!;
+  sidebarWidth = clampSidebarWidth(width, workspace.clientWidth);
+  workspace.style.setProperty("--sidebar-width", `${sidebarWidth}px`);
+  resizer.setAttribute("aria-valuenow", String(sidebarWidth));
 }
 
 function toggleLineWrapping(): void {
@@ -233,13 +297,21 @@ function selectElement(id: string, updateHash = true): void {
 function scrollToSelection(): void {
   const element = index.elements[selectedId];
   const scroll = app.querySelector<HTMLElement>("#diff-scroll")!;
+  let selector;
   if (element.kind === "file") {
-    scroll.scrollTop = 0;
+    const target = firstChangedLine(selectedFile());
+    if (target === undefined) {
+      scroll.scrollTop = 0;
+    } else {
+      selector = `[data-${target.side}-line="${target.line}"]`;
+    }
   } else {
     const location = element.locations[0];
-    const selector = location.newLines !== null
+    selector = location.newLines !== null
       ? `[data-new-line="${location.newLines[0]}"]`
       : `[data-old-line="${location.oldLines![0]}"]`;
+  }
+  if (selector !== undefined) {
     scroll.querySelector<HTMLElement>(selector)?.scrollIntoView({ block: "center", behavior: "smooth" });
   }
 }
@@ -299,6 +371,12 @@ window.addEventListener("keydown", (event) => {
   if (isLineWrapShortcut(event)) {
     event.preventDefault();
     toggleLineWrapping();
+  }
+});
+
+window.addEventListener("resize", () => {
+  if (matchMedia("(min-width: 621px)").matches) {
+    setSidebarWidth(sidebarWidth);
   }
 });
 

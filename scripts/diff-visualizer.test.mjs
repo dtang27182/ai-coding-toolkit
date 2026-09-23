@@ -6,8 +6,9 @@ import test from "node:test";
 
 import { findNewestDiffIndex } from "../common/diff-viewer/visualizer/default-diff-index.mjs";
 import { exampleIndex } from "../common/diff-viewer/visualizer/src/example.ts";
+import { clampSidebarWidth } from "../common/diff-viewer/visualizer/src/layout.ts";
 import { buildTree, statsForElement, unmatchedCount } from "../common/diff-viewer/visualizer/src/model.ts";
-import { parsePatch } from "../common/diff-viewer/visualizer/src/patch.ts";
+import { firstChangedLine, parsePatch } from "../common/diff-viewer/visualizer/src/patch.ts";
 import { isLineWrapShortcut } from "../common/diff-viewer/visualizer/src/shortcuts.ts";
 
 test("parses complete file rows and change counts from the embedded patch", () => {
@@ -26,6 +27,21 @@ test("parses complete file rows and change counts from the embedded patch", () =
     oldLine: 1,
     newLine: 1,
   });
+});
+
+test("locates the first changed line when opening a file-level diff", () => {
+  const files = parsePatch(exampleIndex.patch);
+  assert.deepEqual(firstChangedLine(files[0]), { side: "old", line: 3 });
+  assert.deepEqual(firstChangedLine(files[1]), { side: "new", line: 1 });
+  assert.equal(firstChangedLine({
+    oldPath: "assets/image.png",
+    newPath: "assets/image.png",
+    path: "assets/image.png",
+    binary: true,
+    rows: [],
+    added: 0,
+    removed: 0,
+  }), undefined);
 });
 
 test("uses diff headers for binary files without text-file headers", () => {
@@ -55,6 +71,32 @@ test("builds directory nodes above indexed files and preserves entity nesting", 
   assert.equal(tree[0].children[0].children[0].kind, "element");
   assert.equal(tree[0].children[0].children[0].element.name, "src/services/ChangeService.ts");
   assert.equal(tree[0].children[0].children[0].children[0].element.name, "ChangeService");
+  assert.deepEqual(
+    tree[0].children[0].children[0].children[0].children.map((node) => node.element.name),
+    ["build", "configure"],
+  );
+});
+
+test("sorts every navigation level by its full hierarchical key", () => {
+  const tree = buildTree({
+    schemaVersion: 1,
+    patch: "unused by tree construction",
+    elements: {
+      "element-1": { kind: "file", name: "src/zeta.ts", locations: [] },
+      "element-2": { kind: "method", name: "zoom", parentId: "element-1", locations: [] },
+      "element-3": { kind: "method", name: "alpha", parentId: "element-1", locations: [] },
+      "element-4": { kind: "file", name: "src/alpha/tool.ts", locations: [] },
+      "element-5": { kind: "class", name: "Worker", parentId: "element-4", locations: [] },
+      "element-6": { kind: "method", name: "start", parentId: "element-5", locations: [] },
+    },
+  });
+  const src = tree[0];
+  assert.deepEqual(src.children.map((node) => node.name ?? node.element.name), ["alpha", "src/zeta.ts"]);
+  const zeta = src.children[1];
+  assert.deepEqual(zeta.children.map((node) => node.element.name), ["alpha", "zoom"]);
+  assert.equal(src.sortKey, "src");
+  assert.equal(zeta.sortKey, "src/zeta.ts");
+  assert.equal(zeta.children[0].sortKey, "src/zeta.ts/alpha");
 });
 
 test("derives entity line counts and file-level unmatched counts", () => {
@@ -95,4 +137,11 @@ test("recognizes Alt or Option plus Z as the line-wrapping shortcut", () => {
   assert.equal(isLineWrapShortcut({ altKey: false, ctrlKey: false, metaKey: false, code: "KeyZ" }), false);
   assert.equal(isLineWrapShortcut({ altKey: true, ctrlKey: false, metaKey: false, code: "KeyX" }), false);
   assert.equal(isLineWrapShortcut({ altKey: true, ctrlKey: true, metaKey: false, code: "KeyZ" }), false);
+});
+
+test("keeps the draggable navigation width within usable panel bounds", () => {
+  assert.equal(clampSidebarWidth(100, 1200), 240);
+  assert.equal(clampSidebarWidth(420, 1200), 420);
+  assert.equal(clampSidebarWidth(900, 1200), 640);
+  assert.equal(clampSidebarWidth(500, 700), 380);
 });
