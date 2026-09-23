@@ -1,6 +1,8 @@
 import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
 import schema from "../../system-dataflow.schema.json";
 import example from "../../system-dataflow.example.json";
+import { renderDiffSection } from "./diff.ts";
+import { escapeHtml, selectionKey } from "./html.ts";
 import { computeLayout } from "./layout.ts";
 import { routeEdge } from "./routing.ts";
 import type {
@@ -65,15 +67,8 @@ let selection: Selection | undefined;
 let hovered: Selection | undefined;
 let statusMessage = "";
 let dragDepth = 0;
-
-function escapeHtml(value: string | number): string {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+/** Which hunk is expanded in the Relevant diff list, per inspected entity. A null id means all are collapsed. */
+let openHunk: { owner: string; id: string | null } | undefined;
 
 function displayChangeType(changeType: ChangeType | undefined): DisplayChangeType {
   return changeType ?? "unspecified";
@@ -89,16 +84,6 @@ function chip(changeType: ChangeType | undefined): string {
   } else {
     const color = changeColor(changeType);
     return `<span class="change-chip" style="color:${color};background:color-mix(in oklch, ${color} 15%, transparent)">${changeType}</span>`;
-  }
-}
-
-function selectionKey(value: Selection | undefined): string {
-  if (value === undefined) {
-    return "";
-  } else if (value.type === "node") {
-    return `node:${value.name}`;
-  } else {
-    return `relationship:${value.id}`;
   }
 }
 
@@ -298,6 +283,15 @@ function typeBadge(nodeType: NodeType): string {
   return `<span class="type-badge" style="--type-color:${type.color}" title="${escapeHtml(type.label)}">${type.badge}</span>`;
 }
 
+function diffSection(owner: Selection, hunkIds: string[] | undefined): string {
+  return renderDiffSection(owner, hunkIds, {
+    dataflow,
+    openHunk,
+    badge: typeBadge,
+    colors: { added: CHANGE_COLORS.added, deleted: CHANGE_COLORS.deleted },
+  });
+}
+
 function section(title: string, content: string, count?: number): string {
   return `<section class="inspector-section"><div class="section-heading"><span>${escapeHtml(title)}</span>${count === undefined ? "" : `<span class="inspector-count">${count}</span>`}</div>${content}</section>`;
 }
@@ -369,6 +363,7 @@ function renderInspector(): string {
     const outgoing = dataflow.relationships.filter((relationship) => relationship.from === node.name);
     const algorithm = node.algorithm === undefined ? "" : section("Algorithm", `<pre class="algorithm">${escapeHtml(node.algorithm)}</pre>`);
     return `${inspectorHeader(type.label, node.name, node.changeType, node.medium, node.type)}
+      ${diffSection({ type: "node", name: node.name }, node.diffHunkIds)}
       ${section("Responsibility", `<p class="entry-copy">${escapeHtml(node.description)}</p>`)}
       ${section("Location", `<p class="location-copy">${escapeHtml(node.location)}</p>`)}
       ${algorithm}
@@ -386,6 +381,7 @@ function renderInspector(): string {
         <span class="endpoint-arrow">→</span>
         ${endpoint("To", relationship.to, destination)}
       </div>
+      ${diffSection({ type: "relationship", id: relationship.id }, relationship.diffHunkIds)}
       ${section("Data", `<p class="entry-copy">${escapeHtml(relationship.data)}</p>`)}
       ${section("Purpose", `<p class="entry-copy">${escapeHtml(relationship.purpose)}</p>`)}`;
   }
@@ -429,9 +425,15 @@ function render(): void {
 
 function bindInspector(): void {
   const inspector = app.querySelector<HTMLElement>(".inspector")!;
+  // updateInspector() swaps this element's contents but keeps the element, so bind its listener only once.
+  if (inspector.dataset.bound === "true") return;
+  inspector.dataset.bound = "true";
   inspector.addEventListener("click", (event) => {
-    const target = (event.target as HTMLElement).closest<HTMLElement>("[data-jump-node], [data-jump-relationship], [data-close]");
-    if (target?.dataset.jumpNode !== undefined) {
+    const target = (event.target as HTMLElement).closest<HTMLElement>("[data-jump-node], [data-jump-relationship], [data-close], [data-hunk-owner]");
+    if (target?.dataset.hunkOwner !== undefined) {
+      openHunk = { owner: target.dataset.hunkOwner, id: target.dataset.hunkOpen || null };
+      updateInspector();
+    } else if (target?.dataset.jumpNode !== undefined) {
       selection = { type: "node", name: target.dataset.jumpNode };
       hovered = undefined;
       render();
@@ -640,6 +642,7 @@ function setDataflow(value: unknown, nextFileName: string): string | undefined {
       showUnchanged = true;
       selection = undefined;
       hovered = undefined;
+      openHunk = undefined;
       zoom = 1;
       panX = 0;
       panY = 0;

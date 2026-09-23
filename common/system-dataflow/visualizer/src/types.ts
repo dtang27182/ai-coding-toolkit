@@ -17,6 +17,7 @@ export interface SystemDataflowNode {
   location: string;
   changeType?: ChangeType;
   algorithm?: string;
+  diffHunkIds?: string[];
 }
 
 export interface SystemDataflowRelationship {
@@ -27,12 +28,20 @@ export interface SystemDataflowRelationship {
   changeType?: ChangeType;
   data: string;
   purpose: string;
+  diffHunkIds?: string[];
+}
+
+export interface DiffHunk {
+  id: string;
+  file: string;
+  patch: string;
 }
 
 export interface SystemDataflow {
-  schemaVersion: 1;
+  schemaVersion: 2;
   stage: "high-level-design" | "code-review";
   feature: string;
+  diffHunks?: DiffHunk[];
   nodes: SystemDataflowNode[];
   relationships: SystemDataflowRelationship[];
 }

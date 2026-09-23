@@ -744,6 +744,257 @@ button:focus-visible,
   font-family: "IBM Plex Mono", monospace;
 }
 
+/* Relevant diff */
+
+.diff-section .section-heading .diff-counts {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.diff-counts {
+  font-family: "IBM Plex Mono", monospace;
+  white-space: nowrap;
+}
+
+.diff-add {
+  color: var(--added);
+}
+
+.diff-del {
+  color: var(--deleted);
+}
+
+.hunk-list {
+  overflow: hidden;
+  border: 1px solid var(--subtle-border);
+  border-radius: 8px;
+}
+
+.hunk + .hunk {
+  border-top: 1px solid var(--subtle-border);
+}
+
+.hunk-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hunk-toggle:hover {
+  background: oklch(0.205 0.024 255);
+}
+
+.hunk-toggle[aria-expanded="true"] {
+  background: oklch(0.215 0.024 255);
+}
+
+.hunk-chevron {
+  flex: 0 0 12px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 120ms ease;
+}
+
+.hunk-toggle[aria-expanded="true"] .hunk-chevron {
+  transform: rotate(90deg);
+}
+
+.hunk-summary {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hunk-path,
+.hunk-location {
+  overflow: hidden;
+  font-family: "IBM Plex Mono", monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hunk-path {
+  color: var(--bright);
+  font-size: 11.5px;
+}
+
+.hunk-dir,
+.hunk-location {
+  color: oklch(0.62 0.02 250);
+}
+
+.hunk-location {
+  font-size: 10px;
+}
+
+.hunk-meta {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.hunk-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+}
+
+.hunk-shared {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9.5px;
+  white-space: nowrap;
+}
+
+.diffstat {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.diffstat i {
+  width: 7px;
+  height: 7px;
+  border-radius: 1.5px;
+  background: var(--border);
+}
+
+.diffstat i.add {
+  background: var(--added);
+}
+
+.diffstat i.del {
+  background: var(--deleted);
+}
+
+.hunk-code {
+  padding: 4px 0;
+  background: oklch(0.155 0.02 255);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  line-height: 1.62;
+  tab-size: 2;
+}
+
+.hunk-line {
+  display: flex;
+}
+
+.hunk-line.add {
+  background: color-mix(in oklch, var(--added) 13%, transparent);
+}
+
+.hunk-line.del {
+  background: color-mix(in oklch, var(--deleted) 14%, transparent);
+}
+
+.hunk-sign {
+  flex: 0 0 18px;
+  color: oklch(0.62 0.02 250);
+  text-align: center;
+  user-select: none;
+}
+
+.hunk-line.add .hunk-sign {
+  color: var(--added);
+}
+
+.hunk-line.del .hunk-sign {
+  color: var(--deleted);
+}
+
+/* wrap long lines so nothing scrolls sideways at panel width; continuations hang
+   2ch deeper than the line's own indentation, which main.ts supplies as --indent */
+.hunk-text {
+  min-width: 0;
+  padding: 0 12px 0 calc(var(--indent, 0ch) + 2ch);
+  overflow-wrap: anywhere;
+  color: oklch(0.8 0.015 250);
+  text-indent: calc(-1 * (var(--indent, 0ch) + 2ch));
+  white-space: pre-wrap;
+}
+
+.hunk-line.add .hunk-text,
+.hunk-line.del .hunk-text {
+  color: oklch(0.9 0.012 250);
+}
+
+.hunk-line.meta .hunk-text {
+  color: oklch(0.62 0.02 250);
+  font-style: italic;
+}
+
+.hunk-owners {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 7px 11px;
+  border-top: 1px solid var(--subtle-border);
+  background: oklch(0.19 0.022 255);
+}
+
+.hunk-owners-label {
+  color: oklch(0.62 0.02 250);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hunk-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  color: oklch(0.9 0.012 250);
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.hunk-owner.relationship {
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  background: var(--raised);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+}
+
+.hunk-owner:hover {
+  opacity: 0.7;
+}
+
+.hunk-missing {
+  margin: 0;
+  padding: 9px 11px;
+  color: oklch(0.9 0.05 25);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+}
+
 .status-banner {
   position: absolute;
   top: 14px;
