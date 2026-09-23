@@ -34,10 +34,10 @@ const modifiedPatch = [
 ].join("\n");
 
 test("indexes changed classes and methods while retaining unmatched file changes", () => {
-  const index = generateDiffIndex(modifiedPatch, "feature.patch");
+  const index = generateDiffIndex(modifiedPatch);
   assert.deepEqual(index, {
     schemaVersion: 1,
-    patch: "feature.patch",
+    patch: modifiedPatch,
     elements: {
       "element-1": {
         kind: "file",
@@ -210,7 +210,7 @@ test("the CLI writes a validated index beside the patch by default", async (t) =
   const result = spawnSync(process.execPath, [generatorPath, patchPath], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   const index = JSON.parse(await readFile(path.join(directory, "feature.diff-index.json"), "utf8"));
-  assert.equal(index.patch, "feature.code-review.patch");
+  assert.equal(index.patch, modifiedPatch);
   assert.equal(index.elements["element-4"].name, "buildChangeSet");
 });
 

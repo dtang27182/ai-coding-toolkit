@@ -73,7 +73,7 @@ It has independent validation and counting scripts and its own Architecture Diff
 
 ## Annotate the Current Diff
 
-After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$annotate-diff`. The skill compares the current files with `HEAD` and writes `<feature>.system-dataflow.code-review.json` beside the HLD. It also writes `<feature>.code-review.patch` and `<feature>.diff-index.json` as a paired input set for the diff visualizer. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature. The Diff Index maps changed files, classes, and methods to locations in its paired patch.
+After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$annotate-diff`. The skill compares the current files with `HEAD` and writes `<feature>.system-dataflow.code-review.json` beside the HLD. It also writes `<feature>.diff-index.json` as a self-contained input for the diff visualizer, embedding the exact patch alongside locations for changed files, classes, and methods. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
 
 `generate-diff-index.mjs` can currently identify class and method entities only in JavaScript and TypeScript files because it uses a deterministic AST parser. Future work could add an LLM-based entity-identification path for broader language support.
 

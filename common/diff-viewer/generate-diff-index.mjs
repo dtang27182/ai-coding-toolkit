@@ -538,7 +538,7 @@ function semanticErrors(index, files) {
   return errors;
 }
 
-export function generateDiffIndex(patch, patchFileName = "changes.patch") {
+export function generateDiffIndex(patch) {
   const files = parsePatch(patch);
   if (files.length === 0) {
     throw new Error("Patch contains no file sections.");
@@ -555,7 +555,7 @@ export function generateDiffIndex(patch, patchFileName = "changes.patch") {
   const elements = {};
   let nextId = 1;
   for (const file of files) nextId = indexFile(file, elements, nextId);
-  const index = { schemaVersion: 1, patch: patchFileName, elements };
+  const index = { schemaVersion: 1, patch, elements };
 
   if (!validateSchema(index)) {
     const details = (validateSchema.errors ?? [])
@@ -586,8 +586,7 @@ async function main() {
   } else {
     const patchPath = path.resolve(patchArgument);
     const outputPath = path.resolve(process.argv[3] ?? defaultOutputPath(patchPath));
-    const patchName = path.relative(path.dirname(outputPath), patchPath).split(path.sep).join("/");
-    const index = generateDiffIndex(await readFile(patchPath, "utf8"), patchName);
+    const index = generateDiffIndex(await readFile(patchPath, "utf8"));
     await writeFile(outputPath, `${JSON.stringify(index, null, 2)}\n`);
     console.log(`Generated Diff Index: ${outputPath}`);
   }
