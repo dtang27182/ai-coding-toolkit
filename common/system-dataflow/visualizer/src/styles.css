@@ -17,6 +17,10 @@
   --accent: oklch(0.78 0.12 245);
 }
 
+:host(.embedded-view) .topbar {
+  display: none;
+}
+
 * {
   box-sizing: border-box;
 }
