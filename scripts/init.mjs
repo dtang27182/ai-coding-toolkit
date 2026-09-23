@@ -75,10 +75,19 @@ async function installRootCommands() {
       commands["hld-gen-new-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer";
     }
     if (toolNames.includes("annotate-diff")) {
+      commands["diff-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/annotate-diff/visualizer";
       commands["system-dataflow-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/system-dataflow/visualizer";
       commands["diff-viewer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/viewer";
     }
     let packageChanged = false;
+    if (
+      toolNames.includes("annotate-diff") &&
+      packageJson.scripts?.["diff-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/visualizer"
+    ) {
+      packageJson.scripts["diff-visualizer"] = commands["diff-visualizer"];
+      packageChanged = true;
+      console.log("Updated npm command: npm run diff-visualizer");
+    }
     if (toolNames.includes("hld-gen") && packageJson.scripts?.mermaid === "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs") {
       delete packageJson.scripts.mermaid;
       packageChanged = true;
@@ -136,6 +145,9 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     for (const relativePath of ["hld-architecture.md", "skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md", "scripts/architecture-diff-to-mermaid.mjs"]) {
       await rm(path.join(installedToolkitDirectory, "hld-gen", relativePath), { recursive: true, force: true });
     }
+  }
+  if (toolNames.includes("annotate-diff")) {
+    await rm(path.join(installedToolkitDirectory, "common", "diff-viewer", "visualizer"), { recursive: true, force: true });
   }
   await installCodexSkills(repoDirectory, toolkitDirectory, toolNames);
   await installRootCommands();

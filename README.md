@@ -77,7 +77,15 @@ After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$annotate-di
 
 `generate-diff-index.mjs` can currently identify class and method entities only in JavaScript and TypeScript files because it uses a deterministic AST parser. Future work could add an LLM-based entity-identification path for broader language support.
 
-Run the installed System Dataflow visualizer from the target repository:
+Run the combined visualizer from the target repository, then switch between the System Dataflow and Annotated Diff Patch views:
+
+```sh
+npm run diff-visualizer
+```
+
+Each view opens the newest matching `system-dataflow.json` or `diff-index.json` artifact under the configured output directory. You can also open or drag in another file from either view.
+
+The original standalone viewers remain available. Run the System Dataflow visualizer with:
 
 ```sh
 npm run system-dataflow-visualizer

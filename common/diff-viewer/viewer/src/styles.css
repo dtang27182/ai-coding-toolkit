@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
 
-:root {
+:host {
+  display: block;
   color-scheme: dark;
   font-family: "IBM Plex Sans", sans-serif;
   color: #d9e2ec;
@@ -25,8 +26,6 @@
   box-sizing: border-box;
 }
 
-html,
-body,
 #app {
   width: 100%;
   height: 100%;
@@ -191,7 +190,7 @@ button {
 
 .sidebar-resizer:hover::before,
 .sidebar-resizer:focus-visible::before,
-body.resizing-sidebar .sidebar-resizer::before {
+:host(.resizing-sidebar) .sidebar-resizer::before {
   background: var(--blue);
   box-shadow: 0 0 0 1px rgba(88, 166, 255, 0.18);
 }
@@ -200,8 +199,8 @@ body.resizing-sidebar .sidebar-resizer::before {
   outline: none;
 }
 
-body.resizing-sidebar,
-body.resizing-sidebar * {
+:host(.resizing-sidebar),
+:host(.resizing-sidebar) * {
   cursor: col-resize !important;
   user-select: none !important;
 }
@@ -758,7 +757,7 @@ button.tree-row,
   color: #d5e2eb;
 }
 
-body.dragging .drop-overlay {
+:host(.dragging) .drop-overlay {
   display: grid;
 }
 

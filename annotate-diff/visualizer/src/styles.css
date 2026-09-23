@@ -1,0 +1,125 @@
+:root {
+  color-scheme: dark;
+  font-family: "IBM Plex Sans", Helvetica, sans-serif;
+  color: #d9e2ec;
+  background: #091017;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+}
+
+.visualizer-shell {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  background: #091017;
+}
+
+.view-navigation {
+  z-index: 20;
+  display: flex;
+  min-height: 44px;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0 12px;
+  border-bottom: 1px solid #2a3946;
+  background: #070d12;
+}
+
+.product-name {
+  display: flex;
+  align-items: center;
+  margin-right: 12px;
+  color: #91a4b3;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.view-button {
+  position: relative;
+  padding: 0 14px;
+  border: 0;
+  color: #8ea2b2;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.view-button::after {
+  position: absolute;
+  right: 10px;
+  bottom: 0;
+  left: 10px;
+  height: 2px;
+  background: transparent;
+  content: "";
+}
+
+.view-button:hover,
+.view-button:focus-visible,
+.view-button.active {
+  color: #d9e2ec;
+}
+
+.view-button:focus-visible {
+  outline: 2px solid #58a6ff;
+  outline-offset: -4px;
+}
+
+.view-button.active::after {
+  background: #58a6ff;
+}
+
+.view-panels {
+  position: relative;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.view-panel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.view-panel.active {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+@media (max-width: 620px) {
+  .view-navigation {
+    padding: 0 4px;
+  }
+
+  .product-name {
+    display: none;
+  }
+
+  .view-button {
+    flex: 1 1 50%;
+    padding: 0 6px;
+  }
+}
