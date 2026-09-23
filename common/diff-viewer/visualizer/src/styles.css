@@ -509,6 +509,48 @@ button.tree-row,
   font-size: 10.5px;
 }
 
+.change-navigation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 9px;
+}
+
+.change-counter {
+  margin-right: 2px;
+  color: var(--muted);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.change-counter strong {
+  color: var(--text);
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 500;
+}
+
+.change-button {
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 11.5px;
+}
+
+.change-button:hover:not(:disabled),
+.change-button:focus-visible {
+  border-color: #416786;
+  background: #182735;
+}
+
+.change-button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
 .wrap-button {
   display: flex;
   align-items: center;
@@ -536,13 +578,69 @@ button.tree-row,
   font-size: 9px;
 }
 
+.diff-area {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
 .diff-scroll {
+  position: relative;
+  min-width: 0;
   min-height: 0;
   flex: 1;
   overflow: auto;
   padding: 9px 0 28px;
   scrollbar-color: #354957 transparent;
   scrollbar-width: thin;
+}
+
+.scroll-end-spacer {
+  width: 1px;
+}
+
+.change-minimap {
+  position: relative;
+  width: 14px;
+  min-width: 14px;
+  align-self: stretch;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--panel);
+  cursor: pointer;
+}
+
+.minimap-inner {
+  position: absolute;
+  inset: 6px 0;
+}
+
+.minimap-mark {
+  position: absolute;
+  right: 3px;
+  left: 3px;
+  min-height: 2px;
+  border-radius: 1px;
+}
+
+.minimap-mark.add {
+  background: var(--green);
+}
+
+.minimap-mark.delete {
+  background: var(--red);
+}
+
+.minimap-viewport {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-top: 1px solid rgba(217, 226, 236, 0.35);
+  border-bottom: 1px solid rgba(217, 226, 236, 0.35);
+  background: rgba(217, 226, 236, 0.08);
+  pointer-events: none;
 }
 
 .diff-row {
@@ -672,6 +770,10 @@ body.dragging .drop-overlay {
 
   .open-button {
     margin-left: auto;
+  }
+
+  .wrap-button kbd {
+    display: none;
   }
 
 }

@@ -1,5 +1,6 @@
 import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
 import diffIndexSchema from "../../diff-index.schema.json";
+import { changeBlocks, changeRuns } from "./change-navigation.ts";
 import { exampleIndex } from "./example.ts";
 import { clampSidebarWidth, MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH } from "./layout.ts";
 import { buildTree, expandedNodeIds, semanticError, statsForElement, unmatchedCount, type TreeNode } from "./model.ts";
@@ -109,14 +110,31 @@ function renderDiff(file: DiffFile): string {
   } else if (file.rows.length === 0) {
     return '<div class="empty-diff"><strong>No text rows</strong><span>The patch does not contain displayable lines for this file.</span></div>';
   } else {
-    return file.rows.map((row) => `
-      <div class="diff-row ${row.kind}" ${row.oldLine === undefined ? "" : `data-old-line="${row.oldLine}"`} ${row.newLine === undefined ? "" : `data-new-line="${row.newLine}"`}>
+    const blockStarts = new Map(changeBlocks(file.rows).map((block, blockIndex) => [block.startRowIndex, blockIndex]));
+    return file.rows.map((row, rowIndex) => `
+      <div class="diff-row ${row.kind}" ${row.oldLine === undefined ? "" : `data-old-line="${row.oldLine}"`} ${row.newLine === undefined ? "" : `data-new-line="${row.newLine}"`} ${blockStarts.has(rowIndex) ? `data-change-block="${blockStarts.get(rowIndex)}"` : ""}>
         <span class="line-number old-number">${row.oldLine ?? ""}</span>
         <span class="line-number new-number">${row.newLine ?? ""}</span>
         <span class="marker">${row.kind === "add" ? "+" : row.kind === "delete" ? "−" : ""}</span>
         <code>${row.text === "" ? "&nbsp;" : escapeHtml(row.text)}</code>
       </div>`).join("");
   }
+}
+
+function renderMinimap(file: DiffFile): string {
+  const rowCount = file.rows.length;
+  const marks = rowCount === 0 ? "" : changeRuns(file.rows).map((run) => {
+    const top = run.startRowIndex / rowCount * 100;
+    const height = (run.endRowIndex - run.startRowIndex + 1) / rowCount * 100;
+    return `<span class="minimap-mark ${run.kind}" style="top:${top}%;height:${height}%"></span>`;
+  }).join("");
+  return `
+    <button class="change-minimap" id="change-minimap" type="button" title="Changes in this file" aria-label="Scroll through changes in this file">
+      <span class="minimap-inner">
+        ${marks}
+        <span class="minimap-viewport" id="minimap-viewport"></span>
+      </span>
+    </button>`;
 }
 
 function render(): void {
@@ -128,6 +146,7 @@ function render(): void {
   const entityCount = Object.keys(index.elements).length - fileElements.length;
   const unmapped = fileElements.reduce((sum, element) => sum + unmatchedCount(element), 0);
   const file = selectedFile();
+  const blockCount = changeBlocks(file.rows).length;
   app.innerHTML = `
     <div class="app-shell">
       <header class="topbar">
@@ -164,9 +183,22 @@ function render(): void {
             <span class="file-icon">${icon("file")}</span>
             <span class="file-path">${escapeHtml(file.path)}</span>
             <span class="file-stats"><span class="plus">+${file.added}</span><span class="minus">−${file.removed}</span></span>
+            <div class="change-navigation" aria-label="Change navigation">
+              ${blockCount === 0
+                ? '<span class="change-counter">No changes</span>'
+                : `<span class="change-counter" aria-live="polite">Change <strong id="current-change">–</strong> of <strong>${blockCount}</strong></span>`}
+              <button class="change-button" id="previous-change" type="button" title="Previous change">↑ Prev</button>
+              <button class="change-button" id="next-change" type="button" title="Next change">↓ Next</button>
+            </div>
             <button class="wrap-button ${wrapLines ? "active" : ""}" type="button" id="toggle-wrap" aria-pressed="${wrapLines}" title="Wrap long lines (Alt/Option+Z)">Wrap <kbd>⌥/Alt Z</kbd></button>
           </div>
-          <div class="diff-scroll ${wrapLines ? "wrap-lines" : ""}" id="diff-scroll">${renderDiff(file)}</div>
+          <div class="diff-area">
+            <div class="diff-scroll ${wrapLines ? "wrap-lines" : ""}" id="diff-scroll">
+              <div class="diff-content" id="diff-content">${renderDiff(file)}</div>
+              <div class="scroll-end-spacer" id="scroll-end-spacer" aria-hidden="true"></div>
+            </div>
+            ${renderMinimap(file)}
+          </div>
         </main>
       </div>
       <div class="drop-overlay"><div><strong>Open diff-index.json</strong><span>Drop the file anywhere</span></div></div>
@@ -192,6 +224,91 @@ function render(): void {
     button.addEventListener("click", () => selectElement(button.dataset.select!));
   }
   bindSidebarResizer();
+  bindChangeNavigation();
+}
+
+function changeBlockTops(): number[] {
+  return [...app.querySelectorAll<HTMLElement>("[data-change-block]")].map((element) => element.offsetTop);
+}
+
+function fitScrollEndSpacer(): void {
+  const scroll = app.querySelector<HTMLElement>("#diff-scroll")!;
+  app.querySelector<HTMLElement>("#scroll-end-spacer")!.style.height = `${Math.max(0, scroll.clientHeight - 80)}px`;
+}
+
+function paintMinimapViewport(): void {
+  const scroll = app.querySelector<HTMLElement>("#diff-scroll")!;
+  const content = app.querySelector<HTMLElement>("#diff-content")!;
+  const viewport = app.querySelector<HTMLElement>("#minimap-viewport")!;
+  const contentHeight = content.offsetHeight;
+  let top = 0;
+  let size = 1;
+  if (contentHeight > 0) {
+    size = Math.min(1, scroll.clientHeight / contentHeight);
+    top = Math.max(0, (scroll.scrollTop - content.offsetTop) / contentHeight);
+    top = Math.min(top, 1 - size);
+  }
+  viewport.style.top = `${top * 100}%`;
+  viewport.style.height = `${size * 100}%`;
+}
+
+function changeTarget(direction: -1 | 1): number | undefined {
+  const scroll = app.querySelector<HTMLElement>("#diff-scroll")!;
+  const tops = changeBlockTops().map((top) => top - 12);
+  let target;
+  if (direction === 1) {
+    target = tops.find((top) => top > scroll.scrollTop + 2);
+  } else if (direction === -1) {
+    target = [...tops].reverse().find((top) => top < scroll.scrollTop - 2);
+  }
+  return target;
+}
+
+function updateChangeNavigation(): void {
+  const scroll = app.querySelector<HTMLElement>("#diff-scroll")!;
+  const tops = changeBlockTops();
+  const atBottom = scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 2;
+  const reference = atBottom ? scroll.scrollTop + scroll.clientHeight - 40 : scroll.scrollTop + 16;
+  let current = -1;
+  tops.forEach((top, blockIndex) => {
+    if (top <= reference) {
+      current = blockIndex;
+    }
+  });
+  const currentLabel = app.querySelector<HTMLElement>("#current-change");
+  if (currentLabel !== null) {
+    currentLabel.textContent = current < 0 ? "–" : String(current + 1);
+  }
+  app.querySelector<HTMLButtonElement>("#previous-change")!.disabled = changeTarget(-1) === undefined;
+  app.querySelector<HTMLButtonElement>("#next-change")!.disabled = changeTarget(1) === undefined;
+  paintMinimapViewport();
+}
+
+function stepChange(direction: -1 | 1): void {
+  const target = changeTarget(direction);
+  if (target !== undefined) {
+    app.querySelector<HTMLElement>("#diff-scroll")!.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+  }
+}
+
+function scrollFromMinimap(event: MouseEvent): void {
+  const minimap = app.querySelector<HTMLElement>(".minimap-inner")!;
+  const scroll = app.querySelector<HTMLElement>("#diff-scroll")!;
+  const content = app.querySelector<HTMLElement>("#diff-content")!;
+  const bounds = minimap.getBoundingClientRect();
+  const fraction = Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height));
+  const target = content.offsetTop + fraction * content.offsetHeight - scroll.clientHeight / 2;
+  scroll.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+}
+
+function bindChangeNavigation(): void {
+  const scroll = app.querySelector<HTMLElement>("#diff-scroll")!;
+  fitScrollEndSpacer();
+  updateChangeNavigation();
+  scroll.addEventListener("scroll", updateChangeNavigation);
+  app.querySelector<HTMLButtonElement>("#previous-change")!.addEventListener("click", () => stepChange(-1));
+  app.querySelector<HTMLButtonElement>("#next-change")!.addEventListener("click", () => stepChange(1));
+  app.querySelector<HTMLButtonElement>("#change-minimap")!.addEventListener("click", scrollFromMinimap);
 }
 
 function bindSidebarResizer(): void {
@@ -264,6 +381,8 @@ function toggleLineWrapping(): void {
   }
   button.classList.toggle("active", wrapLines);
   button.setAttribute("aria-pressed", String(wrapLines));
+  fitScrollEndSpacer();
+  updateChangeNavigation();
 }
 
 function toggleNode(id: string): void {
@@ -275,6 +394,7 @@ function toggleNode(id: string): void {
   }
   render();
   app.querySelector<HTMLElement>("#diff-scroll")!.scrollTop = scrollTop;
+  updateChangeNavigation();
 }
 
 function setAllNodesExpanded(expand: boolean): void {
@@ -282,6 +402,7 @@ function setAllNodesExpanded(expand: boolean): void {
   expandedIds = expandedNodeIds(buildTree(index), expand);
   render();
   app.querySelector<HTMLElement>("#diff-scroll")!.scrollTop = scrollTop;
+  updateChangeNavigation();
 }
 
 function selectElement(id: string, updateHash = true): void {
@@ -377,6 +498,8 @@ window.addEventListener("resize", () => {
   if (matchMedia("(min-width: 621px)").matches) {
     setSidebarWidth(sidebarWidth);
   }
+  fitScrollEndSpacer();
+  updateChangeNavigation();
 });
 
 window.addEventListener("dragenter", (event) => {

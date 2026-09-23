@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { findNewestDiffIndex } from "../common/diff-viewer/visualizer/default-diff-index.mjs";
+import { changeBlocks, changeRuns } from "../common/diff-viewer/visualizer/src/change-navigation.ts";
 import { exampleIndex } from "../common/diff-viewer/visualizer/src/example.ts";
 import { clampSidebarWidth } from "../common/diff-viewer/visualizer/src/layout.ts";
 import { buildTree, expandedNodeIds, statsForElement, unmatchedCount } from "../common/diff-viewer/visualizer/src/model.ts";
@@ -42,6 +43,21 @@ test("locates the first changed line when opening a file-level diff", () => {
     added: 0,
     removed: 0,
   }), undefined);
+});
+
+test("groups adjacent changed lines for navigation and same-kind lines for the minimap", () => {
+  const rows = parsePatch(exampleIndex.patch)[0].rows;
+  assert.deepEqual(changeBlocks(rows), [
+    { startRowIndex: 2, endRowIndex: 3 },
+    { startRowIndex: 7, endRowIndex: 9 },
+  ]);
+  assert.deepEqual(changeRuns(rows), [
+    { kind: "delete", startRowIndex: 2, endRowIndex: 2 },
+    { kind: "add", startRowIndex: 3, endRowIndex: 3 },
+    { kind: "add", startRowIndex: 7, endRowIndex: 7 },
+    { kind: "delete", startRowIndex: 8, endRowIndex: 8 },
+    { kind: "add", startRowIndex: 9, endRowIndex: 9 },
+  ]);
 });
 
 test("uses diff headers for binary files without text-file headers", () => {
