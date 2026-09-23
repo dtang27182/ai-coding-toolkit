@@ -87,7 +87,7 @@ function tabWidth(classDiff: ClassDiff): number {
 function classExposureCount(classDiff: ClassDiff): number | null {
   if (classDiff.variableExposureCount !== undefined) {
     return classDiff.variableExposureCount;
-  } else if (classDiff.variableExposure === null) {
+  } else if (classDiff.variableExposure === undefined || classDiff.variableExposure === null) {
     return null;
   } else {
     return classDiff.variableExposure.length;
@@ -441,7 +441,7 @@ function inspectorHeader(eyebrow: string, title: string, changeType: ChangeType,
 
 function exposureSummary(classDiff: ClassDiff, methodName?: string): string {
   const variables = classDiff.variableExposure;
-  if (variables === null) return '<p class="empty-copy">Exposure inventory is unknown.</p>';
+  if (variables === undefined || variables === null) return '<p class="empty-copy">Exposure inventory is unknown.</p>';
   const instance = variables.filter((variable) => variable.kind === "instance").length;
   if (methodName === undefined) {
     return `<div class="exposure-grid"><span>Instance variables</span><span>${instance}</span><span>Local variables</span><span>${variables.filter((variable) => variable.kind !== "instance").length}</span></div>`;
@@ -481,7 +481,7 @@ function renderInspector(graph: VisibleGraph): string {
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, methodSelection));
     const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update" && endpointMatches(relationship.from, methodSelection));
     const inventory = classDiff.variableExposure;
-    const exposureCount = inventory === null ? undefined : inventory.filter((variable) => variable.kind === "instance" || variable.method === methodSelection.methodName).length;
+    const exposureCount = inventory === undefined || inventory === null ? undefined : inventory.filter((variable) => variable.kind === "instance" || variable.method === methodSelection.methodName).length;
     return `${inspectorHeader(classDiff.name, method.name, method.changeType)}${section("Exposure in this scope", exposureSummary(classDiff, method.name), exposureCount)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${section("State written", flowRows(stateUpdates, "to", true), stateUpdates.length)}`;
   } else if (inspected.type === "component") {
     const componentSelection = inspected;
@@ -509,7 +509,7 @@ function renderInspector(graph: VisibleGraph): string {
       .map((item) => {
         const { dataDescription, purpose, changeType, userFlow } = item.relationship;
         return `<div class="relationship-entry" style="border-color:${changeColor(changeType)}">
-          ${merged ? `<button class="entry-endpoints" data-jump="${escapeHtml(JSON.stringify(selectionForEndpoint(item.to)))}">${escapeHtml(endpointLabel(item.from))} ${arrow(item)} ${escapeHtml(endpointLabel(item.to))}</button><div class="entry-chips"><span class="change-chip" style="${chipStyle(changeType)}">${changeType}</span><span class="change-chip neutral">${userFlow === true ? "user flow" : "supporting"}</span></div>` : ""}
+          ${merged ? `<button class="entry-endpoints" data-jump="${escapeHtml(JSON.stringify(selectionForEndpoint(item.to)))}">${escapeHtml(endpointLabel(item.from))} ${arrow(item)} ${escapeHtml(endpointLabel(item.to))}</button><div class="entry-chips"><span class="change-chip" style="${chipStyle(changeType)}">${changeType}</span>${userFlow === undefined ? "" : `<span class="change-chip neutral">${userFlow ? "user flow" : "supporting"}</span>`}</div>` : ""}
           <div class="entry-heading">Data</div>
           <p class="entry-copy">${escapeHtml(dataDescription ?? "Not described.")}</p>
           <div class="entry-heading">Purpose</div>
@@ -526,7 +526,7 @@ function renderInspector(graph: VisibleGraph): string {
     } else if (first.relationship.type === "state-read") {
       eyebrow = "State read";
     }
-    const detail = merged ? `${edges.length} relationships` : first.relationship.userFlow === true ? "user flow" : "supporting";
+    const detail = merged ? `${edges.length} relationships` : first.relationship.userFlow === undefined ? undefined : first.relationship.userFlow ? "user flow" : "supporting";
     return `${inspectorHeader(eyebrow, title, first.relationship.changeType, detail)}${section("Description", entries, merged ? edges.length : undefined)}`;
   } else {
     const classSelection = inspected;
@@ -553,7 +553,7 @@ function render(): void {
         <div class="control-group">
           <button class="control-button open-button" data-open>Open JSON</button>
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
-          <button class="control-button${userFlowOnly ? " active" : ""}" data-toggle-user-flow aria-pressed="${userFlowOnly}">User flow only</button>
+          ${diff.userFlows === undefined ? "" : `<button class="control-button${userFlowOnly ? " active" : ""}" data-toggle-user-flow aria-pressed="${userFlowOnly}">User flow only</button>`}
           <button class="control-button${methodsHidden ? " active" : ""}" data-toggle-methods>${methodsHidden ? "Show methods" : "Hide methods"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
@@ -723,15 +723,18 @@ function bindEvents(): void {
     userZoomed = false;
     render();
   });
-  app.querySelector<HTMLElement>("[data-toggle-user-flow]")!.addEventListener("click", () => {
-    userFlowOnly = !userFlowOnly;
-    selection = undefined;
-    hovered = undefined;
-    panX = 0;
-    panY = 0;
-    userZoomed = false;
-    render();
-  });
+  const userFlowToggle = app.querySelector<HTMLElement>("[data-toggle-user-flow]");
+  if (userFlowToggle !== null) {
+    userFlowToggle.addEventListener("click", () => {
+      userFlowOnly = !userFlowOnly;
+      selection = undefined;
+      hovered = undefined;
+      panX = 0;
+      panY = 0;
+      userZoomed = false;
+      render();
+    });
+  }
   app.querySelector<HTMLElement>("[data-toggle-methods]")!.addEventListener("click", () => {
     methodsHidden = !methodsHidden;
     panX = 0;
@@ -855,6 +858,7 @@ function setArchitectureDiff(value: unknown, nextFileName: string): string | und
       return error;
     } else {
       diff = architectureDiff;
+      if (diff.userFlows === undefined) userFlowOnly = false;
       fileName = nextFileName;
       selection = undefined;
       hovered = undefined;

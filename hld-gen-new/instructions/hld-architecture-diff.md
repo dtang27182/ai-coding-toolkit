@@ -1,38 +1,17 @@
 # HLD Architecture Diff
 
-Use the Architecture Diff (arch-diff) to show how the existing architecture changes to implement the HLD. Read `../references/arch-diff.schema.json` and `../references/arch-diff.example.json` before writing it.
+Use the Architecture Diff (arch-diff) to show how the existing architecture changes to implement the HLD. Read and follow `../references/arch-diff.schema.json`, the authoritative representation contract, and use `../references/arch-diff.example.json` as an HLD example.
+
+Set `stage` to `high-level-design`. Populate `userFlows` from the narrative's User Flow Steps and set `userFlow` on every method, state variable, component, and non-composition relationship. Give every class a `variableExposure` inventory; use `null` until it is populated from the current code.
 
 ## Scope
 
 - Represent Core Logic and Dataflow, including all changes required by the User Flow Steps. Keep broader workflows in Relevant Logic and Dataflow, outside the diagram.
+- Include every changed class, method, state variable, component, and relationship required by the HLD.
 - Include unchanged entities and relationships only when they implement or connect User Flow Steps, preserving intermediaries, state owners, and consumers. When a step supplies data or state to existing behavior, stop where it is read and applied.
 - Shared entities, state, or execution paths do not bring other methods or workflows into scope. Following calls helps locate code but does not determine inclusion.
 - Defer adjustments for interference with existing behavior to low level design, as defined in `hld-narrative.md`.
 - Ground every entry in the feature context, narrative, or current code.
-
-## Classes, State Variables, Methods, and Components
-
-- Include all required class, state-variable, and method changes. Apply the scope criteria separately to unchanged classes, state variables and methods within included classes, and components.
-- Use `components` for UI surfaces (`ui`) and external I/O endpoints (`external-io`), such as network services, files, and browser storage. Each has `name`, `type`, and `changeType`; use `[]` when none participate.
-- Keep implementation classes and methods, including UI handlers and I/O adapters, in `classes`. Variable exposure belongs to those classes.
-- Mark reused entries `unchanged`. Participation or a new connection alone does not modify an endpoint.
-- A class with an added, modified, or deleted method or state variable must be marked changed.
-- Keep class and component names globally unique, and method names unique within each class.
-
-### State Variables
-
-- Give every class a `stateVariables` array. Include every mutable instance variable added, modified, or deleted by the design and every unchanged mutable instance variable read or written by Core Logic and Dataflow. Use `[]` when none qualify.
-- Exclude static/class variables, method-local variables, unrelated fields, explicitly read-only fields, and fields initialized at declaration or construction but never written afterward. Constructor assignment is initialization, not a state update.
-- Exclude fields used only to reference owned child objects. Represent ownership with `composition`; do not duplicate the backing reference as state or create state relationships for ordinary access to it.
-- Set a state variable's `changeType` from changes to its declaration or architectural meaning. Writing a new runtime value does not by itself make an existing variable `modified`.
-- Keep state-variable names unique within their class.
-
-## Relationships
-
-- Preserve actual intermediate participants in dataflow and use separate relationships for request and response paths.
-- Add state relationships for all state variables read or written by Core Logic and Dataflow, including cross-class access.
-- Use `composition` only for class ownership, including child-object references excluded from `stateVariables`.
-- Explain ordering and state transitions in the narrative; relationships do not represent execution sequence.
 
 ## Validation
 

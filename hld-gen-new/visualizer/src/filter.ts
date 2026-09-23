@@ -10,18 +10,18 @@ export interface VisibleGraph {
 }
 
 export function filterGraph(diff: ArchitectureDiff, showUnchanged: boolean, userFlowOnly: boolean): VisibleGraph {
-  const visible = (entry: { changeType: ChangeType; userFlow: boolean }) =>
-    (showUnchanged || entry.changeType !== "unchanged") && (!userFlowOnly || entry.userFlow);
+  const visible = (entry: { changeType: ChangeType; userFlow?: boolean }) =>
+    (showUnchanged || entry.changeType !== "unchanged") && (!userFlowOnly || entry.userFlow === true);
   const classes = diff.classes.filter((classDiff) =>
     (showUnchanged || classDiff.changeType !== "unchanged") &&
-    (!userFlowOnly || classDiff.stateVariables.some((stateVariable) => stateVariable.userFlow) || classDiff.methods.some((method) => method.userFlow) || diff.relationships.some(
-      (relationship) => relationship.type === "dataflow" && relationship.userFlow &&
+    (!userFlowOnly || classDiff.stateVariables.some((stateVariable) => stateVariable.userFlow === true) || classDiff.methods.some((method) => method.userFlow === true) || diff.relationships.some(
+      (relationship) => relationship.type === "dataflow" && relationship.userFlow === true &&
         (("class" in relationship.from && relationship.from.class === classDiff.name) ||
           ("class" in relationship.to && relationship.to.class === classDiff.name)),
     )),
   ).map((classDiff) => {
     const methods = classDiff.methods.filter(visible);
-    const variableExposure = classDiff.variableExposure === null ? null : classDiff.variableExposure.filter(
+    const variableExposure = classDiff.variableExposure === undefined || classDiff.variableExposure === null ? null : classDiff.variableExposure.filter(
       (variable) => variable.kind === "instance" || methods.some((method) => method.name === variable.method),
     );
     return {

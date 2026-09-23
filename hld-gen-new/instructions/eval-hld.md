@@ -12,6 +12,6 @@ Use the Architecture Diff's changed classes and methods to find exposed variable
 
 1. Run `node ai-coding-toolkit/hld-gen-new/scripts/count-variable-exposure.mjs <json-path>` to validate the Architecture Diff and write its `variableExposureCount` values. Fix validation failures before continuing.
 2. Run `node ai-coding-toolkit/hld-gen-new/scripts/count-design-changes.mjs <json-path>` to validate the Architecture Diff and write the five change counts. Fix failures before accepting the counts.
-3. Verify that `changedClassCount`, `changedMethodCount`, `changedComponentCount`, `changedDataflowRelationshipCount`, `changedStateUpdateRelationshipCount`, and `variableExposureCount` are present and non-null in the Architecture Diff JSON.
+3. Run `node ai-coding-toolkit/hld-gen-new/scripts/validate-architecture-diff.mjs --evaluated <json-path>` to verify that all six derived counts and Variable Exposure inventories are complete and non-null.
 
 After verification, copy all six counts from the JSON into the candidate's iteration record and mark it evaluated. On failure, record the failed status and reason. After a design or inventory changes, mark evaluation pending and repeat these steps.

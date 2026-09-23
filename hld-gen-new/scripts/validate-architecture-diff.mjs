@@ -7,14 +7,23 @@ import Ajv2020 from "ajv/dist/2020.js";
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const hldGeneratorDirectory = path.resolve(scriptDirectory, "..");
 const inputArguments = process.argv.slice(2);
+let evaluated = false;
+let inputArgument;
 
-if (inputArguments.length !== 1) {
+if (inputArguments.length === 1) {
+  inputArgument = inputArguments[0];
+} else if (inputArguments.length === 2 && inputArguments[0] === "--evaluated") {
+  evaluated = true;
+  inputArgument = inputArguments[1];
+}
+
+if (inputArgument === undefined) {
   console.error(
-    "Usage: node ai-coding-toolkit/hld-gen-new/scripts/validate-architecture-diff.mjs <arch-diff.json>"
+    "Usage: node ai-coding-toolkit/hld-gen-new/scripts/validate-architecture-diff.mjs [--evaluated] <arch-diff.json>"
   );
   process.exitCode = 1;
 } else {
-  const inputPath = path.resolve(process.cwd(), inputArguments[0]);
+  const inputPath = path.resolve(process.cwd(), inputArgument);
   const schemaPath = path.join(
     hldGeneratorDirectory,
     "references",
@@ -40,6 +49,10 @@ if (inputArguments.length !== 1) {
       const classStateVariables = new Map();
       const componentNames = new Set();
 
+      if (architectureDiff.stage === "high-level-design" && !Array.isArray(architectureDiff.userFlows)) {
+        semanticErrors.push("High-level-design architecture diff requires userFlows");
+      }
+
       for (const classDiff of architectureDiff.classes) {
         if (nodeNames.has(classDiff.name)) {
           semanticErrors.push(`Duplicate class name: ${classDiff.name}`);
@@ -49,7 +62,13 @@ if (inputArguments.length !== 1) {
 
         const methodNames = new Map();
         classMethods.set(classDiff.name, methodNames);
+        if (architectureDiff.stage === "high-level-design" && !Object.hasOwn(classDiff, "variableExposure")) {
+          semanticErrors.push(`High-level-design class requires variableExposure: ${classDiff.name}`);
+        }
         for (const method of classDiff.methods) {
+          if (architectureDiff.stage === "high-level-design" && !Object.hasOwn(method, "userFlow")) {
+            semanticErrors.push(`High-level-design method requires userFlow: ${classDiff.name}.${method.name}`);
+          }
           if (
             classDiff.changeType === "unchanged" &&
             (method.changeType === "added" || method.changeType === "modified" || method.changeType === "deleted")
@@ -66,6 +85,9 @@ if (inputArguments.length !== 1) {
         const stateVariableNames = new Map();
         classStateVariables.set(classDiff.name, stateVariableNames);
         for (const stateVariable of classDiff.stateVariables) {
+          if (architectureDiff.stage === "high-level-design" && !Object.hasOwn(stateVariable, "userFlow")) {
+            semanticErrors.push(`High-level-design state variable requires userFlow: ${classDiff.name}.${stateVariable.name}`);
+          }
           if (
             classDiff.changeType === "unchanged" &&
             (stateVariable.changeType === "added" || stateVariable.changeType === "modified" || stateVariable.changeType === "deleted")
@@ -110,7 +132,7 @@ if (inputArguments.length !== 1) {
       }
 
       const flowNames = new Set();
-      for (const userFlow of architectureDiff.userFlows) {
+      for (const userFlow of architectureDiff.userFlows ?? []) {
         if (flowNames.has(userFlow.name)) {
           semanticErrors.push(`Duplicate user flow name: ${userFlow.name}`);
         }
@@ -125,6 +147,9 @@ if (inputArguments.length !== 1) {
       }
 
       for (const component of architectureDiff.components) {
+        if (architectureDiff.stage === "high-level-design" && !Object.hasOwn(component, "userFlow")) {
+          semanticErrors.push(`High-level-design component requires userFlow: ${component.name}`);
+        }
         componentNames.add(component.name);
         if (nodeNames.has(component.name)) {
           semanticErrors.push(`Duplicate class or component name: ${component.name}`);
@@ -134,6 +159,13 @@ if (inputArguments.length !== 1) {
       }
 
       for (const relationship of architectureDiff.relationships) {
+        if (
+          architectureDiff.stage === "high-level-design" &&
+          relationship.type !== "composition" &&
+          !Object.hasOwn(relationship, "userFlow")
+        ) {
+          semanticErrors.push(`High-level-design ${relationship.type} relationship requires userFlow`);
+        }
         for (const endpoint of [relationship.from, relationship.to]) {
           if (endpoint.component !== undefined) {
             if (!componentNames.has(endpoint.component)) {
@@ -153,6 +185,32 @@ if (inputArguments.length !== 1) {
             } else if (relationship.userFlow && endpoint.stateVariable !== undefined && !classStateVariables.get(endpoint.class).get(endpoint.stateVariable).userFlow) {
               semanticErrors.push(`User-flow relationship references a supporting state variable: ${endpoint.class}.${endpoint.stateVariable}`);
             }
+          }
+        }
+      }
+
+      if (evaluated && architectureDiff.stage === "code-review") {
+        semanticErrors.push("--evaluated applies only to high-level-design architecture diffs");
+      } else if (evaluated && architectureDiff.stage === "high-level-design") {
+        const countNames = [
+          "changedClassCount",
+          "changedMethodCount",
+          "changedComponentCount",
+          "changedDataflowRelationshipCount",
+          "changedStateUpdateRelationshipCount",
+          "variableExposureCount",
+        ];
+        for (const countName of countNames) {
+          if (!Number.isInteger(architectureDiff[countName])) {
+            semanticErrors.push(`Evaluated high-level-design architecture diff requires non-null ${countName}`);
+          }
+        }
+        for (const classDiff of architectureDiff.classes) {
+          if (!Array.isArray(classDiff.variableExposure)) {
+            semanticErrors.push(`Evaluated high-level-design class requires a populated variableExposure: ${classDiff.name}`);
+          }
+          if (!Number.isInteger(classDiff.variableExposureCount)) {
+            semanticErrors.push(`Evaluated high-level-design class requires non-null variableExposureCount: ${classDiff.name}`);
           }
         }
       }
