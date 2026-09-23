@@ -153,7 +153,7 @@ test("derives entity line counts and file-level unmatched counts", () => {
 });
 
 test("finds the newest generated index under the configured output directory", async (t) => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "diff-visualizer-"));
+  const directory = await mkdtemp(path.join(os.tmpdir(), "diff-viewer-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const repositoryDirectory = path.join(directory, "repository");
   const toolkitDirectory = path.join(directory, "toolkit");
