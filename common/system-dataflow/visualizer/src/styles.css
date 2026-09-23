@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
 
-:root {
+:host {
+  display: block;
   color-scheme: dark;
   font-family: "IBM Plex Sans", Helvetica, sans-serif;
   color: oklch(0.938 0.01 250);
@@ -16,12 +17,14 @@
   --accent: oklch(0.78 0.12 245);
 }
 
+:host(.embedded-view) .topbar {
+  display: none;
+}
+
 * {
   box-sizing: border-box;
 }
 
-html,
-body,
 #app {
   width: 100%;
   height: 100%;

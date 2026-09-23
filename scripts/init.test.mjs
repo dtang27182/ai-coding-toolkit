@@ -130,7 +130,10 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
 
 test("installs annotate-diff with the shared System Dataflow files", async (t) => {
   const repoDirectory = await createRepository(t);
-  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing"}}\n');
+  await writeFile(
+    path.join(repoDirectory, "package.json"),
+    '{"scripts":{"test":"existing","diff-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/visualizer"}}\n'
+  );
 
   const result = install([repoDirectory, "--tool", "annotate-diff"]);
   assert.equal(result.status, 0, result.stderr);
@@ -145,6 +148,7 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new")), { code: "ENOENT" });
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
+    "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/annotate-diff/visualizer",
     "system-dataflow-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/system-dataflow/visualizer",
     "diff-viewer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/viewer",
   });
@@ -175,7 +179,7 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
     "feature",
   );
 
-  for (const visualizerPath of ["common/system-dataflow/visualizer", "common/diff-viewer/viewer"]) {
+  for (const visualizerPath of ["annotate-diff/visualizer", "common/system-dataflow/visualizer", "common/diff-viewer/viewer"]) {
     const visualizerBuild = spawnSync(process.execPath, [
       "ai-coding-toolkit/node_modules/vite/bin/vite.js",
       "build",
@@ -183,6 +187,10 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
     ], { cwd: repoDirectory, encoding: "utf8" });
     assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
   }
+  await assert.rejects(
+    lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "diff-viewer", "visualizer")),
+    { code: "ENOENT" }
+  );
 });
 
 test("refreshes installed copies on repeat installation", async (t) => {
