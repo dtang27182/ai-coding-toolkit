@@ -2,7 +2,7 @@ import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
 import diffIndexSchema from "../../diff-index.schema.json";
 import { exampleIndex } from "./example.ts";
 import { clampSidebarWidth, MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH } from "./layout.ts";
-import { buildTree, semanticError, statsForElement, unmatchedCount, type TreeNode } from "./model.ts";
+import { buildTree, expandedNodeIds, semanticError, statsForElement, unmatchedCount, type TreeNode } from "./model.ts";
 import { firstChangedLine, parsePatch } from "./patch.ts";
 import { isLineWrapShortcut } from "./shortcuts.ts";
 import "./styles.css";
@@ -22,7 +22,7 @@ let index = exampleIndex;
 let files = parsePatch(index.patch);
 let fileName = "bundled-example.diff-index.json";
 let selectedId = initialSelection(index);
-let expandedIds = expandedNodes(index);
+let expandedIds = expandedNodeIds(buildTree(index));
 let statusMessage = "";
 let dragDepth = 0;
 let wrapLines = false;
@@ -53,23 +53,6 @@ function initialSelection(value: DiffIndex): string {
       ?? entries[0][0];
   }
   return selection;
-}
-
-function expandedNodes(value: DiffIndex): Set<string> {
-  const expanded = new Set<string>();
-  for (const node of buildTree(value)) {
-    addExpandedNode(node, expanded);
-  }
-  return expanded;
-}
-
-function addExpandedNode(node: TreeNode, expanded: Set<string>): void {
-  if (node.children.length > 0) {
-    expanded.add(node.id);
-    for (const child of node.children) {
-      addExpandedNode(child, expanded);
-    }
-  }
 }
 
 function icon(kind: "directory" | DiffElement["kind"]): string {
@@ -137,6 +120,8 @@ function renderDiff(file: DiffFile): string {
 }
 
 function render(): void {
+  const tree = buildTree(index);
+  const allExpanded = [...expandedNodeIds(tree)].every((id) => expandedIds.has(id));
   const totalAdded = files.reduce((sum, file) => sum + file.added, 0);
   const totalRemoved = files.reduce((sum, file) => sum + file.removed, 0);
   const fileElements = Object.values(index.elements).filter((element) => element.kind === "file");
@@ -159,13 +144,19 @@ function render(): void {
       ${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}
       <div class="workspace" style="--sidebar-width:${sidebarWidth}px">
         <aside class="sidebar">
-          <div class="sidebar-heading"><span>File structure</span><span>${fileElements.length}</span></div>
+          <div class="sidebar-heading">
+            <span>File structure</span>
+            <div class="sidebar-actions">
+              <button class="tree-toggle-button" type="button" id="toggle-tree" aria-controls="file-tree">${allExpanded ? "Collapse all" : "Expand all"}</button>
+              <span class="file-count">${fileElements.length}</span>
+            </div>
+          </div>
           <section class="summary-card">
             <div><strong>${totalAdded + totalRemoved}</strong><span>changed lines</span></div>
             <p>${fileElements.length} ${fileElements.length === 1 ? "file" : "files"} · ${entityCount} ${entityCount === 1 ? "entity" : "entities"}</p>
             <div class="summary-counts"><span class="plus">+${totalAdded}</span><span class="minus">−${totalRemoved}</span>${unmapped > 0 ? `<span>${unmapped} unmapped</span>` : ""}</div>
           </section>
-          <nav class="file-tree" aria-label="Changed files and code entities">${renderTree(buildTree(index))}</nav>
+          <nav class="file-tree" id="file-tree" aria-label="Changed files and code entities">${renderTree(tree)}</nav>
         </aside>
         <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-label="Resize file navigation" aria-orientation="vertical" aria-valuemin="${MIN_SIDEBAR_WIDTH}" aria-valuemax="${MAX_SIDEBAR_WIDTH}" aria-valuenow="${sidebarWidth}" tabindex="0"></div>
         <main class="file-panel">
@@ -193,6 +184,7 @@ function render(): void {
     }
   });
   app.querySelector<HTMLButtonElement>("#toggle-wrap")!.addEventListener("click", toggleLineWrapping);
+  app.querySelector<HTMLButtonElement>("#toggle-tree")!.addEventListener("click", () => setAllNodesExpanded(!allExpanded));
   for (const button of app.querySelectorAll<HTMLElement>("[data-toggle]")) {
     button.addEventListener("click", () => toggleNode(button.dataset.toggle!));
   }
@@ -285,6 +277,13 @@ function toggleNode(id: string): void {
   app.querySelector<HTMLElement>("#diff-scroll")!.scrollTop = scrollTop;
 }
 
+function setAllNodesExpanded(expand: boolean): void {
+  const scrollTop = app.querySelector<HTMLElement>("#diff-scroll")!.scrollTop;
+  expandedIds = expandedNodeIds(buildTree(index), expand);
+  render();
+  app.querySelector<HTMLElement>("#diff-scroll")!.scrollTop = scrollTop;
+}
+
 function selectElement(id: string, updateHash = true): void {
   selectedId = id;
   if (updateHash) {
@@ -333,7 +332,7 @@ function loadIndex(value: unknown, name: string): void {
   files = parsedFiles;
   fileName = name;
   selectedId = initialSelection(index);
-  expandedIds = expandedNodes(index);
+  expandedIds = expandedNodeIds(buildTree(index));
   statusMessage = "";
   render();
   requestAnimationFrame(scrollToSelection);

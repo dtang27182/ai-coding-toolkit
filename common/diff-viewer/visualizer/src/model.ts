@@ -80,6 +80,24 @@ export function buildTree(index: DiffIndex): TreeNode[] {
   return tree;
 }
 
+export function expandedNodeIds(nodes: TreeNode[], expandElements = true): Set<string> {
+  const expanded = new Set<string>();
+
+  function addNodes(children: TreeNode[]): void {
+    for (const node of children) {
+      if (node.children.length > 0) {
+        if (node.kind === "directory" || expandElements) {
+          expanded.add(node.id);
+        }
+        addNodes(node.children);
+      }
+    }
+  }
+
+  addNodes(nodes);
+  return expanded;
+}
+
 function locationChangeType(element: DiffElement): ChangeType {
   const hasOld = element.locations.some((location) => location.oldLines !== null);
   const hasNew = element.locations.some((location) => location.newLines !== null);

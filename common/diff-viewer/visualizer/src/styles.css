@@ -220,7 +220,33 @@ body.resizing-sidebar * {
   text-transform: uppercase;
 }
 
-.sidebar-heading span:last-child {
+.sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.tree-toggle-button {
+  padding: 3px 6px;
+  border: 1px solid #365875;
+  border-radius: 4px;
+  background: #102339;
+  color: #8ec5ff;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tree-toggle-button:hover,
+.tree-toggle-button:focus-visible {
+  border-color: #4c7293;
+  color: #c5e0ff;
+  background: #142b43;
+}
+
+.file-count {
   min-width: 20px;
   padding: 2px 6px;
   border: 1px solid #2e4354;

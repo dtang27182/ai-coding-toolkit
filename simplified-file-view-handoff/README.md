@@ -12,6 +12,10 @@ This is a code-review screen that shows a normal git diff, organized by the arch
 - The **main panel** is a plain, full-file unified diff of the selected file. It has no
   core/non-core separators, no graph, and no annotations.
 - **Clicking a nav row** selects it and scrolls the main panel to that entity's first line.
+- A narrow **change minimap** on the right edge of the diff shows where the file's changes are:
+  green blocks for added lines, red blocks for removed lines.
+- **Prev / Next change** buttons, with a "Change k of N" counter, step through the file's change
+  blocks.
 
 The reviewer can see at a glance how much of the change is on the core user flow, and can jump
 straight to that code.
@@ -20,11 +24,12 @@ straight to that code.
 
 | Path | What it is |
 |---|---|
-| `reference/simplified-file-view.html` | A working reference mockup. Open it in a browser and click `ChangeService.js`, `ChangeService`, `buildChangeSet` or `configure` in the nav. All data is hard-coded, so treat it as a visual and behavioral spec, not code to copy. |
-| `reference/01-default-buildChangeSet-selected.png` | The initial state. |
+| `reference/simplified-file-view.html` | A working reference mockup. Open it in a browser. You can click `ChangeService.js`, `ChangeService`, `buildChangeSet` or `configure` in the nav, use ↑ Prev / ↓ Next, click the minimap, or scroll. All data is hard-coded, so treat it as a visual and behavioral spec, not code to copy. The scroll, counter and minimap logic in its `DiffNav` script object is a reasonable starting point. |
+| `reference/01-default-buildChangeSet-selected.png` | The initial state: `buildChangeSet` is selected and the counter reads "Change 4 of 6". |
 | `reference/02-after-clicking-configure.png` | The state after clicking `configure`. |
+| `reference/03-after-next-change.png` | The state after pressing ↓ Next from the initial state (change 5 of 6). |
 | `sample-data/architecture-diff.example.json` | A copy of `hld-gen/references/architecture-diff.example.json` (schema v9). |
-| `sample-data/ChangeService.js.full-context.diff` | A full-context git diff of the file shown in the mockup. |
+| `sample-data/ChangeService.js.full-context.diff` | A full-context git diff of the file shown in the mockup: a modified file with 6 change blocks, +55 −7. |
 
 **Placeholder numbers:** only `src/ChangeService.js` has real sample content. The mockup's other
 nav rows and its totals are placeholders (e.g. "8 files" when 7 are listed). Compute every number
@@ -134,8 +139,14 @@ a one-line dim subtitle.
 
 ## Main panel: full-file diff
 
-- **File bar:** background `oklch(0.228 0.024 255)` with a bottom border. It shows the file icon,
-  the full repo-relative path (mono 12.5px), and the whole file's `+N` / `−N` at the right.
+- **File bar:** background `oklch(0.228 0.024 255)` with a bottom border. From left to right:
+  - the file icon;
+  - the full repo-relative path (mono 12.5px);
+  - the whole file's `+N` / `−N`;
+  - a spacer;
+  - the change navigation (see **Change navigation** below).
+- **Below the file bar:** a row holding the scrolling diff body (flexible width) and the change
+  minimap (fixed 14px) on its right.
 - **Body:** the entire file in one continuous unified diff. There are no hunk headers, no collapsed
   regions, no per-method cards, no dataflow tags, and no core/non-core divider. The body scrolls
   vertically, and horizontally for long lines (no wrapping).
@@ -150,6 +161,57 @@ a one-line dim subtitle.
 - **Deleted file:** the whole old file as `−` lines. **Added file:** the whole new file as `+`
   lines.
 - **Binary or huge files:** show a one-line placeholder.
+- **Scroll past the end:** after the last line, add a spacer whose height is the panel height
+  minus 80px. This lets the last change blocks scroll up to the top of the panel. Without it,
+  "Next" can't reach them.
+
+## Change blocks
+
+A **change block** is a maximal run of consecutive `+` / `−` lines; any context line ends it. A
+removal immediately followed by its replacement is therefore one block. The sample file has 6
+blocks. Compute blocks once per file, and keep each block's first row element (or its offset) for
+scrolling.
+
+## Change minimap (right edge of the diff)
+
+- **Container:** 14px wide, full height of the diff area, background `--header`, 1px `--border`
+  on its left. Blocks are drawn inside an inner area inset 6px from the top and bottom.
+- **Blocks:** one block per run of consecutive same-kind lines. A mixed change block is drawn as a
+  red run and then a green run.
+  - Color: `--added` for `+` runs, `--deleted` for `−` runs.
+  - Position: the run's first line index ÷ the total line count gives its top (as a %), and the
+    run's length ÷ the total gives its height.
+  - Shape: inset 3px left and right, 1px corner radius, min-height 2px.
+  - Context lines draw nothing. There is nothing else in the strip: no code-shaped bars and no
+    labels.
+- **Viewport indicator:** a full-width band over the part of the file currently visible.
+  - Fill: ink at 8% alpha. Top and bottom edges: 1px lines of ink at 35% alpha.
+  - `pointer-events: none`.
+  - Its position and size come from the scroll position relative to the total height of the rows
+    (rows are a uniform 21px, so row fraction = line fraction). Update it on every scroll.
+- **Click:** clicking the strip smooth-scrolls the diff so that point of the file is centered in
+  the panel.
+- **Long files:** the min-height means small blocks can overlap, which is fine. For files with
+  thousands of blocks, draw to a `<canvas>` instead of DOM nodes.
+
+## Change navigation (file bar, right side)
+
+- **Layout:** the text "Change **k** of **N**" (11.5px `--muted`, with k and N in mono ink), then
+  two buttons: `↑ Prev` and `↓ Next`.
+  - Buttons: 26px tall, 9px horizontal padding, `--raised` background, 1px `--border`, 6px
+    radius, 11.5px ink text, with tooltips "Previous change" / "Next change".
+- **Next:** smooth-scrolls to the first block whose top sits below the current scroll position,
+  placing it 12px below the top of the panel. **Prev** does the same for the last block above the
+  current position.
+- **Disabled state:** when there is no block in a direction, that button drops to 40% opacity
+  and does nothing.
+- **Counter:** k is the last block whose top is at or above the panel's top + 16px. When the panel
+  is scrolled all the way down, k is the last block that starts above the panel's bottom − 40px.
+  Show `–` before the first block. The counter updates on every scroll, including nav clicks,
+  minimap clicks and manual scrolling.
+- **A file with no changes:** "No changes", both buttons disabled, and an empty minimap.
+- **Keyboard:** nice to have. `n` / `p` (or `]` / `[`) for next and previous, active only when
+  focus isn't in a text input.
 
 ## Behavior
 
@@ -214,3 +276,17 @@ Fonts are IBM Plex Sans (UI) and IBM Plex Mono (code, paths, counts), already im
 4. A file with no located entities appears only under Outside, marked `no entity`, and still
    opens and renders in full.
 5. The main panel never shows a core/outside divider, hunk headers or collapsed context.
+6. For the sample `ChangeService.js`:
+   - the file bar shows `+55 −7`, and the minimap shows 6 blocks in the right places;
+   - pressing ↓ Next from the top visits changes 1 → 6 in order, putting each at the top of the
+     panel;
+   - Next is disabled on change 6, and Prev is disabled above change 1.
+7. The sample nav counts come out as follows:
+   - Core: `ChangeService.js` / `ChangeService` / `buildChangeSet` +15.
+   - Outside:
+     - `ChangeService.js` +40 −7 (this includes the unmapped imports and the module-level
+       `diffFile`);
+     - `ChangeService` +27 −6 (`configure`, plus the class-level lines from `#validatePaths`,
+       `summarize`, the removed `requestChanges` and the constructor);
+     - `configure` +13.
+8. The minimap's viewport band tracks scrolling, and clicking the minimap scrolls to that spot.

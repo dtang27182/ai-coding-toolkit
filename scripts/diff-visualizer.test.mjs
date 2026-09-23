@@ -7,7 +7,7 @@ import test from "node:test";
 import { findNewestDiffIndex } from "../common/diff-viewer/visualizer/default-diff-index.mjs";
 import { exampleIndex } from "../common/diff-viewer/visualizer/src/example.ts";
 import { clampSidebarWidth } from "../common/diff-viewer/visualizer/src/layout.ts";
-import { buildTree, statsForElement, unmatchedCount } from "../common/diff-viewer/visualizer/src/model.ts";
+import { buildTree, expandedNodeIds, statsForElement, unmatchedCount } from "../common/diff-viewer/visualizer/src/model.ts";
 import { firstChangedLine, parsePatch } from "../common/diff-viewer/visualizer/src/patch.ts";
 import { isLineWrapShortcut } from "../common/diff-viewer/visualizer/src/shortcuts.ts";
 
@@ -97,6 +97,28 @@ test("sorts every navigation level by its full hierarchical key", () => {
   assert.equal(src.sortKey, "src");
   assert.equal(zeta.sortKey, "src/zeta.ts");
   assert.equal(zeta.children[0].sortKey, "src/zeta.ts/alpha");
+});
+
+test("collapses code entities while keeping the directory tree expanded", () => {
+  const tree = buildTree(exampleIndex);
+  const collapsed = expandedNodeIds(tree, false);
+  const expanded = expandedNodeIds(tree);
+  const expandableNodes = [];
+  const visit = (nodes) => {
+    for (const node of nodes) {
+      if (node.children.length > 0) {
+        expandableNodes.push(node);
+        visit(node.children);
+      }
+    }
+  };
+  visit(tree);
+
+  assert.equal(expandableNodes.every((node) => expanded.has(node.id)), true);
+  assert.equal(
+    expandableNodes.every((node) => collapsed.has(node.id) === (node.kind === "directory")),
+    true,
+  );
 });
 
 test("derives entity line counts and file-level unmatched counts", () => {
