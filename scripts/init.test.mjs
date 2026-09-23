@@ -154,6 +154,26 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(validation.status, 0, validation.stderr);
 
+  const patchPath = path.join(repoDirectory, "feature.code-review.patch");
+  await writeFile(patchPath, [
+    "diff --git a/src/feature.ts b/src/feature.ts",
+    "new file mode 100644",
+    "--- /dev/null",
+    "+++ b/src/feature.ts",
+    "@@ -0,0 +1,3 @@",
+    "+export function feature() {",
+    "+  return true;",
+    "+}",
+  ].join("\n"));
+  const diffIndex = spawnSync(process.execPath, [
+    "ai-coding-toolkit/common/diff-viewer/generate-diff-index.mjs", patchPath,
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(diffIndex.status, 0, diffIndex.stderr);
+  assert.equal(
+    JSON.parse(await readFile(path.join(repoDirectory, "feature.diff-index.json"), "utf8")).elements["element-2"].name,
+    "feature",
+  );
+
   const visualizerBuild = spawnSync(process.execPath, [
     "ai-coding-toolkit/node_modules/vite/bin/vite.js",
     "build",

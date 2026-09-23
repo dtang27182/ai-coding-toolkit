@@ -63,6 +63,5 @@
 
 ## 8. Report the Result
 
-- Report the diff-description path.
 - Report the diff base as `HEAD`.
 - Report the generated JSON path.

@@ -26,4 +26,4 @@ Generate a `diff-index.json` from a standard full-context Git patch as the sole 
 
 In addition to JSON Schema validation, verify that parents exist and form a valid acyclic hierarchy, located files exist in the patch, ranges are ordered and in bounds, and every changed text line is covered by a method, class, or fallback file location.
 
-Unsupported, oversized, or ambiguous text files receive file elements whose locations capture their changes. Binary files receive file elements with empty locations. The visualizer always renders the complete selected file section and uses class and method locations only as scroll targets.
+Unsupported or ambiguous text files receive file elements whose locations capture their changes. Binary files receive file elements with empty locations. The visualizer always renders the complete selected file section and uses class and method locations only as scroll targets.

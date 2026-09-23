@@ -73,7 +73,9 @@ It has independent validation and counting scripts and its own Architecture Diff
 
 ## Annotate the Current Diff
 
-After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$annotate-diff`. The skill reads the most recently modified selected HLD, copies its desired behavior and scope into `<feature>.diff-description.md`, and independently derives goal-oriented user flows from those sections. It then compares the current files with `HEAD` and writes `<feature>.system-dataflow.code-review.json` beside the HLD. The generated graph uses the diff-description for scope and focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
+After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$annotate-diff`. The skill compares the current files with `HEAD` and writes `<feature>.system-dataflow.code-review.json` beside the HLD. It also writes `<feature>.code-review.patch` and `<feature>.diff-index.json` as a paired input set for the diff visualizer. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature. The Diff Index maps changed files, classes, and methods to locations in its paired patch.
+
+`generate-diff-index.mjs` can currently identify class and method entities only in JavaScript and TypeScript files because it uses a deterministic AST parser. Future work could add an LLM-based entity-identification path for broader language support.
 
 Run the installed System Dataflow visualizer from the target repository:
 
