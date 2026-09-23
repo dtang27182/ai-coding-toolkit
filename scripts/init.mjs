@@ -45,7 +45,7 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
   }
 }
 
-const supportedTools = ["hld-gen", "hld-gen-new"];
+const supportedTools = ["hld-gen", "hld-gen-new", "annotate-diff"];
 const toolNames = selectedTool === undefined ? ["hld-gen"] : [selectedTool];
 const relativeOutputDirectory = path.normalize(outputDirectory);
 const outputIsRepoSubdirectory =
@@ -73,6 +73,10 @@ async function installRootCommands() {
     }
     if (toolNames.includes("hld-gen-new")) {
       commands["hld-gen-new-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer";
+    }
+    if (toolNames.includes("annotate-diff")) {
+      commands["system-dataflow-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/system-dataflow/visualizer";
+      commands["diff-viewer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/viewer";
     }
     let packageChanged = false;
     if (toolNames.includes("hld-gen") && packageJson.scripts?.mermaid === "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs") {
@@ -102,7 +106,7 @@ async function installRootCommands() {
 if (argumentError !== undefined || repoDirectory === undefined) {
   console.error(argumentError ?? "Target repository path is required.");
   console.error(
-    "Usage: node scripts/init.mjs <target-repo> [--agent codex] [--tool <hld-gen|hld-gen-new>] [--output-dir <relative-directory>]"
+    "Usage: node scripts/init.mjs <target-repo> [--agent codex] [--tool <hld-gen|hld-gen-new|annotate-diff>] [--output-dir <relative-directory>]"
   );
   process.exitCode = 1;
 } else if (agentName !== "codex") {
@@ -121,14 +125,15 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   repoDirectory = await realpath(repoDirectory);
   const installedToolkitDirectory = path.join(repoDirectory, "ai-coding-toolkit");
   const outputPath = path.resolve(repoDirectory, relativeOutputDirectory);
-  for (const directoryName of [...toolNames, "node_modules"]) {
+  const installedDirectories = [...toolNames, ...(toolNames.includes("annotate-diff") ? ["common"] : []), "node_modules"];
+  for (const directoryName of installedDirectories) {
     await copyDirectory(
       path.join(toolkitDirectory, directoryName),
       path.join(installedToolkitDirectory, directoryName)
     );
   }
   if (toolNames.includes("hld-gen")) {
-    for (const relativePath of ["skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md", "scripts/architecture-diff-to-mermaid.mjs"]) {
+    for (const relativePath of ["hld-architecture.md", "skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md", "scripts/architecture-diff-to-mermaid.mjs"]) {
       await rm(path.join(installedToolkitDirectory, "hld-gen", relativePath), { recursive: true, force: true });
     }
   }

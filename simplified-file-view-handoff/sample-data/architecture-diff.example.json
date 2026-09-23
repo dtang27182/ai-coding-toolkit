@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 9,
+  "stage": "high level design",
+  "userFlows": [
+    {
+      "name": "Request a change set",
+      "steps": [
+        { "id": 1, "text": "The user selects source files and requests a change set." },
+        { "id": 2, "text": "The app reads the selected files and computes the change set." },
+        { "id": 3, "text": "The app retains the change set and displays it to the user." }
+      ]
+    }
+  ],
+  "classes": [
+    {
+      "name": "ChangeService",
+      "changeType": "added",
+      "methods": [
+        {
+          "name": "configure",
+          "changeType": "added",
+          "userFlow": false
+        },
+        {
+          "name": "buildChangeSet",
+          "changeType": "added",
+          "userFlow": true
+        }
+      ],
+      "stateVariables": [],
+      "variableExposure": [],
+      "variableExposureCount": 0
+    },
+    {
+      "name": "ChangeModel",
+      "changeType": "added",
+      "methods": [
+        {
+          "name": "currentChanges",
+          "changeType": "added",
+          "userFlow": true
+        }
+      ],
+      "stateVariables": [
+        {
+          "name": "changes",
+          "changeType": "added",
+          "userFlow": true
+        }
+      ],
+      "variableExposure": [],
+      "variableExposureCount": 0
+    },
+    {
+      "name": "Repository",
+      "changeType": "unchanged",
+      "methods": [
+        {
+          "name": "readSourceFiles",
+          "changeType": "unchanged",
+          "userFlow": true
+        }
+      ],
+      "stateVariables": [],
+      "variableExposure": [],
+      "variableExposureCount": 0
+    },
+    {
+      "name": "LegacyChangeAdapter",
+      "changeType": "deleted",
+      "methods": [
+        {
+          "name": "adaptLegacyChange",
+          "changeType": "deleted",
+          "userFlow": true
+        }
+      ],
+      "stateVariables": [],
+      "variableExposure": [
+        {
+          "name": "repository",
+          "kind": "instance",
+          "declaredAt": {
+            "file": "src/LegacyChangeAdapter.js",
+            "line": 2,
+            "column": 3
+          }
+        },
+        {
+          "name": "sourceFiles",
+          "kind": "parameter",
+          "method": "adaptLegacyChange",
+          "declaredAt": {
+            "file": "src/LegacyChangeAdapter.js",
+            "line": 4,
+            "column": 21
+          }
+        },
+        {
+          "name": "changes",
+          "kind": "local",
+          "method": "adaptLegacyChange",
+          "declaredAt": {
+            "file": "src/LegacyChangeAdapter.js",
+            "line": 5,
+            "column": 11
+          }
+        }
+      ],
+      "variableExposureCount": 3
+    }
+  ],
+  "components": [
+    {
+      "name": "Change Panel",
+      "type": "ui",
+      "changeType": "added",
+      "userFlow": true
+    },
+    {
+      "name": "Source Files on Disk",
+      "type": "external-io",
+      "changeType": "unchanged",
+      "userFlow": true
+    },
+    {
+      "name": "Diff Settings File",
+      "type": "external-io",
+      "changeType": "unchanged",
+      "userFlow": false
+    }
+  ],
+  "relationships": [
+    {
+      "from": { "class": "Repository", "method": "readSourceFiles" },
+      "to": { "class": "ChangeService", "method": "buildChangeSet" },
+      "type": "dataflow",
+      "dataDescription": "The contents of each selected file, keyed by repository-relative path, together with the paths that could not be read.",
+      "purpose": "Supplies the text buildChangeSet diffs against, so step 2 can compute a change set without the service reaching the filesystem itself.",
+      "changeType": "unchanged",
+      "userFlow": true
+    },
+    {
+      "from": { "class": "ChangeService" },
+      "to": { "class": "ChangeModel" },
+      "type": "composition",
+      "changeType": "added"
+    },
+    {
+      "from": { "class": "Repository", "method": "readSourceFiles" },
+      "to": { "class": "LegacyChangeAdapter", "method": "adaptLegacyChange" },
+      "type": "dataflow",
+      "dataDescription": "The same file contents, in the shape the legacy adapter expected.",
+      "purpose": "Fed the adapter that ChangeService replaces, and is removed with it; nothing in the flow reads its output after the change.",
+      "changeType": "deleted",
+      "userFlow": true
+    },
+    {
+      "from": { "component": "Diff Settings File" },
+      "to": { "class": "ChangeService", "method": "configure" },
+      "type": "dataflow",
+      "dataDescription": "Stored diff options: context line count, whitespace handling, and the ignore globs.",
+      "purpose": "Configures the service when it is constructed. No user action triggers it, but every change set is computed under these options.",
+      "changeType": "added",
+      "userFlow": false
+    },
+    {
+      "from": { "component": "Change Panel" },
+      "to": { "class": "ChangeService", "method": "buildChangeSet" },
+      "type": "dataflow",
+      "dataDescription": "The paths the user selected, with the comparison target they chose.",
+      "purpose": "Carries the request that opens step 1. Nothing downstream runs until this arrives, and the selection it carries scopes everything that follows.",
+      "changeType": "added",
+      "userFlow": true
+    },
+    {
+      "from": { "class": "ChangeService", "method": "buildChangeSet" },
+      "to": { "class": "Repository", "method": "readSourceFiles" },
+      "type": "dataflow",
+      "dataDescription": "The validated list of paths to read.",
+      "purpose": "Delegates file access to Repository, keeping the service independent of storage while step 2 gathers its input.",
+      "changeType": "added",
+      "userFlow": true
+    },
+    {
+      "from": { "class": "Repository", "method": "readSourceFiles" },
+      "to": { "component": "Source Files on Disk" },
+      "type": "dataflow",
+      "dataDescription": "A read request for each selected path.",
+      "purpose": "The only point at which this feature touches the filesystem, so step 2 depends on it for real file state rather than cached state.",
+      "changeType": "unchanged",
+      "userFlow": true
+    },
+    {
+      "from": { "component": "Source Files on Disk" },
+      "to": { "class": "Repository", "method": "readSourceFiles" },
+      "type": "dataflow",
+      "dataDescription": "The bytes of each readable file, and a not-found result for the rest.",
+      "purpose": "Returns the only content the change set can be computed from; the not-found results are what step 3 reports as skipped files.",
+      "changeType": "unchanged",
+      "userFlow": true
+    },
+    {
+      "from": { "class": "ChangeModel", "method": "currentChanges" },
+      "to": { "component": "Change Panel" },
+      "type": "dataflow",
+      "dataDescription": "The finished change set: one entry per file with its diff hunks, plus the counts of changed and skipped files.",
+      "purpose": "Delivers the retained outcome the user asked for, completing step 3. Until it arrives the panel still shows the state from before the request.",
+      "changeType": "added",
+      "userFlow": true
+    },
+    {
+      "from": { "class": "ChangeService", "method": "buildChangeSet" },
+      "to": { "class": "ChangeModel", "stateVariable": "changes" },
+      "type": "state-update",
+      "dataDescription": "Writes the finished change set into `changes`, replacing any set retained from an earlier request.",
+      "purpose": "Retains the result across the request so step 3 can redisplay it without recomputing the diff or re-reading the files.",
+      "changeType": "added",
+      "userFlow": true
+    },
+    {
+      "from": { "class": "ChangeModel", "stateVariable": "changes" },
+      "to": { "class": "ChangeModel", "method": "currentChanges" },
+      "type": "state-read",
+      "dataDescription": "Reads the retained change set, including its file entries and summary counts.",
+      "purpose": "Supplies the result that step 3 displays without recomputing the diff or re-reading the files.",
+      "changeType": "added",
+      "userFlow": true
+    }
+  ],
+  "variableExposureCount": 3
+}

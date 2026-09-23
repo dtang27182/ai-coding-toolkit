@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 2,
+  "stage": "high-level-design",
+  "feature": "Delivery promise estimator",
+  "nodes": [
+    {
+      "type": "user-input",
+      "name": "Delivery options input",
+      "description": "Captures the customer's delivery address and their eventual delivery-option selection.",
+      "medium": "React UI",
+      "location": "DeliveryOptionsPanel",
+      "changeType": "added"
+    },
+    {
+      "type": "user-output",
+      "name": "Delivery options display",
+      "description": "Presents priced delivery promises and the current selection to the customer.",
+      "medium": "React UI",
+      "location": "DeliveryOptionsPanel",
+      "changeType": "added"
+    },
+    {
+      "type": "system-input",
+      "name": "Checkout quote request",
+      "description": "Starts delivery estimation with the cart and checkout context supplied by the checkout workflow.",
+      "medium": "Application command",
+      "location": "CheckoutOrchestrator.requestDeliveryQuote",
+      "changeType": "added"
+    },
+    {
+      "type": "system-output",
+      "name": "Selected delivery promise",
+      "description": "Returns the customer's final delivery choice to the checkout workflow for order placement.",
+      "medium": "Application event",
+      "location": "CheckoutOrchestrator.acceptDeliveryPromise",
+      "changeType": "added"
+    },
+    {
+      "type": "system-state",
+      "name": "Shopping cart",
+      "description": "Stores the products and quantities that must be fulfilled together with the dimensions and weight needed for shipping.",
+      "medium": "PostgreSQL",
+      "location": "shopping_carts and cart_items tables",
+      "changeType": "unchanged"
+    },
+    {
+      "type": "system-state",
+      "name": "Warehouse inventory",
+      "description": "Stores available-to-promise quantities by product and fulfillment center.",
+      "medium": "PostgreSQL",
+      "location": "warehouse_inventory table",
+      "changeType": "unchanged"
+    },
+    {
+      "type": "static-data",
+      "name": "Fulfillment policy",
+      "description": "Defines eligible fulfillment centers, handling times, carrier restrictions, split-shipment penalties, and the allowed delivery window.",
+      "medium": "Source-controlled YAML",
+      "location": "FulfillmentPolicy catalog",
+      "changeType": "modified"
+    },
+    {
+      "type": "external-dependency",
+      "name": "Address validation service",
+      "description": "Normalizes the entered address and returns its deliverability, geographic coordinates, and postal region.",
+      "medium": "HTTPS API",
+      "location": "Address Validation API /v1/validate",
+      "changeType": "unchanged"
+    },
+    {
+      "type": "external-dependency",
+      "name": "Carrier rates service",
+      "description": "Returns shipping prices, service levels, and estimated transit times for proposed packages and routes.",
+      "medium": "HTTPS API",
+      "location": "Carrier Rates API /v2/rates",
+      "changeType": "unchanged"
+    },
+    {
+      "type": "data-processing",
+      "name": "Build candidate fulfillment plans",
+      "description": "Constructs feasible ways to allocate the cart across fulfillment centers and package the allocated items.",
+      "medium": "TypeScript",
+      "location": "DeliveryPlanner.buildCandidatePlans",
+      "changeType": "added",
+      "algorithm": "For each cart item, find fulfillment centers with enough available-to-promise inventory and permitted service to the destination region. Build allocations incrementally, pruning any partial allocation that exceeds the maximum shipment count or cannot fulfill every remaining item. Consolidate items assigned to the same center into packages using the policy's weight and dimension limits. Deduplicate equivalent plans by their center, item, and package assignments."
+    },
+    {
+      "type": "data-processing",
+      "name": "Rank delivery options",
+      "description": "Combines candidate plans with carrier quotes and selects a small set of meaningful delivery choices.",
+      "medium": "TypeScript",
+      "location": "DeliveryPlanner.rankOptions",
+      "changeType": "added",
+      "algorithm": "For each quoted plan, calculate its total shipping price and promised date from warehouse handling time plus carrier transit time. Discard plans outside the allowed delivery window. Remove plans dominated by another plan that is both cheaper and no slower. Score the remainder using shipping price, split-shipment penalty, and delivery-risk buffer; return the cheapest, fastest, and best-scoring options with deterministic ties by promised date and plan ID."
+    },
+    {
+      "type": "system-state",
+      "name": "Delivery quote session",
+      "description": "Retains the ranked options, their expiration time, and the customer's selected option for the active checkout.",
+      "medium": "Redis JSON document",
+      "location": "delivery-quotes:{cartId}",
+      "changeType": "added"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "relationship-1",
+      "from": "Delivery options input",
+      "to": "Address validation service",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The street address, locality, postal code, and country entered by the customer.",
+      "purpose": "Obtains a normalized, deliverable destination before fulfillment work begins."
+    },
+    {
+      "id": "relationship-2",
+      "from": "Address validation service",
+      "to": "Build candidate fulfillment plans",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The normalized address, deliverability result, coordinates, and postal region.",
+      "purpose": "Supplies the destination used to filter fulfillment centers and construct carrier routes."
+    },
+    {
+      "id": "relationship-3",
+      "from": "Shopping cart",
+      "to": "Build candidate fulfillment plans",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "Cart lines containing product ID, quantity, unit weight, and package dimensions.",
+      "purpose": "Defines the items every candidate plan must allocate and package completely."
+    },
+    {
+      "id": "relationship-4",
+      "from": "Warehouse inventory",
+      "to": "Build candidate fulfillment plans",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "Available-to-promise quantities for the cart's products, grouped by fulfillment center.",
+      "purpose": "Prevents the planner from proposing allocations that a warehouse cannot fulfill."
+    },
+    {
+      "id": "relationship-5",
+      "from": "Fulfillment policy",
+      "to": "Build candidate fulfillment plans",
+      "type": "dataflow",
+      "changeType": "modified",
+      "data": "Center eligibility, packaging constraints, carrier restrictions, and the maximum shipment count.",
+      "purpose": "Constrains the search to operationally valid fulfillment plans."
+    },
+    {
+      "id": "relationship-6",
+      "from": "Build candidate fulfillment plans",
+      "to": "Carrier rates service",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "Candidate packages with origin, destination, dimensions, weight, and permitted carrier services.",
+      "purpose": "Requests comparable prices and transit estimates for every feasible shipment leg."
+    },
+    {
+      "id": "relationship-7",
+      "from": "Build candidate fulfillment plans",
+      "to": "Rank delivery options",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "Candidate plan IDs with their warehouse allocations, packages, and handling times.",
+      "purpose": "Provides the plan structure needed to combine carrier quotes and calculate complete delivery promises."
+    },
+    {
+      "id": "relationship-8",
+      "from": "Carrier rates service",
+      "to": "Rank delivery options",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "Per-package carrier quotes containing service level, price, transit time, and quote expiration.",
+      "purpose": "Supplies the external cost and timing information used to compare candidate plans."
+    },
+    {
+      "id": "relationship-9",
+      "from": "Fulfillment policy",
+      "to": "Rank delivery options",
+      "type": "dataflow",
+      "changeType": "modified",
+      "data": "Handling times, delivery-window limits, split-shipment penalty, and delivery-risk buffer.",
+      "purpose": "Defines how raw carrier quotes become customer-facing prices and promised dates."
+    },
+    {
+      "id": "relationship-10",
+      "from": "Rank delivery options",
+      "to": "Delivery quote session",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The cheapest, fastest, and balanced delivery options with prices, promised dates, plan IDs, and expiration time.",
+      "purpose": "Retains a stable set of options so display and later selection refer to the same underlying quotes."
+    },
+    {
+      "id": "relationship-11",
+      "from": "Delivery quote session",
+      "to": "Delivery options display",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The active delivery options and the currently selected option ID.",
+      "purpose": "Shows the customer the available prices and dates while keeping the displayed selection synchronized."
+    },
+    {
+      "id": "relationship-12",
+      "from": "Delivery options input",
+      "to": "Delivery quote session",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The option ID selected by the customer.",
+      "purpose": "Retains the chosen delivery promise for the remainder of checkout without recalculating the quote."
+    },
+    {
+      "id": "relationship-13",
+      "from": "Checkout quote request",
+      "to": "Build candidate fulfillment plans",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The cart ID, checkout ID, currency, and customer delivery preferences.",
+      "purpose": "Supplies the external workflow context needed to load and evaluate delivery plans."
+    },
+    {
+      "id": "relationship-14",
+      "from": "Delivery quote session",
+      "to": "Selected delivery promise",
+      "type": "dataflow",
+      "changeType": "added",
+      "data": "The selected option's plan ID, service level, price, promised date, and quote expiration.",
+      "purpose": "Hands the final delivery commitment back to checkout for inclusion in the order."
+    }
+  ]
+}

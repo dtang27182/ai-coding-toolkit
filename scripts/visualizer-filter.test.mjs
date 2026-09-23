@@ -14,8 +14,9 @@ function variable(name, kind, line, method) {
 
 function architectureDiff() {
   return {
-    schemaVersion: 7,
+    schemaVersion: 8,
     stage: "high level design",
+    userFlows: [{ name: "Run the flow", steps: [{ id: 1, text: "The user runs the flow and receives its result." }] }],
     classes: [
       {
         name: "Flow", changeType: "modified", hasUserFlowState: false,
@@ -48,11 +49,11 @@ function architectureDiff() {
       { name: "Config", type: "external-io", changeType: "added", userFlow: false },
     ],
     relationships: [
-      { from: { component: "Panel" }, to: { class: "Flow", method: "run" }, type: "dataflow", label: "input", changeType: "modified", userFlow: true },
-      { from: { class: "Flow", method: "run" }, to: { class: "State" }, type: "state-update", label: "state: save result", changeType: "modified", userFlow: true },
-      { from: { class: "Flow", method: "configure" }, to: { component: "Config" }, type: "dataflow", label: "configuration", changeType: "added", userFlow: false },
-      { from: { class: "Flow", method: "run" }, to: { component: "Panel" }, type: "dataflow", label: "diagnostic instrumentation", changeType: "added", userFlow: false },
-      { from: { component: "File" }, to: { class: "Flow", method: "read" }, type: "dataflow", label: "contents", changeType: "modified", userFlow: true },
+      { from: { component: "Panel" }, to: { class: "Flow", method: "run" }, type: "dataflow", dataDescription: "input", purpose: "Starts step 1.", changeType: "modified", userFlow: true },
+      { from: { class: "Flow", method: "run" }, to: { class: "State" }, type: "state-update", dataDescription: "state: save result", purpose: "Retains the result from step 1.", changeType: "modified", userFlow: true },
+      { from: { class: "Flow", method: "configure" }, to: { component: "Config" }, type: "dataflow", dataDescription: "configuration", purpose: "Writes supporting configuration.", changeType: "added", userFlow: false },
+      { from: { class: "Flow", method: "run" }, to: { component: "Panel" }, type: "dataflow", dataDescription: "diagnostic instrumentation", purpose: "Reports supporting diagnostics.", changeType: "added", userFlow: false },
+      { from: { component: "File" }, to: { class: "Flow", method: "read" }, type: "dataflow", dataDescription: "contents", purpose: "Supplies file contents used in step 1.", changeType: "modified", userFlow: true },
       { from: { class: "Flow" }, to: { class: "State" }, type: "composition", changeType: "added" },
       { from: { class: "Support" }, to: { class: "Flow" }, type: "composition", changeType: "added" },
     ],
@@ -60,7 +61,7 @@ function architectureDiff() {
   };
 }
 
-test("schema v7 requires userFlow on methods, components, dataflows, and state updates", () => {
+test("schema v8 requires userFlow on methods, components, dataflows, and state updates", () => {
   const input = architectureDiff();
   assert.equal(validate(input), true, JSON.stringify(validate.errors));
   for (const entry of [input.classes[0].methods[0], input.components[0], input.relationships[0], input.relationships[1]]) {
@@ -71,11 +72,11 @@ test("schema v7 requires userFlow on methods, components, dataflows, and state u
     }
     entry.userFlow = true;
   }
-  input.schemaVersion = 6;
+  input.schemaVersion = 7;
   assert.equal(validate(input), false);
 });
 
-test("schema v7 requires class state classification and forbids class and composition userFlow flags", () => {
+test("schema v8 requires class state classification and forbids class and composition userFlow flags", () => {
   const input = architectureDiff();
   for (const value of [undefined, "true", null]) {
     input.classes[0].hasUserFlowState = value;
@@ -118,7 +119,7 @@ test("class participation considers user-flow dataflows in either direction inde
     input.relationships = [{
       from: reversed ? { class: "Flow", method: "run" } : { component: "Panel" },
       to: reversed ? { component: "Panel" } : { class: "Flow", method: "run" },
-      type: "dataflow", label: "input", changeType: "modified", userFlow: true,
+      type: "dataflow", dataDescription: "input", purpose: "Carries the step 1 input.", changeType: "modified", userFlow: true,
     }];
     assert.ok(filterGraph(input, true, true).classes.some((item) => item.name === "Flow"));
     input.relationships[0].userFlow = false;
@@ -133,7 +134,7 @@ test("filters contributing methods, components, and relationships while retainin
   assert.deepEqual(graph.classes.map((item) => item.name), ["Flow", "State", "Context"]);
   assert.deepEqual(graph.classes[0].methods.map((item) => item.name), ["run", "read"]);
   assert.deepEqual(graph.components.map((item) => item.name), ["Panel", "File"]);
-  assert.deepEqual(graph.relationships.map((item) => item.relationship.label ?? item.relationship.type), ["input", "state: save result", "contents", "composition"]);
+  assert.deepEqual(graph.relationships.map((item) => item.relationship.dataDescription ?? item.relationship.type), ["input", "state: save result", "contents", "composition"]);
   assert.deepEqual(graph.classes[0].variableExposure.map((item) => item.name), ["state", "input", "result", "cached"]);
   assert.equal(graph.classes[0].variableExposureCount, 4);
   assert.equal(graph.classes[1].variableExposureCount, 1);
@@ -151,7 +152,7 @@ test("combines unchanged and user-flow filters, including endpoint visibility an
   assert.deepEqual(graph.classes.map((item) => item.name), ["Flow", "State"]);
   assert.deepEqual(graph.classes[0].methods.map((item) => item.name), ["run"]);
   assert.deepEqual(graph.components.map((item) => item.name), ["Panel"]);
-  assert.deepEqual(graph.relationships.map((item) => item.relationship.label ?? item.relationship.type), ["input", "state: save result", "composition"]);
+  assert.deepEqual(graph.relationships.map((item) => item.relationship.dataDescription ?? item.relationship.type), ["input", "state: save result", "composition"]);
   assert.equal(graph.classes[0].variableExposureCount, 3);
   assert.equal(graph.variableExposureCount, 3);
   const changed = filterGraph(architectureDiff(), false, false);
@@ -185,10 +186,10 @@ test("unknown exposure affects only visible classes and an empty filtered view h
 test("filters before collapsing parallel dataflows between the same classes", () => {
   const input = architectureDiff();
   input.relationships = [
-    { from: { class: "Flow", method: "run" }, to: { class: "Flow", method: "read" }, type: "dataflow", label: "supporting", changeType: "added", userFlow: false },
-    { from: { class: "Flow", method: "run" }, to: { class: "Flow", method: "read" }, type: "dataflow", label: "user flow", changeType: "added", userFlow: true },
+    { from: { class: "Flow", method: "run" }, to: { class: "Flow", method: "read" }, type: "dataflow", dataDescription: "supporting", purpose: "Carries supporting data.", changeType: "added", userFlow: false },
+    { from: { class: "Flow", method: "run" }, to: { class: "Flow", method: "read" }, type: "dataflow", dataDescription: "user flow", purpose: "Carries data needed in step 1.", changeType: "added", userFlow: true },
   ];
   const graph = filterGraph(input, true, true);
-  assert.deepEqual(mergeClassDataflows(graph.relationships).map((item) => item.relationship.label), ["user flow"]);
+  assert.deepEqual(mergeClassDataflows(graph.relationships).map((item) => item.relationship.dataDescription), ["user flow"]);
   assert.equal(graph.variableExposureCount, 4);
 });

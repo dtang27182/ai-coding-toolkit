@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI Coding Toolkit Diff Index",
+  "description": "A self-contained diff-viewer input containing a full-context unified patch and an element-first index that maps selectable navigation elements to source locations in that patch. The viewer renders the complete file section and uses each location only as a scroll target and changed-line range. Directory navigation nodes are derived from file paths and are not stored as elements.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "patch",
+    "elements"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "patch": {
+      "description": "The exact standard unified patch text. Every text-file section must contain full file context so the viewer can render the complete file rather than isolated hunks.",
+      "type": "string",
+      "minLength": 1
+    },
+    "elements": {
+      "description": "Selectable navigation elements keyed by monotonically increasing IDs. Every parentId must reference another entry in this object, and parent relationships must not form cycles.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^element-[1-9][0-9]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/element"
+      }
+    }
+  },
+  "$defs": {
+    "lineRange": {
+      "description": "Inclusive one-based source line range, expressed as [startLine, endLine]. The end must be greater than or equal to the start.",
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "integer",
+          "minimum": 1
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "location": {
+      "description": "A source region within a complete file section of the embedded patch. It selects the file and scroll target but does not limit which diff rows are displayed. oldLines addresses the pre-change file and newLines addresses the post-change file.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "oldLines",
+        "newLines"
+      ],
+      "properties": {
+        "file": {
+          "description": "Repository-relative file path used to find the corresponding file section in the patch.",
+          "type": "string",
+          "minLength": 1
+        },
+        "oldLines": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/lineRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "newLines": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/lineRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "locatedElementLocation": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/location"
+        },
+        {
+          "type": "object",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "oldLines": {
+                  "$ref": "#/$defs/lineRange"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "newLines": {
+                  "$ref": "#/$defs/lineRange"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "element": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "name",
+        "locations"
+      ],
+      "properties": {
+        "kind": {
+          "description": "The kind of selectable navigation element.",
+          "enum": [
+            "file",
+            "class",
+            "method"
+          ]
+        },
+        "name": {
+          "description": "Display name of the element. A file element uses its repository-relative path so directory rows can be derived from it.",
+          "type": "string",
+          "minLength": 1
+        },
+        "parentId": {
+          "description": "ID of the immediate selectable ancestor. A class has its file as its parent. A method has its containing class as its parent, or its file when it has no containing class.",
+          "type": "string",
+          "pattern": "^element-[1-9][0-9]*$"
+        },
+        "locations": {
+          "description": "Source locations represented by this element. Class and method locations describe their declarations. File locations capture changed regions not covered by an indexed class or method. Selecting a class or method scrolls to its first new line, or its first old line when no new range exists; selecting a file opens it at the top.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/location"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "file"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "type": "object",
+            "not": {
+              "type": "object",
+              "properties": {
+                "parentId": {}
+              },
+              "required": [
+                "parentId"
+              ]
+            },
+            "properties": {
+              "locations": {
+                "type": "array",
+                "description": "Changed regions not covered by an indexed class or method. Empty when every changed line is covered by a child element.",
+                "items": {
+                  "$ref": "#/$defs/locatedElementLocation"
+                }
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "required": [
+              "parentId"
+            ],
+            "properties": {
+              "parentId": {},
+              "locations": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/locatedElementLocation"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

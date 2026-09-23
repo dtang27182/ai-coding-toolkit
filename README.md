@@ -18,6 +18,12 @@ To install only the alternative `hld-gen-new` implementation, run:
 npm run install:hld-gen-new -- /path/to/code-repo
 ```
 
+To install the `$annotate-diff` skill, run:
+
+```sh
+npm run install:annotate-diff -- /path/to/code-repo
+```
+
 Both implementations expose the skill as `$hld-gen`; install one implementation into a target repository at a time.
 
 The target directory must already exist. Relative target paths are resolved from the current working directory. The output directory defaults to `docs/plans` under the target repository root. To choose another repository-relative directory, run:
@@ -63,9 +69,29 @@ The `hld-gen-new` tool installs as `$hld-gen` and provides the candidate generat
 
 `hld-gen-new` retains the same narrative, Architecture Diff, quality metrics, and iteration structure as `hld-gen`. It uses `arch-diff` as shorthand for Architecture Diff and writes Architecture Diff artifacts as `<feature>.arch-diff.hld.json`.
 
-It has independent validation and counting scripts and its own Architecture Diff visualizer, available through `npm run hld-gen-new-visualizer`.
+It has independent validation and counting scripts and its own Architecture Diff viewer, available through `npm run hld-gen-new-visualizer`.
 
-## Architecture Diff Visualizer
+## Annotate the Current Diff
+
+After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$annotate-diff`. The skill compares the current files with `HEAD` and writes `<feature>.system-dataflow.code-review.json` beside the HLD. It also writes `<feature>.diff-index.json` as a self-contained input for the diff viewer, embedding the exact patch alongside locations for changed files, classes, and methods. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
+
+`generate-diff-index.mjs` can currently identify class and method entities only in JavaScript and TypeScript files because it uses a deterministic AST parser. Future work could add an LLM-based entity-identification path for broader language support.
+
+Run the installed System Dataflow visualizer from the target repository:
+
+```sh
+npm run system-dataflow-visualizer
+```
+
+Run the Diff Viewer from the target repository:
+
+```sh
+npm run diff-viewer
+```
+
+It opens the newest generated `diff-index.json` under the configured output directory. You can also open or drag in another index. The left panel derives its directory tree from indexed file paths and exposes the indexed files, classes, and methods; selecting one opens its full-file diff and scrolls to the indexed declaration.
+
+## Architecture Diff Viewer
 
 Run the interactive visualizer from this toolkit checkout or an installed target repository:
 
