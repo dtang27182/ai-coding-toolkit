@@ -406,11 +406,13 @@ function setAllNodesExpanded(expand: boolean): void {
 }
 
 function selectElement(id: string, updateHash = true): void {
+  const navigationScrollTop = app.querySelector<HTMLElement>("#file-tree")!.scrollTop;
   selectedId = id;
   if (updateHash) {
     history.replaceState(null, "", `#${encodeURIComponent(id)}`);
   }
   render();
+  app.querySelector<HTMLElement>("#file-tree")!.scrollTop = navigationScrollTop;
   requestAnimationFrame(scrollToSelection);
 }
 
