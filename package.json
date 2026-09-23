@@ -11,9 +11,9 @@
     "hld-gen-new-visualizer": "vite hld-gen-new/visualizer",
     "build:visualizer": "vite build hld-gen/visualizer",
     "system-dataflow-visualizer": "vite common/system-dataflow/visualizer",
-    "diff-viewer": "vite common/diff-viewer/visualizer",
+    "diff-viewer": "vite common/diff-viewer/viewer",
     "build:system-dataflow-visualizer": "vite build common/system-dataflow/visualizer",
-    "build:diff-viewer": "vite build common/diff-viewer/visualizer",
+    "build:diff-viewer": "vite build common/diff-viewer/viewer",
     "build:hld-gen-new-visualizer": "vite build hld-gen-new/visualizer",
     "validate": "node hld-gen/scripts/validate-architecture-diff.mjs"
   },

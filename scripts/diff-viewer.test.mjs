@@ -4,13 +4,13 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { findNewestDiffIndex } from "../common/diff-viewer/visualizer/default-diff-index.mjs";
-import { changeBlocks, changeRuns } from "../common/diff-viewer/visualizer/src/change-navigation.ts";
-import { exampleIndex } from "../common/diff-viewer/visualizer/src/example.ts";
-import { clampSidebarWidth } from "../common/diff-viewer/visualizer/src/layout.ts";
-import { buildTree, expandedNodeIds, statsForElement, unmatchedCount } from "../common/diff-viewer/visualizer/src/model.ts";
-import { firstChangedLine, parsePatch } from "../common/diff-viewer/visualizer/src/patch.ts";
-import { isLineWrapShortcut } from "../common/diff-viewer/visualizer/src/shortcuts.ts";
+import { findNewestDiffIndex } from "../common/diff-viewer/viewer/default-diff-index.mjs";
+import { changeBlocks, changeRuns } from "../common/diff-viewer/viewer/src/change-navigation.ts";
+import { exampleIndex } from "../common/diff-viewer/viewer/src/example.ts";
+import { clampSidebarWidth } from "../common/diff-viewer/viewer/src/layout.ts";
+import { buildTree, expandedNodeIds, statsForElement, unmatchedCount } from "../common/diff-viewer/viewer/src/model.ts";
+import { firstChangedLine, parsePatch } from "../common/diff-viewer/viewer/src/patch.ts";
+import { isLineWrapShortcut } from "../common/diff-viewer/viewer/src/shortcuts.ts";
 
 test("parses complete file rows and change counts from the embedded patch", () => {
   const files = parsePatch(exampleIndex.patch);
