@@ -1,0 +1,143 @@
+import { lineIsInRange } from "./patch.ts";
+import type { ChangeType, DiffElement, DiffFile, DiffIndex, ElementStats } from "./types.ts";
+
+export interface DirectoryNode {
+  kind: "directory";
+  id: string;
+  name: string;
+  path: string;
+  children: TreeNode[];
+}
+
+export interface ElementNode {
+  kind: "element";
+  id: string;
+  element: DiffElement;
+  children: ElementNode[];
+}
+
+export type TreeNode = DirectoryNode | ElementNode;
+
+function sourceLine(element: DiffElement): number {
+  const location = element.locations[0];
+  return location?.newLines?.[0] ?? location?.oldLines?.[0] ?? 0;
+}
+
+function compareElements(left: ElementNode, right: ElementNode): number {
+  return sourceLine(left.element) - sourceLine(right.element) || left.element.name.localeCompare(right.element.name);
+}
+
+export function buildTree(index: DiffIndex): TreeNode[] {
+  const nodes = new Map<string, ElementNode>();
+  const roots: ElementNode[] = [];
+  for (const [id, element] of Object.entries(index.elements)) {
+    nodes.set(id, { kind: "element", id, element, children: [] });
+  }
+  for (const node of nodes.values()) {
+    if (node.element.parentId === undefined) {
+      roots.push(node);
+    } else {
+      nodes.get(node.element.parentId)!.children.push(node);
+    }
+  }
+  for (const node of nodes.values()) {
+    node.children.sort(compareElements);
+  }
+
+  const tree: TreeNode[] = [];
+  for (const fileNode of roots.sort((left, right) => left.element.name.localeCompare(right.element.name))) {
+    const segments = fileNode.element.name.split("/");
+    let children = tree;
+    let directoryPath = "";
+    for (const segment of segments.slice(0, -1)) {
+      directoryPath = directoryPath === "" ? segment : `${directoryPath}/${segment}`;
+      let directory = children.find(
+        (candidate): candidate is DirectoryNode => candidate.kind === "directory" && candidate.name === segment,
+      );
+      if (directory === undefined) {
+        directory = { kind: "directory", id: `directory:${directoryPath}`, name: segment, path: directoryPath, children: [] };
+        children.push(directory);
+      }
+      children = directory.children;
+    }
+    children.push(fileNode);
+  }
+  return tree;
+}
+
+function locationChangeType(element: DiffElement): ChangeType {
+  const hasOld = element.locations.some((location) => location.oldLines !== null);
+  const hasNew = element.locations.some((location) => location.newLines !== null);
+  if (hasNew && !hasOld) {
+    return "added";
+  } else if (hasOld && !hasNew) {
+    return "deleted";
+  } else {
+    return "modified";
+  }
+}
+
+export function statsForElement(element: DiffElement, files: DiffFile[]): ElementStats {
+  const filePath = element.kind === "file" ? element.name : element.locations[0].file;
+  const file = files.find((candidate) => candidate.path === filePath);
+  if (element.kind === "file") {
+    let changeType: ChangeType;
+    if (file!.oldPath === null) {
+      changeType = "added";
+    } else if (file!.newPath === null) {
+      changeType = "deleted";
+    } else {
+      changeType = "modified";
+    }
+    return { added: file!.added, removed: file!.removed, changeType };
+  } else {
+    let added = 0;
+    let removed = 0;
+    for (const row of file!.rows) {
+      if (row.kind === "add" && element.locations.some((location) => lineIsInRange(row.newLine, location.newLines))) {
+        added += 1;
+      } else if (row.kind === "delete" && element.locations.some((location) => lineIsInRange(row.oldLine, location.oldLines))) {
+        removed += 1;
+      }
+    }
+    return { added, removed, changeType: locationChangeType(element) };
+  }
+}
+
+export function unmatchedCount(element: DiffElement): number {
+  return element.locations.reduce((total, location) => {
+    const oldCount = location.oldLines === null ? 0 : location.oldLines[1] - location.oldLines[0] + 1;
+    const newCount = location.newLines === null ? 0 : location.newLines[1] - location.newLines[0] + 1;
+    return total + oldCount + newCount;
+  }, 0);
+}
+
+export function semanticError(index: DiffIndex, files: DiffFile[]): string | undefined {
+  const elements = Object.entries(index.elements);
+  const patchPaths = new Set(files.map((file) => file.path));
+  for (const [id, element] of elements) {
+    if (element.kind === "file" && !patchPaths.has(element.name)) {
+      return `${id} refers to a file that is not in the patch: ${element.name}`;
+    } else if (element.parentId !== undefined && index.elements[element.parentId] === undefined) {
+      return `${id}.parentId does not reference an element: ${element.parentId}`;
+    } else if (element.kind === "class" && index.elements[element.parentId!]?.kind !== "file") {
+      return `${id} must have a file parent`;
+    } else if (
+      element.kind === "method" &&
+      index.elements[element.parentId!]?.kind !== "file" &&
+      index.elements[element.parentId!]?.kind !== "class"
+    ) {
+      return `${id} must have a file or class parent`;
+    }
+    for (const location of element.locations) {
+      if (!patchPaths.has(location.file)) {
+        return `${id} refers to a file that is not in the patch: ${location.file}`;
+      } else if (location.oldLines !== null && location.oldLines[1] < location.oldLines[0]) {
+        return `${id} has an invalid old line range`;
+      } else if (location.newLines !== null && location.newLines[1] < location.newLines[0]) {
+        return `${id} has an invalid new line range`;
+      }
+    }
+  }
+  return undefined;
+}

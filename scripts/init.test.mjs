@@ -146,6 +146,7 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
     "system-dataflow-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/system-dataflow/visualizer",
+    "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/visualizer",
   });
 
   const inputPath = "ai-coding-toolkit/common/system-dataflow/system-dataflow.example.json";
@@ -174,12 +175,14 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
     "feature",
   );
 
-  const visualizerBuild = spawnSync(process.execPath, [
-    "ai-coding-toolkit/node_modules/vite/bin/vite.js",
-    "build",
-    "ai-coding-toolkit/common/system-dataflow/visualizer",
-  ], { cwd: repoDirectory, encoding: "utf8" });
-  assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
+  for (const visualizerPath of ["common/system-dataflow/visualizer", "common/diff-viewer/visualizer"]) {
+    const visualizerBuild = spawnSync(process.execPath, [
+      "ai-coding-toolkit/node_modules/vite/bin/vite.js",
+      "build",
+      `ai-coding-toolkit/${visualizerPath}`,
+    ], { cwd: repoDirectory, encoding: "utf8" });
+    assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
+  }
 });
 
 test("refreshes installed copies on repeat installation", async (t) => {

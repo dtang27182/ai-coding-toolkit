@@ -83,6 +83,14 @@ Run the installed System Dataflow visualizer from the target repository:
 npm run system-dataflow-visualizer
 ```
 
+Run the Diff Index visualizer from the target repository:
+
+```sh
+npm run diff-visualizer
+```
+
+It opens the newest generated `diff-index.json` under the configured output directory. You can also open or drag in another index. The left panel derives its directory tree from indexed file paths and exposes the indexed files, classes, and methods; selecting one opens its full-file diff and scrolls to the indexed declaration.
+
 ## Architecture Diff Visualizer
 
 Run the interactive visualizer from this toolkit checkout or an installed target repository:
