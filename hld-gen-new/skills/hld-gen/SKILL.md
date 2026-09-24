@@ -7,17 +7,7 @@ description: Create and refine the simplest high-level design that implements re
 
 Create the simplest design that implements the requested behavior. Minimize the rubric's complexity measures while preserving explicit requirements, existing behavior, and clear responsibilities. Do not omit necessary changes or combine unrelated responsibilities to improve a score.
 
-The design consists of a narrative Markdown file and an Architecture Diff JSON file describing the same design. `arch-diff` is shorthand for Architecture Diff and is used in its filenames. Follow `hld-narrative.md` for narrative structure, `arch-diff.schema.json` for Architecture Diff representation, and `hld-architecture-diff.md` for deciding which architecture elements belong in the HLD Architecture Diff.
-
-Read these supporting documents when their corresponding work is needed:
-
-- `ai-coding-toolkit/hld-gen-new/instructions/hld-narrative.md` before writing or revising the narrative.
-- `ai-coding-toolkit/common/arch-diff/arch-diff.schema.json` before writing or revising the Architecture Diff; it is the authoritative representation contract.
-- `ai-coding-toolkit/hld-gen-new/instructions/hld-architecture-diff.md` before deciding which architecture elements belong in the HLD Architecture Diff and populating HLD-specific fields.
-- `ai-coding-toolkit/hld-gen-new/instructions/hld-variable-exposure.md` when identifying touched methods and existing variables exposed to the change.
-- `ai-coding-toolkit/hld-gen-new/instructions/hld-quality.md` before choosing a design.
-- `ai-coding-toolkit/hld-gen-new/instructions/generate-hld.md` before generating a candidate design.
-- `ai-coding-toolkit/hld-gen-new/instructions/eval-hld.md` before evaluating a candidate design.
+The design is described by a narrative Markdown file and an Architecture Diff JSON file that complement each other. `arch-diff` is shorthand for Architecture Diff and is used in its filenames.
 
 ## Workflow
 
