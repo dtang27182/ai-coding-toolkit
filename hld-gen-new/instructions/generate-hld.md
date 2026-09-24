@@ -1,8 +1,8 @@
 # Generate an HLD Candidate
 
-Generate one candidate from the confirmed Desired Behavior and Scope and Assumptions, the current code, and the caller's feature slug, iteration number, and candidate number. The caller owns scope confirmation and comparison.
+Generate one candidate from the confirmed behavior and scope artifact at `<outputDirectory>/<feature>/<feature>.behavior-and-scope.md`, the current code, and the caller's feature slug, iteration number, and candidate number. The caller owns behavior and scope confirmation and comparison.
 
-Constrain the design only by Desired Behavior and Scope and Assumptions, not by the other candidates' design choices. Explore materially different responsibilities, state ownership, class boundaries, interfaces, or core dataflows. In later iterations, use the identified improvement approach as guidance while keeping other design choices open.
+Constrain the design only by the behavior and scope artifact, not by the other candidates' design choices. Explore materially different responsibilities, state ownership, class boundaries, interfaces, or core dataflows. In later iterations, use the identified improvement approach as guidance while keeping other design choices open.
 
 ## Understand the Design Quality Criteria
 

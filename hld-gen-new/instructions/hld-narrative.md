@@ -10,11 +10,11 @@ Use the following seven sections in order:
 
 ## Desired Behavior
 
-Use bullets for the intended outcomes and core use cases.
+Copy this section's contents verbatim from `<outputDirectory>/<feature>/<feature>.behavior-and-scope.md`.
 
 ## Scope and Assumptions
 
-Use bullets for included and excluded scope, explicit constraints, and working assumptions.
+Copy this section's contents verbatim from `<outputDirectory>/<feature>/<feature>.behavior-and-scope.md`.
 
 ## Primary User Goals
 
@@ -55,4 +55,4 @@ Within this scope, cover:
 
 ## Open Questions
 
-Use one bullet per unresolved question affecting behavior, scope, logic, dataflow, or architectural fit. Write `None` when there are no questions.
+Include unresolved questions from the behavior and scope artifact and use one bullet per additional question affecting logic, dataflow, or architectural fit. Write `None` when there are no questions.
