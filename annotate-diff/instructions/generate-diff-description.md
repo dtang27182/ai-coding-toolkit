@@ -25,15 +25,12 @@ Use the final HLD selected by the `annotate-diff` workflow.
 ## Generate User Flow Steps
 
 - Generate a new `## User Flow Steps` section after `Primary User Goals`. Do not copy or consult the HLD's user flow steps.
-- Create one user flow for each listed primary user goal. Use the copied sections to clarify direct actions and effects, but do not derive additional flows or steps from them.
-- For each primary user goal, capture the shortest continuous causal chain from the initiating user action to the output or high-level state update that fulfills the goal.
-- Give each user flow a `###` heading that briefly names the user's goal under the `## User Flow Steps` heading.
-- Under each heading, write a short numbered sequence. Each step must contain a user action and the direct system effects caused by that action.
-- Include these system effects when applicable:
-  - Outputs shown to the user.
-  - Outputs sent to external systems.
-  - Updates to high-level internal system state.
-- End the flow when the primary requested outcome is produced.
-- Include a step only when removing it would leave the causal chain from the initiating action to the primary outcome incomplete.
-- Apply constraints from the copied sections without turning them into steps.
-- Do not include optional variations, demonstrations that a constraint holds, implementation details, scoping commentary, or related features and workflows.
+- **Flow mapping:** Create exactly one user flow for each Primary User Goals bullet. Do not create flows for other copied Desired Behavior or Scope and Assumptions statements; use those sections only to clarify actions, effects, and constraints.
+- **Flow boundary:** Capture the shortest causal flow from the initiating user action through the required user actions and direct system effects. End when the primary goal's output or high-level state update is produced.
+- **Format:** Give each flow a `###` heading that briefly names the user's goal. Under it, write a short numbered sequence.
+- **Step granularity:** Each numbered step must contain exactly one user action, system state update, system output, or other system effect. Put each effect caused by a user action in its own subsequent step.
+- **User actions:** A flow may contain multiple user actions when they occur in a required sequence or when a user responds to information presented by an earlier system output or effect.
+- **Branches and loops:** A user-action step may state a condition and the next step number for each outcome. A branch may target an earlier step to represent a loop.
+- **System effects:** Include outputs shown to the user, outputs sent to external systems, updates to high-level internal system state, and other effects needed to complete the flow.
+- **Step test:** Include a step only when removing it would leave the causal flow incomplete.
+- **Exclusions:** Apply constraints without turning them into steps. Do not include optional variations, demonstrations that a constraint holds, implementation details, scoping commentary, or related features and workflows.

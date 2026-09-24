@@ -2,7 +2,7 @@
 
 Use the Architecture Diff (arch-diff) to show how the existing architecture changes to implement the HLD. Read and follow `../references/arch-diff.schema.json`, the authoritative representation contract, and use `../references/arch-diff.example.json` as an HLD example.
 
-Set `stage` to `high-level-design`. Populate `userFlows` from the narrative's User Flow Steps and set `userFlow` on every method, state variable, component, and non-composition relationship. Give every class a `variableExposure` inventory; use `null` until it is populated from the current code.
+Set `stage` to `high-level-design`. Set every class's `variableExposure` to `null`.
 
 ## Scope
 
@@ -12,6 +12,12 @@ Set `stage` to `high-level-design`. Populate `userFlows` from the narrative's Us
 - Shared entities, state, or execution paths do not bring other methods or workflows into scope. Following calls helps locate code but does not determine inclusion.
 - Defer adjustments for interference with existing behavior to low level design, as defined in `hld-narrative.md`.
 - Ground every entry in the feature context, narrative, or current code.
+
+## User Flows
+
+- Populate `userFlows` from the narrative's User Flow Steps.
+- Set `userFlow` on every method, state variable, component, and non-composition relationship. Use `true` only when the entry explicitly participates in the dataflow of at least one user flow documented in the HLD narrative, and `false` otherwise.
+- Do not treat one-time initialization or object construction as user-flow participation.
 
 ## Validation
 
