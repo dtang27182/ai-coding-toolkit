@@ -7,7 +7,7 @@ import { defineConfig } from "vite";
 import { findNewestArchitectureDiff } from "./default-architecture-diff.mjs";
 
 const visualizerDirectory = path.dirname(fileURLToPath(import.meta.url));
-const toolkitDirectory = path.resolve(visualizerDirectory, "../..");
+const toolkitDirectory = path.resolve(visualizerDirectory, "../../..");
 const repositoryDirectory = process.cwd();
 
 export default defineConfig({

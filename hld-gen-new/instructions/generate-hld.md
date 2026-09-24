@@ -14,7 +14,7 @@ Constrain the design only by Desired Behavior and Scope and Assumptions, not by 
 
 3. Create the narrative and Architecture Diff in parallel as complementary parts of the same design; do not derive one from the other.
    - Use `outputDirectory` from `ai-coding-toolkit/config.json` and the caller's feature slug. Write `<feature>.hld.md` and `<feature>.arch-diff.hld.json` under `<outputDirectory>/<feature>/iterations/<iteration>/candidate-<candidate>/` (candidates 1–3). Preserve earlier candidates and iterations.
-   - Write the narrative using `ai-coding-toolkit/hld-gen-new/instructions/hld-narrative.md`. Write the Architecture Diff using the representation contract in `ai-coding-toolkit/hld-gen-new/references/arch-diff.schema.json` and the HLD inclusion rules in `ai-coding-toolkit/hld-gen-new/instructions/hld-architecture-diff.md`. When revising existing artifacts, retain the user's edits unless they conflict with the requested behavior.
+   - Write the narrative using `ai-coding-toolkit/hld-gen-new/instructions/hld-narrative.md`. Write the Architecture Diff using the representation contract in `ai-coding-toolkit/common/arch-diff/arch-diff.schema.json` and the HLD inclusion rules in `ai-coding-toolkit/hld-gen-new/instructions/hld-architecture-diff.md`. When revising existing artifacts, retain the user's edits unless they conflict with the requested behavior.
 
 Use `null` for Variable Exposure inventories not yet populated and omit derived counts until evaluation.
 

@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { findNewestArchitectureDiff } from "../hld-gen/visualizer/default-architecture-diff.mjs";
-import { findNewestArchitectureDiff as findNewestNewArchitectureDiff } from "../hld-gen-new/visualizer/default-architecture-diff.mjs";
+import { findNewestArchitectureDiff as findNewestNewArchitectureDiff } from "../common/arch-diff/visualizer/default-architecture-diff.mjs";
 
 test("finds the most recently modified architecture diff in the configured output directory", async (t) => {
   const repositoryDirectory = await mkdtemp(path.join(os.tmpdir(), "visualizer repository "));

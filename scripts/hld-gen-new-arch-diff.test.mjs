@@ -6,7 +6,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { filterGraph } from "../hld-gen-new/visualizer/src/filter.ts";
+import { filterGraph } from "../common/arch-diff/visualizer/src/filter.ts";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(toolkitDirectory, "hld-gen-new/scripts/validate-architecture-diff.mjs");
@@ -115,7 +115,7 @@ test("generic validation rejects invalid architecture references and changes", a
 
 test("evaluated validation requires complete HLD metrics", async (t) => {
   const example = JSON.parse(await readFile(
-    path.join(toolkitDirectory, "hld-gen-new/references/arch-diff.example.json"),
+    path.join(toolkitDirectory, "common/arch-diff/arch-diff.example.json"),
     "utf8"
   ));
   const pending = await runValidator(t, example, "--evaluated");

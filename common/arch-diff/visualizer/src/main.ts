@@ -1,6 +1,6 @@
 import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
-import architectureDiffSchema from "../../references/arch-diff.schema.json";
-import exampleDiff from "../workbook-import-hld.arch-diff.json";
+import architectureDiffSchema from "../../arch-diff.schema.json";
+import exampleDiff from "../../arch-diff.example.json";
 import { computeLayout } from "./layout";
 import { filterGraph, type VisibleGraph } from "./filter";
 import { edgePortSpreads, routeCompositionEdge, routeEdge } from "./routing";
@@ -31,7 +31,7 @@ const CHANGE_COLORS: Record<ChangeType, string> = {
 };
 
 let diff = exampleDiff as ArchitectureDiff;
-let fileName = "workbook-import-hld.arch-diff.json";
+let fileName = "arch-diff.example.json";
 let showUnchanged = true;
 let userFlowOnly = false;
 let methodsHidden = false;

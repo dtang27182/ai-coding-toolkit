@@ -69,7 +69,7 @@ The `hld-gen-new` tool installs as `$hld-gen` and provides the candidate generat
 
 `hld-gen-new` retains the same narrative, Architecture Diff, quality metrics, and iteration structure as `hld-gen`. It uses `arch-diff` as shorthand for Architecture Diff and writes Architecture Diff artifacts as `<feature>.arch-diff.hld.json`.
 
-It has independent validation and counting scripts and its own Architecture Diff viewer, available through `npm run hld-gen-new-visualizer`.
+It has independent validation and counting scripts and uses the shared Architecture Diff viewer, available through `npm run hld-gen-new-visualizer`.
 
 ## Annotate the Current Diff
 

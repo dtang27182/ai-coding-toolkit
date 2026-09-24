@@ -72,7 +72,7 @@ async function installRootCommands() {
       commands.visualizer = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer";
     }
     if (toolNames.includes("hld-gen-new")) {
-      commands["hld-gen-new-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer";
+      commands["hld-gen-new-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/arch-diff/visualizer";
     }
     if (toolNames.includes("annotate-diff")) {
       commands["diff-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/annotate-diff/visualizer";
@@ -87,6 +87,14 @@ async function installRootCommands() {
       packageJson.scripts["diff-visualizer"] = commands["diff-visualizer"];
       packageChanged = true;
       console.log("Updated npm command: npm run diff-visualizer");
+    }
+    if (
+      toolNames.includes("hld-gen-new") &&
+      packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer"
+    ) {
+      packageJson.scripts["hld-gen-new-visualizer"] = commands["hld-gen-new-visualizer"];
+      packageChanged = true;
+      console.log("Updated npm command: npm run hld-gen-new-visualizer");
     }
     if (toolNames.includes("hld-gen") && packageJson.scripts?.mermaid === "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs") {
       delete packageJson.scripts.mermaid;
@@ -134,7 +142,11 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   repoDirectory = await realpath(repoDirectory);
   const installedToolkitDirectory = path.join(repoDirectory, "ai-coding-toolkit");
   const outputPath = path.resolve(repoDirectory, relativeOutputDirectory);
-  const installedDirectories = [...toolNames, ...(toolNames.includes("annotate-diff") ? ["common"] : []), "node_modules"];
+  const installedDirectories = [
+    ...toolNames,
+    ...(toolNames.includes("hld-gen-new") || toolNames.includes("annotate-diff") ? ["common"] : []),
+    "node_modules",
+  ];
   for (const directoryName of installedDirectories) {
     await copyDirectory(
       path.join(toolkitDirectory, directoryName),
@@ -145,6 +157,9 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     for (const relativePath of ["hld-architecture.md", "skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md", "scripts/architecture-diff-to-mermaid.mjs"]) {
       await rm(path.join(installedToolkitDirectory, "hld-gen", relativePath), { recursive: true, force: true });
     }
+  }
+  if (toolNames.includes("hld-gen-new")) {
+    await rm(path.join(installedToolkitDirectory, "hld-gen-new", "visualizer"), { recursive: true, force: true });
   }
   if (toolNames.includes("annotate-diff")) {
     await rm(path.join(installedToolkitDirectory, "common", "diff-viewer", "visualizer"), { recursive: true, force: true });

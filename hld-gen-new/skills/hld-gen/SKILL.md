@@ -12,7 +12,7 @@ The design consists of a narrative Markdown file and an Architecture Diff JSON f
 Read these supporting documents when their corresponding work is needed:
 
 - `ai-coding-toolkit/hld-gen-new/instructions/hld-narrative.md` before writing or revising the narrative.
-- `ai-coding-toolkit/hld-gen-new/references/arch-diff.schema.json` before writing or revising the Architecture Diff; it is the authoritative representation contract.
+- `ai-coding-toolkit/common/arch-diff/arch-diff.schema.json` before writing or revising the Architecture Diff; it is the authoritative representation contract.
 - `ai-coding-toolkit/hld-gen-new/instructions/hld-architecture-diff.md` before deciding which architecture elements belong in the HLD Architecture Diff and populating HLD-specific fields.
 - `ai-coding-toolkit/hld-gen-new/instructions/hld-variable-exposure.md` when identifying touched methods and existing variables exposed to the change.
 - `ai-coding-toolkit/hld-gen-new/instructions/hld-quality.md` before choosing a design.

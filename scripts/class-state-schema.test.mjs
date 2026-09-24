@@ -5,8 +5,8 @@ import test from "node:test";
 import Ajv2020 from "ajv/dist/2020.js";
 
 import { computeLayout } from "../hld-gen/visualizer/src/layout.ts";
-import { computeLayout as computeNewLayout } from "../hld-gen-new/visualizer/src/layout.ts";
-import { isInternalStateRelationship, resolveEndpoint as resolveNewEndpoint } from "../hld-gen-new/visualizer/src/types.ts";
+import { computeLayout as computeNewLayout } from "../common/arch-diff/visualizer/src/layout.ts";
+import { isInternalStateRelationship, resolveEndpoint as resolveNewEndpoint } from "../common/arch-diff/visualizer/src/types.ts";
 import { resolveEndpoint } from "../hld-gen/visualizer/src/types.ts";
 import { semanticError } from "../hld-gen/visualizer/src/validation.ts";
 

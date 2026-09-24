@@ -1,6 +1,6 @@
 # HLD Architecture Diff
 
-Use the Architecture Diff (arch-diff) to show how the existing architecture changes to implement the HLD. Read and follow `../references/arch-diff.schema.json`, the authoritative representation contract, and use `../references/arch-diff.example.json` as an HLD example.
+Use the Architecture Diff (arch-diff) to show how the existing architecture changes to implement the HLD. Read and follow `../../common/arch-diff/arch-diff.schema.json`, the authoritative representation contract, and use `../../common/arch-diff/arch-diff.example.json` as an HLD example.
 
 Set `stage` to `high-level-design`. Set every class's `variableExposure` to `null`.
 
