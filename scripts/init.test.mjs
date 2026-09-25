@@ -221,7 +221,7 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
 
 test("installs advanced-diff-viewer independently", async (t) => {
   const repoDirectory = await createRepository(t);
-  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing"}}\n');
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","advanced-diff-viewer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer"}}\n');
   await writeFile(path.join(repoDirectory, "app.ts"), "export const value = 1;\n");
   for (const argumentsList of [
     ["init", "--quiet"],
@@ -239,7 +239,7 @@ test("installs advanced-diff-viewer independently", async (t) => {
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
     "advanced-diff-viewer:generate": "node ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs",
-    "advanced-diff-viewer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer",
+    "adv-diff": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer",
   });
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/diff-viewer"))).isDirectory(), true);

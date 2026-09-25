@@ -9,7 +9,9 @@ import { isLineWrapShortcut } from "./shortcuts.ts";
 import styles from "./styles.css?inline";
 import type { DiffElement, DiffFile, DiffIndex } from "./types.ts";
 
-export function mountDiffViewer(host: HTMLElement): void {
+export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: boolean } = {}): {
+  loadIndex(value: unknown, name: string, preserveView?: boolean): void;
+} {
   const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
   root.innerHTML = `<style>${styles}</style><div id="app"></div>`;
   const app = root.querySelector<HTMLDivElement>("#app")!;
@@ -45,8 +47,8 @@ export function mountDiffViewer(host: HTMLElement): void {
     return path.slice(path.lastIndexOf("/") + 1);
   }
 
-  function initialSelection(value: DiffIndex): string {
-    const hashId = decodeURIComponent(location.hash.slice(1));
+  function initialSelection(value: DiffIndex, useHash = true): string {
+    const hashId = useHash ? decodeURIComponent(location.hash.slice(1)) : "";
     let selection;
     if (value.elements[hashId] !== undefined) {
       selection = hashId;
@@ -445,7 +447,7 @@ export function mountDiffViewer(host: HTMLElement): void {
     return errors?.map((error) => `${error.instancePath || "/"} ${error.message}`).join("; ") ?? "Invalid diff index";
   }
 
-  function loadIndex(value: unknown, name: string): void {
+  function loadIndex(value: unknown, name: string, preserveView = false): void {
     if (!validate(value)) {
       throw new Error(validationMessage(validate.errors));
     }
@@ -454,14 +456,51 @@ export function mountDiffViewer(host: HTMLElement): void {
     if (semantic !== undefined) {
       throw new Error(semantic);
     }
+    const previousElement = index.elements[selectedId];
+    const previousFile = selectedFile().path;
+    const previousParent = previousElement.parentId === undefined ? undefined : index.elements[previousElement.parentId]?.name;
+    const previousScrollTop = app.querySelector<HTMLElement>("#diff-scroll")!.scrollTop;
+    const previousScrollLeft = app.querySelector<HTMLElement>("#diff-scroll")!.scrollLeft;
     index = value;
     files = parsedFiles;
     fileName = name;
-    selectedId = initialSelection(index);
+    let preservedSelection = false;
+    if (preserveView) {
+      const match = Object.entries(index.elements).find(([, element]) =>
+        element.kind === previousElement.kind &&
+        element.name === previousElement.name &&
+        (element.kind === "file" ? element.name : element.locations[0].file) === previousFile &&
+        (element.parentId === undefined ? undefined : index.elements[element.parentId]?.name) === previousParent
+      );
+      const fileMatch = Object.entries(index.elements).find(([, element]) =>
+        element.kind === "file" && element.name === previousFile
+      );
+      if (match !== undefined) {
+        selectedId = match[0];
+        preservedSelection = true;
+      } else if (fileMatch !== undefined) {
+        selectedId = fileMatch[0];
+        preservedSelection = true;
+      } else {
+        selectedId = initialSelection(index, false);
+      }
+      history.replaceState(null, "", `#${encodeURIComponent(selectedId)}`);
+    } else {
+      selectedId = initialSelection(index);
+    }
     expandedIds = expandedNodeIds(buildTree(index));
     statusMessage = "";
     render();
-    requestAnimationFrame(scrollToSelection);
+    if (preservedSelection) {
+      requestAnimationFrame(() => {
+        const scroll = app.querySelector<HTMLElement>("#diff-scroll")!;
+        scroll.scrollTop = previousScrollTop;
+        scroll.scrollLeft = previousScrollLeft;
+        updateChangeNavigation();
+      });
+    } else {
+      requestAnimationFrame(scrollToSelection);
+    }
   }
 
   async function openFile(file: File): Promise<void> {
@@ -531,5 +570,6 @@ export function mountDiffViewer(host: HTMLElement): void {
 
   render();
   requestAnimationFrame(scrollToSelection);
-  void loadDefault();
+  if (options.loadDefault !== false) void loadDefault();
+  return { loadIndex };
 }

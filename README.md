@@ -27,17 +27,16 @@ npm run install:annotate-diff -- /path/to/code-repo
 To install the Advanced Diff Viewer independently, run:
 
 ```sh
-npm run install:advanced-diff-viewer -- /path/to/code-repo
+npm run install:adv-diff -- /path/to/code-repo
 ```
 
-In either this toolkit checkout or an installed target repository, generate and open its diff index with:
+In either this toolkit checkout or an installed target repository, open the viewer with:
 
 ```sh
-npm run advanced-diff-viewer:generate
-npm run advanced-diff-viewer
+npm run adv-diff
 ```
 
-The generator compares current staged, unstaged, deleted, and untracked changes with `HEAD` and writes `advanced-diff-viewer/diff-index.json` at the repository root. It excludes that output and, in installed repositories, the copied `ai-coding-toolkit` runtime from the comparison. The viewer opens the newest diff index in that directory by default; you can also open or drag in another index.
+The viewer generates `advanced-diff-viewer/diff-index.json` automatically from current staged, unstaged, deleted, and untracked changes against `HEAD`. It updates as files change and provides a Refresh button. The generated index and, in installed repositories, the copied `ai-coding-toolkit` runtime are excluded from the comparison. You can still generate an index without opening the viewer using `npm run advanced-diff-viewer:generate`, or open or drag in another index from the viewer.
 
 The two HLD implementations expose the skill as `$hld-gen`; install one implementation into a target repository at a time.
 

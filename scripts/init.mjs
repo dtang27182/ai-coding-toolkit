@@ -80,7 +80,7 @@ async function installRootCommands() {
     }
     if (toolNames.includes("advanced-diff-viewer")) {
       commands["advanced-diff-viewer:generate"] = "node ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs";
-      commands["advanced-diff-viewer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer";
+      commands["adv-diff"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer";
     }
     let packageChanged = false;
     if (
@@ -114,6 +114,14 @@ async function installRootCommands() {
       delete packageJson.scripts["diff-viewer"];
       packageChanged = true;
       console.log("Removed retired npm command: npm run diff-viewer");
+    }
+    if (
+      toolNames.includes("advanced-diff-viewer") &&
+      packageJson.scripts?.["advanced-diff-viewer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer"
+    ) {
+      delete packageJson.scripts["advanced-diff-viewer"];
+      packageChanged = true;
+      console.log("Removed retired npm command: npm run advanced-diff-viewer");
     }
     for (const [name, command] of Object.entries(commands)) {
       const existingCommand = packageJson.scripts?.[name];
@@ -172,6 +180,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
         "visualizer/src",
         "visualizer/tsconfig.json",
         "visualizer/vite.config.mjs",
+        "visualizer/vite-plugin.mjs",
       ];
     }
     await copyDirectory(

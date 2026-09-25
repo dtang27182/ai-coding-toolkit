@@ -30,10 +30,15 @@ export async function generateAdvancedDiffIndex(workingDirectory = process.cwd()
       repositoryDirectory,
       unignoredPaths,
     );
-    const index = generateDiffIndex(patch);
-    await mkdir(path.dirname(outputFile), { recursive: true });
-    await writeFile(outputFile, `${JSON.stringify(index, null, 2)}\n`);
-    return outputFile;
+    if (patch.trim() === "") {
+      await rm(outputFile, { force: true });
+      return undefined;
+    } else {
+      const index = generateDiffIndex(patch);
+      await mkdir(path.dirname(outputFile), { recursive: true });
+      await writeFile(outputFile, `${JSON.stringify(index, null, 2)}\n`);
+      return outputFile;
+    }
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true });
   }
@@ -41,5 +46,9 @@ export async function generateAdvancedDiffIndex(workingDirectory = process.cwd()
 
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const outputFile = await generateAdvancedDiffIndex(process.argv[2] ?? process.cwd());
-  console.log(`Generated Diff Index: ${outputFile}`);
+  if (outputFile === undefined) {
+    console.log("No changes against HEAD.");
+  } else {
+    console.log(`Generated Diff Index: ${outputFile}`);
+  }
 }
