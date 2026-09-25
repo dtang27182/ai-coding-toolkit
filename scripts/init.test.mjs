@@ -125,6 +125,12 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(validation.status, 0, validation.stderr);
 
+  const systemDataflowValidation = spawnSync(process.execPath, [
+    "ai-coding-toolkit/common/system-dataflow/validate-system-dataflow.mjs",
+    "ai-coding-toolkit/common/system-dataflow/system-dataflow.example.json",
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(systemDataflowValidation.status, 0, systemDataflowValidation.stderr);
+
   const count = spawnSync(process.execPath, [
     "ai-coding-toolkit/hld-gen-new/eval/count-variable-exposure.mjs", inputPath,
   ], { cwd: repoDirectory, encoding: "utf8" });

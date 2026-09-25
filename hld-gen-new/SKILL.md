@@ -33,7 +33,7 @@ Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to
    - If `improvementApproachExists` is `true`, repeat from step 3 using the recorded approach.
    - Otherwise:
      - Select the best evaluated design across all iterations and record its rationale and tradeoffs in the iteration summary.
-     - Copy its generated artifacts from the candidate directory into `<outputDirectory>/<feature>/` without renaming them, preserving all candidate artifacts.
+     - Copy its HLD doc, sys-dataflow, and impl-dataflow from the candidate directory into `<outputDirectory>/<feature>/` without renaming them, preserving all candidate artifacts.
 
 If information required to define, generate, or evaluate the design is unavailable and cannot be resolved from the request, confirmed behavior and scope, current code, or repository guidance, record what is missing in the iteration summary if created, preserve existing artifacts, and stop with `needs-input`. If an execution failure prevents completion, record it and stop with `execution-error`.
 

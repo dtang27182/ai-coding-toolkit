@@ -16,8 +16,9 @@ Constrain the design only by the confirmed behavior and scope, not by the other 
 5. Copy `Scope and Assumptions` verbatim from the iteration summary.
 6. Fill User Outcomes and User Flows by following `ai-coding-toolkit/hld-gen-new/generate/gen-user-outcomes-and-flows.md`.
 7. Fill Design Context and Related Workflows by following `ai-coding-toolkit/hld-gen-new/generate/gen-design-context.md`.
-8. Generate the Implementation Dataflow narrative by following `ai-coding-toolkit/hld-gen-new/generate/gen-impl-dataflow.md`. Preserve earlier candidates and iterations.
+8. Generate the sys-dataflow by following `ai-coding-toolkit/hld-gen-new/generate/gen-sys-dataflow.md`.
+9. Generate the Implementation Dataflow narrative and JSON by following `ai-coding-toolkit/hld-gen-new/generate/gen-impl-dataflow.md`. Preserve earlier candidates and iterations.
 
 ## Update the Iteration Record
 
-9. Record the candidate's HLD doc link, including a partial HLD doc written before a failure. Mark generation complete after the preceding steps succeed; otherwise record the failed status and reason.
+10. Record the candidate's HLD doc link, including a partial HLD doc written before a failure. Mark generation complete after the preceding steps succeed; otherwise record the failed status and reason.

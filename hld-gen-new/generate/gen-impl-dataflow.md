@@ -2,7 +2,7 @@
 
 `impl-dataflow` is shorthand for the structured JSON representation of the HLD doc's `Implementation Dataflow` narrative.
 
-Complete the HLD doc's Implementation Dataflow narrative, then generate its structured JSON representation (`impl-dataflow`) from that narrative. Finish and verify the narrative before creating the JSON.
+Complete the HLD doc's Implementation Dataflow narrative, then generate its structured JSON representation (`impl-dataflow`) from that narrative. Use the sys-dataflow to preserve the candidate's proposed trigger-to-outcome paths while specifying the classes, methods, and state that realize them. Finish and verify the narrative before creating the JSON.
 
 ## Write the Implementation Dataflow Narrative
 
@@ -40,6 +40,7 @@ Set `stage` to `high-level-design`. Set every class's `variableExposure` to `nul
 
 ### Validate Traceability
 
+- Verify that the Implementation Dataflow realizes each sys-dataflow path to a named output or high-level state update. Reconcile design gaps in both artifacts before evaluation.
 - Verify that every JSON entry is traceable to the Implementation Dataflow narrative.
 - For each unchanged entry and relationship, identify the User Flow and numbered step it implements or connects; omit it if neither applies.
 - Verify that every User Flow Step remains traceable through its unchanged participants.
