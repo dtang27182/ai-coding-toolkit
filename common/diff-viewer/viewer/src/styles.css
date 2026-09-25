@@ -594,8 +594,37 @@ button.tree-row,
   flex: 1;
   overflow: auto;
   padding: 9px 0 28px;
-  scrollbar-color: #354957 transparent;
+}
+
+.file-tree,
+.diff-scroll {
+  scrollbar-color: #354957 var(--panel);
   scrollbar-width: thin;
+}
+
+.file-tree::-webkit-scrollbar,
+.diff-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.file-tree::-webkit-scrollbar-track,
+.diff-scroll::-webkit-scrollbar-track,
+.file-tree::-webkit-scrollbar-corner,
+.diff-scroll::-webkit-scrollbar-corner {
+  background: var(--panel);
+}
+
+.file-tree::-webkit-scrollbar-thumb,
+.diff-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid var(--panel);
+  border-radius: 8px;
+  background: #354957;
+}
+
+.file-tree::-webkit-scrollbar-thumb:hover,
+.diff-scroll::-webkit-scrollbar-thumb:hover {
+  background: #526b7c;
 }
 
 .scroll-end-spacer {
