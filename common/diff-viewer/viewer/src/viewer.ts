@@ -3,13 +3,13 @@ import diffIndexSchema from "../../diff-index.schema.json";
 import { changeBlocks, changeRuns } from "./change-navigation.ts";
 import { exampleIndex } from "./example.ts";
 import { clampSidebarWidth, MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH } from "./layout.ts";
-import { buildTree, expandedNodeIds, semanticError, statsForElement, unmatchedCount, type TreeNode } from "./model.ts";
+import { buildTree, expandedNodeIds, expansionStates, semanticError, statsForElement, unmatchedCount, type TreeNode } from "./model.ts";
 import { firstChangedLine, parsePatch } from "./patch.ts";
 import { isLineWrapShortcut } from "./shortcuts.ts";
 import styles from "./styles.css?inline";
 import type { DiffElement, DiffFile, DiffIndex } from "./types.ts";
 
-export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: boolean } = {}): {
+export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: boolean; expansionStorageKey?: string } = {}): {
   loadIndex(value: unknown, name: string, preserveView?: boolean): void;
 } {
   const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
@@ -29,6 +29,7 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
   let fileName = "bundled-example.diff-index.json";
   let selectedId = initialSelection(index);
   let expandedIds = expandedNodeIds(buildTree(index));
+  let hasLoadedIndex = false;
   let statusMessage = "";
   let dragDepth = 0;
   let wrapLines = false;
@@ -397,6 +398,7 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
     } else {
       expandedIds.add(id);
     }
+    saveExpansion();
     render();
     app.querySelector<HTMLElement>("#diff-scroll")!.scrollTop = scrollTop;
     updateChangeNavigation();
@@ -405,6 +407,7 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
   function setAllNodesExpanded(expand: boolean): void {
     const scrollTop = app.querySelector<HTMLElement>("#diff-scroll")!.scrollTop;
     expandedIds = expandedNodeIds(buildTree(index), expand);
+    saveExpansion();
     render();
     app.querySelector<HTMLElement>("#diff-scroll")!.scrollTop = scrollTop;
     updateChangeNavigation();
@@ -447,6 +450,12 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
     return errors?.map((error) => `${error.instancePath || "/"} ${error.message}`).join("; ") ?? "Invalid diff index";
   }
 
+  function saveExpansion(): void {
+    if (options.expansionStorageKey !== undefined && hasLoadedIndex) {
+      sessionStorage.setItem(options.expansionStorageKey, JSON.stringify([...expansionStates(buildTree(index), expandedIds)]));
+    }
+  }
+
   function loadIndex(value: unknown, name: string, preserveView = false): void {
     if (!validate(value)) {
       throw new Error(validationMessage(validate.errors));
@@ -461,6 +470,11 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
     const previousParent = previousElement.parentId === undefined ? undefined : index.elements[previousElement.parentId]?.name;
     const previousScrollTop = app.querySelector<HTMLElement>("#diff-scroll")!.scrollTop;
     const previousScrollLeft = app.querySelector<HTMLElement>("#diff-scroll")!.scrollLeft;
+    const previousExpansion = hasLoadedIndex
+      ? expansionStates(buildTree(index), expandedIds)
+      : new Map<string, boolean>(JSON.parse(
+        options.expansionStorageKey === undefined ? "[]" : sessionStorage.getItem(options.expansionStorageKey) ?? "[]",
+      ));
     index = value;
     files = parsedFiles;
     fileName = name;
@@ -488,7 +502,9 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
     } else {
       selectedId = initialSelection(index);
     }
-    expandedIds = expandedNodeIds(buildTree(index));
+    expandedIds = expandedNodeIds(buildTree(index), true, previousExpansion);
+    hasLoadedIndex = true;
+    saveExpansion();
     statusMessage = "";
     render();
     if (preservedSelection) {

@@ -80,21 +80,60 @@ export function buildTree(index: DiffIndex): TreeNode[] {
   return tree;
 }
 
-export function expandedNodeIds(nodes: TreeNode[], expandElements = true): Set<string> {
-  const expanded = new Set<string>();
+function expandableNodes(nodes: TreeNode[]): TreeNode[] {
+  const expandable: TreeNode[] = [];
 
-  function addNodes(children: TreeNode[]): void {
+  function visit(children: TreeNode[]): void {
     for (const node of children) {
       if (node.children.length > 0) {
-        if (node.kind === "directory" || expandElements) {
-          expanded.add(node.id);
-        }
-        addNodes(node.children);
+        expandable.push(node);
+        visit(node.children);
       }
     }
   }
 
-  addNodes(nodes);
+  visit(nodes);
+  return expandable;
+}
+
+function expansionKey(node: TreeNode): string {
+  return JSON.stringify([node.kind === "directory" ? "directory" : node.element.kind, node.sortKey]);
+}
+
+export function expansionStates(nodes: TreeNode[], expandedIds: Set<string>): Map<string, boolean> {
+  const states = new Map<string, boolean>();
+  const duplicates = new Set<string>();
+  for (const node of expandableNodes(nodes)) {
+    const key = expansionKey(node);
+    if (states.has(key)) {
+      states.delete(key);
+      duplicates.add(key);
+    } else if (!duplicates.has(key)) {
+      states.set(key, expandedIds.has(node.id));
+    }
+  }
+  return states;
+}
+
+export function expandedNodeIds(
+  nodes: TreeNode[],
+  expandElements = true,
+  previousStates = new Map<string, boolean>(),
+): Set<string> {
+  const expanded = new Set<string>();
+  const expandable = expandableNodes(nodes);
+  const counts = new Map<string, number>();
+  for (const node of expandable) {
+    const key = expansionKey(node);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  for (const node of expandable) {
+    const key = expansionKey(node);
+    const wasExpanded = counts.get(key) === 1 ? previousStates.get(key) : undefined;
+    if (wasExpanded ?? (node.kind === "directory" || expandElements)) {
+      expanded.add(node.id);
+    }
+  }
   return expanded;
 }
 

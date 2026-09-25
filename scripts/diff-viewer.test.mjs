@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { changeBlocks, changeRuns } from "../common/diff-viewer/viewer/src/change-navigation.ts";
 import { exampleIndex } from "../common/diff-viewer/viewer/src/example.ts";
 import { clampSidebarWidth } from "../common/diff-viewer/viewer/src/layout.ts";
-import { buildTree, expandedNodeIds, statsForElement, unmatchedCount } from "../common/diff-viewer/viewer/src/model.ts";
+import { buildTree, expandedNodeIds, expansionStates, statsForElement, unmatchedCount } from "../common/diff-viewer/viewer/src/model.ts";
 import { firstChangedLine, parsePatch } from "../common/diff-viewer/viewer/src/patch.ts";
 import { isLineWrapShortcut } from "../common/diff-viewer/viewer/src/shortcuts.ts";
 
@@ -159,6 +159,65 @@ test("collapses code entities while keeping the directory tree expanded", () => 
     expandableNodes.every((node) => collapsed.has(node.id) === (node.kind === "directory")),
     true,
   );
+});
+
+test("preserves expansion by tree identity when index element IDs change", () => {
+  const previousTree = buildTree(exampleIndex);
+  const previousExpanded = expandedNodeIds(previousTree);
+  previousExpanded.delete("directory:src/services");
+  previousExpanded.delete("element-2");
+  previousExpanded.delete("element-5");
+  const ids = {
+    "element-1": "service-file",
+    "element-2": "service-class",
+    "element-3": "configure-method",
+    "element-4": "build-method",
+    "element-5": "format-file",
+    "element-6": "format-method",
+  };
+  const nextElements = Object.fromEntries(Object.entries(exampleIndex.elements).map(([id, element]) => [
+    ids[id],
+    { ...element, ...(element.parentId === undefined ? {} : {
+      parentId: ids[element.parentId],
+    }) },
+  ]));
+  nextElements["new-file"] = { kind: "file", name: "src/new.ts", locations: [] };
+  nextElements["new-class"] = { kind: "class", name: "New", parentId: "new-file", locations: [] };
+  const nextTree = buildTree({ ...exampleIndex, elements: nextElements });
+  const expanded = expandedNodeIds(nextTree, true, expansionStates(previousTree, previousExpanded));
+
+  assert.equal(expanded.has("directory:src/services"), false);
+  assert.equal(expanded.has("service-class"), false);
+  assert.equal(expanded.has("format-file"), false);
+  assert.equal(expanded.has("service-file"), true);
+  assert.equal(expanded.has("new-file"), true);
+  assert.deepEqual(
+    expandedNodeIds(nextTree, true, new Map(JSON.parse(JSON.stringify([...expansionStates(previousTree, previousExpanded)])))),
+    expanded,
+  );
+});
+
+test("does not transfer expansion between indistinguishable duplicate nodes", () => {
+  const index = {
+    schemaVersion: 1,
+    patch: "unused by tree construction",
+    elements: {
+      "element-1": { kind: "file", name: "src/work.ts", locations: [] },
+      "element-2": { kind: "class", name: "Worker", parentId: "element-1", locations: [] },
+      "element-3": { kind: "method", name: "run", parentId: "element-2", locations: [] },
+      "element-4": { kind: "class", name: "Worker", parentId: "element-1", locations: [] },
+      "element-5": { kind: "method", name: "stop", parentId: "element-4", locations: [] },
+    },
+  };
+  const tree = buildTree(index);
+  const previousExpanded = expandedNodeIds(tree);
+  previousExpanded.delete("element-2");
+  const states = expansionStates(tree, previousExpanded);
+  const expanded = expandedNodeIds(tree, true, states);
+
+  assert.equal(expanded.has("element-2"), true);
+  assert.equal(expanded.has("element-4"), true);
+  assert.equal(expanded.has("element-1"), true);
 });
 
 test("derives entity line counts and file-level unmatched counts", () => {

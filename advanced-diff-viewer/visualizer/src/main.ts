@@ -29,7 +29,10 @@ const emptyState = app.querySelector<HTMLElement>(".empty-state")!;
 const status = app.querySelector<HTMLElement>(".advanced-status")!;
 const spinner = app.querySelector<HTMLElement>(".advanced-spinner")!;
 const refreshButton = app.querySelector<HTMLButtonElement>(".refresh-button")!;
-const viewer = mountDiffViewer(viewerHost, { loadDefault: false });
+const viewer = mountDiffViewer(viewerHost, {
+  loadDefault: false,
+  expansionStorageKey: "advanced-diff-viewer:expanded-tree",
+});
 let hasIndex = false;
 let version = 0;
 
