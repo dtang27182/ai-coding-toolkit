@@ -208,14 +208,14 @@
           ]
         },
         "methods": {
-          "description": "Every changed method and every unchanged method participating in the core logic's end-to-end dataflow.",
+          "description": "Every changed method and every unchanged method participating in the Implementation Dataflow.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/method"
           }
         },
         "stateVariables": {
-          "description": "Mutable instance state changed by the design or read or written by the Core Logic and Dataflow. Excludes immutable configuration and composition references.",
+          "description": "Mutable instance state changed by the design or read or written by the Implementation Dataflow. Excludes immutable configuration and composition references.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/stateVariable"

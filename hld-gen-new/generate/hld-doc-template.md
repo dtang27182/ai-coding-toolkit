@@ -20,8 +20,8 @@
 
 <design context and related workflows>
 
-## Core Logic and Dataflow
+## Implementation Dataflow
 
 [Architecture Diff](<feature>.arch-diff.hld.json)
 
-<core logic and dataflow>
+<implementation dataflow>

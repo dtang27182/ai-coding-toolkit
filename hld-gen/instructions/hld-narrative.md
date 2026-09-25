@@ -1,6 +1,6 @@
 # HLD Narrative
 
-An HLD describes both the surrounding logic relevant to the design and the core logic that directly implements the requested behavior. Relevant Logic and Dataflow traces the broader workflows needed to understand the design. Core Logic and Dataflow maps only the User Flow Steps to their implementing entities and relationships, including unchanged participants. The Architecture Diff represents this core scope.
+An HLD describes both the surrounding logic relevant to the design and the implementation dataflow that directly realizes the requested behavior. Relevant Logic and Dataflow traces the broader workflows needed to understand the design. Implementation Dataflow maps only the User Flow Steps to their implementing entities and relationships, including unchanged participants. The Architecture Diff represents this core scope.
 
 Describe responsibilities, data, and interactions without writing implementation code. Adjustments needed to reconcile the new flow with existing classes, persistent state, methods, or dataflows that it might disrupt—or that might interfere with it—can remain for later low level design. Detailed error handling and edge cases can also remain for later low level design unless required by the desired behavior.
 
@@ -24,7 +24,7 @@ There can be more than one user flow. Write a separate set of steps for each use
 
 Use bullets to trace broader workflows needed to understand the design, from user action through processing, state access and updates, and I/O to displayed results and UI updates. Name participating classes, methods, UI and external I/O components, and the data exchanged, including unchanged participants. This context does not expand the core scope or Architecture Diff.
 
-## Core Logic and Dataflow
+## Implementation Dataflow
 
 Describe only the entities and relationships implementing or connecting the User Flow Steps, including unchanged intermediaries and consumers that read and apply the feature's output or state. Keep responsibilities, inputs, outputs, and change types consistent with the Architecture Diff; leave surrounding workflows in Relevant Logic and Dataflow.
 

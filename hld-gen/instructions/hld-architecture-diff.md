@@ -4,7 +4,7 @@ Use the Architecture Diff to show how the existing architecture changes to imple
 
 ## Scope
 
-- Represent Core Logic and Dataflow, including all changes required by the User Flow Steps. Keep broader workflows in Relevant Logic and Dataflow, outside the diagram.
+- Represent Implementation Dataflow, including all changes required by the User Flow Steps. Keep broader workflows in Relevant Logic and Dataflow, outside the diagram.
 - Include unchanged entities and relationships only when they implement or connect User Flow Steps, preserving intermediaries, state owners, and consumers. When a step supplies data or state to existing behavior, stop where it is read and applied.
 - Shared entities, state, or execution paths do not bring other methods or workflows into scope. Following calls helps locate code but does not determine inclusion.
 - Defer adjustments for interference with existing behavior to low level design, as defined in `hld-narrative.md`.
@@ -21,7 +21,7 @@ Use the Architecture Diff to show how the existing architecture changes to imple
 
 ### State Variables
 
-- Give every class a `stateVariables` array. Include every mutable instance variable added, modified, or deleted by the design and every unchanged mutable instance variable read or written by Core Logic and Dataflow. Use `[]` when none qualify.
+- Give every class a `stateVariables` array. Include every mutable instance variable added, modified, or deleted by the design and every unchanged mutable instance variable read or written by Implementation Dataflow. Use `[]` when none qualify.
 - Exclude static/class variables, method-local variables, unrelated fields, explicitly read-only fields, and fields initialized at declaration or construction but never written afterward. Constructor assignment is initialization, not a state update.
 - Exclude fields used only to reference owned child objects. Represent ownership with `composition`; do not duplicate the backing reference as state or create state relationships for ordinary access to it.
 - Set a state variable's `changeType` from changes to its declaration or architectural meaning. Writing a new runtime value does not by itself make an existing variable `modified`.
@@ -30,7 +30,7 @@ Use the Architecture Diff to show how the existing architecture changes to imple
 ## Relationships
 
 - Preserve actual intermediate participants in dataflow and use separate relationships for request and response paths.
-- Add state relationships for all state variables read or written by Core Logic and Dataflow, including cross-class access.
+- Add state relationships for all state variables read or written by Implementation Dataflow, including cross-class access.
 - Use `composition` only for class ownership, including child-object references excluded from `stateVariables`.
 - Explain ordering and state transitions in the narrative; relationships do not represent execution sequence.
 

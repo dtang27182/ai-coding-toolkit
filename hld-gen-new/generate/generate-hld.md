@@ -15,9 +15,6 @@ Constrain the design only by the confirmed behavior and scope, not by the other 
 4. Copy `Desired Behavior` verbatim from the iteration summary.
 5. Copy `Scope and Assumptions` verbatim from the iteration summary.
 6. Fill the remaining sections by following `ai-coding-toolkit/hld-gen-new/generate/hld-doc.md`.
-
-## Create the Architecture Diff
-
 7. After the HLD doc is complete, create `<feature>.arch-diff.hld.json` beside it using `ai-coding-toolkit/hld-gen-new/generate/gen-arch-diff.md`. Preserve earlier candidates and iterations.
 
 Use `null` for Variable Exposure inventories not yet populated and omit derived counts until evaluation.
