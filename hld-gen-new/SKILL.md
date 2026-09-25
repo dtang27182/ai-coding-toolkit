@@ -9,6 +9,8 @@ Create the simplest design that implements the requested behavior. Minimize the 
 
 The design is described by a High Level Design document (`hld-doc`) and a complementary Architecture Diff JSON (`arch-diff`). HLD docs use the `.hld.md` extension, and Architecture Diffs use `.arch-diff.hld.json`.
 
+`impl-dataflow` is shorthand for the HLD doc's Implementation Dataflow narrative.
+
 ## Workflow
 
 Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to the target repository root, for all generated artifacts. Choose one stable kebab-case feature slug (`<feature>`) for the run and pass it to candidate generation.

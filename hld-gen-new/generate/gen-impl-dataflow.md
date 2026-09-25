@@ -1,5 +1,7 @@
 # Generate Implementation Dataflow and Architecture Diff
 
+`impl-dataflow` is shorthand for the HLD doc's `Implementation Dataflow` narrative.
+
 Complete the HLD doc's `Implementation Dataflow` section, then generate its Architecture Diff (`arch-diff`) from that narrative. Finish and verify the narrative before creating the Architecture Diff.
 
 ## Write the Implementation Dataflow Narrative
