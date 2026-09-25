@@ -28,18 +28,6 @@ Describe responsibilities, data, and interactions without writing implementation
 ## Design Context and Related Workflows
 
 - Document findings from existing workflows and implementation paths relevant to the Desired Behavior.
-- Focus on integration points, state ownership, dependencies, dataflow, constraints, and downstream behavior that Core Logic and Dataflow must account for.
+- Focus on integration points, state ownership, dependencies, dataflow, constraints, and downstream behavior that Implementation Dataflow must account for.
 - Name participating code entities and exchanged data where useful.
 - Record context rather than proposed design; this section does not expand the core design scope.
-
-## Core Logic and Dataflow
-
-This section is the authoritative design source for the Architecture Diff. Describe only the entities and relationships implementing or connecting the steps in User Flows, including unchanged intermediaries and consumers that read and apply the feature's output or state. Leave surrounding workflows in Design Context and Related Workflows.
-
-Cover:
-
-- User actions, receiving UI components, and handling classes and methods.
-- Processing and data transformations needed for the behavior.
-- State reads and writes, naming owning classes, instance variables, updating methods, and changes made.
-- I/O requests and results, naming external endpoints and the classes and methods sending requests and consuming results. Include network services, files, and local or session storage where applicable.
-- Returned data, displaying UI components, and the classes and methods that render or update them, including after asynchronous results.
