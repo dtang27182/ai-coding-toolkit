@@ -22,9 +22,9 @@
 | 2         | <summary>   | pending    | pending    |               — |               — |                  — |                 — |                     — |                 — |
 | 3         | <summary>   | pending    | pending    |               — |               — |                  — |                 — |                     — |                 — |
 
-- Candidate 1: [narrative](iterations/<iteration>/candidate-1/<feature>.hld.md), [Architecture Diff](iterations/<iteration>/candidate-1/<feature>.arch-diff.hld.json).
-- Candidate 2: [narrative](iterations/<iteration>/candidate-2/<feature>.hld.md), [Architecture Diff](iterations/<iteration>/candidate-2/<feature>.arch-diff.hld.json).
-- Candidate 3: [narrative](iterations/<iteration>/candidate-3/<feature>.hld.md), [Architecture Diff](iterations/<iteration>/candidate-3/<feature>.arch-diff.hld.json).
+- Candidate 1: [HLD doc](iterations/<iteration>/candidate-1/<feature>.hld.md).
+- Candidate 2: [HLD doc](iterations/<iteration>/candidate-2/<feature>.hld.md).
+- Candidate 3: [HLD doc](iterations/<iteration>/candidate-3/<feature>.hld.md).
 - Failures: <candidate and reason, or None>
 
 ### Analysis

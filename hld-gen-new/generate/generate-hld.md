@@ -8,14 +8,20 @@ Constrain the design only by the confirmed behavior and scope, not by the other 
 
 1. Read `ai-coding-toolkit/hld-gen-new/hld-quality.md` to understand the design quality criteria. Use these criteria to guide candidate generation and comparison.
 
-## Create the Candidate
+## Create the HLD Doc
 
-2. Create the narrative and arch-diff in parallel as complementary parts of the same design; do not derive one from the other.
-   - Use `outputDirectory` from `ai-coding-toolkit/config.json` and the caller's feature slug. Write `<feature>.hld.md` and `<feature>.arch-diff.hld.json` under `<outputDirectory>/<feature>/iterations/<iteration>/candidate-<candidate>/` (candidates 1–3). Preserve earlier candidates and iterations.
-   - Write the narrative using `ai-coding-toolkit/hld-gen-new/generate/hld-narrative.md`. Write the Architecture Diff using the representation contract in `ai-coding-toolkit/common/arch-diff/arch-diff.schema.json` and the HLD inclusion rules in `ai-coding-toolkit/hld-gen-new/generate/hld-architecture-diff.md`.
+2. Create `<feature>.hld.md` under `<outputDirectory>/<feature>/iterations/<iteration>/candidate-<candidate>/` from `ai-coding-toolkit/hld-gen-new/generate/hld-doc-template.md`.
+3. Replace `<feature>` in the HLD doc.
+4. Copy `Desired Behavior` verbatim from the iteration summary.
+5. Copy `Scope and Assumptions` verbatim from the iteration summary.
+6. Fill the remaining sections by following `ai-coding-toolkit/hld-gen-new/generate/hld-doc.md`.
+
+## Create the Architecture Diff
+
+7. After the HLD doc is complete, create `<feature>.arch-diff.hld.json` beside it using `ai-coding-toolkit/hld-gen-new/generate/gen-arch-diff.md`. Preserve earlier candidates and iterations.
 
 Use `null` for Variable Exposure inventories not yet populated and omit derived counts until evaluation.
 
 ## Update the Iteration Record
 
-3. Record the candidate's narrative and Architecture Diff links, including any artifacts written before a failure. Mark generation complete after the preceding steps succeed; otherwise record the failed status and reason.
+8. Record the candidate's HLD doc link, including a partial HLD doc written before a failure. Mark generation complete after the preceding steps succeed; otherwise record the failed status and reason.

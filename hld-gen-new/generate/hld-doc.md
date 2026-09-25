@@ -1,20 +1,8 @@
-# HLD Narrative
+# Generate HLD Doc Sections
 
-An HLD separates the existing implementation context from the proposed core design. Design Context and Related Workflows captures the existing workflows and implementation paths needed to develop a comprehensive design. Core Logic and Dataflow maps the User Flows and their steps to implementing entities and relationships, including unchanged participants. The Architecture Diff represents this core scope.
+Fill the following sections of the HLD doc in order after its `Desired Behavior` and `Scope and Assumptions` have been copied from the iteration summary. Later sections build on the preceding sections.
 
-Describe responsibilities, data, and interactions without writing implementation code. Adjustments needed to reconcile the new flow with existing classes, persistent state, methods, or dataflows that it might disrupt—or that might interfere with it—can remain for later low level design. Detailed error handling and edge cases can also remain for later low level design unless required by the desired behavior.
-
-Keep the narrative concise and easy to scan. Write each section mostly as short bullet points, with one idea per bullet. Use at most one or two brief sentences per section when they help introduce or connect the points. Avoid repeating information across sections.
-
-Use the following seven sections in order:
-
-## Desired Behavior
-
-Copy this section's contents verbatim from `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md`.
-
-## Scope and Assumptions
-
-Copy this section's contents verbatim from `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md`.
+Describe responsibilities, data, and interactions without writing implementation code. Keep the HLD doc concise and easy to scan. Use short bullets with one idea each unless a numbered structure is required. Avoid repeating information across sections.
 
 ## User Outcomes
 
@@ -42,13 +30,13 @@ Copy this section's contents verbatim from `<outputDirectory>/<feature>/<feature
 - Document findings from existing workflows and implementation paths relevant to the Desired Behavior.
 - Focus on integration points, state ownership, dependencies, dataflow, constraints, and downstream behavior that Core Logic and Dataflow must account for.
 - Name participating code entities and exchanged data where useful.
-- Record context rather than proposed design; this section does not expand the core scope or Architecture Diff.
+- Record context rather than proposed design; this section does not expand the core design scope.
 
 ## Core Logic and Dataflow
 
-Describe only the entities and relationships implementing or connecting the steps in User Flows, including unchanged intermediaries and consumers that read and apply the feature's output or state. Keep responsibilities, inputs, outputs, and change types consistent with the Architecture Diff; leave surrounding workflows in Design Context and Related Workflows.
+This section is the authoritative design source for the Architecture Diff. Describe only the entities and relationships implementing or connecting the steps in User Flows, including unchanged intermediaries and consumers that read and apply the feature's output or state. Leave surrounding workflows in Design Context and Related Workflows.
 
-Within this scope, cover:
+Cover:
 
 - User actions, receiving UI components, and handling classes and methods.
 - Processing and data transformations needed for the behavior.

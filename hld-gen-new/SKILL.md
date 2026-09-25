@@ -7,7 +7,7 @@ description: Create and refine the simplest high-level design that implements re
 
 Create the simplest design that implements the requested behavior. Minimize the rubric's complexity measures while preserving explicit requirements, existing behavior, and clear responsibilities. Do not omit necessary changes or combine unrelated responsibilities to improve a score.
 
-The design is described by a narrative Markdown file and an Architecture Diff JSON file that complement each other. `arch-diff` is shorthand for Architecture Diff and is used in its filenames.
+The design is described by a High Level Design document (`hld-doc`) and a complementary Architecture Diff JSON (`arch-diff`). HLD docs use the `.hld.md` extension, and Architecture Diffs use `.arch-diff.hld.json`.
 
 ## Workflow
 
@@ -33,7 +33,7 @@ Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to
    - If `improvementApproachExists` is `true`, repeat from step 3 using the recorded approach.
    - Otherwise:
      - Select the best evaluated design across all iterations and record its rationale and tradeoffs in the iteration summary.
-     - Copy its narrative and Architecture Diff to `<outputDirectory>/<feature>/<feature>.hld.md` and `<outputDirectory>/<feature>/<feature>.arch-diff.hld.json`, preserving all candidate artifacts.
+     - Copy its HLD doc and Architecture Diff to `<outputDirectory>/<feature>/<feature>.hld.md` and `<outputDirectory>/<feature>/<feature>.arch-diff.hld.json`, preserving all candidate artifacts.
 
 If information required to define, generate, or evaluate the design is unavailable and cannot be resolved from the request, confirmed behavior and scope, current code, or repository guidance, record what is missing in the iteration summary if created, preserve existing artifacts, and stop with `needs-input`. If an execution failure prevents completion, record it and stop with `execution-error`.
 
@@ -41,6 +41,6 @@ If information required to define, generate, or evaluate the design is unavailab
 
 Record the stopping reason and current candidate statuses in the iteration summary, if created, and link it. Report the evaluated iteration count and disclose pending, failed, or unevaluated iterations and candidates.
 
-If a design was selected, link the selected narrative and Architecture Diff JSON. State whether the selected design was evaluated after its last design edit. If no design was selected, say so and link available candidate artifacts with their status.
+If a design was selected, link the selected HLD doc and Architecture Diff JSON. State whether the selected design was evaluated after its last design edit. If no design was selected, say so and link available candidate artifacts with their status.
 
 State why the loop stopped. Do not implement application code or claim human approval as part of this workflow.

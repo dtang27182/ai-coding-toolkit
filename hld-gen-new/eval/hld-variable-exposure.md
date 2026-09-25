@@ -1,6 +1,6 @@
 # Variable Exposure
 
-Variable Exposure counts the distinct existing variable declarations a change must account for. Build the inventory after completing the narrative and the Architecture Diff's design entries.
+Variable Exposure counts the distinct existing variable declarations a change must account for. Build the inventory after completing the HLD doc and the Architecture Diff's design entries.
 
 ## Build the Inventory
 
