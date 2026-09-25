@@ -44,6 +44,7 @@ export async function copyDirectory(sourceDirectory, destinationDirectory, relat
   } else {
     await mkdir(destinationDirectory, { recursive: true });
     for (const relativePath of relativePaths) {
+      await mkdir(path.dirname(path.join(destinationDirectory, relativePath)), { recursive: true });
       await cp(
         path.join(sourceDirectory, relativePath),
         path.join(destinationDirectory, relativePath),

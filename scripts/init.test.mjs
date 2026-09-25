@@ -210,6 +210,57 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
   );
 });
 
+test("installs advanced-diff-viewer independently", async (t) => {
+  const repoDirectory = await createRepository(t);
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing"}}\n');
+  await writeFile(path.join(repoDirectory, "app.ts"), "export const value = 1;\n");
+  for (const argumentsList of [
+    ["init", "--quiet"],
+    ["config", "user.email", "test@example.com"],
+    ["config", "user.name", "Test User"],
+    ["add", "."],
+    ["commit", "--quiet", "-m", "base"],
+  ]) {
+    const git = spawnSync("git", argumentsList, { cwd: repoDirectory, encoding: "utf8" });
+    assert.equal(git.status, 0, git.stderr);
+  }
+
+  const result = install([repoDirectory, "--tool", "advanced-diff-viewer"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
+    test: "existing",
+    "advanced-diff-viewer:generate": "node ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs",
+    "advanced-diff-viewer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer",
+  });
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer"))).isDirectory(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/diff-viewer"))).isDirectory(), true);
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/config.json")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "docs/plans")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/diff-index.json")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/visualizer/dist")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/common/system-dataflow")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, ".agents")), { code: "ENOENT" });
+
+  const visualizerBuild = spawnSync(process.execPath, [
+    "ai-coding-toolkit/node_modules/vite/bin/vite.js", "build", "ai-coding-toolkit/advanced-diff-viewer/visualizer",
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
+
+  await writeFile(path.join(repoDirectory, "app.ts"), "export const value = 2;\n");
+  const generated = spawnSync(process.execPath, [
+    "ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs",
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(generated.status, 0, generated.stderr);
+  const index = JSON.parse(await readFile(path.join(repoDirectory, "advanced-diff-viewer/diff-index.json"), "utf8"));
+  assert.match(index.patch, /diff --git a\/app\.ts b\/app\.ts/);
+  assert.doesNotMatch(index.patch, /diff --git a\/ai-coding-toolkit\//);
+
+  const reinstall = install([repoDirectory, "--tool", "advanced-diff-viewer"]);
+  assert.equal(reinstall.status, 0, reinstall.stderr);
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/visualizer/src/main.ts"))).isFile(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "advanced-diff-viewer/diff-index.json"))).isFile(), true);
+});
+
 test("refreshes installed copies on repeat installation", async (t) => {
   const repoDirectory = await createRepository(t);
   const firstInstall = install([repoDirectory]);

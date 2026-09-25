@@ -3,14 +3,38 @@ import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { findNewestDiffIndex } from "../common/diff-viewer/viewer/default-diff-index.mjs";
 import { changeBlocks, changeRuns } from "../common/diff-viewer/viewer/src/change-navigation.ts";
 import { exampleIndex } from "../common/diff-viewer/viewer/src/example.ts";
 import { clampSidebarWidth } from "../common/diff-viewer/viewer/src/layout.ts";
 import { buildTree, expandedNodeIds, statsForElement, unmatchedCount } from "../common/diff-viewer/viewer/src/model.ts";
 import { firstChangedLine, parsePatch } from "../common/diff-viewer/viewer/src/patch.ts";
 import { isLineWrapShortcut } from "../common/diff-viewer/viewer/src/shortcuts.ts";
+
+const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+async function defaultIndexFileName(configPath, repositoryDirectory) {
+  const originalDirectory = process.cwd();
+  process.chdir(repositoryDirectory);
+  try {
+    const { default: config } = await import(`${pathToFileURL(configPath).href}?repository=${Date.now()}`);
+    let middleware;
+    config.plugins[0].configureServer({ middlewares: { use(handler) { middleware = handler; } } });
+    const response = {
+      statusCode: 200,
+      setHeader() {},
+      end(body) { this.body = body; },
+    };
+    await middleware({ method: "GET", url: "/__diff-index/default" }, response, () => {
+      assert.fail("The default index endpoint did not handle the request.");
+    });
+    assert.equal(response.statusCode, 200);
+    return JSON.parse(response.body).fileName;
+  } finally {
+    process.chdir(originalDirectory);
+  }
+}
 
 test("parses complete file rows and change counts from the embedded patch", () => {
   const files = parsePatch(exampleIndex.patch);
@@ -156,18 +180,23 @@ test("finds the newest generated index under the configured output directory", a
   const directory = await mkdtemp(path.join(os.tmpdir(), "diff-viewer-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const repositoryDirectory = path.join(directory, "repository");
-  const toolkitDirectory = path.join(directory, "toolkit");
   const outputDirectory = path.join(repositoryDirectory, "docs", "plans", "feature");
   await mkdir(outputDirectory, { recursive: true });
-  await mkdir(toolkitDirectory, { recursive: true });
-  await writeFile(path.join(toolkitDirectory, "config.json"), '{"outputDirectory":"docs/plans"}\n');
   const older = path.join(outputDirectory, "older.diff-index.json");
   const newer = path.join(outputDirectory, "newer.diff-index.json");
   await writeFile(older, "{}");
   await writeFile(newer, "{}");
   await utimes(older, new Date(1_000), new Date(1_000));
   await utimes(newer, new Date(2_000), new Date(2_000));
-  assert.equal(await findNewestDiffIndex(repositoryDirectory, toolkitDirectory), newer);
+  await mkdir(path.join(repositoryDirectory, "advanced-diff-viewer"));
+  await writeFile(path.join(repositoryDirectory, "advanced-diff-viewer/diff-index.json"), "{}");
+
+  for (const configPath of [
+    path.join(toolkitDirectory, "common/diff-viewer/viewer/vite.config.mjs"),
+    path.join(toolkitDirectory, "annotate-diff/visualizer/vite.config.mjs"),
+  ]) {
+    assert.equal(await defaultIndexFileName(configPath, repositoryDirectory), "docs/plans/feature/newer.diff-index.json");
+  }
 });
 
 test("recognizes Alt or Option plus Z as the line-wrapping shortcut", () => {

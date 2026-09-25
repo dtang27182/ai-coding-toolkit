@@ -26,7 +26,7 @@ function runGit(argumentsList, workingDirectory, environment = process.env) {
   });
 }
 
-export async function generateFullContextPatch(outputPath, workingDirectory = process.cwd()) {
+export async function generateFullContextPatch(outputPath, workingDirectory = process.cwd(), excludedPaths = []) {
   const repositoryDirectory = (await runGit(["rev-parse", "--show-toplevel"], workingDirectory)).trim();
   const resolvedOutputPath = path.resolve(workingDirectory, outputPath);
   const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "ai-coding-toolkit-diff-"));
@@ -48,7 +48,7 @@ export async function generateFullContextPatch(outputPath, workingDirectory = pr
 
   try {
     await runGit(["read-tree", "HEAD"], repositoryDirectory, environment);
-    await runGit(["add", "-A", "--", "."], repositoryDirectory, environment);
+    await runGit(["add", "-A", "--", ".", ...excludedPaths.map((file) => `:(exclude)${file}`)], repositoryDirectory, environment);
     const patch = await runGit([
       "diff",
       "--cached",

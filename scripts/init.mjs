@@ -45,7 +45,7 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
   }
 }
 
-const supportedTools = ["hld-gen", "hld-gen-new", "annotate-diff"];
+const supportedTools = ["hld-gen", "hld-gen-new", "annotate-diff", "advanced-diff-viewer"];
 const toolNames = selectedTool === undefined ? ["hld-gen"] : [selectedTool];
 const relativeOutputDirectory = path.normalize(outputDirectory);
 const outputIsRepoSubdirectory =
@@ -78,6 +78,10 @@ async function installRootCommands() {
       commands["diff-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/annotate-diff/visualizer";
       commands["system-dataflow-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/system-dataflow/visualizer";
       commands["diff-viewer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/viewer";
+    }
+    if (toolNames.includes("advanced-diff-viewer")) {
+      commands["advanced-diff-viewer:generate"] = "node ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs";
+      commands["advanced-diff-viewer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer";
     }
     let packageChanged = false;
     if (
@@ -126,7 +130,7 @@ async function installRootCommands() {
 if (argumentError !== undefined || repoDirectory === undefined) {
   console.error(argumentError ?? "Target repository path is required.");
   console.error(
-    "Usage: node scripts/init.mjs <target-repo> [--agent codex] [--tool <hld-gen|hld-gen-new|annotate-diff>] [--output-dir <relative-directory>]"
+    "Usage: node scripts/init.mjs <target-repo> [--agent codex] [--tool <hld-gen|hld-gen-new|annotate-diff|advanced-diff-viewer>] [--output-dir <relative-directory>]"
   );
   process.exitCode = 1;
 } else if (agentName !== "codex") {
@@ -147,13 +151,26 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   const outputPath = path.resolve(repoDirectory, relativeOutputDirectory);
   const installedDirectories = [
     ...toolNames,
-    ...(toolNames.includes("hld-gen-new") || toolNames.includes("annotate-diff") ? ["common"] : []),
+    ...(toolNames.includes("hld-gen-new") || toolNames.includes("annotate-diff") || toolNames.includes("advanced-diff-viewer") ? ["common"] : []),
     "node_modules",
   ];
   for (const directoryName of installedDirectories) {
+    let relativePaths;
+    if (directoryName === "common" && toolNames.includes("advanced-diff-viewer")) {
+      relativePaths = ["diff-viewer", "default-output-file-plugin.mjs"];
+    } else if (directoryName === "advanced-diff-viewer") {
+      relativePaths = [
+        "generate-diff-index.mjs",
+        "visualizer/index.html",
+        "visualizer/src",
+        "visualizer/tsconfig.json",
+        "visualizer/vite.config.mjs",
+      ];
+    }
     await copyDirectory(
       path.join(toolkitDirectory, directoryName),
-      path.join(installedToolkitDirectory, directoryName)
+      path.join(installedToolkitDirectory, directoryName),
+      relativePaths
     );
   }
   if (toolNames.includes("hld-gen")) {
@@ -168,12 +185,14 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   if (toolNames.includes("annotate-diff")) {
     await rm(path.join(installedToolkitDirectory, "common", "diff-viewer", "visualizer"), { recursive: true, force: true });
   }
-  await installCodexSkills(repoDirectory, toolkitDirectory, toolNames);
+  await installCodexSkills(repoDirectory, toolkitDirectory, toolNames.filter((name) => name !== "advanced-diff-viewer"));
   await installRootCommands();
-  await mkdir(outputPath, { recursive: true });
-  await writeFile(
-    path.join(installedToolkitDirectory, "config.json"),
-    `${JSON.stringify({ outputDirectory: relativeOutputDirectory }, null, 2)}\n`
-  );
-  console.log(`Configured design output: ${outputPath}`);
+  if (!toolNames.includes("advanced-diff-viewer")) {
+    await mkdir(outputPath, { recursive: true });
+    await writeFile(
+      path.join(installedToolkitDirectory, "config.json"),
+      `${JSON.stringify({ outputDirectory: relativeOutputDirectory }, null, 2)}\n`
+    );
+    console.log(`Configured design output: ${outputPath}`);
+  }
 }

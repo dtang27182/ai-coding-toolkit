@@ -1,11 +1,10 @@
-import { readFile, readdir, stat } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { defineConfig } from "vite";
 
 import { defaultOutputFilePlugin } from "../../common/default-output-file-plugin.mjs";
-import { defaultSystemDataflowPlugin } from "../../common/system-dataflow/visualizer/vite-plugin.mjs";
 
 const visualizerDirectory = path.dirname(fileURLToPath(import.meta.url));
 const toolkitDirectory = path.resolve(visualizerDirectory, "../..");
@@ -29,7 +28,7 @@ async function newestDiffIndex(directory) {
     let candidate;
     if (entry.isDirectory()) {
       candidate = await newestDiffIndex(entryPath);
-    } else if (entry.name.endsWith(".diff-index.json")) {
+    } else if (entry.name.endsWith("diff-index.json")) {
       candidate = { path: entryPath, modifiedTime: (await stat(entryPath)).mtimeMs };
     }
     if (candidate !== undefined && (newest === undefined || candidate.modifiedTime > newest.modifiedTime)) {
@@ -39,20 +38,16 @@ async function newestDiffIndex(directory) {
   return newest;
 }
 
-async function findDefaultDiffIndex(repository, toolkit) {
-  const config = JSON.parse(await readFile(path.join(toolkit, "config.json"), "utf8"));
-  return (await newestDiffIndex(path.resolve(repository, config.outputDirectory)))?.path;
+async function findDefaultDiffIndex(repository) {
+  return (await newestDiffIndex(path.join(repository, "advanced-diff-viewer")))?.path;
 }
 
 export default defineConfig({
-  plugins: [
-    defaultOutputFilePlugin(
-      "default-diff-index",
-      "/__diff-index/default",
-      findDefaultDiffIndex,
-      repositoryDirectory,
-      toolkitDirectory,
-    ),
-    defaultSystemDataflowPlugin(repositoryDirectory, toolkitDirectory),
-  ],
+  plugins: [defaultOutputFilePlugin(
+    "advanced-diff-index",
+    "/__diff-index/default",
+    findDefaultDiffIndex,
+    repositoryDirectory,
+    toolkitDirectory,
+  )],
 });

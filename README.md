@@ -24,9 +24,24 @@ To install the `$annotate-diff` skill, run:
 npm run install:annotate-diff -- /path/to/code-repo
 ```
 
-Both implementations expose the skill as `$hld-gen`; install one implementation into a target repository at a time.
+To install the Advanced Diff Viewer independently, run:
 
-The target directory must already exist. Relative target paths are resolved from the current working directory. The output directory defaults to `docs/plans` under the target repository root. To choose another repository-relative directory, run:
+```sh
+npm run install:advanced-diff-viewer -- /path/to/code-repo
+```
+
+In either this toolkit checkout or an installed target repository, generate and open its diff index with:
+
+```sh
+npm run advanced-diff-viewer:generate
+npm run advanced-diff-viewer
+```
+
+The generator compares current staged, unstaged, deleted, and untracked changes with `HEAD` and writes `advanced-diff-viewer/diff-index.json` at the repository root. It excludes that output and, in installed repositories, the copied `ai-coding-toolkit` runtime from the comparison. The viewer opens the newest diff index in that directory by default; you can also open or drag in another index.
+
+The two HLD implementations expose the skill as `$hld-gen`; install one implementation into a target repository at a time.
+
+The target directory must already exist. Relative target paths are resolved from the current working directory. For the HLD and annotate-diff tools, the output directory defaults to `docs/plans` under the target repository root. To choose another repository-relative directory, run:
 
 ```sh
 npm run install:codex -- ../code-repo --output-dir architecture/plans
