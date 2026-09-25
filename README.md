@@ -100,19 +100,13 @@ npm run diff-visualizer
 
 Each view opens the newest matching `system-dataflow.json` or `diff-index.json` artifact under the configured output directory. You can also open or drag in another file from either view.
 
-The original standalone viewers remain available. Run the System Dataflow visualizer with:
+The standalone System Dataflow viewer remains available:
 
 ```sh
 npm run system-dataflow-visualizer
 ```
 
-Run the Diff Viewer from the target repository:
-
-```sh
-npm run diff-viewer
-```
-
-It opens the newest generated `diff-index.json` under the configured output directory. You can also open or drag in another index. The left panel derives its directory tree from indexed file paths and exposes the indexed files, classes, and methods; selecting one opens its full-file diff and scrolls to the indexed declaration.
+In the combined visualizer, the diff view derives its directory tree from indexed file paths and exposes the indexed files, classes, and methods. Selecting one opens its full-file diff and scrolls to the indexed declaration.
 
 ## Architecture Diff Viewer
 

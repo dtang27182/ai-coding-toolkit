@@ -77,7 +77,6 @@ async function installRootCommands() {
     if (toolNames.includes("annotate-diff")) {
       commands["diff-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/annotate-diff/visualizer";
       commands["system-dataflow-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/system-dataflow/visualizer";
-      commands["diff-viewer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/viewer";
     }
     if (toolNames.includes("advanced-diff-viewer")) {
       commands["advanced-diff-viewer:generate"] = "node ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs";
@@ -107,6 +106,14 @@ async function installRootCommands() {
       delete packageJson.scripts.mermaid;
       packageChanged = true;
       console.log("Removed retired npm command: npm run mermaid");
+    }
+    if (
+      (toolNames.includes("annotate-diff") || toolNames.includes("advanced-diff-viewer")) &&
+      packageJson.scripts?.["diff-viewer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/viewer"
+    ) {
+      delete packageJson.scripts["diff-viewer"];
+      packageChanged = true;
+      console.log("Removed retired npm command: npm run diff-viewer");
     }
     for (const [name, command] of Object.entries(commands)) {
       const existingCommand = packageJson.scripts?.[name];
@@ -184,6 +191,11 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   }
   if (toolNames.includes("annotate-diff")) {
     await rm(path.join(installedToolkitDirectory, "common", "diff-viewer", "visualizer"), { recursive: true, force: true });
+  }
+  if (toolNames.includes("annotate-diff") || toolNames.includes("advanced-diff-viewer")) {
+    for (const relativePath of ["index.html", "src/main.ts", "tsconfig.json", "vite.config.mjs", "dist"]) {
+      await rm(path.join(installedToolkitDirectory, "common", "diff-viewer", "viewer", relativePath), { recursive: true, force: true });
+    }
   }
   await installCodexSkills(repoDirectory, toolkitDirectory, toolNames.filter((name) => name !== "advanced-diff-viewer"));
   await installRootCommands();

@@ -149,7 +149,7 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
   const repoDirectory = await createRepository(t);
   await writeFile(
     path.join(repoDirectory, "package.json"),
-    '{"scripts":{"test":"existing","diff-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/visualizer"}}\n'
+    '{"scripts":{"test":"existing","diff-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/visualizer","diff-viewer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/viewer"}}\n'
   );
 
   const result = install([repoDirectory, "--tool", "annotate-diff"]);
@@ -167,7 +167,6 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
     test: "existing",
     "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/annotate-diff/visualizer",
     "system-dataflow-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/system-dataflow/visualizer",
-    "diff-viewer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/viewer",
   });
 
   const inputPath = "ai-coding-toolkit/common/system-dataflow/system-dataflow.example.json";
@@ -196,7 +195,7 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
     "feature",
   );
 
-  for (const visualizerPath of ["annotate-diff/visualizer", "common/system-dataflow/visualizer", "common/diff-viewer/viewer"]) {
+  for (const visualizerPath of ["annotate-diff/visualizer", "common/system-dataflow/visualizer"]) {
     const visualizerBuild = spawnSync(process.execPath, [
       "ai-coding-toolkit/node_modules/vite/bin/vite.js",
       "build",
@@ -208,6 +207,16 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
     lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "diff-viewer", "visualizer")),
     { code: "ENOENT" }
   );
+  await assert.rejects(
+    lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "diff-viewer", "viewer", "index.html")),
+    { code: "ENOENT" }
+  );
+
+  const retiredEntryPoint = path.join(repoDirectory, "ai-coding-toolkit", "common", "diff-viewer", "viewer", "index.html");
+  await writeFile(retiredEntryPoint, "retired entry point");
+  const reinstall = install([repoDirectory, "--tool", "annotate-diff"]);
+  assert.equal(reinstall.status, 0, reinstall.stderr);
+  await assert.rejects(lstat(retiredEntryPoint), { code: "ENOENT" });
 });
 
 test("installs advanced-diff-viewer independently", async (t) => {
