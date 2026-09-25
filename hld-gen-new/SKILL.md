@@ -17,7 +17,7 @@ Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to
    - Ask the user every recorded clarification question. After each response, update `Desired Behavior` and `Scope and Assumptions`, remove each answered question, and record any necessary follow-up questions.
    - Continue until `Clarification Questions` is `None` and the user explicitly approves the updated `Desired Behavior` and `Scope and Assumptions`. Do not proceed to step 2 before both conditions are met.
 2. Read `ai-coding-toolkit/hld-gen-new/hld-quality.md` to understand the design quality criteria. Use these criteria to guide candidate generation and comparison.
-3. Generate three materially different candidate designs using `ai-coding-toolkit/hld-gen-new/generate/generate-hld.md`. Before generating them, initialize the candidate records in the template's iteration section for iteration 1 or append a new copy of that section for a later iteration. Replace `<iteration>` and leave each candidate's generation and evaluation pending.
+3. Generate three materially different candidate designs using `ai-coding-toolkit/hld-gen-new/generate/gen-hld.md`. Before generating them, initialize the candidate records in the template's iteration section for iteration 1 or append a new copy of that section for a later iteration. Replace `<iteration>` and leave each candidate's generation and evaluation pending.
    - Start at iteration 1 and increment for each new set of three candidates. Preserve earlier records and completed work.
 4. Evaluate all three designs using `ai-coding-toolkit/hld-gen-new/eval/eval-hld.md` and update their iteration records:
    - Before updating a candidate's inventory or counts, mark its evaluation pending.
