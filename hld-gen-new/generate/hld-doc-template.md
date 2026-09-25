@@ -22,6 +22,6 @@
 
 ## Implementation Dataflow
 
-[Architecture Diff](<feature>.arch-diff.hld.json)
+[Implementation Dataflow JSON](<feature>.impl-dataflow.json)
 
-<implementation dataflow>
+<implementation dataflow narrative>

@@ -1,7 +1,7 @@
-import type { ArchitectureDiff } from "./types.ts";
+import type { ImplementationDataflow } from "./types.ts";
 import { resolveEndpoint } from "./types.ts";
 
-export function semanticError(value: ArchitectureDiff): string | undefined {
+export function semanticError(value: ImplementationDataflow): string | undefined {
   const names = [...value.classes.map((classDiff) => classDiff.name), ...value.components.map((component) => component.name)];
   if (new Set(names).size !== names.length) {
     return "Class and component names must be unique.";

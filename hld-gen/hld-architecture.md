@@ -6,7 +6,7 @@ The HLD generator compares candidate designs from a feature conversation and the
 
 The objective is the simplest design that preserves required new and existing behavior. The rubric scores change size, concentration, and Variable Exposure.
 
-The narrative's Relevant Logic and Dataflow section covers the broader end-to-end workflows needed to understand the design. Its Implementation Dataflow section and the Architecture Diff cover only the User Flow Steps, including where existing behavior reads and applies the feature's output or state. This core scope includes all required changes and every unchanged class, method, UI component, and external I/O component implementing or connecting those steps; follow `instructions/hld-narrative.md` and `instructions/hld-architecture-diff.md` for inclusion criteria. Integration adjustments to existing classes, persistent state, methods, and dataflows that might interfere with or be disrupted by the new flow can remain for later design work. Detailed error handling and edge cases can also remain for later design work unless needed for the desired behavior.
+The narrative's Relevant Logic and Dataflow section covers the broader end-to-end workflows needed to understand the design. Its Implementation Dataflow narrative and the Architecture Diff cover only the User Flow Steps, including where existing behavior reads and applies the feature's output or state. This core scope includes all required changes and every unchanged class, method, UI component, and external I/O component implementing or connecting those steps; follow `instructions/hld-narrative.md` and `instructions/hld-architecture-diff.md` for inclusion criteria. Integration adjustments to existing classes, persistent state, methods, and dataflows that might interfere with or be disrupted by the new flow can remain for later design work. Detailed error handling and edge cases can also remain for later design work unless needed for the desired behavior.
 
 ## Skill and Shared Instructions
 
@@ -43,7 +43,7 @@ hld-gen/
 
 - [generate-hld.md](instructions/generate-hld.md): candidate generation and output paths.
 - [eval-hld.md](instructions/eval-hld.md): exposure inventory preparation and quantitative counting.
-- [hld-narrative.md](instructions/hld-narrative.md): narrative scope and six-section structure, with User Flow Steps defining the scope of Implementation Dataflow and the Architecture Diff.
+- [hld-narrative.md](instructions/hld-narrative.md): narrative scope and six-section structure, with User Flow Steps defining the scope of the Implementation Dataflow narrative and the Architecture Diff.
 - [hld-architecture-diff.md](instructions/hld-architecture-diff.md): architectural representation, supported by the schema and example in `references/`.
 - [hld-user-flow.md](instructions/hld-user-flow.md): post-creation user-flow labeling and validation of the Architecture Diff.
 - [hld-dataflow-narrative.md](instructions/hld-dataflow-narrative.md): post-labeling transcription of the user flows and description of each dataflow and state-update relationship.

@@ -7,9 +7,7 @@ description: Create and refine the simplest high-level design that implements re
 
 Create the simplest design that implements the requested behavior. Minimize the rubric's complexity measures while preserving explicit requirements, existing behavior, and clear responsibilities. Do not omit necessary changes or combine unrelated responsibilities to improve a score.
 
-The design is described by a High Level Design document (`hld-doc`) and a complementary Architecture Diff JSON (`arch-diff`). HLD docs use the `.hld.md` extension, and Architecture Diffs use `.arch-diff.hld.json`.
-
-`impl-dataflow` is shorthand for the HLD doc's Implementation Dataflow narrative.
+The design is described by a High Level Design document (`hld-doc`) using the `.hld.md` extension.
 
 ## Workflow
 
@@ -23,7 +21,7 @@ Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to
    - Start at iteration 1 and increment for each new set of three candidates. Preserve earlier records and completed work.
 4. Evaluate all three designs using `ai-coding-toolkit/hld-gen-new/eval/eval-hld.md` and update their iteration records:
    - Before updating a candidate's inventory or counts, mark its evaluation pending.
-   - After verification, copy all six counts from its Architecture Diff into its record and mark it evaluated. On failure, mark it failed and record the reason.
+   - After verification, copy all six counts into its record and mark it evaluated. On failure, mark it failed and record the reason.
 5. Analyze the current iteration and record its outcome:
    - Analyze the three candidates together.
       - Use their differences, commonalities, and any patterns or trends to identify an approach that could improve the quality metrics further.
@@ -35,7 +33,7 @@ Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to
    - If `improvementApproachExists` is `true`, repeat from step 3 using the recorded approach.
    - Otherwise:
      - Select the best evaluated design across all iterations and record its rationale and tradeoffs in the iteration summary.
-     - Copy its HLD doc and Architecture Diff to `<outputDirectory>/<feature>/<feature>.hld.md` and `<outputDirectory>/<feature>/<feature>.arch-diff.hld.json`, preserving all candidate artifacts.
+     - Copy its generated artifacts from the candidate directory into `<outputDirectory>/<feature>/` without renaming them, preserving all candidate artifacts.
 
 If information required to define, generate, or evaluate the design is unavailable and cannot be resolved from the request, confirmed behavior and scope, current code, or repository guidance, record what is missing in the iteration summary if created, preserve existing artifacts, and stop with `needs-input`. If an execution failure prevents completion, record it and stop with `execution-error`.
 
@@ -43,6 +41,6 @@ If information required to define, generate, or evaluate the design is unavailab
 
 Record the stopping reason and current candidate statuses in the iteration summary, if created, and link it. Report the evaluated iteration count and disclose pending, failed, or unevaluated iterations and candidates.
 
-If a design was selected, link the selected HLD doc and Architecture Diff JSON. State whether the selected design was evaluated after its last design edit. If no design was selected, say so and link available candidate artifacts with their status.
+If a design was selected, link its generated artifacts. State whether the selected design was evaluated after its last design edit. If no design was selected, say so and link available candidate artifacts with their status.
 
 State why the loop stopped. Do not implement application code or claim human approval as part of this workflow.

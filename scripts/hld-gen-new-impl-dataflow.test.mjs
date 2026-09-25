@@ -6,10 +6,10 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { filterGraph } from "../common/arch-diff/visualizer/src/filter.ts";
+import { filterGraph } from "../common/impl-dataflow/visualizer/src/filter.ts";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const validatorPath = path.join(toolkitDirectory, "hld-gen-new/eval/validate-architecture-diff.mjs");
+const validatorPath = path.join(toolkitDirectory, "hld-gen-new/eval/validate-impl-dataflow.mjs");
 const exposureCounterPath = path.join(toolkitDirectory, "hld-gen-new/eval/count-variable-exposure.mjs");
 const changeCounterPath = path.join(toolkitDirectory, "hld-gen-new/eval/count-design-changes.mjs");
 
@@ -31,7 +31,7 @@ function codeReview() {
 async function runValidator(t, input, ...argumentsList) {
   const directory = await mkdtemp(path.join(os.tmpdir(), "hld-gen-new validation "));
   t.after(() => rm(directory, { recursive: true, force: true }));
-  const inputPath = path.join(directory, "input.arch-diff.json");
+  const inputPath = path.join(directory, "input.impl-dataflow.json");
   await writeFile(inputPath, `${JSON.stringify(input, null, 2)}\n`);
   return {
     inputPath,
@@ -39,7 +39,7 @@ async function runValidator(t, input, ...argumentsList) {
   };
 }
 
-test("code-review arch diffs omit HLD-only fields", async (t) => {
+test("code-review implementation dataflows omit HLD-only fields", async (t) => {
   const input = codeReview();
   const { result } = await runValidator(t, input);
   assert.equal(result.status, 0, result.stderr);
@@ -115,7 +115,7 @@ test("generic validation rejects invalid architecture references and changes", a
 
 test("evaluated validation requires complete HLD metrics", async (t) => {
   const example = JSON.parse(await readFile(
-    path.join(toolkitDirectory, "common/arch-diff/arch-diff.example.json"),
+    path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"),
     "utf8"
   ));
   const pending = await runValidator(t, example, "--evaluated");

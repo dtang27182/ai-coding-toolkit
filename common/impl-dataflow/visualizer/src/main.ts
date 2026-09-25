@@ -1,15 +1,15 @@
 import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
-import architectureDiffSchema from "../../arch-diff.schema.json";
-import exampleDiff from "../../arch-diff.example.json";
+import implementationDataflowSchema from "../../impl-dataflow.schema.json";
+import exampleImplementationDataflow from "../../impl-dataflow.example.json";
 import { computeLayout } from "./layout";
 import { filterGraph, type VisibleGraph } from "./filter";
 import { edgePortSpreads, routeCompositionEdge, routeEdge } from "./routing";
 import { semanticError } from "./validation";
 import "./styles.css";
 import type {
-  ArchitectureDiff,
   ChangeType,
   ClassDiff,
+  ImplementationDataflow,
   Rect,
   ResolvedEndpoint,
   ResolvedRelationship,
@@ -19,9 +19,9 @@ import { edgeKey, isInternalStateRelationship, mergeClassDataflows, methodKey } 
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const ajv = new Ajv2020({ allErrors: true });
-const validate = ajv.compile<ArchitectureDiff>(architectureDiffSchema);
+const validate = ajv.compile<ImplementationDataflow>(implementationDataflowSchema);
 const measureContext = document.createElement("canvas").getContext("2d")!;
-const LAST_OPENED_KEY = "architecture-diff:last-opened";
+const LAST_OPENED_KEY = "impl-dataflow:last-opened";
 
 const CHANGE_COLORS: Record<ChangeType, string> = {
   added: "oklch(0.76 0.16 155)",
@@ -30,8 +30,8 @@ const CHANGE_COLORS: Record<ChangeType, string> = {
   unchanged: "oklch(0.56 0.02 250)",
 };
 
-let diff = exampleDiff as ArchitectureDiff;
-let fileName = "arch-diff.example.json";
+let implementationDataflow = exampleImplementationDataflow as ImplementationDataflow;
+let fileName = "impl-dataflow.example.json";
 let showUnchanged = true;
 let userFlowOnly = false;
 let methodsHidden = false;
@@ -186,7 +186,7 @@ function relationshipAttributes(relationship: ResolvedRelationship): string {
 }
 
 function visibleGraph(): VisibleGraph {
-  return filterGraph(diff, showUnchanged, userFlowOnly);
+  return filterGraph(implementationDataflow, showUnchanged, userFlowOnly);
 }
 
 function graphRect(
@@ -549,11 +549,11 @@ function render(): void {
   app.innerHTML = `<div class="app-shell">
     <header class="topbar">
       <div class="summary-row">
-        <div class="brand"><span class="file-label" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span><span class="stage-chip">${escapeHtml(diff.stage)}</span></div>
+        <div class="brand"><span class="file-label" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span><span class="stage-chip">${escapeHtml(implementationDataflow.stage)}</span></div>
         <div class="control-group">
           <button class="control-button open-button" data-open>Open JSON</button>
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
-          ${diff.userFlows === undefined ? "" : `<button class="control-button${userFlowOnly ? " active" : ""}" data-toggle-user-flow aria-pressed="${userFlowOnly}">User flow only</button>`}
+          ${implementationDataflow.userFlows === undefined ? "" : `<button class="control-button${userFlowOnly ? " active" : ""}" data-toggle-user-flow aria-pressed="${userFlowOnly}">User flow only</button>`}
           <button class="control-button${methodsHidden ? " active" : ""}" data-toggle-methods>${methodsHidden ? "Show methods" : "Hide methods"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
@@ -561,12 +561,12 @@ function render(): void {
     </header>
     <div class="workspace">
       <div class="canvas-wrap">
-        <main class="canvas" aria-label="Architecture diff graph">${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}${renderGraph(graph)}</main>
+        <main class="canvas" aria-label="Implementation dataflow graph">${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}${renderGraph(graph)}</main>
         <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}</div>
-        ${dragDepth > 0 ? '<div class="drop-overlay">Drop an arch-diff.json file</div>' : ""}
+        ${dragDepth > 0 ? '<div class="drop-overlay">Drop an impl-dataflow.json file</div>' : ""}
       </div>
       <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuenow="${Math.round(inspectorWidth)}" tabindex="0"></div>
-      <aside class="inspector" style="width:${inspectorWidth}px;flex-basis:${inspectorWidth}px" aria-label="Architecture inspector">${renderInspector(graph)}</aside>
+      <aside class="inspector" style="width:${inspectorWidth}px;flex-basis:${inspectorWidth}px" aria-label="Implementation dataflow inspector">${renderInspector(graph)}</aside>
     </div>
     <input type="file" accept="application/json,.json" data-file-input hidden>
   </div>`;
@@ -848,17 +848,17 @@ function validationMessage(errors: ErrorObject[] | null | undefined): string {
   return (errors ?? []).slice(0, 3).map((error) => `${error.instancePath || "/"} ${error.message}`).join("; ");
 }
 
-function setArchitectureDiff(value: unknown, nextFileName: string): string | undefined {
+function setImplementationDataflow(value: unknown, nextFileName: string): string | undefined {
   if (!validate(value)) {
     return validationMessage(validate.errors);
   } else {
-    const architectureDiff = value;
-    const error = semanticError(architectureDiff);
+    const nextImplementationDataflow = value;
+    const error = semanticError(nextImplementationDataflow);
     if (error !== undefined) {
       return error;
     } else {
-      diff = architectureDiff;
-      if (diff.userFlows === undefined) userFlowOnly = false;
+      implementationDataflow = nextImplementationDataflow;
+      if (implementationDataflow.userFlows === undefined) userFlowOnly = false;
       fileName = nextFileName;
       selection = undefined;
       hovered = undefined;
@@ -873,7 +873,7 @@ function setArchitectureDiff(value: unknown, nextFileName: string): string | und
 async function openFile(file: File): Promise<void> {
   try {
     const value: unknown = JSON.parse(await file.text());
-    const error = setArchitectureDiff(value, file.name);
+    const error = setImplementationDataflow(value, file.name);
     if (error === undefined) {
       localStorage.setItem(LAST_OPENED_KEY, JSON.stringify({ fileName: file.name, value }));
     } else {
@@ -891,7 +891,7 @@ async function openDefaultFile(): Promise<void> {
   if (stored !== null) {
     try {
       const lastOpened = JSON.parse(stored) as { fileName: string; value: unknown };
-      openedStoredFile = setArchitectureDiff(lastOpened.value, lastOpened.fileName) === undefined;
+      openedStoredFile = setImplementationDataflow(lastOpened.value, lastOpened.fileName) === undefined;
       if (!openedStoredFile) localStorage.removeItem(LAST_OPENED_KEY);
     } catch {
       localStorage.removeItem(LAST_OPENED_KEY);
@@ -900,10 +900,10 @@ async function openDefaultFile(): Promise<void> {
 
   if (!openedStoredFile) {
     try {
-      const response = await fetch("/__architecture-diff/default");
+      const response = await fetch("/__impl-dataflow/default");
       if (response.ok && response.status !== 204) {
         const defaultFile = await response.json() as { fileName: string; contents: string };
-        const error = setArchitectureDiff(JSON.parse(defaultFile.contents), defaultFile.fileName);
+        const error = setImplementationDataflow(JSON.parse(defaultFile.contents), defaultFile.fileName);
         if (error !== undefined) statusMessage = `Could not open ${defaultFile.fileName}: ${error}`;
       }
     } catch {

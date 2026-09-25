@@ -92,7 +92,7 @@ test("copies skills and scripts that work after the source checkout is removed",
 
 test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => {
   const repoDirectory = await createRepository(t);
-  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","hld-gen-new-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer"}}\n');
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","hld-gen-new-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/arch-diff/visualizer"}}\n');
 
   const result = install([repoDirectory, "--tool", "hld-gen-new"]);
   assert.equal(result.status, 0, result.stderr);
@@ -101,23 +101,27 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
     await readFile(path.join(toolkitDirectory, "hld-gen-new", "SKILL.md"), "utf8")
   );
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new"))).isDirectory(), true);
-  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "arch-diff"))).isDirectory(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "impl-dataflow"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "node_modules"))).isDirectory(), true);
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen")), { code: "ENOENT" });
   const retiredVisualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new", "visualizer");
+  const retiredArchitectureDiffPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "arch-diff");
   await mkdir(retiredVisualizerPath, { recursive: true });
+  await mkdir(retiredArchitectureDiffPath, { recursive: true });
   await writeFile(path.join(retiredVisualizerPath, "obsolete.html"), "obsolete viewer");
+  await writeFile(path.join(retiredArchitectureDiffPath, "obsolete.json"), "obsolete format");
   const upgrade = install([repoDirectory, "--tool", "hld-gen-new"]);
   assert.equal(upgrade.status, 0, upgrade.stderr);
   await assert.rejects(lstat(retiredVisualizerPath), { code: "ENOENT" });
+  await assert.rejects(lstat(retiredArchitectureDiffPath), { code: "ENOENT" });
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "hld-gen-new-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/arch-diff/visualizer",
+    "hld-gen-new-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer",
   });
 
-  const inputPath = "ai-coding-toolkit/common/arch-diff/arch-diff.example.json";
+  const inputPath = "ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json";
   const validation = spawnSync(process.execPath, [
-    "ai-coding-toolkit/hld-gen-new/eval/validate-architecture-diff.mjs", inputPath,
+    "ai-coding-toolkit/hld-gen-new/eval/validate-impl-dataflow.mjs", inputPath,
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(validation.status, 0, validation.stderr);
 
@@ -130,7 +134,7 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   const visualizerBuild = spawnSync(process.execPath, [
     "ai-coding-toolkit/node_modules/vite/bin/vite.js",
     "build",
-    "ai-coding-toolkit/common/arch-diff/visualizer",
+    "ai-coding-toolkit/common/impl-dataflow/visualizer",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
 });

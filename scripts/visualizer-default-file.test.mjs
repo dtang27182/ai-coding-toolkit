@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { findNewestArchitectureDiff } from "../hld-gen/visualizer/default-architecture-diff.mjs";
-import { findNewestArchitectureDiff as findNewestNewArchitectureDiff } from "../common/arch-diff/visualizer/default-architecture-diff.mjs";
+import { findNewestImplementationDataflow } from "../common/impl-dataflow/visualizer/default-impl-dataflow.mjs";
 
 test("finds the most recently modified architecture diff in the configured output directory", async (t) => {
   const repositoryDirectory = await mkdtemp(path.join(os.tmpdir(), "visualizer repository "));
@@ -39,15 +39,15 @@ test("returns no default when the configured output directory has no architectur
   assert.equal(await findNewestArchitectureDiff(repositoryDirectory, toolkitDirectory), undefined);
 });
 
-test("finds arch-diff files for hld-gen-new", async (t) => {
+test("finds implementation dataflow files for hld-gen-new", async (t) => {
   const repositoryDirectory = await mkdtemp(path.join(os.tmpdir(), "visualizer repository "));
   const toolkitDirectory = path.join(repositoryDirectory, "ai-coding-toolkit");
   t.after(() => rm(repositoryDirectory, { recursive: true, force: true }));
   await mkdir(path.join(repositoryDirectory, "docs", "plans", "alpha"), { recursive: true });
   await mkdir(toolkitDirectory, { recursive: true });
   await writeFile(path.join(toolkitDirectory, "config.json"), '{"outputDirectory":"docs/plans"}\n');
-  const archDiffPath = path.join(repositoryDirectory, "docs", "plans", "alpha", "alpha.arch-diff.hld.json");
-  await writeFile(archDiffPath, "{}");
+  const implementationDataflowPath = path.join(repositoryDirectory, "docs", "plans", "alpha", "alpha.impl-dataflow.json");
+  await writeFile(implementationDataflowPath, "{}");
 
-  assert.equal(await findNewestNewArchitectureDiff(repositoryDirectory, toolkitDirectory), archDiffPath);
+  assert.equal(await findNewestImplementationDataflow(repositoryDirectory, toolkitDirectory), implementationDataflowPath);
 });

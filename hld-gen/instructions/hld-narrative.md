@@ -1,6 +1,6 @@
 # HLD Narrative
 
-An HLD describes both the surrounding logic relevant to the design and the implementation dataflow that directly realizes the requested behavior. Relevant Logic and Dataflow traces the broader workflows needed to understand the design. Implementation Dataflow maps only the User Flow Steps to their implementing entities and relationships, including unchanged participants. The Architecture Diff represents this core scope.
+An HLD describes both the surrounding logic relevant to the design and the Implementation Dataflow narrative that directly realizes the requested behavior. Relevant Logic and Dataflow traces the broader workflows needed to understand the design. The Implementation Dataflow narrative maps only the User Flow Steps to their implementing entities and relationships, including unchanged participants. The Architecture Diff represents this core scope.
 
 Describe responsibilities, data, and interactions without writing implementation code. Adjustments needed to reconcile the new flow with existing classes, persistent state, methods, or dataflows that it might disrupt—or that might interfere with it—can remain for later low level design. Detailed error handling and edge cases can also remain for later low level design unless required by the desired behavior.
 

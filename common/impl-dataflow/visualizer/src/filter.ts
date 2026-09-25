@@ -1,4 +1,4 @@
-import type { ArchitectureDiff, ChangeType, ClassDiff, ComponentDiff, GraphNode, ResolvedEndpoint, ResolvedRelationship } from "./types.ts";
+import type { ChangeType, ClassDiff, ComponentDiff, GraphNode, ImplementationDataflow, ResolvedEndpoint, ResolvedRelationship } from "./types.ts";
 import { methodKey, resolveEndpoint, stateVariableKey } from "./types.ts";
 
 export interface VisibleGraph {
@@ -9,12 +9,12 @@ export interface VisibleGraph {
   variableExposureCount: number | null;
 }
 
-export function filterGraph(diff: ArchitectureDiff, showUnchanged: boolean, userFlowOnly: boolean): VisibleGraph {
+export function filterGraph(implementationDataflow: ImplementationDataflow, showUnchanged: boolean, userFlowOnly: boolean): VisibleGraph {
   const visible = (entry: { changeType: ChangeType; userFlow?: boolean }) =>
     (showUnchanged || entry.changeType !== "unchanged") && (!userFlowOnly || entry.userFlow === true);
-  const classes = diff.classes.filter((classDiff) =>
+  const classes = implementationDataflow.classes.filter((classDiff) =>
     (showUnchanged || classDiff.changeType !== "unchanged") &&
-    (!userFlowOnly || classDiff.stateVariables.some((stateVariable) => stateVariable.userFlow === true) || classDiff.methods.some((method) => method.userFlow === true) || diff.relationships.some(
+    (!userFlowOnly || classDiff.stateVariables.some((stateVariable) => stateVariable.userFlow === true) || classDiff.methods.some((method) => method.userFlow === true) || implementationDataflow.relationships.some(
       (relationship) => relationship.type === "dataflow" && relationship.userFlow === true &&
         (("class" in relationship.from && relationship.from.class === classDiff.name) ||
           ("class" in relationship.to && relationship.to.class === classDiff.name)),
@@ -31,7 +31,7 @@ export function filterGraph(diff: ArchitectureDiff, showUnchanged: boolean, user
       variableExposureCount: variableExposure === null ? null : variableExposure.length,
     };
   });
-  const components = diff.components.filter(visible);
+  const components = implementationDataflow.components.filter(visible);
   const nodes: GraphNode[] = [
     ...classes.map((classDiff) => ({
       name: classDiff.name,
@@ -62,7 +62,7 @@ export function filterGraph(diff: ArchitectureDiff, showUnchanged: boolean, user
       return classNames.has(endpoint.nodeName);
     }
   };
-  const relationships = diff.relationships.filter((relationship) => relationship.type === "composition" || visible(relationship)).map((relationship) => ({
+  const relationships = implementationDataflow.relationships.filter((relationship) => relationship.type === "composition" || visible(relationship)).map((relationship) => ({
     relationship,
     from: resolveEndpoint(relationship.from),
     to: resolveEndpoint(relationship.to),

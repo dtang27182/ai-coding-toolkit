@@ -1,7 +1,7 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 
-async function architectureDiffFiles(directory) {
+async function implementationDataflowFiles(directory) {
   let entries;
   try {
     entries = await readdir(directory, { withFileTypes: true });
@@ -17,17 +17,17 @@ async function architectureDiffFiles(directory) {
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
     const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
-      files.push(...await architectureDiffFiles(entryPath));
-    } else if (/arch-diff.*\.json$/.test(entry.name)) {
+      files.push(...await implementationDataflowFiles(entryPath));
+    } else if (/\.impl-dataflow\.json$/.test(entry.name)) {
       files.push(entryPath);
     }
   }
   return files;
 }
 
-export async function findNewestArchitectureDiff(repositoryDirectory, toolkitDirectory) {
+export async function findNewestImplementationDataflow(repositoryDirectory, toolkitDirectory) {
   const config = JSON.parse(await readFile(path.join(toolkitDirectory, "config.json"), "utf8"));
-  const files = await architectureDiffFiles(path.resolve(repositoryDirectory, config.outputDirectory));
+  const files = await implementationDataflowFiles(path.resolve(repositoryDirectory, config.outputDirectory));
   let newestFile;
   let newestModifiedTime = -Infinity;
   for (const file of files) {

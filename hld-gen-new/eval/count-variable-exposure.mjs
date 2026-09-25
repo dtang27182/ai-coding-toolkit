@@ -4,12 +4,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const validatorPath = path.join(scriptDirectory, "validate-architecture-diff.mjs");
+const validatorPath = path.join(scriptDirectory, "validate-impl-dataflow.mjs");
 const inputArguments = process.argv.slice(2);
 
 if (inputArguments.length !== 1) {
   console.error(
-    "Usage: node ai-coding-toolkit/hld-gen-new/eval/count-variable-exposure.mjs <arch-diff.json>"
+    "Usage: node ai-coding-toolkit/hld-gen-new/eval/count-variable-exposure.mjs <impl-dataflow.json>"
   );
   process.exitCode = 1;
 } else {
@@ -22,11 +22,11 @@ if (inputArguments.length !== 1) {
     process.stderr.write(validationResult.stderr);
     process.exitCode = 1;
   } else {
-    const architectureDiff = JSON.parse(await readFile(inputPath, "utf8"));
+    const implementationDataflow = JSON.parse(await readFile(inputPath, "utf8"));
     const exposedVariables = new Set();
     let variableExposureIsKnown = true;
 
-    for (const classDiff of architectureDiff.classes) {
+    for (const classDiff of implementationDataflow.classes) {
       if (classDiff.variableExposure === null) {
         classDiff.variableExposureCount = null;
         variableExposureIsKnown = false;
@@ -42,8 +42,8 @@ if (inputArguments.length !== 1) {
       }
     }
 
-    architectureDiff.variableExposureCount = variableExposureIsKnown ? exposedVariables.size : null;
-    await writeFile(inputPath, `${JSON.stringify(architectureDiff, null, 2)}\n`);
+    implementationDataflow.variableExposureCount = variableExposureIsKnown ? exposedVariables.size : null;
+    await writeFile(inputPath, `${JSON.stringify(implementationDataflow, null, 2)}\n`);
     console.log(`Updated variable exposure count: ${inputPath}`);
   }
 }

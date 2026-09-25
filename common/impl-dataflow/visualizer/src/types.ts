@@ -81,7 +81,7 @@ export interface UserFlowSet {
   steps: UserFlowStep[];
 }
 
-export interface ArchitectureDiff {
+export interface ImplementationDataflow {
   schemaVersion: 10;
   stage: "high-level-design" | "code-review";
   userFlows?: UserFlowSet[];

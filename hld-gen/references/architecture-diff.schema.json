@@ -208,14 +208,14 @@
           ]
         },
         "methods": {
-          "description": "Every changed method and every unchanged method participating in the Implementation Dataflow.",
+          "description": "Every changed method and every unchanged method participating in the Implementation Dataflow narrative.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/method"
           }
         },
         "stateVariables": {
-          "description": "Mutable instance state changed by the design or read or written by the Implementation Dataflow. Excludes immutable configuration and composition references.",
+          "description": "Mutable instance state changed by the design or read or written by the Implementation Dataflow narrative. Excludes immutable configuration and composition references.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/stateVariable"

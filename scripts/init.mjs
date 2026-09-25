@@ -72,7 +72,7 @@ async function installRootCommands() {
       commands.visualizer = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer";
     }
     if (toolNames.includes("hld-gen-new")) {
-      commands["hld-gen-new-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/arch-diff/visualizer";
+      commands["hld-gen-new-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer";
     }
     if (toolNames.includes("annotate-diff")) {
       commands["diff-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/annotate-diff/visualizer";
@@ -90,7 +90,10 @@ async function installRootCommands() {
     }
     if (
       toolNames.includes("hld-gen-new") &&
-      packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer"
+      (
+        packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer" ||
+        packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/arch-diff/visualizer"
+      )
     ) {
       packageJson.scripts["hld-gen-new-visualizer"] = commands["hld-gen-new-visualizer"];
       packageChanged = true;
@@ -159,6 +162,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     }
   }
   if (toolNames.includes("hld-gen-new")) {
+    await rm(path.join(installedToolkitDirectory, "common", "arch-diff"), { recursive: true, force: true });
     await rm(path.join(installedToolkitDirectory, "hld-gen-new", "visualizer"), { recursive: true, force: true });
   }
   if (toolNames.includes("annotate-diff")) {

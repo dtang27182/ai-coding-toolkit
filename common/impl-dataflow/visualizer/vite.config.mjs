@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { defineConfig } from "vite";
 
-import { findNewestArchitectureDiff } from "./default-architecture-diff.mjs";
+import { findNewestImplementationDataflow } from "./default-impl-dataflow.mjs";
 
 const visualizerDirectory = path.dirname(fileURLToPath(import.meta.url));
 const toolkitDirectory = path.resolve(visualizerDirectory, "../../..");
@@ -12,12 +12,12 @@ const repositoryDirectory = process.cwd();
 
 export default defineConfig({
   plugins: [{
-    name: "default-architecture-diff",
+    name: "default-impl-dataflow",
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
-        if (request.method === "GET" && request.url === "/__architecture-diff/default") {
+        if (request.method === "GET" && request.url === "/__impl-dataflow/default") {
           try {
-            const filePath = await findNewestArchitectureDiff(repositoryDirectory, toolkitDirectory);
+            const filePath = await findNewestImplementationDataflow(repositoryDirectory, toolkitDirectory);
             if (filePath === undefined) {
               response.statusCode = 204;
               response.end();

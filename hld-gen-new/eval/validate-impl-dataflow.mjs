@@ -19,7 +19,7 @@ if (inputArguments.length === 1) {
 
 if (inputArgument === undefined) {
   console.error(
-    "Usage: node ai-coding-toolkit/hld-gen-new/eval/validate-architecture-diff.mjs [--evaluated] <arch-diff.json>"
+    "Usage: node ai-coding-toolkit/hld-gen-new/eval/validate-impl-dataflow.mjs [--evaluated] <impl-dataflow.json>"
   );
   process.exitCode = 1;
 } else {
@@ -27,15 +27,15 @@ if (inputArgument === undefined) {
   const schemaPath = path.join(
     toolkitDirectory,
     "common",
-    "arch-diff",
-    "arch-diff.schema.json"
+    "impl-dataflow",
+    "impl-dataflow.schema.json"
   );
 
   try {
     const schema = JSON.parse(await readFile(schemaPath, "utf8"));
-    const architectureDiff = JSON.parse(await readFile(inputPath, "utf8"));
+    const implementationDataflow = JSON.parse(await readFile(inputPath, "utf8"));
     const validate = new Ajv2020({ allErrors: true }).compile(schema);
-    const schemaIsValid = validate(architectureDiff);
+    const schemaIsValid = validate(implementationDataflow);
 
     if (!schemaIsValid) {
       for (const error of validate.errors) {
@@ -50,11 +50,11 @@ if (inputArgument === undefined) {
       const classStateVariables = new Map();
       const componentNames = new Set();
 
-      if (architectureDiff.stage === "high-level-design" && !Array.isArray(architectureDiff.userFlows)) {
-        semanticErrors.push("High-level-design architecture diff requires userFlows");
+      if (implementationDataflow.stage === "high-level-design" && !Array.isArray(implementationDataflow.userFlows)) {
+        semanticErrors.push("High-level-design implementation dataflow requires userFlows");
       }
 
-      for (const classDiff of architectureDiff.classes) {
+      for (const classDiff of implementationDataflow.classes) {
         if (nodeNames.has(classDiff.name)) {
           semanticErrors.push(`Duplicate class name: ${classDiff.name}`);
         } else {
@@ -63,11 +63,11 @@ if (inputArgument === undefined) {
 
         const methodNames = new Map();
         classMethods.set(classDiff.name, methodNames);
-        if (architectureDiff.stage === "high-level-design" && !Object.hasOwn(classDiff, "variableExposure")) {
+        if (implementationDataflow.stage === "high-level-design" && !Object.hasOwn(classDiff, "variableExposure")) {
           semanticErrors.push(`High-level-design class requires variableExposure: ${classDiff.name}`);
         }
         for (const method of classDiff.methods) {
-          if (architectureDiff.stage === "high-level-design" && !Object.hasOwn(method, "userFlow")) {
+          if (implementationDataflow.stage === "high-level-design" && !Object.hasOwn(method, "userFlow")) {
             semanticErrors.push(`High-level-design method requires userFlow: ${classDiff.name}.${method.name}`);
           }
           if (
@@ -86,7 +86,7 @@ if (inputArgument === undefined) {
         const stateVariableNames = new Map();
         classStateVariables.set(classDiff.name, stateVariableNames);
         for (const stateVariable of classDiff.stateVariables) {
-          if (architectureDiff.stage === "high-level-design" && !Object.hasOwn(stateVariable, "userFlow")) {
+          if (implementationDataflow.stage === "high-level-design" && !Object.hasOwn(stateVariable, "userFlow")) {
             semanticErrors.push(`High-level-design state variable requires userFlow: ${classDiff.name}.${stateVariable.name}`);
           }
           if (
@@ -133,7 +133,7 @@ if (inputArgument === undefined) {
       }
 
       const flowNames = new Set();
-      for (const userFlow of architectureDiff.userFlows ?? []) {
+      for (const userFlow of implementationDataflow.userFlows ?? []) {
         if (flowNames.has(userFlow.name)) {
           semanticErrors.push(`Duplicate user flow name: ${userFlow.name}`);
         }
@@ -147,8 +147,8 @@ if (inputArgument === undefined) {
         });
       }
 
-      for (const component of architectureDiff.components) {
-        if (architectureDiff.stage === "high-level-design" && !Object.hasOwn(component, "userFlow")) {
+      for (const component of implementationDataflow.components) {
+        if (implementationDataflow.stage === "high-level-design" && !Object.hasOwn(component, "userFlow")) {
           semanticErrors.push(`High-level-design component requires userFlow: ${component.name}`);
         }
         componentNames.add(component.name);
@@ -159,9 +159,9 @@ if (inputArgument === undefined) {
         }
       }
 
-      for (const relationship of architectureDiff.relationships) {
+      for (const relationship of implementationDataflow.relationships) {
         if (
-          architectureDiff.stage === "high-level-design" &&
+          implementationDataflow.stage === "high-level-design" &&
           relationship.type !== "composition" &&
           !Object.hasOwn(relationship, "userFlow")
         ) {
@@ -190,9 +190,9 @@ if (inputArgument === undefined) {
         }
       }
 
-      if (evaluated && architectureDiff.stage === "code-review") {
-        semanticErrors.push("--evaluated applies only to high-level-design architecture diffs");
-      } else if (evaluated && architectureDiff.stage === "high-level-design") {
+      if (evaluated && implementationDataflow.stage === "code-review") {
+        semanticErrors.push("--evaluated applies only to high-level-design implementation dataflows");
+      } else if (evaluated && implementationDataflow.stage === "high-level-design") {
         const countNames = [
           "changedClassCount",
           "changedMethodCount",
@@ -202,11 +202,11 @@ if (inputArgument === undefined) {
           "variableExposureCount",
         ];
         for (const countName of countNames) {
-          if (!Number.isInteger(architectureDiff[countName])) {
-            semanticErrors.push(`Evaluated high-level-design architecture diff requires non-null ${countName}`);
+          if (!Number.isInteger(implementationDataflow[countName])) {
+            semanticErrors.push(`Evaluated high-level-design implementation dataflow requires non-null ${countName}`);
           }
         }
-        for (const classDiff of architectureDiff.classes) {
+        for (const classDiff of implementationDataflow.classes) {
           if (!Array.isArray(classDiff.variableExposure)) {
             semanticErrors.push(`Evaluated high-level-design class requires a populated variableExposure: ${classDiff.name}`);
           }
@@ -222,7 +222,7 @@ if (inputArgument === undefined) {
         }
         process.exitCode = 1;
       } else {
-        console.log(`Valid architecture diff: ${inputPath}`);
+        console.log(`Valid implementation dataflow: ${inputPath}`);
       }
     }
   } catch (error) {

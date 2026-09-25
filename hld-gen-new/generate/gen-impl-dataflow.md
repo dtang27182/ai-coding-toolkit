@@ -1,14 +1,14 @@
-# Generate Implementation Dataflow and Architecture Diff
+# Generate Implementation Dataflow Narrative and JSON
 
-`impl-dataflow` is shorthand for the HLD doc's `Implementation Dataflow` narrative.
+`impl-dataflow` is shorthand for the structured JSON representation of the HLD doc's `Implementation Dataflow` narrative.
 
-Complete the HLD doc's `Implementation Dataflow` section, then generate its Architecture Diff (`arch-diff`) from that narrative. Finish and verify the narrative before creating the Architecture Diff.
+Complete the HLD doc's Implementation Dataflow narrative, then generate its structured JSON representation (`impl-dataflow`) from that narrative. Finish and verify the narrative before creating the JSON.
 
 ## Write the Implementation Dataflow Narrative
 
 Describe responsibilities, data, and interactions without writing implementation code. Keep the narrative concise and easy to scan. Use short bullets with one idea each and avoid repeating information from earlier HLD sections.
 
-The Implementation Dataflow is the authoritative design source for the Architecture Diff. Describe only the entities and relationships implementing or connecting the steps in User Flows, including unchanged intermediaries and consumers that read and apply the feature's output or state. Leave surrounding workflows in Design Context and Related Workflows.
+The Implementation Dataflow narrative is the authoritative design source for its structured JSON representation. Describe only the entities and relationships implementing or connecting the steps in User Flows, including unchanged intermediaries and consumers that read and apply the feature's output or state. Leave surrounding workflows in Design Context and Related Workflows.
 
 Cover:
 
@@ -18,19 +18,19 @@ Cover:
 - I/O requests and results, naming external endpoints and the classes and methods sending requests and consuming results. Include network services, files, and local or session storage where applicable.
 - Returned data, displaying UI components, and the classes and methods that render or update them, including after asynchronous results.
 
-## Generate the Architecture Diff
+## Generate the Structured Implementation Dataflow
 
-After the Implementation Dataflow narrative is complete, create the Architecture Diff beside the HLD doc. Use the narrative as the authoritative design source. Read and follow `ai-coding-toolkit/common/arch-diff/arch-diff.schema.json`, the representation contract, and use `ai-coding-toolkit/common/arch-diff/arch-diff.example.json` as an HLD example.
+After the Implementation Dataflow narrative is complete, create `<feature>.impl-dataflow.json` beside the HLD doc. Use the narrative as the authoritative design source. Read and follow `ai-coding-toolkit/common/impl-dataflow/impl-dataflow.schema.json`, the representation contract, and use `ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json` as an HLD example.
 
-Set `stage` to `high-level-design`. Set every class's `variableExposure` to `null`.
+Set `stage` to `high-level-design`. Set every class's `variableExposure` to `null`. Omit derived counts until evaluation.
 
-### Represent Implementation Dataflow
+### Represent the Implementation Dataflow Narrative
 
-- Represent every entity and relationship described in Implementation Dataflow, including all required changes.
-- Include unchanged entities and relationships only when Implementation Dataflow identifies them as implementing or connecting User Flow Steps, preserving intermediaries, state owners, and consumers.
+- Represent every entity and relationship described in the Implementation Dataflow narrative, including all required changes.
+- Include unchanged entities and relationships only when the Implementation Dataflow narrative identifies them as implementing or connecting User Flow Steps, preserving intermediaries, state owners, and consumers.
 - Do not add workflows or implementation details found only in Design Context and Related Workflows.
-- When a User Flow Step supplies data or state to existing behavior, stop where Implementation Dataflow says it is read and applied.
-- Ground every entry in Implementation Dataflow and the current code. If the representation exposes a design gap, update the narrative before continuing rather than expanding or revising the design only in the Architecture Diff.
+- When a User Flow Step supplies data or state to existing behavior, stop where the Implementation Dataflow narrative says it is read and applied.
+- Ground every entry in the Implementation Dataflow narrative and the current code. If the representation exposes a design gap, update the narrative before continuing rather than expanding or revising the design only in the JSON.
 
 ### Represent User Flows
 
@@ -40,7 +40,7 @@ Set `stage` to `high-level-design`. Set every class's `variableExposure` to `nul
 
 ### Validate Traceability
 
-- Verify that every Architecture Diff entry is traceable to Implementation Dataflow.
+- Verify that every JSON entry is traceable to the Implementation Dataflow narrative.
 - For each unchanged entry and relationship, identify the User Flow and numbered step it implements or connects; omit it if neither applies.
 - Verify that every User Flow Step remains traceable through its unchanged participants.
-- Preserve all changes required by Implementation Dataflow regardless of diagram size.
+- Preserve all changes required by the Implementation Dataflow narrative regardless of diagram size.
