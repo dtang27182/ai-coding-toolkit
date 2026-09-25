@@ -14,11 +14,12 @@ Constrain the design only by the confirmed behavior and scope, not by the other 
 3. Replace `<feature>` in the HLD doc.
 4. Copy `Desired Behavior` verbatim from the iteration summary.
 5. Copy `Scope and Assumptions` verbatim from the iteration summary.
-6. Fill User Outcomes, User Flows, and Design Context and Related Workflows by following `ai-coding-toolkit/hld-gen-new/generate/hld-doc.md`.
-7. Fill Implementation Dataflow, then create `<feature>.arch-diff.hld.json` beside the HLD doc from that narrative by following `ai-coding-toolkit/hld-gen-new/generate/generate-implementation-dataflow.md`. Preserve earlier candidates and iterations.
+6. Fill User Outcomes and User Flows by following `ai-coding-toolkit/hld-gen-new/generate/generate-user-outcomes-and-flows.md`.
+7. Fill Design Context and Related Workflows by following `ai-coding-toolkit/hld-gen-new/generate/generate-design-context.md`.
+8. Fill Implementation Dataflow, then create `<feature>.arch-diff.hld.json` beside the HLD doc from that narrative by following `ai-coding-toolkit/hld-gen-new/generate/generate-implementation-dataflow.md`. Preserve earlier candidates and iterations.
 
 Use `null` for Variable Exposure inventories not yet populated and omit derived counts until evaluation.
 
 ## Update the Iteration Record
 
-8. Record the candidate's HLD doc link, including a partial HLD doc written before a failure. Mark generation complete after the preceding steps succeed; otherwise record the failed status and reason.
+9. Record the candidate's HLD doc link, including a partial HLD doc written before a failure. Mark generation complete after the preceding steps succeed; otherwise record the failed status and reason.

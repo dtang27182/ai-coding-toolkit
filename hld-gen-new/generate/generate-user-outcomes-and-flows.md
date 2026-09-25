@@ -1,8 +1,6 @@
-# Generate HLD Doc Sections
+# Generate User Outcomes and User Flows
 
-Fill the following sections of the HLD doc in order after its `Desired Behavior` and `Scope and Assumptions` have been copied from the iteration summary. Later sections build on the preceding sections.
-
-Describe responsibilities, data, and interactions without writing implementation code. Keep the HLD doc concise and easy to scan. Use short bullets with one idea each unless a numbered structure is required. Avoid repeating information across sections.
+Fill the HLD doc's `User Outcomes` and `User Flows` sections in order after `Desired Behavior` and `Scope and Assumptions` have been copied from the iteration summary. Keep both sections concise and easy to scan. Avoid repeating information across sections.
 
 ## User Outcomes
 
@@ -24,10 +22,3 @@ Describe responsibilities, data, and interactions without writing implementation
 - **System effects:** Include outputs shown to the user, outputs sent to external systems, updates to high-level internal system state, and other effects needed to complete the flow.
 - **Step test:** Include a step only when removing it would leave the causal flow incomplete.
 - **Exclusions:** Apply constraints without turning them into steps. Do not include optional variations, demonstrations that a constraint holds, implementation details, scoping commentary, or related features and workflows.
-
-## Design Context and Related Workflows
-
-- Document findings from existing workflows and implementation paths relevant to the Desired Behavior.
-- Focus on integration points, state ownership, dependencies, dataflow, constraints, and downstream behavior that Implementation Dataflow must account for.
-- Name participating code entities and exchanged data where useful.
-- Record context rather than proposed design; this section does not expand the core design scope.
