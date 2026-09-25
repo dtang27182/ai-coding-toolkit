@@ -139,7 +139,7 @@ test("sorts every navigation level by its full hierarchical key", () => {
   assert.equal(zeta.children[0].sortKey, "src/zeta.ts/alpha");
 });
 
-test("collapses code entities while keeping the directory tree expanded", () => {
+test("collapse all keeps parent directories open and hides files in leaf directories", () => {
   const tree = buildTree(exampleIndex);
   const collapsed = expandedNodeIds(tree, false);
   const expanded = expandedNodeIds(tree);
@@ -155,10 +155,9 @@ test("collapses code entities while keeping the directory tree expanded", () => 
   visit(tree);
 
   assert.equal(expandableNodes.every((node) => expanded.has(node.id)), true);
-  assert.equal(
-    expandableNodes.every((node) => collapsed.has(node.id) === (node.kind === "directory")),
-    true,
-  );
+  assert.equal(collapsed.has(tree[0].id), true);
+  assert.equal(tree[0].children.every((node) => node.kind === "directory" && !collapsed.has(node.id)), true);
+  assert.equal(expandableNodes.filter((node) => node.kind === "element").every((node) => !collapsed.has(node.id)), true);
 });
 
 test("preserves expansion by tree identity when index element IDs change", () => {
