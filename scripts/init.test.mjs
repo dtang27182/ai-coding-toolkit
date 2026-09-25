@@ -98,7 +98,7 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(
     await readFile(path.join(repoDirectory, ".agents", "skills", "hld-gen", "SKILL.md"), "utf8"),
-    await readFile(path.join(toolkitDirectory, "hld-gen-new", "skills", "hld-gen", "SKILL.md"), "utf8")
+    await readFile(path.join(toolkitDirectory, "hld-gen-new", "SKILL.md"), "utf8")
   );
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "arch-diff"))).isDirectory(), true);
@@ -117,12 +117,12 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
 
   const inputPath = "ai-coding-toolkit/common/arch-diff/arch-diff.example.json";
   const validation = spawnSync(process.execPath, [
-    "ai-coding-toolkit/hld-gen-new/scripts/validate-architecture-diff.mjs", inputPath,
+    "ai-coding-toolkit/hld-gen-new/eval/validate-architecture-diff.mjs", inputPath,
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(validation.status, 0, validation.stderr);
 
   const count = spawnSync(process.execPath, [
-    "ai-coding-toolkit/hld-gen-new/scripts/count-variable-exposure.mjs", inputPath,
+    "ai-coding-toolkit/hld-gen-new/eval/count-variable-exposure.mjs", inputPath,
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(count.status, 0, count.stderr);
   assert.equal(JSON.parse(await readFile(path.join(repoDirectory, inputPath), "utf8")).variableExposureCount, 3);

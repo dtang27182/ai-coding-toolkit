@@ -9,9 +9,9 @@ import { fileURLToPath } from "node:url";
 import { filterGraph } from "../common/arch-diff/visualizer/src/filter.ts";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const validatorPath = path.join(toolkitDirectory, "hld-gen-new/scripts/validate-architecture-diff.mjs");
-const exposureCounterPath = path.join(toolkitDirectory, "hld-gen-new/scripts/count-variable-exposure.mjs");
-const changeCounterPath = path.join(toolkitDirectory, "hld-gen-new/scripts/count-design-changes.mjs");
+const validatorPath = path.join(toolkitDirectory, "hld-gen-new/eval/validate-architecture-diff.mjs");
+const exposureCounterPath = path.join(toolkitDirectory, "hld-gen-new/eval/count-variable-exposure.mjs");
+const changeCounterPath = path.join(toolkitDirectory, "hld-gen-new/eval/count-design-changes.mjs");
 
 function codeReview() {
   return {

@@ -1,9 +1,9 @@
-import { cp, lstat, readFile, readlink, unlink, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, readFile, readlink, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const installationMarker = ".ai-coding-toolkit-installed";
 
-export async function copyDirectory(sourceDirectory, destinationDirectory) {
+export async function copyDirectory(sourceDirectory, destinationDirectory, relativePaths) {
   let existingDirectory;
 
   try {
@@ -39,7 +39,18 @@ export async function copyDirectory(sourceDirectory, destinationDirectory) {
     }
   }
 
-  await cp(sourceDirectory, destinationDirectory, { recursive: true, dereference: true });
+  if (relativePaths === undefined) {
+    await cp(sourceDirectory, destinationDirectory, { recursive: true, dereference: true });
+  } else {
+    await mkdir(destinationDirectory, { recursive: true });
+    for (const relativePath of relativePaths) {
+      await cp(
+        path.join(sourceDirectory, relativePath),
+        path.join(destinationDirectory, relativePath),
+        { recursive: true, dereference: true }
+      );
+    }
+  }
   await writeFile(path.join(destinationDirectory, installationMarker), "ai-coding-toolkit\n");
   console.log(`Installed files: ${destinationDirectory}`);
 }

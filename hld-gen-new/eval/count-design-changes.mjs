@@ -13,7 +13,7 @@ function isChanged(entry) {
 
 if (inputArguments.length !== 1) {
   console.error(
-    "Usage: node ai-coding-toolkit/hld-gen-new/scripts/count-design-changes.mjs <arch-diff.json>"
+    "Usage: node ai-coding-toolkit/hld-gen-new/eval/count-design-changes.mjs <arch-diff.json>"
   );
   process.exitCode = 1;
 } else {

@@ -19,7 +19,7 @@ if (inputArguments.length === 1) {
 
 if (inputArgument === undefined) {
   console.error(
-    "Usage: node ai-coding-toolkit/hld-gen-new/scripts/validate-architecture-diff.mjs [--evaluated] <arch-diff.json>"
+    "Usage: node ai-coding-toolkit/hld-gen-new/eval/validate-architecture-diff.mjs [--evaluated] <arch-diff.json>"
   );
   process.exitCode = 1;
 } else {
