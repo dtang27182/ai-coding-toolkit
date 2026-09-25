@@ -48,7 +48,8 @@ if (inputArgument === undefined) {
       const nodeNames = new Map();
       const classMethods = new Map();
       const classStateVariables = new Map();
-      const componentNames = new Set();
+      const components = new Map();
+      const staticDataNames = new Set();
 
       if (implementationDataflow.stage === "high-level-design" && !Array.isArray(implementationDataflow.userFlows)) {
         semanticErrors.push("High-level-design implementation dataflow requires userFlows");
@@ -151,11 +152,23 @@ if (inputArgument === undefined) {
         if (implementationDataflow.stage === "high-level-design" && !Object.hasOwn(component, "userFlow")) {
           semanticErrors.push(`High-level-design component requires userFlow: ${component.name}`);
         }
-        componentNames.add(component.name);
+        components.set(component.name, component);
         if (nodeNames.has(component.name)) {
-          semanticErrors.push(`Duplicate class or component name: ${component.name}`);
+          semanticErrors.push(`Duplicate component name: ${component.name}`);
         } else {
           nodeNames.set(component.name, component);
+        }
+      }
+
+      for (const staticData of implementationDataflow.staticData) {
+        if (implementationDataflow.stage === "high-level-design" && !Object.hasOwn(staticData, "userFlow")) {
+          semanticErrors.push(`High-level-design static data requires userFlow: ${staticData.name}`);
+        }
+        staticDataNames.add(staticData.name);
+        if (nodeNames.has(staticData.name)) {
+          semanticErrors.push(`Duplicate static data name: ${staticData.name}`);
+        } else {
+          nodeNames.set(staticData.name, staticData);
         }
       }
 
@@ -169,10 +182,20 @@ if (inputArgument === undefined) {
         }
         for (const endpoint of [relationship.from, relationship.to]) {
           if (endpoint.component !== undefined) {
-            if (!componentNames.has(endpoint.component)) {
+            if (!components.has(endpoint.component)) {
               semanticErrors.push(`Unknown relationship component: ${endpoint.component}`);
-            } else if (relationship.userFlow && !nodeNames.get(endpoint.component).userFlow) {
+            } else if (endpoint === relationship.from && components.get(endpoint.component).type === "system-output") {
+              semanticErrors.push(`System-output component cannot send data: ${endpoint.component}`);
+            } else if (endpoint === relationship.to && components.get(endpoint.component).type === "system-input") {
+              semanticErrors.push(`System-input component cannot receive data: ${endpoint.component}`);
+            } else if (relationship.userFlow && !components.get(endpoint.component).userFlow) {
               semanticErrors.push(`User-flow relationship references a supporting component: ${endpoint.component}`);
+            }
+          } else if (endpoint.staticData !== undefined) {
+            if (!staticDataNames.has(endpoint.staticData)) {
+              semanticErrors.push(`Unknown relationship static data: ${endpoint.staticData}`);
+            } else if (relationship.userFlow && !nodeNames.get(endpoint.staticData).userFlow) {
+              semanticErrors.push(`User-flow relationship references supporting static data: ${endpoint.staticData}`);
             }
           } else if (endpoint.class !== undefined) {
             if (!classMethods.has(endpoint.class)) {

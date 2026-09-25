@@ -2,12 +2,13 @@ import type { ImplementationDataflow } from "./types.ts";
 import { resolveEndpoint } from "./types.ts";
 
 export function semanticError(value: ImplementationDataflow): string | undefined {
-  const names = [...value.classes.map((classDiff) => classDiff.name), ...value.components.map((component) => component.name)];
+  const names = [...value.classes.map((classDiff) => classDiff.name), ...value.components.map((component) => component.name), ...value.staticData.map((entry) => entry.name)];
   if (new Set(names).size !== names.length) {
-    return "Class and component names must be unique.";
+    return "Class, component, and static-data names must be unique.";
   }
   const classes = new Map(value.classes.map((classDiff) => [classDiff.name, classDiff]));
   const components = new Map(value.components.map((component) => [component.name, component]));
+  const staticData = new Map(value.staticData.map((entry) => [entry.name, entry]));
   for (const classDiff of value.classes) {
     if (new Set(classDiff.methods.map((method) => method.name)).size !== classDiff.methods.length) {
       return `Method names in “${classDiff.name}” must be unique.`;
@@ -19,8 +20,18 @@ export function semanticError(value: ImplementationDataflow): string | undefined
   for (const relationship of value.relationships) {
     for (const endpoint of [relationship.from, relationship.to]) {
       const resolved = resolveEndpoint(endpoint);
-      if (resolved.component && !components.has(resolved.nodeName)) {
+      if (resolved.staticData) {
+        if (!staticData.has(resolved.nodeName)) {
+          return `Relationship references unknown static data “${resolved.nodeName}”.`;
+        } else if (relationship.userFlow && !staticData.get(resolved.nodeName)!.userFlow) {
+          return `User-flow relationship references supporting static data: ${resolved.nodeName}`;
+        }
+      } else if (resolved.component && !components.has(resolved.nodeName)) {
         return `Relationship references unknown component “${resolved.nodeName}”.`;
+      } else if (resolved.component && endpoint === relationship.from && components.get(resolved.nodeName)!.type === "system-output") {
+        return `System-output component cannot send data: ${resolved.nodeName}`;
+      } else if (resolved.component && endpoint === relationship.to && components.get(resolved.nodeName)!.type === "system-input") {
+        return `System-input component cannot receive data: ${resolved.nodeName}`;
       } else if (!resolved.component && !classes.has(resolved.nodeName)) {
         return `Relationship references unknown class “${resolved.nodeName}”.`;
       } else if (!resolved.component && resolved.methodName !== undefined && !classes.get(resolved.nodeName)!.methods.some((method) => method.name === resolved.methodName)) {

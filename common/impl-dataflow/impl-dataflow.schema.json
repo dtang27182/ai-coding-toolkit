@@ -9,11 +9,12 @@
     "stage",
     "classes",
     "components",
+    "staticData",
     "relationships"
   ],
   "properties": {
     "schemaVersion": {
-      "const": 10
+      "const": 13
     },
     "stage": {
       "description": "The activity that produced this implementation dataflow.",
@@ -49,7 +50,7 @@
       "minimum": 0
     },
     "changedComponentCount": {
-      "description": "Derived number of added, modified, or deleted UI and external I/O components.",
+      "description": "Derived number of added, modified, or deleted UI, system input/output, and external dependency components.",
       "type": "integer",
       "minimum": 0
     },
@@ -64,7 +65,7 @@
       "minimum": 0
     },
     "classes": {
-      "description": "Implementation classes represented by the document. Class and component names must be unique across the document.",
+      "description": "Implementation classes represented by the document. Class, component, and static-data names must be unique across the document.",
       "type": "array",
       "minItems": 1,
       "items": {
@@ -72,14 +73,21 @@
       }
     },
     "components": {
-      "description": "User-facing UI surfaces and external I/O endpoints represented by the document. Use an empty array when none are represented.",
+      "description": "UI surfaces, system inputs and outputs, and external dependencies at the implementation boundary. Use an empty array when none are represented.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/component"
       }
     },
+    "staticData": {
+      "description": "Fixed data read by represented methods, such as constants or static lookup data. Use an empty array when none are represented. External files and storage remain external-dependency components.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/staticData"
+      }
+    },
     "relationships": {
-      "description": "Direct relationships between represented entities. Preserve intermediate participants and include a state relationship for every represented state read or write. Relationships express dependencies and data movement, not execution order.",
+      "description": "Direct relationships between represented entities. Preserve intermediate participants. Use state relationships for class-owned state reads and writes, and dataflow relationships for external storage access. Relationships express dependencies and data movement, not execution order.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/relationship"
@@ -97,7 +105,7 @@
       ]
     },
     "userFlow": {
-      "description": "Whether this entry lies on a documented user-flow path from a user action to persisted state or an output. Setup and ownership alone do not qualify.",
+      "description": "Whether this entry lies on a documented user-flow path from its trigger to persisted state or an output. Setup and ownership alone do not qualify.",
       "type": "boolean"
     },
     "userFlowSet": {
@@ -144,11 +152,12 @@
       }
     },
     "component": {
-      "description": "A user-facing UI surface or external I/O endpoint. Represent implementation classes, methods, handlers, and adapters as classes and methods instead.",
+      "description": "A UI surface, system input or output, or external dependency. Represent implementation handlers and adapters as classes and methods instead.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "name",
+        "description",
         "type",
         "changeType"
       ],
@@ -157,19 +166,58 @@
           "$ref": "#/$defs/userFlow"
         },
         "name": {
-          "description": "Unique across classes and components; referenced by relationship endpoints.",
+          "description": "Unique across classes, components, and static data; referenced by relationship endpoints.",
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "description": "What the component is or represents, including a URL, file path, storage key, or other concrete identifier when available.",
           "type": "string",
           "minLength": 1
         },
         "type": {
-          "description": "A user-facing UI surface or an external I/O endpoint such as a network service, file, or browser storage.",
-          "enum": [
-            "ui",
-            "external-io"
+          "oneOf": [
+            {
+              "const": "ui-component",
+              "description": "A UI surface that receives user input or presents output."
+            },
+            {
+              "const": "system-input",
+              "description": "Data supplied to this system by another system or workflow. May only be the source of a dataflow."
+            },
+            {
+              "const": "system-output",
+              "description": "A final result sent to another system or workflow. May only be the target of a dataflow."
+            },
+            {
+              "const": "external-dependency",
+              "description": "An external service, file, datastore, or other I/O endpoint used by the implementation."
+            }
           ]
         },
         "changeType": {
           "$ref": "#/$defs/changeType"
+        }
+      }
+    },
+    "staticData": {
+      "description": "Fixed data that a represented method reads without updating. Its name is unique across classes, components, and static data.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "changeType"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changeType": {
+          "$ref": "#/$defs/changeType"
+        },
+        "userFlow": {
+          "$ref": "#/$defs/userFlow"
         }
       }
     },
@@ -459,6 +507,20 @@
         }
       }
     },
+    "staticDataEndpoint": {
+      "description": "References fixed data by its document-unique name.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "staticData"
+      ],
+      "properties": {
+        "staticData": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
     "dataflowEndpoint": {
       "description": "A method or component that directly sends or receives data.",
       "oneOf": [
@@ -474,7 +536,7 @@
       "oneOf": [
         {
           "const": "dataflow",
-          "description": "A direct data transfer between method or component endpoints. Record request and response paths as separate relationships."
+          "description": "A direct data transfer between method or component endpoints, or a read from static data by a method. System-input components may only be sources and system-output components may only be targets. Record request and response paths as separate relationships."
         },
         {
           "const": "state-read",
@@ -566,14 +628,28 @@
               "dataDescription",
               "purpose"
             ],
-            "properties": {
-              "from": {
-                "$ref": "#/$defs/dataflowEndpoint"
+            "oneOf": [
+              {
+                "properties": {
+                  "from": {
+                    "$ref": "#/$defs/dataflowEndpoint"
+                  },
+                  "to": {
+                    "$ref": "#/$defs/dataflowEndpoint"
+                  }
+                }
               },
-              "to": {
-                "$ref": "#/$defs/dataflowEndpoint"
+              {
+                "properties": {
+                  "from": {
+                    "$ref": "#/$defs/staticDataEndpoint"
+                  },
+                  "to": {
+                    "$ref": "#/$defs/methodEndpoint"
+                  }
+                }
               }
-            }
+            ]
           }
         },
         {

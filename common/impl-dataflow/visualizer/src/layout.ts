@@ -83,7 +83,7 @@ export function computeLayout(
 
   relaxComposition();
   const dataflows = relationships.filter((item) => item.relationship.type === "dataflow");
-  const classFlows = dataflows.filter((edge) => !edge.from.component && !edge.to.component);
+  const classFlows = dataflows.filter((edge) => !edge.from.component && !edge.from.staticData && !edge.to.component && !edge.to.staticData);
   const freeFlows = acyclicEdges(nodes, classFlows).filter(
     (edge) => !ownerOf.has(edge.to.nodeName) && !ownerOf.has(edge.from.nodeName),
   );
@@ -100,7 +100,7 @@ export function computeLayout(
   }
   relaxComposition();
 
-  for (const node of nodes.filter((item) => item.componentType !== undefined)) {
+  for (const node of nodes.filter((item) => item.nodeType !== undefined)) {
     const outgoing = dataflows
       .filter((edge) => edge.from.nodeName === node.name && edge.to.nodeName !== node.name)
       .map((edge) => rank.get(edge.to.nodeName)!);
@@ -118,11 +118,11 @@ export function computeLayout(
   for (const name of names) rank.set(name, rank.get(name)! - minimumRank);
 
   function visibleMethods(node: GraphNode) {
-    return collapsed || node.componentType !== undefined ? [] : node.methods;
+    return collapsed || node.nodeType !== undefined ? [] : node.methods;
   }
 
   function visibleStateVariables(node: GraphNode) {
-    return collapsed || node.componentType !== undefined ? [] : node.stateVariables;
+    return collapsed || node.nodeType !== undefined ? [] : node.stateVariables;
   }
 
   function stateHeight(node: GraphNode): number {
@@ -140,7 +140,7 @@ export function computeLayout(
   }
 
   function widthOf(node: GraphNode): number {
-    if (node.componentType !== undefined) return Math.max(164, measureComponent(node.name) + 62);
+    if (node.nodeType !== undefined) return Math.max(164, measureComponent(node.name) + 62);
     const methods = visibleMethods(node);
     const methodWidth = methods.reduce(
       (total, method) => total + measureMethod(method.name, stateWriters.has(methodKey(node.name, method.name))) + METHOD_GAP,
@@ -152,7 +152,7 @@ export function computeLayout(
   }
 
   function heightOf(node: GraphNode): number {
-    if (node.componentType !== undefined) return COMPONENT_HEIGHT;
+    if (node.nodeType !== undefined) return COMPONENT_HEIGHT;
     const methodHeight = visibleMethods(node).length > 0 ? METHOD_HEIGHT : 0;
     const contentHeight = Math.max(methodHeight, stateHeight(node));
     if (contentHeight === 0) {
@@ -196,7 +196,7 @@ export function computeLayout(
   for (const root of roots) place(root);
   for (const name of names) place(name);
 
-  for (const edge of freeFlows.concat(dataflows.filter((flow) => flow.from.component))) {
+  for (const edge of freeFlows.concat(dataflows.filter((flow) => flow.from.component || flow.from.staticData))) {
     if (ownerOf.has(edge.from.nodeName) || childrenOf.get(edge.from.nodeName)!.length > 0) continue;
     if (rank.get(edge.from.nodeName)! >= rank.get(edge.to.nodeName)!) continue;
     x.set(

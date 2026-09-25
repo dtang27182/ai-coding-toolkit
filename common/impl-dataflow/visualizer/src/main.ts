@@ -7,6 +7,7 @@ import { edgePortSpreads, routeCompositionEdge, routeEdge } from "./routing";
 import { semanticError } from "./validation";
 import "./styles.css";
 import type {
+  ComponentType,
   ChangeType,
   ClassDiff,
   ImplementationDataflow,
@@ -28,6 +29,20 @@ const CHANGE_COLORS: Record<ChangeType, string> = {
   modified: "oklch(0.82 0.15 82)",
   deleted: "oklch(0.72 0.18 25)",
   unchanged: "oklch(0.56 0.02 250)",
+};
+
+const COMPONENT_LABELS: Record<ComponentType, string> = {
+  "ui-component": "UI component",
+  "system-input": "System input",
+  "system-output": "System output",
+  "external-dependency": "External dependency",
+};
+
+const COMPONENT_GLYPHS: Record<ComponentType, string> = {
+  "ui-component": "▣",
+  "system-input": "→",
+  "system-output": "←",
+  "external-dependency": "⇅",
 };
 
 let implementationDataflow = exampleImplementationDataflow as ImplementationDataflow;
@@ -107,7 +122,9 @@ function endpointLabel(endpoint: ResolvedEndpoint): string {
 }
 
 function selectionForEndpoint(endpoint: ResolvedEndpoint): Selection {
-  if (endpoint.component) {
+  if (endpoint.staticData) {
+    return { type: "static-data", staticDataName: endpoint.nodeName };
+  } else if (endpoint.component) {
     return { type: "component", componentName: endpoint.nodeName };
   } else if (endpoint.methodName !== undefined) {
     return { type: "method", className: endpoint.nodeName, methodName: endpoint.methodName };
@@ -119,6 +136,8 @@ function selectionForEndpoint(endpoint: ResolvedEndpoint): Selection {
 function selectionKey(value: Selection | undefined): string {
   if (value === undefined) {
     return "";
+  } else if (value.type === "static-data") {
+    return `static-data:${value.staticDataName}`;
   } else if (value.type === "component") {
     return `component:${value.componentName}`;
   } else if (value.type === "method") {
@@ -131,7 +150,9 @@ function selectionKey(value: Selection | undefined): string {
 }
 
 function endpointMatches(endpoint: ResolvedEndpoint, value: Selection): boolean {
-  if (value.type === "component") {
+  if (value.type === "static-data") {
+    return endpoint.staticData === true && endpoint.nodeName === value.staticDataName;
+  } else if (value.type === "component") {
     return endpoint.component && endpoint.nodeName === value.componentName;
   } else if (value.type === "method") {
     return !endpoint.component && endpoint.nodeName === value.className && endpoint.methodName === value.methodName;
@@ -170,6 +191,8 @@ function graphFocus(value: Selection | undefined): Selection | undefined {
 function nodeMatches(nodeName: string, methodName: string | undefined, value: Selection | undefined): boolean {
   if (value === undefined) {
     return true;
+  } else if (value.type === "static-data") {
+    return nodeName === value.staticDataName;
   } else if (value.type === "component") {
     return nodeName === value.componentName;
   } else if (value.type === "method") {
@@ -182,7 +205,7 @@ function nodeMatches(nodeName: string, methodName: string | undefined, value: Se
 }
 
 function relationshipAttributes(relationship: ResolvedRelationship): string {
-  return `data-relation data-edge="${escapeHtml(edgeKey(relationship, methodsHidden))}" data-from-node="${escapeHtml(relationship.from.nodeName)}" data-from-method="${escapeHtml(relationship.from.methodName ?? "")}" data-from-component="${relationship.from.component}" data-to-node="${escapeHtml(relationship.to.nodeName)}" data-to-method="${escapeHtml(relationship.to.methodName ?? "")}" data-to-component="${relationship.to.component}"`;
+  return `data-relation data-edge="${escapeHtml(edgeKey(relationship, methodsHidden))}" data-from-node="${escapeHtml(relationship.from.nodeName)}" data-from-method="${escapeHtml(relationship.from.methodName ?? "")}" data-from-component="${relationship.from.component}" data-from-static-data="${relationship.from.staticData === true}" data-to-node="${escapeHtml(relationship.to.nodeName)}" data-to-method="${escapeHtml(relationship.to.methodName ?? "")}" data-to-component="${relationship.to.component}" data-to-static-data="${relationship.to.staticData === true}"`;
 }
 
 function visibleGraph(): VisibleGraph {
@@ -243,7 +266,7 @@ function renderGraph(graph: VisibleGraph): string {
   const classByName = new Map(graph.classes.map((classDiff) => [classDiff.name, classDiff]));
   const routingBounds = new Map(graph.nodes.map((node): [string, Rect] => {
     const box = layout.boxes.get(node.name)!;
-    if (node.componentType !== undefined) {
+    if (node.nodeType !== undefined) {
       return [node.name, box];
     } else {
       const tab = classTargetRect(classByName.get(node.name)!, box);
@@ -259,7 +282,9 @@ function renderGraph(graph: VisibleGraph): string {
 
   const relatedNodes = new Set<string>();
   if (focus !== undefined) {
-    if (focus.type === "component") {
+    if (focus.type === "static-data") {
+      relatedNodes.add(focus.staticDataName);
+    } else if (focus.type === "component") {
       relatedNodes.add(focus.componentName);
     } else if (focus.type !== "relationship") {
       relatedNodes.add(focus.className);
@@ -379,11 +404,26 @@ function renderGraph(graph: VisibleGraph): string {
       const box = layout.boxes.get(component.name)!;
       const selected = selectionKey(selection) === selectionKey({ type: "component", componentName: component.name });
       const dimmed = focus !== undefined && !relatedNodes.has(component.name);
-      return `<button class="graph-node component-node ${component.type}${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px" data-select="component" data-node="${escapeHtml(component.name)}" data-component="${escapeHtml(component.name)}" aria-label="Inspect ${component.type} component ${escapeHtml(component.name)}">
-        <span class="component-glyph">${component.type === "ui" ? "▣" : "⇅"}</span>
+      return `<button class="graph-node component-node ${component.type}${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px" data-select="component" data-node="${escapeHtml(component.name)}" data-component="${escapeHtml(component.name)}" aria-label="Inspect ${COMPONENT_LABELS[component.type]} ${escapeHtml(component.name)}">
+        <span class="component-glyph">${COMPONENT_GLYPHS[component.type]}</span>
         <span class="component-copy">
           <span class="component-name">${escapeHtml(component.name)}</span>
-          <span class="node-kind">${component.type === "ui" ? "UI component" : "External I/O"}</span>
+          <span class="node-kind">${COMPONENT_LABELS[component.type]}</span>
+        </span>
+      </button>`;
+    })
+    .join("");
+
+  const staticDataNodes = graph.staticData
+    .map((entry) => {
+      const box = layout.boxes.get(entry.name)!;
+      const selected = selectionKey(selection) === selectionKey({ type: "static-data", staticDataName: entry.name });
+      const dimmed = focus !== undefined && !relatedNodes.has(entry.name);
+      return `<button class="graph-node component-node static-data${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px" data-select="static-data" data-node="${escapeHtml(entry.name)}" data-static-data="${escapeHtml(entry.name)}" aria-label="Inspect static data ${escapeHtml(entry.name)}">
+        <span class="component-glyph">◆</span>
+        <span class="component-copy">
+          <span class="component-name">${escapeHtml(entry.name)}</span>
+          <span class="node-kind">Static data</span>
         </span>
       </button>`;
     })
@@ -406,7 +446,7 @@ function renderGraph(graph: VisibleGraph): string {
           <defs>${renderMarkers()}</defs>
           ${classFrames}${compositionEdges}${edges}
         </svg>
-        ${classTabs}${components}${methods}${stateBoxes}${emptyNotes}
+        ${classTabs}${components}${staticDataNodes}${methods}${stateBoxes}${emptyNotes}
       </div>
     </div>`;
 }
@@ -484,11 +524,14 @@ function renderInspector(graph: VisibleGraph): string {
     const exposureCount = inventory === undefined || inventory === null ? undefined : inventory.filter((variable) => variable.kind === "instance" || variable.method === methodSelection.methodName).length;
     return `${inspectorHeader(classDiff.name, method.name, method.changeType)}${section("Exposure in this scope", exposureSummary(classDiff, method.name), exposureCount)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${section("State written", flowRows(stateUpdates, "to", true), stateUpdates.length)}`;
   } else if (inspected.type === "component") {
-    const componentSelection = inspected;
-    const component = graph.components.find((item) => item.name === componentSelection.componentName)!;
-    const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, componentSelection));
-    const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, componentSelection));
-    return `${inspectorHeader(component.type === "ui" ? "UI component" : "External I/O", component.name, component.changeType)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
+    const component = graph.components.find((item) => item.name === inspected.componentName)!;
+    const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, inspected));
+    const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
+    return `${inspectorHeader(COMPONENT_LABELS[component.type], component.name, component.changeType)}${section("Description", `<p class="component-description">${escapeHtml(component.description)}</p>`)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
+  } else if (inspected.type === "static-data") {
+    const entry = graph.staticData.find((item) => item.name === inspected.staticDataName)!;
+    const readers = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
+    return `${inspectorHeader("Static data", entry.name, entry.changeType)}${section("Read by", flowRows(readers, "to"), readers.length)}`;
   } else if (inspected.type === "relationship") {
     const edges = relationshipsForEdge(graph, inspected.edge);
     if (edges.length === 0) {
@@ -678,7 +721,9 @@ function bindEvents(): void {
   });
   for (const element of app.querySelectorAll<HTMLElement>("[data-select]")) {
     const target = (): Selection => {
-      if (element.dataset.select === "component") {
+      if (element.dataset.select === "static-data") {
+        return { type: "static-data", staticDataName: element.dataset.staticData! };
+      } else if (element.dataset.select === "component") {
         return { type: "component", componentName: element.dataset.component! };
       } else if (element.dataset.select === "method") {
         return { type: "method", className: element.dataset.class!, methodName: element.dataset.method! };
@@ -785,7 +830,8 @@ function endpointDatasetMatches(element: HTMLElement | SVGElement, prefix: "from
   const nodeName = element.getAttribute(`data-${prefix}-node`)!;
   const methodName = element.getAttribute(`data-${prefix}-method`) || undefined;
   const component = element.getAttribute(`data-${prefix}-component`) === "true";
-  return endpointMatches({ nodeName, methodName, component }, value);
+  const staticData = element.getAttribute(`data-${prefix}-static-data`) === "true";
+  return endpointMatches({ nodeName, methodName, component, staticData }, value);
 }
 
 function updateGraphFocus(value: Selection | undefined): void {
@@ -794,7 +840,9 @@ function updateGraphFocus(value: Selection | undefined): void {
   const relatedNodes = new Set<string>();
   const relatedMethods = new Set<string>();
   if (value !== undefined) {
-    if (value.type === "component") {
+    if (value.type === "static-data") {
+      relatedNodes.add(value.staticDataName);
+    } else if (value.type === "component") {
       relatedNodes.add(value.componentName);
     } else if (value.type === "method") {
       relatedNodes.add(value.className);

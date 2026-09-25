@@ -443,15 +443,31 @@ button:focus-visible,
   box-shadow: 0 1px 3px oklch(0.1 0.02 255 / 0.5);
 }
 
-.component-node.ui {
+.component-node.ui-component {
   border-top-width: 4px;
   border-radius: 5px;
 }
 
-.component-node.external-io {
+.component-node.system-input {
+  border-left: 4px solid oklch(0.7 0.12 210);
+  border-radius: 5px;
+}
+
+.component-node.system-output {
+  border-right: 4px solid oklch(0.7 0.12 145);
+  border-radius: 5px;
+}
+
+.component-node.external-dependency {
   border-style: dashed;
   border-radius: 999px;
   background: oklch(0.208 0.02 255);
+}
+
+.component-node.static-data {
+  border-radius: 5px;
+  border-color: oklch(0.5 0.08 82);
+  background: oklch(0.25 0.035 82);
 }
 
 .component-node:hover,
@@ -738,6 +754,7 @@ button.method-row:hover {
 }
 
 .flow-label,
+.component-description,
 .empty-copy,
 .file-location {
   margin-top: 2px;
@@ -746,6 +763,7 @@ button.method-row:hover {
   color: var(--muted);
 }
 
+.component-description,
 .empty-copy {
   margin: 0;
 }

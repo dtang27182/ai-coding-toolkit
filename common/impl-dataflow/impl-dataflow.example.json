@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 10,
+  "schemaVersion": 13,
   "stage": "high-level-design",
   "userFlows": [
     {
@@ -113,24 +113,43 @@
   "components": [
     {
       "name": "Change Panel",
-      "type": "ui",
+      "description": "The application's change selection and results panel.",
+      "type": "ui-component",
       "changeType": "added",
       "userFlow": true
     },
     {
       "name": "Source Files on Disk",
-      "type": "external-io",
+      "description": "Repository source files at the selected repository-relative paths.",
+      "type": "external-dependency",
       "changeType": "unchanged",
       "userFlow": true
     },
     {
       "name": "Diff Settings File",
-      "type": "external-io",
+      "description": "The repository's diff settings file.",
+      "type": "external-dependency",
       "changeType": "unchanged",
       "userFlow": false
     }
   ],
+  "staticData": [
+    {
+      "name": "Diff Format Rules",
+      "changeType": "unchanged",
+      "userFlow": true
+    }
+  ],
   "relationships": [
+    {
+      "from": { "staticData": "Diff Format Rules" },
+      "to": { "class": "ChangeService", "method": "buildChangeSet" },
+      "type": "dataflow",
+      "dataDescription": "Fixed hunk formatting and line-matching rules used for each change set.",
+      "purpose": "Supplies the rules used while step 2 computes the change set.",
+      "changeType": "added",
+      "userFlow": true
+    },
     {
       "from": { "class": "Repository", "method": "readSourceFiles" },
       "to": { "class": "ChangeService", "method": "buildChangeSet" },

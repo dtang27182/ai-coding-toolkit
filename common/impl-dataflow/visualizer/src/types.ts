@@ -1,5 +1,5 @@
 export type ChangeType = "added" | "modified" | "deleted" | "unchanged";
-export type ComponentType = "ui" | "external-io";
+export type ComponentType = "ui-component" | "system-input" | "system-output" | "external-dependency";
 
 export interface MethodDiff {
   name: string;
@@ -37,7 +37,14 @@ export interface ClassDiff {
 
 export interface ComponentDiff {
   name: string;
+  description: string;
   type: ComponentType;
+  changeType: ChangeType;
+  userFlow?: boolean;
+}
+
+export interface StaticDataDiff {
+  name: string;
   changeType: ChangeType;
   userFlow?: boolean;
 }
@@ -58,7 +65,11 @@ export interface ComponentEndpoint {
   component: string;
 }
 
-export type RelationshipEndpoint = ClassEndpoint | MethodEndpoint | StateVariableEndpoint | ComponentEndpoint;
+export interface StaticDataEndpoint {
+  staticData: string;
+}
+
+export type RelationshipEndpoint = ClassEndpoint | MethodEndpoint | StateVariableEndpoint | ComponentEndpoint | StaticDataEndpoint;
 
 interface RelationshipBase {
   from: RelationshipEndpoint;
@@ -82,11 +93,12 @@ export interface UserFlowSet {
 }
 
 export interface ImplementationDataflow {
-  schemaVersion: 10;
+  schemaVersion: 13;
   stage: "high-level-design" | "code-review";
   userFlows?: UserFlowSet[];
   classes: ClassDiff[];
   components: ComponentDiff[];
+  staticData: StaticDataDiff[];
   relationships: Relationship[];
   variableExposureCount?: number | null;
 }
@@ -100,6 +112,7 @@ export type Selection =
   | { type: "class"; className: string }
   | { type: "method"; className: string; methodName: string }
   | { type: "component"; componentName: string }
+  | { type: "static-data"; staticDataName: string }
   | { type: "relationship"; edge: string };
 
 /**
@@ -132,7 +145,7 @@ export interface GraphNode {
   changeType: ChangeType;
   methods: MethodDiff[];
   stateVariables: StateVariableDiff[];
-  componentType?: ComponentType;
+  nodeType?: ComponentType | "static-data";
 }
 
 export interface ResolvedEndpoint {
@@ -140,6 +153,7 @@ export interface ResolvedEndpoint {
   methodName?: string;
   stateVariableName?: string;
   component: boolean;
+  staticData?: boolean;
 }
 
 export interface ResolvedRelationship {
@@ -173,6 +187,8 @@ export function stateVariableKey(className: string, stateVariableName: string): 
 export function resolveEndpoint(endpoint: RelationshipEndpoint): ResolvedEndpoint {
   if ("component" in endpoint) {
     return { nodeName: endpoint.component, component: true };
+  } else if ("staticData" in endpoint) {
+    return { nodeName: endpoint.staticData, component: false, staticData: true };
   } else if ("method" in endpoint) {
     return { nodeName: endpoint.class, methodName: endpoint.method, component: false };
   } else if ("stateVariable" in endpoint) {
@@ -186,7 +202,7 @@ export function mergeClassDataflows(relationships: ResolvedRelationship[]): Reso
   const merged: ResolvedRelationship[] = [];
   const seen = new Set<string>();
   for (const item of relationships) {
-    if (item.relationship.type === "dataflow" && !item.from.component && !item.to.component) {
+    if (item.relationship.type === "dataflow" && !item.from.component && !item.from.staticData && !item.to.component && !item.to.staticData) {
       const key = JSON.stringify([item.from.nodeName, item.to.nodeName, item.relationship.changeType]);
       if (!seen.has(key)) {
         seen.add(key);
