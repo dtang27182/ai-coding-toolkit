@@ -11,7 +11,7 @@ app.innerHTML = `
     <header class="review-header">
       <div class="review-title-block">
         <div class="review-title-line">
-          <span class="review-title">Annotated Diff</span>
+          <span class="review-title">Enriched Diff</span>
           <span class="stage-chip">code-review</span>
         </div>
         <span class="review-path">Configured output directory</span>
@@ -49,7 +49,7 @@ app.innerHTML = `
     </header>
     <main class="view-panels">
       <section class="view-panel active" data-panel="dataflow" aria-label="System Dataflow"></section>
-      <section class="view-panel" data-panel="diff" aria-label="Annotated Diff Patch" aria-hidden="true"></section>
+      <section class="view-panel" data-panel="diff" aria-label="Enriched Diff Patch" aria-hidden="true"></section>
     </main>
   </div>`;
 

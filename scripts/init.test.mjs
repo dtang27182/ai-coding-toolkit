@@ -160,32 +160,32 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   }
 });
 
-test("installs annotate-diff with the shared System Dataflow files", async (t) => {
+test("installs enrich-diff with the shared System Dataflow files", async (t) => {
   const repoDirectory = await createRepository(t);
   await writeFile(
     path.join(repoDirectory, "package.json"),
     '{"scripts":{"test":"existing","diff-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/visualizer","diff-viewer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/viewer","system-dataflow-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/system-dataflow/visualizer"}}\n'
   );
 
-  const result = install([repoDirectory, "--tool", "annotate-diff"]);
+  const result = install([repoDirectory, "--tool", "enrich-diff"]);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(
-    await readFile(path.join(repoDirectory, ".agents", "skills", "annotate-diff", "SKILL.md"), "utf8"),
-    await readFile(path.join(toolkitDirectory, "annotate-diff", "skills", "annotate-diff", "SKILL.md"), "utf8")
+    await readFile(path.join(repoDirectory, ".agents", "skills", "enrich-diff", "SKILL.md"), "utf8"),
+    await readFile(path.join(toolkitDirectory, "enrich-diff", "skills", "enrich-diff", "SKILL.md"), "utf8")
   );
-  for (const directoryName of ["annotate-diff", "common", "node_modules"]) {
+  for (const directoryName of ["enrich-diff", "common", "node_modules"]) {
     assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isDirectory(), true);
   }
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new")), { code: "ENOENT" });
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/annotate-diff/visualizer",
+    "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer",
   });
 
   const inputPath = "ai-coding-toolkit/common/system-dataflow/system-dataflow.example.json";
   const validation = spawnSync(process.execPath, [
-    "ai-coding-toolkit/annotate-diff/scripts/validate-system-dataflow.mjs", inputPath,
+    "ai-coding-toolkit/enrich-diff/scripts/validate-system-dataflow.mjs", inputPath,
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(validation.status, 0, validation.stderr);
 
@@ -209,7 +209,7 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
     "feature",
   );
 
-  for (const visualizerPath of ["annotate-diff/visualizer", "common/system-dataflow/visualizer"]) {
+  for (const visualizerPath of ["enrich-diff/visualizer", "common/system-dataflow/visualizer"]) {
     const visualizerBuild = spawnSync(process.execPath, [
       "ai-coding-toolkit/node_modules/vite/bin/vite.js",
       "build",
@@ -228,7 +228,7 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
 
   const retiredEntryPoint = path.join(repoDirectory, "ai-coding-toolkit", "common", "diff-viewer", "viewer", "index.html");
   await writeFile(retiredEntryPoint, "retired entry point");
-  const reinstall = install([repoDirectory, "--tool", "annotate-diff"]);
+  const reinstall = install([repoDirectory, "--tool", "enrich-diff"]);
   assert.equal(reinstall.status, 0, reinstall.stderr);
   await assert.rejects(lstat(retiredEntryPoint), { code: "ENOENT" });
 });

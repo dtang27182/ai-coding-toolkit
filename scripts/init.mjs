@@ -45,7 +45,7 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
   }
 }
 
-const supportedTools = ["hld-gen", "hld-gen-new", "annotate-diff", "advanced-diff-viewer"];
+const supportedTools = ["hld-gen", "hld-gen-new", "enrich-diff", "advanced-diff-viewer"];
 const toolNames = selectedTool === undefined ? ["hld-gen"] : [selectedTool];
 const relativeOutputDirectory = path.normalize(outputDirectory);
 const outputIsRepoSubdirectory =
@@ -71,15 +71,15 @@ async function installRootCommands() {
     if (toolNames.includes("hld-gen-new")) {
       commands["hld-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer";
     }
-    if (toolNames.includes("annotate-diff")) {
-      commands["diff-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/annotate-diff/visualizer";
+    if (toolNames.includes("enrich-diff")) {
+      commands["diff-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer";
     }
     if (toolNames.includes("advanced-diff-viewer")) {
       commands["adv-diff"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer";
     }
     let packageChanged = false;
     if (
-      toolNames.includes("annotate-diff") &&
+      toolNames.includes("enrich-diff") &&
       packageJson.scripts?.["diff-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/visualizer"
     ) {
       packageJson.scripts["diff-visualizer"] = commands["diff-visualizer"];
@@ -133,7 +133,7 @@ async function installRootCommands() {
       console.log("Removed retired npm command: npm run system-dataflow-visualizer");
     }
     if (
-      (toolNames.includes("annotate-diff") || toolNames.includes("advanced-diff-viewer")) &&
+      (toolNames.includes("enrich-diff") || toolNames.includes("advanced-diff-viewer")) &&
       packageJson.scripts?.["diff-viewer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/viewer"
     ) {
       delete packageJson.scripts["diff-viewer"];
@@ -170,7 +170,7 @@ async function installRootCommands() {
 if (argumentError !== undefined || repoDirectory === undefined) {
   console.error(argumentError ?? "Target repository path is required.");
   console.error(
-    "Usage: node scripts/init.mjs <target-repo> [--agent codex] [--tool <hld-gen|hld-gen-new|annotate-diff|advanced-diff-viewer>] [--output-dir <relative-directory>]"
+    "Usage: node scripts/init.mjs <target-repo> [--agent codex] [--tool <hld-gen|hld-gen-new|enrich-diff|advanced-diff-viewer>] [--output-dir <relative-directory>]"
   );
   process.exitCode = 1;
 } else if (agentName !== "codex") {
@@ -191,7 +191,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   const outputPath = path.resolve(repoDirectory, relativeOutputDirectory);
   const installedDirectories = [
     ...toolNames,
-    ...(toolNames.includes("hld-gen-new") || toolNames.includes("annotate-diff") || toolNames.includes("advanced-diff-viewer") ? ["common"] : []),
+    ...(toolNames.includes("hld-gen-new") || toolNames.includes("enrich-diff") || toolNames.includes("advanced-diff-viewer") ? ["common"] : []),
     "node_modules",
   ];
   for (const directoryName of installedDirectories) {
@@ -223,10 +223,10 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     await rm(path.join(installedToolkitDirectory, "common", "arch-diff"), { recursive: true, force: true });
     await rm(path.join(installedToolkitDirectory, "hld-gen-new", "visualizer", "dist"), { recursive: true, force: true });
   }
-  if (toolNames.includes("annotate-diff")) {
+  if (toolNames.includes("enrich-diff")) {
     await rm(path.join(installedToolkitDirectory, "common", "diff-viewer", "visualizer"), { recursive: true, force: true });
   }
-  if (toolNames.includes("annotate-diff") || toolNames.includes("advanced-diff-viewer")) {
+  if (toolNames.includes("enrich-diff") || toolNames.includes("advanced-diff-viewer")) {
     for (const relativePath of ["index.html", "src/main.ts", "tsconfig.json", "vite.config.mjs", "dist"]) {
       await rm(path.join(installedToolkitDirectory, "common", "diff-viewer", "viewer", relativePath), { recursive: true, force: true });
     }
