@@ -70,6 +70,7 @@ test("copies skills and scripts that work after the source checkout is removed",
   assert.equal(JSON.parse(await readFile(path.join(repoDirectory, inputPath), "utf8")).variableExposureCount, 3);
 
   assert.equal(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts.mermaid, undefined);
+  assert.equal(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts.visualizer, undefined);
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs")), { code: "ENOENT" });
 
   for (const toolName of ["hld-gen"]) {
@@ -96,6 +97,10 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
 
   const result = install([repoDirectory, "--tool", "hld-gen-new"]);
   assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
+    test: "existing",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer",
+  });
   assert.equal(
     await readFile(path.join(repoDirectory, ".agents", "skills", "hld-gen", "SKILL.md"), "utf8"),
     await readFile(path.join(toolkitDirectory, "hld-gen-new", "SKILL.md"), "utf8")
@@ -110,13 +115,21 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   await mkdir(retiredArchitectureDiffPath, { recursive: true });
   await writeFile(path.join(retiredVisualizerPath, "obsolete.html"), "obsolete viewer");
   await writeFile(path.join(retiredArchitectureDiffPath, "obsolete.json"), "obsolete format");
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","hld-gen-new-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer"}}\n');
   const upgrade = install([repoDirectory, "--tool", "hld-gen-new"]);
   assert.equal(upgrade.status, 0, upgrade.stderr);
   await assert.rejects(lstat(retiredVisualizerPath), { code: "ENOENT" });
   await assert.rejects(lstat(retiredArchitectureDiffPath), { code: "ENOENT" });
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "hld-gen-new-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer",
+  });
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-gen-new-visualizer":"custom old viewer","hld-visualizer":"custom new viewer"}}\n');
+  const conflictingCommands = install([repoDirectory, "--tool", "hld-gen-new"]);
+  assert.equal(conflictingCommands.status, 0, conflictingCommands.stderr);
+  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
+    "hld-gen-new-visualizer": "custom old viewer",
+    "hld-visualizer": "custom new viewer",
   });
 
   const inputPath = "ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json";
@@ -149,7 +162,7 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
   const repoDirectory = await createRepository(t);
   await writeFile(
     path.join(repoDirectory, "package.json"),
-    '{"scripts":{"test":"existing","diff-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/visualizer","diff-viewer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/viewer"}}\n'
+    '{"scripts":{"test":"existing","diff-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/visualizer","diff-viewer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/viewer","system-dataflow-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/system-dataflow/visualizer"}}\n'
   );
 
   const result = install([repoDirectory, "--tool", "annotate-diff"]);
@@ -166,7 +179,6 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
     "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/annotate-diff/visualizer",
-    "system-dataflow-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/system-dataflow/visualizer",
   });
 
   const inputPath = "ai-coding-toolkit/common/system-dataflow/system-dataflow.example.json";
@@ -221,7 +233,7 @@ test("installs annotate-diff with the shared System Dataflow files", async (t) =
 
 test("installs advanced-diff-viewer independently", async (t) => {
   const repoDirectory = await createRepository(t);
-  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","advanced-diff-viewer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer"}}\n');
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","advanced-diff-viewer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer","advanced-diff-viewer:generate":"node ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs"}}\n');
   await writeFile(path.join(repoDirectory, "app.ts"), "export const value = 1;\n");
   for (const argumentsList of [
     ["init", "--quiet"],
@@ -238,7 +250,6 @@ test("installs advanced-diff-viewer independently", async (t) => {
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "advanced-diff-viewer:generate": "node ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs",
     "adv-diff": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer",
   });
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer"))).isDirectory(), true);
@@ -335,7 +346,6 @@ test("removes retired toolkit files on upgrade while preserving other installed 
     assert.equal(await readFile(diagramPath, "utf8"), "saved diagram");
     assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
       test: "existing",
-      visualizer: "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer",
     });
     assert.equal(
       await readFile(path.join(repoDirectory, ".agents/skills/hld-gen/SKILL.md"), "utf8"),
@@ -387,11 +397,11 @@ test("removes a retired skill link pointing to this toolkit", async (t) => {
   await assert.rejects(lstat(skillDirectory), { code: "ENOENT" });
 });
 
-test("keeps configuration in each target and preserves an existing mermaid command", async (t) => {
+test("keeps configuration in each target and preserves unrelated npm commands", async (t) => {
   const firstRepo = await createRepository(t);
   const secondRepo = await createRepository(t);
   const sourceConfig = await readFile(path.join(toolkitDirectory, "config.json"), "utf8");
-  const existingPackage = '{"scripts":{"mermaid":"existing"}}\n';
+  const existingPackage = '{"scripts":{"mermaid":"existing","visualizer":"custom viewer","system-dataflow-visualizer":"custom system viewer"}}\n';
   await writeFile(path.join(firstRepo, "package.json"), existingPackage);
 
   const firstInstall = install([firstRepo, "--output-dir", "architecture/plans"]);
@@ -409,10 +419,8 @@ test("keeps configuration in each target and preserves an existing mermaid comma
   assert.equal(await readFile(path.join(toolkitDirectory, "config.json"), "utf8"), sourceConfig);
   const installedPackage = JSON.parse(await readFile(path.join(firstRepo, "package.json"), "utf8"));
   assert.equal(installedPackage.scripts.mermaid, "existing");
-  assert.equal(
-    installedPackage.scripts.visualizer,
-    "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer"
-  );
+  assert.equal(installedPackage.scripts.visualizer, "custom viewer");
+  assert.equal(installedPackage.scripts["system-dataflow-visualizer"], "custom system viewer");
 });
 
 test("rejects missing targets and invalid arguments", async (t) => {

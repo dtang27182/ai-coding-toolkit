@@ -68,18 +68,13 @@ async function installRootCommands() {
 
   if (packageJson !== undefined) {
     const commands = {};
-    if (toolNames.includes("hld-gen")) {
-      commands.visualizer = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer";
-    }
     if (toolNames.includes("hld-gen-new")) {
-      commands["hld-gen-new-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer";
+      commands["hld-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer";
     }
     if (toolNames.includes("annotate-diff")) {
       commands["diff-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/annotate-diff/visualizer";
-      commands["system-dataflow-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/system-dataflow/visualizer";
     }
     if (toolNames.includes("advanced-diff-viewer")) {
-      commands["advanced-diff-viewer:generate"] = "node ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs";
       commands["adv-diff"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer";
     }
     let packageChanged = false;
@@ -95,17 +90,39 @@ async function installRootCommands() {
       toolNames.includes("hld-gen-new") &&
       (
         packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer" ||
-        packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/arch-diff/visualizer"
+        packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/arch-diff/visualizer" ||
+        packageJson.scripts?.["hld-gen-new-visualizer"] === commands["hld-visualizer"]
       )
     ) {
-      packageJson.scripts["hld-gen-new-visualizer"] = commands["hld-gen-new-visualizer"];
+      delete packageJson.scripts["hld-gen-new-visualizer"];
       packageChanged = true;
-      console.log("Updated npm command: npm run hld-gen-new-visualizer");
+      console.log("Removed retired npm command: npm run hld-gen-new-visualizer");
     }
     if (toolNames.includes("hld-gen") && packageJson.scripts?.mermaid === "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs") {
       delete packageJson.scripts.mermaid;
       packageChanged = true;
       console.log("Removed retired npm command: npm run mermaid");
+    }
+    if (
+      packageJson.scripts?.visualizer === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer"
+    ) {
+      delete packageJson.scripts.visualizer;
+      packageChanged = true;
+      console.log("Removed retired npm command: npm run visualizer");
+    }
+    if (
+      packageJson.scripts?.["advanced-diff-viewer:generate"] === "node ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs"
+    ) {
+      delete packageJson.scripts["advanced-diff-viewer:generate"];
+      packageChanged = true;
+      console.log("Removed retired npm command: npm run advanced-diff-viewer:generate");
+    }
+    if (
+      packageJson.scripts?.["system-dataflow-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/system-dataflow/visualizer"
+    ) {
+      delete packageJson.scripts["system-dataflow-visualizer"];
+      packageChanged = true;
+      console.log("Removed retired npm command: npm run system-dataflow-visualizer");
     }
     if (
       (toolNames.includes("annotate-diff") || toolNames.includes("advanced-diff-viewer")) &&

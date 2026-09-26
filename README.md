@@ -9,7 +9,7 @@ Keep this toolkit checkout anywhere on your machine. From this directory, instal
 ```sh
 cd ai-coding-toolkit
 npm install
-npm run install:codex -- /path/to/code-repo
+node scripts/init.mjs /path/to/code-repo
 ```
 
 To install only the alternative `hld-gen-new` implementation, run:
@@ -36,21 +36,21 @@ In either this toolkit checkout or an installed target repository, open the view
 npm run adv-diff
 ```
 
-The viewer generates `advanced-diff-viewer/diff-index.json` automatically from current staged, unstaged, deleted, and untracked changes against `HEAD`. It updates as files change and provides a Refresh button. The generated index and, in installed repositories, the copied `ai-coding-toolkit` runtime are excluded from the comparison. You can still generate an index without opening the viewer using `npm run advanced-diff-viewer:generate`, or open or drag in another index from the viewer.
+The viewer generates `advanced-diff-viewer/diff-index.json` automatically from current staged, unstaged, deleted, and untracked changes against `HEAD`. It updates as files change and provides a Refresh button. The generated index and, in installed repositories, the copied `ai-coding-toolkit` runtime are excluded from the comparison. You can open or drag in another index from the viewer.
 
 The two HLD implementations expose the skill as `$hld-gen`; install one implementation into a target repository at a time.
 
 The target directory must already exist. Relative target paths are resolved from the current working directory. For the HLD and annotate-diff tools, the output directory defaults to `docs/plans` under the target repository root. To choose another repository-relative directory, run:
 
 ```sh
-npm run install:codex -- ../code-repo --output-dir architecture/plans
+node scripts/init.mjs ../code-repo --output-dir architecture/plans
 ```
 
-In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the selected design tools and installed dependencies into `ai-coding-toolkit`, installs their skills under `.agents/skills/`, and adds their visualizer commands when the repository has a root `package.json`.
+In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the selected design tools and installed dependencies into `ai-coding-toolkit`, installs their skills under `.agents/skills/`, and adds supported npm commands when the repository has a root `package.json`.
 
 Each target repository has its own files and output configuration and works independently of this checkout. Rerun the installer to update its installed copies; this overwrites files in directories marked as toolkit installations. It will not replace unrelated existing directories or npm scripts. Links created by the earlier installer to this checkout are replaced with copies.
 
-Full toolkit upgrades remove the retired toolkit-owned `hld-eval` skill, `SKILL.next.md` files, evaluation report format, and Mermaid converter and npm command. Unrelated skills, links, custom commands, and previously generated diagrams are preserved.
+Full toolkit upgrades remove the retired toolkit-owned `hld-eval` skill, `SKILL.next.md` files, evaluation report format, Mermaid converter, and Mermaid npm command. Reinstalling also removes the legacy Architecture Diff viewer npm command when it matches the toolkit version. Unrelated skills, links, custom commands, and previously generated diagrams are preserved.
 
 ## Generate a High-Level Design
 
@@ -83,7 +83,7 @@ The `hld-gen-new` tool installs as `$hld-gen` and provides the candidate generat
 
 `hld-gen-new` produces an HLD doc (`<feature>.hld.md`), a proposed System Dataflow (`<feature>.system-dataflow.json`), and a structured JSON representation of its Implementation Dataflow narrative (`<feature>.impl-dataflow.json`), in that order. It retains the same quality metrics and iteration structure as `hld-gen`.
 
-It has independent validation and counting scripts and uses the Implementation Dataflow visualizer, available through `npm run hld-gen-new-visualizer`.
+It has independent validation and counting scripts and uses the Implementation Dataflow visualizer, available through `npm run hld-visualizer`.
 
 ## Annotate the Current Diff
 
@@ -99,21 +99,17 @@ npm run diff-visualizer
 
 Each view opens the newest matching `system-dataflow.json` or `diff-index.json` artifact under the configured output directory. You can also open or drag in another file from either view.
 
-The standalone System Dataflow viewer remains available:
-
-```sh
-npm run system-dataflow-visualizer
-```
-
 In the combined visualizer, the diff view derives its directory tree from indexed file paths and exposes the indexed files, classes, and methods. Selecting one opens its full-file diff and scrolls to the indexed declaration.
 
 ## Architecture Diff Viewer
 
-Run the interactive visualizer from this toolkit checkout or an installed target repository:
+Run the interactive visualizer from this toolkit checkout:
 
 ```sh
-npm run visualizer
+node node_modules/vite/bin/vite.js hld-gen/visualizer
 ```
+
+From an installed target repository, run `node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer`.
 
 The visualizer restores the last Architecture Diff opened in the browser. If there is no previous file, it opens the most recently modified Architecture Diff under the `outputDirectory` configured in `ai-coding-toolkit/config.json`, falling back to the bundled workbook-import sample when that directory contains none. Open or drag in any schema-v7 `architecture-diff.json` file to inspect its classes, methods, UI and external I/O components, dataflows, state updates, composition, and variable exposure. Its controls can hide unchanged elements, show only user-flow participants, collapse methods, and adjust the graph zoom. Filters apply to the graph and inspector; exposure counts exclude parameters and locals of filtered methods. Schema v7 requires `hasUserFlowState` on classes and `userFlow` on methods, components, dataflows, and state updates. Class visibility is derived from user-flow state, methods, or connected dataflows. Classes and composition edges have no `userFlow` flag; composition is shown only between visible classes. Older versions are not supported.
 
