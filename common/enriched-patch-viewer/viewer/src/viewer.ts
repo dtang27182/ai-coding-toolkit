@@ -9,7 +9,7 @@ import { isLineWrapShortcut } from "./shortcuts.ts";
 import styles from "./styles.css?inline";
 import type { DiffElement, DiffFile, EnrichedPatch } from "./types.ts";
 
-export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: boolean; expansionStorageKey?: string } = {}): {
+export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefault?: boolean; expansionStorageKey?: string } = {}): {
   loadEnrichedPatch(value: unknown, name: string, preserveView?: boolean): void;
 } {
   const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });

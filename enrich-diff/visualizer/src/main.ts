@@ -1,4 +1,4 @@
-import { mountDiffViewer } from "../../../common/diff-viewer/viewer/src/viewer.ts";
+import { mountEnrichedPatchViewer } from "../../../common/enriched-patch-viewer/viewer/src/viewer.ts";
 import { mountSystemDataflowViewer } from "../../../common/system-dataflow/visualizer/src/viewer.ts";
 import "./styles.css";
 
@@ -58,7 +58,7 @@ const diffPanel = app.querySelector<HTMLElement>('[data-panel="diff"]')!;
 dataflowPanel.classList.add("embedded-view");
 diffPanel.classList.add("embedded-view");
 mountSystemDataflowViewer(dataflowPanel);
-mountDiffViewer(diffPanel);
+mountEnrichedPatchViewer(diffPanel);
 
 let activeView: View = "dataflow";
 

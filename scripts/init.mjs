@@ -197,7 +197,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   for (const directoryName of installedDirectories) {
     let relativePaths;
     if (directoryName === "common" && toolNames.includes("advanced-diff-viewer")) {
-      relativePaths = ["diff-viewer", "default-output-file-plugin.mjs"];
+      relativePaths = ["enriched-patch-viewer", "default-output-file-plugin.mjs"];
     } else if (directoryName === "advanced-diff-viewer") {
       relativePaths = [
         "generate-enriched-patch.mjs",
@@ -224,11 +224,11 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     await rm(path.join(installedToolkitDirectory, "hld-gen-new", "visualizer", "dist"), { recursive: true, force: true });
   }
   if (toolNames.includes("enrich-diff")) {
-    await rm(path.join(installedToolkitDirectory, "common", "diff-viewer", "visualizer"), { recursive: true, force: true });
+    await rm(path.join(installedToolkitDirectory, "common", "enriched-patch-viewer", "visualizer"), { recursive: true, force: true });
   }
   if (toolNames.includes("enrich-diff") || toolNames.includes("advanced-diff-viewer")) {
     for (const relativePath of ["index.html", "src/main.ts", "tsconfig.json", "vite.config.mjs", "dist"]) {
-      await rm(path.join(installedToolkitDirectory, "common", "diff-viewer", "viewer", relativePath), { recursive: true, force: true });
+      await rm(path.join(installedToolkitDirectory, "common", "enriched-patch-viewer", "viewer", relativePath), { recursive: true, force: true });
     }
   }
   await installCodexSkills(repoDirectory, toolkitDirectory, toolNames.filter((name) => name !== "advanced-diff-viewer"));

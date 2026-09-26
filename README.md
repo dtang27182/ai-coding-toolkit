@@ -87,7 +87,7 @@ It has independent validation and counting scripts. Run `npm run hld-visualizer`
 
 ## Enrich the Current Diff
 
-After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$enrich-diff`. The skill compares the current files with `HEAD` and writes `<feature>.system-dataflow.code-review.json` beside the HLD. It also writes `<feature>.enriched-patch.json` as a self-contained input for the diff viewer, embedding the exact patch alongside locations for changed files, classes, and methods. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
+After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$enrich-diff`. The skill compares the current files with `HEAD` and writes `<feature>.system-dataflow.code-review.json` beside the HLD. It also writes `<feature>.enriched-patch.json` as a self-contained input for the enriched patch viewer, embedding the exact patch alongside locations for changed files, classes, and methods. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
 
 `generate-enriched-patch.mjs` can currently identify class and method entities only in JavaScript and TypeScript files because it uses a deterministic AST parser. Future work could add an LLM-based entity-identification path for broader language support.
 

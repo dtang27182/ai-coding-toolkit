@@ -16,5 +16,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "../../common/diff-viewer/viewer/src"]
+  "include": ["src", "../../common/enriched-patch-viewer/viewer/src"]
 }

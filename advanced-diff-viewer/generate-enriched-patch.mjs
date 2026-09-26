@@ -4,8 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { generateEnrichedPatch } from "../common/diff-viewer/generate-enriched-patch.mjs";
-import { generateFullContextPatch } from "../common/diff-viewer/generate-full-context-patch.mjs";
+import { generateEnrichedPatch } from "../common/enriched-patch-viewer/generate-enriched-patch.mjs";
+import { generateFullContextPatch } from "../common/enriched-patch-viewer/generate-full-context-patch.mjs";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 

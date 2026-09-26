@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI Coding Toolkit Enriched Patch",
-  "description": "A self-contained diff-viewer input containing a full-context unified patch and an element-first index that maps selectable navigation elements to source locations in that patch. The viewer renders the complete file section and uses each location only as a scroll target and changed-line range. Directory navigation nodes are derived from file paths and are not stored as elements.",
+  "description": "A self-contained enriched patch viewer input containing a full-context unified patch and an element-first index that maps selectable navigation elements to source locations in that patch. The viewer renders the complete file section and uses each location only as a scroll target and changed-line range. Directory navigation nodes are derived from file paths and are not stored as elements.",
   "type": "object",
   "additionalProperties": false,
   "required": [

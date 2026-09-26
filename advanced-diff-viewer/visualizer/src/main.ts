@@ -1,5 +1,5 @@
-import "../../../common/diff-viewer/viewer/src/standalone.css";
-import { mountDiffViewer } from "../../../common/diff-viewer/viewer/src/viewer.ts";
+import "../../../common/enriched-patch-viewer/viewer/src/standalone.css";
+import { mountEnrichedPatchViewer } from "../../../common/enriched-patch-viewer/viewer/src/viewer.ts";
 import "./styles.css";
 
 interface EnrichedPatchResponse {
@@ -29,7 +29,7 @@ const emptyState = app.querySelector<HTMLElement>(".empty-state")!;
 const status = app.querySelector<HTMLElement>(".advanced-status")!;
 const spinner = app.querySelector<HTMLElement>(".advanced-spinner")!;
 const refreshButton = app.querySelector<HTMLButtonElement>(".refresh-button")!;
-const viewer = mountDiffViewer(viewerHost, {
+const viewer = mountEnrichedPatchViewer(viewerHost, {
   loadDefault: false,
   expansionStorageKey: "advanced-diff-viewer:expanded-tree",
 });
