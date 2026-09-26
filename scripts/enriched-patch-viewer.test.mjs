@@ -5,12 +5,12 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { changeBlocks, changeRuns } from "../common/enriched-patch-viewer/viewer/src/change-navigation.ts";
-import { examplePatch } from "../common/enriched-patch-viewer/viewer/src/example.ts";
-import { clampSidebarWidth } from "../common/enriched-patch-viewer/viewer/src/layout.ts";
-import { buildTree, expandedNodeIds, expansionStates, statsForElement, unmatchedCount } from "../common/enriched-patch-viewer/viewer/src/model.ts";
-import { firstChangedLine, parsePatch } from "../common/enriched-patch-viewer/viewer/src/patch.ts";
-import { isLineWrapShortcut } from "../common/enriched-patch-viewer/viewer/src/shortcuts.ts";
+import { changeBlocks, changeRuns } from "../common/enriched-patch/viewer/src/change-navigation.ts";
+import { examplePatch } from "../common/enriched-patch/viewer/src/example.ts";
+import { clampSidebarWidth } from "../common/enriched-patch/viewer/src/layout.ts";
+import { buildTree, expandedNodeIds, expansionStates, statsForElement, unmatchedCount } from "../common/enriched-patch/viewer/src/model.ts";
+import { firstChangedLine, parsePatch } from "../common/enriched-patch/viewer/src/patch.ts";
+import { isLineWrapShortcut } from "../common/enriched-patch/viewer/src/shortcuts.ts";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -235,7 +235,7 @@ test("derives entity line counts and file-level unmatched counts", () => {
 });
 
 test("the enrich-diff viewer finds the newest enriched patch under the configured output directory", async (t) => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "enriched-patch-viewer-"));
+  const directory = await mkdtemp(path.join(os.tmpdir(), "enriched-patch-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const repositoryDirectory = path.join(directory, "repository");
   const outputDirectory = path.join(repositoryDirectory, "docs", "plans", "feature");

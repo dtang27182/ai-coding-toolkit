@@ -1,4 +1,4 @@
-import { mountEnrichedPatchViewer } from "../../../common/enriched-patch-viewer/viewer/src/viewer.ts";
+import { mountEnrichedPatchViewer } from "../../../common/enriched-patch/viewer/src/viewer.ts";
 import { mountSystemDataflowViewer } from "../../../common/system-dataflow/visualizer/src/viewer.ts";
 import "./styles.css";
 

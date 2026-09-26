@@ -13,7 +13,7 @@ Generate a self-contained `enriched-patch.json` from a standard full-context Git
 7. Assign each changed line to its innermost indexed method or class. Group remaining changed lines into file locations so every change is represented in the index.
 8. Store inclusive old and new line ranges, using `null` when a location exists on only one side.
 9. Assign monotonically increasing IDs in patch-file and source order, with parents before children.
-10. Embed the exact patch text, validate the index against `common/enriched-patch-viewer/enriched-patch.schema.json`, and write it beside the source patch.
+10. Embed the exact patch text, validate the index against `common/enriched-patch/enriched-patch.schema.json`, and write it beside the source patch.
 
 ## Hierarchy
 

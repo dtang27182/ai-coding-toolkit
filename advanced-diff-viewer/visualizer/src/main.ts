@@ -1,5 +1,5 @@
-import "../../../common/enriched-patch-viewer/viewer/src/standalone.css";
-import { mountEnrichedPatchViewer } from "../../../common/enriched-patch-viewer/viewer/src/viewer.ts";
+import "../../../common/enriched-patch/viewer/src/standalone.css";
+import { mountEnrichedPatchViewer } from "../../../common/enriched-patch/viewer/src/viewer.ts";
 import "./styles.css";
 
 interface EnrichedPatchResponse {

@@ -6,10 +6,10 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { generateEnrichedPatch } from "../common/enriched-patch-viewer/generate-enriched-patch.mjs";
+import { generateEnrichedPatch } from "../common/enriched-patch/generate-enriched-patch.mjs";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const generatorPath = path.join(toolkitDirectory, "common", "enriched-patch-viewer", "generate-enriched-patch.mjs");
+const generatorPath = path.join(toolkitDirectory, "common", "enriched-patch", "generate-enriched-patch.mjs");
 
 const modifiedPatch = [
   "diff --git a/src/ChangeService.js b/src/ChangeService.js",

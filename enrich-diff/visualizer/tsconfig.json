@@ -16,5 +16,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "../../common/enriched-patch-viewer/viewer/src", "../../common/system-dataflow/visualizer/src"]
+  "include": ["src", "../../common/enriched-patch/viewer/src", "../../common/system-dataflow/visualizer/src"]
 }

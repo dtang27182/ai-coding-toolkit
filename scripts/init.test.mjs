@@ -201,7 +201,7 @@ test("installs enrich-diff with the shared System Dataflow files", async (t) => 
     "+}",
   ].join("\n"));
   const enrichedPatch = spawnSync(process.execPath, [
-    "ai-coding-toolkit/common/enriched-patch-viewer/generate-enriched-patch.mjs", patchPath,
+    "ai-coding-toolkit/common/enriched-patch/generate-enriched-patch.mjs", patchPath,
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(enrichedPatch.status, 0, enrichedPatch.stderr);
   assert.equal(
@@ -218,15 +218,15 @@ test("installs enrich-diff with the shared System Dataflow files", async (t) => 
     assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
   }
   await assert.rejects(
-    lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "enriched-patch-viewer", "visualizer")),
+    lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "enriched-patch", "visualizer")),
     { code: "ENOENT" }
   );
   await assert.rejects(
-    lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "enriched-patch-viewer", "viewer", "index.html")),
+    lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "enriched-patch", "viewer", "index.html")),
     { code: "ENOENT" }
   );
 
-  const retiredEntryPoint = path.join(repoDirectory, "ai-coding-toolkit", "common", "enriched-patch-viewer", "viewer", "index.html");
+  const retiredEntryPoint = path.join(repoDirectory, "ai-coding-toolkit", "common", "enriched-patch", "viewer", "index.html");
   await writeFile(retiredEntryPoint, "retired entry point");
   const reinstall = install([repoDirectory, "--tool", "enrich-diff"]);
   assert.equal(reinstall.status, 0, reinstall.stderr);
@@ -255,7 +255,7 @@ test("installs advanced-diff-viewer independently", async (t) => {
     "adv-diff": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer",
   });
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer"))).isDirectory(), true);
-  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/enriched-patch-viewer"))).isDirectory(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/enriched-patch"))).isDirectory(), true);
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/config.json")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "docs/plans")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/enriched-patch.json")), { code: "ENOENT" });

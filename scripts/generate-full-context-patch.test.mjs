@@ -7,7 +7,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const generatorPath = path.join(toolkitDirectory, "common", "enriched-patch-viewer", "generate-full-context-patch.mjs");
+const generatorPath = path.join(toolkitDirectory, "common", "enriched-patch", "generate-full-context-patch.mjs");
 
 function git(repositoryDirectory, argumentsList) {
   const result = spawnSync("git", argumentsList, { cwd: repositoryDirectory, encoding: "utf8" });
