@@ -18,10 +18,10 @@ To install only the alternative `hld-gen-new` implementation, run:
 npm run install:hld-gen-new -- /path/to/code-repo
 ```
 
-To install the `$annotate-diff` skill, run:
+To install the `$enrich-diff` skill, run:
 
 ```sh
-npm run install:annotate-diff -- /path/to/code-repo
+npm run install:enrich-diff -- /path/to/code-repo
 ```
 
 To install the Advanced Diff Viewer independently, run:
@@ -40,7 +40,7 @@ The viewer generates `advanced-diff-viewer/diff-index.json` automatically from c
 
 The two HLD implementations expose the skill as `$hld-gen`; install one implementation into a target repository at a time.
 
-The target directory must already exist. Relative target paths are resolved from the current working directory. For the HLD and annotate-diff tools, the output directory defaults to `docs/plans` under the target repository root. To choose another repository-relative directory, run:
+The target directory must already exist. Relative target paths are resolved from the current working directory. For the HLD and enrich-diff tools, the output directory defaults to `docs/plans` under the target repository root. To choose another repository-relative directory, run:
 
 ```sh
 node scripts/init.mjs ../code-repo --output-dir architecture/plans
@@ -85,13 +85,13 @@ The `hld-gen-new` tool installs as `$hld-gen` and provides the candidate generat
 
 It has independent validation and counting scripts and uses the Implementation Dataflow visualizer, available through `npm run hld-visualizer`.
 
-## Annotate the Current Diff
+## Enrich the Current Diff
 
-After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$annotate-diff`. The skill compares the current files with `HEAD` and writes `<feature>.system-dataflow.code-review.json` beside the HLD. It also writes `<feature>.diff-index.json` as a self-contained input for the diff viewer, embedding the exact patch alongside locations for changed files, classes, and methods. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
+After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$enrich-diff`. The skill compares the current files with `HEAD` and writes `<feature>.system-dataflow.code-review.json` beside the HLD. It also writes `<feature>.diff-index.json` as a self-contained input for the diff viewer, embedding the exact patch alongside locations for changed files, classes, and methods. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
 
 `generate-diff-index.mjs` can currently identify class and method entities only in JavaScript and TypeScript files because it uses a deterministic AST parser. Future work could add an LLM-based entity-identification path for broader language support.
 
-Run the combined visualizer from the target repository, then switch between the System Dataflow and Annotated Diff Patch views:
+Run the combined visualizer from the target repository, then switch between the System Dataflow and Enriched Diff Patch views:
 
 ```sh
 npm run diff-visualizer

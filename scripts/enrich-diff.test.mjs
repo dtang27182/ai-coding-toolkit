@@ -7,11 +7,11 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const validatorPath = path.join(toolkitDirectory, "annotate-diff", "scripts", "validate-system-dataflow.mjs");
+const validatorPath = path.join(toolkitDirectory, "enrich-diff", "scripts", "validate-system-dataflow.mjs");
 const examplePath = path.join(toolkitDirectory, "common", "system-dataflow", "system-dataflow.example.json");
 
 async function runValidator(t, dataflow) {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "annotate-diff-"));
+  const directory = await mkdtemp(path.join(os.tmpdir(), "enrich-diff-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const inputPath = path.join(directory, "system-dataflow.json");
   await writeFile(inputPath, JSON.stringify(dataflow));

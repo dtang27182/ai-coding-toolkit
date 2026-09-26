@@ -234,7 +234,7 @@ test("derives entity line counts and file-level unmatched counts", () => {
   assert.equal(unmatchedCount(exampleIndex.elements["element-1"]), 0);
 });
 
-test("the annotate-diff viewer finds the newest index under the configured output directory", async (t) => {
+test("the enrich-diff viewer finds the newest index under the configured output directory", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "diff-viewer-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const repositoryDirectory = path.join(directory, "repository");
@@ -249,7 +249,7 @@ test("the annotate-diff viewer finds the newest index under the configured outpu
   await mkdir(path.join(repositoryDirectory, "advanced-diff-viewer"));
   await writeFile(path.join(repositoryDirectory, "advanced-diff-viewer/diff-index.json"), "{}");
 
-  const configPath = path.join(toolkitDirectory, "annotate-diff/visualizer/vite.config.mjs");
+  const configPath = path.join(toolkitDirectory, "enrich-diff/visualizer/vite.config.mjs");
   assert.equal(await defaultIndexFileName(configPath, repositoryDirectory), "docs/plans/feature/newer.diff-index.json");
 });
 

@@ -3,7 +3,7 @@ adiff-visualize-design/
 hld-gen/visualizer/dist/
 common/impl-dataflow/visualizer/dist/
 common/system-dataflow/visualizer/dist/
-annotate-diff/visualizer/dist/
+enrich-diff/visualizer/dist/
 advanced-diff-viewer/visualizer/dist/
 advanced-diff-viewer/diff-index.json
 .DS_Store

@@ -1,6 +1,6 @@
 # Generate the Diff Description
 
-Use the final HLD selected by the `annotate-diff` workflow.
+Use the final HLD selected by the `hld-gen` workflow.
 
 ## Initialize the Document
 

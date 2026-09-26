@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "install:hld-gen-new": "node scripts/init.mjs --agent codex --tool hld-gen-new",
-    "install:annotate-diff": "node scripts/init.mjs --agent codex --tool annotate-diff",
+    "install:enrich-diff": "node scripts/init.mjs --agent codex --tool enrich-diff",
     "install:adv-diff": "node scripts/init.mjs --agent codex --tool advanced-diff-viewer",
     "adv-diff": "vite advanced-diff-viewer/visualizer",
     "hld-visualizer": "vite common/impl-dataflow/visualizer",
-    "diff-visualizer": "vite annotate-diff/visualizer"
+    "diff-visualizer": "vite enrich-diff/visualizer"
   },
   "dependencies": {
     "ajv": "8.20.0"

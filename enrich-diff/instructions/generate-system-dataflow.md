@@ -9,7 +9,7 @@
 
 ## 2. Initialize the Diff Description
 
-- Read and follow `ai-coding-toolkit/annotate-diff/instructions/generate-diff-description.md`.
+- Read and follow `ai-coding-toolkit/enrich-diff/instructions/generate-diff-description.md`.
 - After creating the diff-description, use it instead of the HLD for all feature scope and user-flow references.
 
 ## 3. Inspect the Implementation
@@ -58,7 +58,7 @@
 
 ## 7. Validate the Dataflow Artifact
 
-- Run `node ai-coding-toolkit/annotate-diff/scripts/validate-system-dataflow.mjs <output-path>`.
+- Run `node ai-coding-toolkit/enrich-diff/scripts/validate-system-dataflow.mjs <output-path>`.
 - Correct every validation error.
 
 ## 8. Report the Result
