@@ -83,7 +83,7 @@ The `hld-gen-new` tool installs as `$hld-gen` and provides the candidate generat
 
 `hld-gen-new` produces an HLD doc (`<feature>.hld.md`), a proposed System Dataflow (`<feature>.system-dataflow.json`), and a structured JSON representation of its Implementation Dataflow narrative (`<feature>.impl-dataflow.json`), in that order. It retains the same quality metrics and iteration structure as `hld-gen`.
 
-It has independent validation and counting scripts and uses the Implementation Dataflow visualizer, available through `npm run hld-visualizer`.
+It has independent validation and counting scripts. Run `npm run hld-visualizer` to switch between its System Dataflow and Implementation Dataflow views. The System view opens the newest matching artifact under the configured output directory. The Implementation view restores the last file opened in the browser, or opens the newest matching artifact when there is none. You can open or drag in another JSON file in either view.
 
 ## Annotate the Current Diff
 

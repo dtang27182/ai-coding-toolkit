@@ -99,7 +99,7 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer",
   });
   assert.equal(
     await readFile(path.join(repoDirectory, ".agents", "skills", "hld-gen", "SKILL.md"), "utf8"),
@@ -109,20 +109,19 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "impl-dataflow"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "node_modules"))).isDirectory(), true);
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen")), { code: "ENOENT" });
-  const retiredVisualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new", "visualizer");
+  const visualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new", "visualizer");
   const retiredArchitectureDiffPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "arch-diff");
-  await mkdir(retiredVisualizerPath, { recursive: true });
   await mkdir(retiredArchitectureDiffPath, { recursive: true });
-  await writeFile(path.join(retiredVisualizerPath, "obsolete.html"), "obsolete viewer");
   await writeFile(path.join(retiredArchitectureDiffPath, "obsolete.json"), "obsolete format");
-  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","hld-gen-new-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer"}}\n');
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","hld-gen-new-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer","hld-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer"}}\n');
   const upgrade = install([repoDirectory, "--tool", "hld-gen-new"]);
   assert.equal(upgrade.status, 0, upgrade.stderr);
-  await assert.rejects(lstat(retiredVisualizerPath), { code: "ENOENT" });
+  assert.equal((await lstat(path.join(visualizerPath, "index.html"))).isFile(), true);
+  await assert.rejects(lstat(path.join(visualizerPath, "dist")), { code: "ENOENT" });
   await assert.rejects(lstat(retiredArchitectureDiffPath), { code: "ENOENT" });
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer",
   });
   await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-gen-new-visualizer":"custom old viewer","hld-visualizer":"custom new viewer"}}\n');
   const conflictingCommands = install([repoDirectory, "--tool", "hld-gen-new"]);
@@ -153,9 +152,12 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   const visualizerBuild = spawnSync(process.execPath, [
     "ai-coding-toolkit/node_modules/vite/bin/vite.js",
     "build",
-    "ai-coding-toolkit/common/impl-dataflow/visualizer",
+    "ai-coding-toolkit/hld-gen-new/visualizer",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
+  for (const htmlFile of ["index.html", "system.html", "implementation.html"]) {
+    assert.equal((await lstat(path.join(visualizerPath, "dist", htmlFile))).isFile(), true);
+  }
 });
 
 test("installs annotate-diff with the shared System Dataflow files", async (t) => {

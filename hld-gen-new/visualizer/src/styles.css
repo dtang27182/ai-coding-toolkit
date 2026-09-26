@@ -1,0 +1,108 @@
+:root {
+  color-scheme: dark;
+  font-family: "IBM Plex Sans", Helvetica, sans-serif;
+  background: #091017;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+}
+
+.view-navigation {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #293744;
+  background: #111b26;
+}
+
+.viewer-title {
+  margin-right: 12px;
+  color: #e5edf5;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+button {
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #9aabbb;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+button:hover,
+button:focus-visible {
+  color: #d3e7ff;
+}
+
+button:focus-visible {
+  outline: 2px solid #58a6ff;
+  outline-offset: 2px;
+}
+
+button.active {
+  border-color: #487bb1;
+  color: #d3e7ff;
+  background: #1b3550;
+}
+
+.view-panels {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+}
+
+.view-panel {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.view-panel.active {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+@media (max-width: 600px) {
+  .view-navigation {
+    flex-wrap: wrap;
+  }
+
+  .viewer-title {
+    width: 100%;
+  }
+
+  button {
+    flex: 1;
+  }
+}

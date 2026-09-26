@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#091017">
+    <meta name="description" content="Explore system and implementation dataflows.">
+    <title>HLD Dataflow Visualizer</title>
+  </head>
+  <body>
+    <div id="app">
+      <nav class="view-navigation" aria-label="Switch dataflow view">
+        <span class="viewer-title">HLD Dataflow</span>
+        <button type="button" data-view="system" class="active" aria-pressed="true">System Dataflow</button>
+        <button type="button" data-view="implementation" aria-pressed="false">Implementation Dataflow</button>
+      </nav>
+      <main class="view-panels">
+        <section class="view-panel active" data-panel="system" aria-label="System Dataflow">
+          <iframe src="./system.html" title="System Dataflow"></iframe>
+        </section>
+        <section class="view-panel" data-panel="implementation" aria-label="Implementation Dataflow" aria-hidden="true" inert>
+          <iframe src="./implementation.html" title="Implementation Dataflow"></iframe>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

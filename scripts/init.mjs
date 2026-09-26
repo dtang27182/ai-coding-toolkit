@@ -69,7 +69,7 @@ async function installRootCommands() {
   if (packageJson !== undefined) {
     const commands = {};
     if (toolNames.includes("hld-gen-new")) {
-      commands["hld-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer";
+      commands["hld-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer";
     }
     if (toolNames.includes("annotate-diff")) {
       commands["diff-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/annotate-diff/visualizer";
@@ -91,12 +91,20 @@ async function installRootCommands() {
       (
         packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer" ||
         packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/arch-diff/visualizer" ||
-        packageJson.scripts?.["hld-gen-new-visualizer"] === commands["hld-visualizer"]
+        packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer"
       )
     ) {
       delete packageJson.scripts["hld-gen-new-visualizer"];
       packageChanged = true;
       console.log("Removed retired npm command: npm run hld-gen-new-visualizer");
+    }
+    if (
+      toolNames.includes("hld-gen-new") &&
+      packageJson.scripts?.["hld-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer"
+    ) {
+      packageJson.scripts["hld-visualizer"] = commands["hld-visualizer"];
+      packageChanged = true;
+      console.log("Updated npm command: npm run hld-visualizer");
     }
     if (toolNames.includes("hld-gen") && packageJson.scripts?.mermaid === "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs") {
       delete packageJson.scripts.mermaid;
@@ -213,7 +221,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   }
   if (toolNames.includes("hld-gen-new")) {
     await rm(path.join(installedToolkitDirectory, "common", "arch-diff"), { recursive: true, force: true });
-    await rm(path.join(installedToolkitDirectory, "hld-gen-new", "visualizer"), { recursive: true, force: true });
+    await rm(path.join(installedToolkitDirectory, "hld-gen-new", "visualizer", "dist"), { recursive: true, force: true });
   }
   if (toolNames.includes("annotate-diff")) {
     await rm(path.join(installedToolkitDirectory, "common", "diff-viewer", "visualizer"), { recursive: true, force: true });

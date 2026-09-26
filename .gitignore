@@ -2,6 +2,7 @@ node_modules/
 adiff-visualize-design/
 hld-gen/visualizer/dist/
 common/impl-dataflow/visualizer/dist/
+hld-gen-new/visualizer/dist/
 common/system-dataflow/visualizer/dist/
 annotate-diff/visualizer/dist/
 advanced-diff-viewer/visualizer/dist/
