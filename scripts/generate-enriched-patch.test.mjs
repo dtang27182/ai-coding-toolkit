@@ -6,10 +6,10 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { generateDiffIndex } from "../common/diff-viewer/generate-diff-index.mjs";
+import { generateEnrichedPatch } from "../common/diff-viewer/generate-enriched-patch.mjs";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const generatorPath = path.join(toolkitDirectory, "common", "diff-viewer", "generate-diff-index.mjs");
+const generatorPath = path.join(toolkitDirectory, "common", "diff-viewer", "generate-enriched-patch.mjs");
 
 const modifiedPatch = [
   "diff --git a/src/ChangeService.js b/src/ChangeService.js",
@@ -34,7 +34,7 @@ const modifiedPatch = [
 ].join("\n");
 
 test("indexes changed classes and methods while retaining unmatched file changes", () => {
-  const index = generateDiffIndex(modifiedPatch);
+  const index = generateEnrichedPatch(modifiedPatch);
   assert.deepEqual(index, {
     schemaVersion: 1,
     patch: modifiedPatch,
@@ -82,7 +82,7 @@ test("indexes deleted classes and methods from the old file image", () => {
     "-  }",
     "-}",
   ].join("\n");
-  const index = generateDiffIndex(patch);
+  const index = generateEnrichedPatch(patch);
   assert.deepEqual(index.elements, {
     "element-1": { kind: "file", name: "src/OldService.ts", locations: [] },
     "element-2": {
@@ -111,7 +111,7 @@ test("indexes top-level functions under their file", () => {
     "+  return 1;",
     "+}",
   ].join("\n");
-  const index = generateDiffIndex(patch);
+  const index = generateEnrichedPatch(patch);
   assert.deepEqual(index.elements, {
     "element-1": { kind: "file", name: "src/run.ts", locations: [] },
     "element-2": {
@@ -136,7 +136,7 @@ test("indexes arrow functions as methods", () => {
     "+",
     "+export const helper = () => false;",
   ].join("\n");
-  const index = generateDiffIndex(patch);
+  const index = generateEnrichedPatch(patch);
   assert.deepEqual(Object.values(index.elements).map(({ kind, name, parentId }) => ({ kind, name, parentId })), [
     { kind: "file", name: "src/actions.ts", parentId: undefined },
     { kind: "class", name: "Actions", parentId: "element-1" },
@@ -162,7 +162,7 @@ test("captures unsupported text changes and binary files as file elements", () =
     "index 3333333..4444444 100644",
     "Binary files a/assets/image.png and b/assets/image.png differ",
   ].join("\n");
-  const index = generateDiffIndex(patch);
+  const index = generateEnrichedPatch(patch);
   assert.deepEqual(index.elements, {
     "element-1": {
       kind: "file",
@@ -191,7 +191,7 @@ test("keeps ambiguous declarations as file-level changes", () => {
     "+  return 2;",
     "+}",
   ].join("\n");
-  const index = generateDiffIndex(patch);
+  const index = generateEnrichedPatch(patch);
   assert.deepEqual(index.elements, {
     "element-1": {
       kind: "file",
@@ -201,15 +201,15 @@ test("keeps ambiguous declarations as file-level changes", () => {
   });
 });
 
-test("the CLI writes a validated index beside the patch by default", async (t) => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "diff-index-"));
+test("the CLI writes a validated enriched patch beside the source patch by default", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "enriched-patch-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const patchPath = path.join(directory, "feature.code-review.patch");
   await writeFile(patchPath, modifiedPatch);
 
   const result = spawnSync(process.execPath, [generatorPath, patchPath], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
-  const index = JSON.parse(await readFile(path.join(directory, "feature.diff-index.json"), "utf8"));
+  const index = JSON.parse(await readFile(path.join(directory, "feature.enriched-patch.json"), "utf8"));
   assert.equal(index.patch, modifiedPatch);
   assert.equal(index.elements["element-4"].name, "buildChangeSet");
 });
@@ -223,5 +223,5 @@ test("rejects a patch that does not contain full file context", () => {
     "-old",
     "+new",
   ].join("\n");
-  assert.throws(() => generateDiffIndex(patch), /is not full-context at line 1/);
+  assert.throws(() => generateEnrichedPatch(patch), /is not full-context at line 1/);
 });

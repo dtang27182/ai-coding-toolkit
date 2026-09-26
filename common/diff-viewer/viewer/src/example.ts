@@ -1,4 +1,4 @@
-import type { DiffIndex } from "./types.ts";
+import type { EnrichedPatch } from "./types.ts";
 
 const patch = [
   "diff --git a/src/services/ChangeService.ts b/src/services/ChangeService.ts",
@@ -28,7 +28,7 @@ const patch = [
   "+}",
 ].join("\n");
 
-export const exampleIndex: DiffIndex = {
+export const examplePatch: EnrichedPatch = {
   schemaVersion: 1,
   patch,
   elements: {

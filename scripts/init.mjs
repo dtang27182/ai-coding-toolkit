@@ -200,7 +200,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
       relativePaths = ["diff-viewer", "default-output-file-plugin.mjs"];
     } else if (directoryName === "advanced-diff-viewer") {
       relativePaths = [
-        "generate-diff-index.mjs",
+        "generate-enriched-patch.mjs",
         "visualizer/index.html",
         "visualizer/src",
         "visualizer/tsconfig.json",

@@ -49,7 +49,7 @@ app.innerHTML = `
     </header>
     <main class="view-panels">
       <section class="view-panel active" data-panel="dataflow" aria-label="System Dataflow"></section>
-      <section class="view-panel" data-panel="diff" aria-label="Enriched Diff Patch" aria-hidden="true"></section>
+      <section class="view-panel" data-panel="diff" aria-label="Enriched Patch" aria-hidden="true"></section>
     </main>
   </div>`;
 
@@ -100,7 +100,7 @@ function syncHeader(): void {
   for (const proxy of app.querySelectorAll<HTMLButtonElement>("[data-proxy]")) {
     const source = sourceControl(proxy.dataset.proxy!);
     if (proxy.dataset.proxy === "open") {
-      proxy.textContent = activeView === "dataflow" ? "Open JSON" : "Open Diff Index";
+      proxy.textContent = activeView === "dataflow" ? "Open JSON" : "Open Enriched Patch";
     } else if (source !== null && proxy.dataset.proxy !== "zoom-out" && proxy.dataset.proxy !== "zoom-in") {
       proxy.textContent = source.textContent;
       proxy.classList.toggle("active", source.classList.contains("active"));

@@ -200,12 +200,12 @@ test("installs enrich-diff with the shared System Dataflow files", async (t) => 
     "+  return true;",
     "+}",
   ].join("\n"));
-  const diffIndex = spawnSync(process.execPath, [
-    "ai-coding-toolkit/common/diff-viewer/generate-diff-index.mjs", patchPath,
+  const enrichedPatch = spawnSync(process.execPath, [
+    "ai-coding-toolkit/common/diff-viewer/generate-enriched-patch.mjs", patchPath,
   ], { cwd: repoDirectory, encoding: "utf8" });
-  assert.equal(diffIndex.status, 0, diffIndex.stderr);
+  assert.equal(enrichedPatch.status, 0, enrichedPatch.stderr);
   assert.equal(
-    JSON.parse(await readFile(path.join(repoDirectory, "feature.diff-index.json"), "utf8")).elements["element-2"].name,
+    JSON.parse(await readFile(path.join(repoDirectory, "feature.enriched-patch.json"), "utf8")).elements["element-2"].name,
     "feature",
   );
 
@@ -258,7 +258,7 @@ test("installs advanced-diff-viewer independently", async (t) => {
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/diff-viewer"))).isDirectory(), true);
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/config.json")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "docs/plans")), { code: "ENOENT" });
-  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/diff-index.json")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/enriched-patch.json")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/visualizer/dist")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/common/system-dataflow")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, ".agents")), { code: "ENOENT" });
@@ -270,17 +270,17 @@ test("installs advanced-diff-viewer independently", async (t) => {
 
   await writeFile(path.join(repoDirectory, "app.ts"), "export const value = 2;\n");
   const generated = spawnSync(process.execPath, [
-    "ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs",
+    "ai-coding-toolkit/advanced-diff-viewer/generate-enriched-patch.mjs",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(generated.status, 0, generated.stderr);
-  const index = JSON.parse(await readFile(path.join(repoDirectory, "advanced-diff-viewer/diff-index.json"), "utf8"));
+  const index = JSON.parse(await readFile(path.join(repoDirectory, "advanced-diff-viewer/enriched-patch.json"), "utf8"));
   assert.match(index.patch, /diff --git a\/app\.ts b\/app\.ts/);
   assert.doesNotMatch(index.patch, /diff --git a\/ai-coding-toolkit\//);
 
   const reinstall = install([repoDirectory, "--tool", "advanced-diff-viewer"]);
   assert.equal(reinstall.status, 0, reinstall.stderr);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/visualizer/src/main.ts"))).isFile(), true);
-  assert.equal((await lstat(path.join(repoDirectory, "advanced-diff-viewer/diff-index.json"))).isFile(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "advanced-diff-viewer/enriched-patch.json"))).isFile(), true);
 });
 
 test("refreshes installed copies on repeat installation", async (t) => {

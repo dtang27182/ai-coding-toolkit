@@ -13,7 +13,7 @@ export interface DiffElement {
   locations: DiffLocation[];
 }
 
-export interface DiffIndex {
+export interface EnrichedPatch {
   schemaVersion: 1;
   patch: string;
   elements: Record<string, DiffElement>;

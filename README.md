@@ -36,7 +36,7 @@ In either this toolkit checkout or an installed target repository, open the view
 npm run adv-diff
 ```
 
-The viewer generates `advanced-diff-viewer/diff-index.json` automatically from current staged, unstaged, deleted, and untracked changes against `HEAD`. It updates as files change and provides a Refresh button. The generated index and, in installed repositories, the copied `ai-coding-toolkit` runtime are excluded from the comparison. You can open or drag in another index from the viewer.
+The viewer generates `advanced-diff-viewer/enriched-patch.json` automatically from current staged, unstaged, deleted, and untracked changes against `HEAD`. It updates as files change and provides a Refresh button. The generated enriched patch and, in installed repositories, the copied `ai-coding-toolkit` runtime are excluded from the comparison. You can open or drag in another enriched patch from the viewer.
 
 The two HLD implementations expose the skill as `$hld-gen`; install one implementation into a target repository at a time.
 
@@ -87,17 +87,17 @@ It has independent validation and counting scripts. Run `npm run hld-visualizer`
 
 ## Enrich the Current Diff
 
-After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$enrich-diff`. The skill compares the current files with `HEAD` and writes `<feature>.system-dataflow.code-review.json` beside the HLD. It also writes `<feature>.diff-index.json` as a self-contained input for the diff viewer, embedding the exact patch alongside locations for changed files, classes, and methods. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
+After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$enrich-diff`. The skill compares the current files with `HEAD` and writes `<feature>.system-dataflow.code-review.json` beside the HLD. It also writes `<feature>.enriched-patch.json` as a self-contained input for the diff viewer, embedding the exact patch alongside locations for changed files, classes, and methods. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
 
-`generate-diff-index.mjs` can currently identify class and method entities only in JavaScript and TypeScript files because it uses a deterministic AST parser. Future work could add an LLM-based entity-identification path for broader language support.
+`generate-enriched-patch.mjs` can currently identify class and method entities only in JavaScript and TypeScript files because it uses a deterministic AST parser. Future work could add an LLM-based entity-identification path for broader language support.
 
-Run the combined visualizer from the target repository, then switch between the System Dataflow and Enriched Diff Patch views:
+Run the combined visualizer from the target repository, then switch between the System Dataflow and Enriched Patch views:
 
 ```sh
 npm run diff-visualizer
 ```
 
-Each view opens the newest matching `system-dataflow.json` or `diff-index.json` artifact under the configured output directory. You can also open or drag in another file from either view.
+Each view opens the newest matching `system-dataflow.json` or `enriched-patch.json` artifact under the configured output directory. You can also open or drag in another file from either view.
 
 In the combined visualizer, the diff view derives its directory tree from indexed file paths and exposes the indexed files, classes, and methods. Selecting one opens its full-file diff and scrolls to the indexed declaration.
 

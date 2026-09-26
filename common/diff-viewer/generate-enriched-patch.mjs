@@ -8,7 +8,7 @@ import { createVirtualFileSystem } from "typescript/unstable/fs";
 import { API as TypeScriptAPI } from "typescript/unstable/sync";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const schema = JSON.parse(await readFile(path.join(scriptDirectory, "diff-index.schema.json"), "utf8"));
+const schema = JSON.parse(await readFile(path.join(scriptDirectory, "enriched-patch.schema.json"), "utf8"));
 const validateSchema = new Ajv2020({ allErrors: true }).compile(schema);
 
 function decodeGitPath(value) {
@@ -279,8 +279,8 @@ function populateDeclarations(files) {
     const fileName = file.newPath ?? file.oldPath;
     if (!file.binary && fileName !== null && supportedSource(fileName)) {
       const extension = path.extname(fileName);
-      file.oldVirtualPath = `/diff-index/file-${index}/old${extension}`;
-      file.newVirtualPath = `/diff-index/file-${index}/new${extension}`;
+      file.oldVirtualPath = `/enriched-patch/file-${index}/old${extension}`;
+      file.newVirtualPath = `/enriched-patch/file-${index}/new${extension}`;
       virtualFiles[file.oldVirtualPath] = file.oldSource;
       virtualFiles[file.newVirtualPath] = file.newSource;
       openFiles.push(file.oldVirtualPath, file.newVirtualPath);
@@ -538,7 +538,7 @@ function semanticErrors(index, files) {
   return errors;
 }
 
-export function generateDiffIndex(patch) {
+export function generateEnrichedPatch(patch) {
   const files = parsePatch(patch);
   if (files.length === 0) {
     throw new Error("Patch contains no file sections.");
@@ -561,34 +561,34 @@ export function generateDiffIndex(patch) {
     const details = (validateSchema.errors ?? [])
       .map((error) => `${error.instancePath || "/"}: ${error.message}`)
       .join("\n");
-    throw new Error(`Generated Diff Index does not match its schema:\n${details}`);
+    throw new Error(`Generated Enriched Patch does not match its schema:\n${details}`);
   }
   const errors = semanticErrors(index, files);
-  if (errors.length > 0) throw new Error(`Generated Diff Index is invalid:\n${errors.join("\n")}`);
+  if (errors.length > 0) throw new Error(`Generated Enriched Patch is invalid:\n${errors.join("\n")}`);
   return index;
 }
 
 function defaultOutputPath(patchPath) {
   if (patchPath.endsWith(".code-review.patch")) {
-    return `${patchPath.slice(0, -".code-review.patch".length)}.diff-index.json`;
+    return `${patchPath.slice(0, -".code-review.patch".length)}.enriched-patch.json`;
   } else if (patchPath.endsWith(".patch")) {
-    return `${patchPath.slice(0, -".patch".length)}.diff-index.json`;
+    return `${patchPath.slice(0, -".patch".length)}.enriched-patch.json`;
   } else {
-    return `${patchPath}.diff-index.json`;
+    return `${patchPath}.enriched-patch.json`;
   }
 }
 
 async function main() {
   const patchArgument = process.argv[2];
   if (patchArgument === undefined) {
-    console.error("Usage: node generate-diff-index.mjs <full-context-patch> [output-json]");
+    console.error("Usage: node generate-enriched-patch.mjs <full-context-patch> [output-json]");
     process.exitCode = 1;
   } else {
     const patchPath = path.resolve(patchArgument);
     const outputPath = path.resolve(process.argv[3] ?? defaultOutputPath(patchPath));
-    const index = generateDiffIndex(await readFile(patchPath, "utf8"));
+    const index = generateEnrichedPatch(await readFile(patchPath, "utf8"));
     await writeFile(outputPath, `${JSON.stringify(index, null, 2)}\n`);
-    console.log(`Generated Diff Index: ${outputPath}`);
+    console.log(`Generated Enriched Patch: ${outputPath}`);
   }
 }
 

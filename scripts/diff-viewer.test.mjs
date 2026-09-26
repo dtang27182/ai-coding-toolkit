@@ -6,7 +6,7 @@ import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { changeBlocks, changeRuns } from "../common/diff-viewer/viewer/src/change-navigation.ts";
-import { exampleIndex } from "../common/diff-viewer/viewer/src/example.ts";
+import { examplePatch } from "../common/diff-viewer/viewer/src/example.ts";
 import { clampSidebarWidth } from "../common/diff-viewer/viewer/src/layout.ts";
 import { buildTree, expandedNodeIds, expansionStates, statsForElement, unmatchedCount } from "../common/diff-viewer/viewer/src/model.ts";
 import { firstChangedLine, parsePatch } from "../common/diff-viewer/viewer/src/patch.ts";
@@ -14,7 +14,7 @@ import { isLineWrapShortcut } from "../common/diff-viewer/viewer/src/shortcuts.t
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-async function defaultIndexFileName(configPath, repositoryDirectory) {
+async function defaultEnrichedPatchFileName(configPath, repositoryDirectory) {
   const originalDirectory = process.cwd();
   process.chdir(repositoryDirectory);
   try {
@@ -26,7 +26,7 @@ async function defaultIndexFileName(configPath, repositoryDirectory) {
       setHeader() {},
       end(body) { this.body = body; },
     };
-    await middleware({ method: "GET", url: "/__diff-index/default" }, response, () => {
+    await middleware({ method: "GET", url: "/__enriched-patch/default" }, response, () => {
       assert.fail("The default index endpoint did not handle the request.");
     });
     assert.equal(response.statusCode, 200);
@@ -37,7 +37,7 @@ async function defaultIndexFileName(configPath, repositoryDirectory) {
 }
 
 test("parses complete file rows and change counts from the embedded patch", () => {
-  const files = parsePatch(exampleIndex.patch);
+  const files = parsePatch(examplePatch.patch);
   assert.equal(files.length, 2);
   assert.deepEqual(
     files.map(({ path, added, removed }) => ({ path, added, removed })),
@@ -55,7 +55,7 @@ test("parses complete file rows and change counts from the embedded patch", () =
 });
 
 test("locates the first changed line when opening a file-level diff", () => {
-  const files = parsePatch(exampleIndex.patch);
+  const files = parsePatch(examplePatch.patch);
   assert.deepEqual(firstChangedLine(files[0]), { side: "old", line: 3 });
   assert.deepEqual(firstChangedLine(files[1]), { side: "new", line: 1 });
   assert.equal(firstChangedLine({
@@ -70,7 +70,7 @@ test("locates the first changed line when opening a file-level diff", () => {
 });
 
 test("groups adjacent changed lines for navigation and same-kind lines for the minimap", () => {
-  const rows = parsePatch(exampleIndex.patch)[0].rows;
+  const rows = parsePatch(examplePatch.patch)[0].rows;
   assert.deepEqual(changeBlocks(rows), [
     { startRowIndex: 2, endRowIndex: 3 },
     { startRowIndex: 7, endRowIndex: 9 },
@@ -103,7 +103,7 @@ test("uses diff headers for binary files without text-file headers", () => {
 });
 
 test("builds directory nodes above indexed files and preserves entity nesting", () => {
-  const tree = buildTree(exampleIndex);
+  const tree = buildTree(examplePatch);
   assert.equal(tree[0].kind, "directory");
   assert.equal(tree[0].name, "src");
   assert.equal(tree[0].children[0].kind, "directory");
@@ -140,7 +140,7 @@ test("sorts every navigation level by its full hierarchical key", () => {
 });
 
 test("collapse all keeps parent directories open and hides files in leaf directories", () => {
-  const tree = buildTree(exampleIndex);
+  const tree = buildTree(examplePatch);
   const collapsed = expandedNodeIds(tree, false);
   const expanded = expandedNodeIds(tree);
   const expandableNodes = [];
@@ -161,7 +161,7 @@ test("collapse all keeps parent directories open and hides files in leaf directo
 });
 
 test("preserves expansion by tree identity when index element IDs change", () => {
-  const previousTree = buildTree(exampleIndex);
+  const previousTree = buildTree(examplePatch);
   const previousExpanded = expandedNodeIds(previousTree);
   previousExpanded.delete("directory:src/services");
   previousExpanded.delete("element-2");
@@ -174,7 +174,7 @@ test("preserves expansion by tree identity when index element IDs change", () =>
     "element-5": "format-file",
     "element-6": "format-method",
   };
-  const nextElements = Object.fromEntries(Object.entries(exampleIndex.elements).map(([id, element]) => [
+  const nextElements = Object.fromEntries(Object.entries(examplePatch.elements).map(([id, element]) => [
     ids[id],
     { ...element, ...(element.parentId === undefined ? {} : {
       parentId: ids[element.parentId],
@@ -182,7 +182,7 @@ test("preserves expansion by tree identity when index element IDs change", () =>
   ]));
   nextElements["new-file"] = { kind: "file", name: "src/new.ts", locations: [] };
   nextElements["new-class"] = { kind: "class", name: "New", parentId: "new-file", locations: [] };
-  const nextTree = buildTree({ ...exampleIndex, elements: nextElements });
+  const nextTree = buildTree({ ...examplePatch, elements: nextElements });
   const expanded = expandedNodeIds(nextTree, true, expansionStates(previousTree, previousExpanded));
 
   assert.equal(expanded.has("directory:src/services"), false);
@@ -220,18 +220,18 @@ test("does not transfer expansion between indistinguishable duplicate nodes", ()
 });
 
 test("derives entity line counts and file-level unmatched counts", () => {
-  const files = parsePatch(exampleIndex.patch);
-  assert.deepEqual(statsForElement(exampleIndex.elements["element-3"], files), {
+  const files = parsePatch(examplePatch.patch);
+  assert.deepEqual(statsForElement(examplePatch.elements["element-3"], files), {
     added: 1,
     removed: 1,
     changeType: "modified",
   });
-  assert.deepEqual(statsForElement(exampleIndex.elements["element-6"], files), {
+  assert.deepEqual(statsForElement(examplePatch.elements["element-6"], files), {
     added: 3,
     removed: 0,
     changeType: "added",
   });
-  assert.equal(unmatchedCount(exampleIndex.elements["element-1"]), 0);
+  assert.equal(unmatchedCount(examplePatch.elements["element-1"]), 0);
 });
 
 test("the enrich-diff viewer finds the newest index under the configured output directory", async (t) => {
@@ -240,17 +240,17 @@ test("the enrich-diff viewer finds the newest index under the configured output 
   const repositoryDirectory = path.join(directory, "repository");
   const outputDirectory = path.join(repositoryDirectory, "docs", "plans", "feature");
   await mkdir(outputDirectory, { recursive: true });
-  const older = path.join(outputDirectory, "older.diff-index.json");
-  const newer = path.join(outputDirectory, "newer.diff-index.json");
+  const older = path.join(outputDirectory, "older.enriched-patch.json");
+  const newer = path.join(outputDirectory, "newer.enriched-patch.json");
   await writeFile(older, "{}");
   await writeFile(newer, "{}");
   await utimes(older, new Date(1_000), new Date(1_000));
   await utimes(newer, new Date(2_000), new Date(2_000));
   await mkdir(path.join(repositoryDirectory, "advanced-diff-viewer"));
-  await writeFile(path.join(repositoryDirectory, "advanced-diff-viewer/diff-index.json"), "{}");
+  await writeFile(path.join(repositoryDirectory, "advanced-diff-viewer/enriched-patch.json"), "{}");
 
   const configPath = path.join(toolkitDirectory, "enrich-diff/visualizer/vite.config.mjs");
-  assert.equal(await defaultIndexFileName(configPath, repositoryDirectory), "docs/plans/feature/newer.diff-index.json");
+  assert.equal(await defaultEnrichedPatchFileName(configPath, repositoryDirectory), "docs/plans/feature/newer.enriched-patch.json");
 });
 
 test("recognizes Alt or Option plus Z as the line-wrapping shortcut", () => {

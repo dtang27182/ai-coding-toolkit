@@ -11,7 +11,7 @@ const visualizerDirectory = path.dirname(fileURLToPath(import.meta.url));
 const toolkitDirectory = path.resolve(visualizerDirectory, "../..");
 const repositoryDirectory = process.cwd();
 
-async function newestDiffIndex(directory) {
+async function newestEnrichedPatch(directory) {
   let entries;
   try {
     entries = await readdir(directory, { withFileTypes: true });
@@ -28,8 +28,8 @@ async function newestDiffIndex(directory) {
     const entryPath = path.join(directory, entry.name);
     let candidate;
     if (entry.isDirectory()) {
-      candidate = await newestDiffIndex(entryPath);
-    } else if (entry.name.endsWith(".diff-index.json")) {
+      candidate = await newestEnrichedPatch(entryPath);
+    } else if (entry.name.endsWith(".enriched-patch.json")) {
       candidate = { path: entryPath, modifiedTime: (await stat(entryPath)).mtimeMs };
     }
     if (candidate !== undefined && (newest === undefined || candidate.modifiedTime > newest.modifiedTime)) {
@@ -39,17 +39,17 @@ async function newestDiffIndex(directory) {
   return newest;
 }
 
-async function findDefaultDiffIndex(repository, toolkit) {
+async function findDefaultEnrichedPatch(repository, toolkit) {
   const config = JSON.parse(await readFile(path.join(toolkit, "config.json"), "utf8"));
-  return (await newestDiffIndex(path.resolve(repository, config.outputDirectory)))?.path;
+  return (await newestEnrichedPatch(path.resolve(repository, config.outputDirectory)))?.path;
 }
 
 export default defineConfig({
   plugins: [
     defaultOutputFilePlugin(
-      "default-diff-index",
-      "/__diff-index/default",
-      findDefaultDiffIndex,
+      "default-enriched-patch",
+      "/__enriched-patch/default",
+      findDefaultEnrichedPatch,
       repositoryDirectory,
       toolkitDirectory,
     ),

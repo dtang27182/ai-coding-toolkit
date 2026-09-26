@@ -1,5 +1,5 @@
 import { lineIsInRange } from "./patch.ts";
-import type { ChangeType, DiffElement, DiffFile, DiffIndex, ElementStats } from "./types.ts";
+import type { ChangeType, DiffElement, DiffFile, EnrichedPatch, ElementStats } from "./types.ts";
 
 export interface DirectoryNode {
   kind: "directory";
@@ -20,7 +20,7 @@ export interface ElementNode {
 
 export type TreeNode = DirectoryNode | ElementNode;
 
-function elementSortKey(index: DiffIndex, id: string): string {
+function elementSortKey(index: EnrichedPatch, id: string): string {
   const element = index.elements[id];
   let key;
   if (element.parentId === undefined) {
@@ -38,7 +38,7 @@ function sortNodes(nodes: TreeNode[]): void {
   }
 }
 
-export function buildTree(index: DiffIndex): TreeNode[] {
+export function buildTree(index: EnrichedPatch): TreeNode[] {
   const nodes = new Map<string, ElementNode>();
   const roots: ElementNode[] = [];
   for (const [id, element] of Object.entries(index.elements)) {
@@ -184,7 +184,7 @@ export function unmatchedCount(element: DiffElement): number {
   }, 0);
 }
 
-export function semanticError(index: DiffIndex, files: DiffFile[]): string | undefined {
+export function semanticError(index: EnrichedPatch, files: DiffFile[]): string | undefined {
   const elements = Object.entries(index.elements);
   const patchPaths = new Set(files.map((file) => file.path));
   for (const [id, element] of elements) {

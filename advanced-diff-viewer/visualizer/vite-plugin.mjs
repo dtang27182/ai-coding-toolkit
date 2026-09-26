@@ -3,7 +3,7 @@ import { watch } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
-import { generateAdvancedDiffIndex } from "../generate-diff-index.mjs";
+import { generateAdvancedEnrichedPatch } from "../generate-enriched-patch.mjs";
 
 function git(repositoryDirectory, argumentsList) {
   return execFileSync("git", argumentsList, { cwd: repositoryDirectory, encoding: "utf8" }).trim();
@@ -50,7 +50,7 @@ export function advancedDiffViewerPlugin(repositoryDirectory, watchGit = watch) 
         while (requested) {
           requested = false;
           try {
-            const outputFile = await generateAdvancedDiffIndex(repositoryDirectory);
+            const outputFile = await generateAdvancedEnrichedPatch(repositoryDirectory);
             if (outputFile === undefined) {
               lastReady = undefined;
               status = { state: "empty", version: ++version };
@@ -89,7 +89,7 @@ export function advancedDiffViewerPlugin(repositoryDirectory, watchGit = watch) 
 
   function onRepositoryChange(file) {
     const relativePath = path.relative(repositoryDirectory, path.resolve(file));
-    if (relativePath === "advanced-diff-viewer/diff-index.json") {
+    if (relativePath === "advanced-diff-viewer/enriched-patch.json") {
       return;
     } else if (relativePath === "ai-coding-toolkit" || relativePath.startsWith(`ai-coding-toolkit${path.sep}`)) {
       return;
@@ -140,7 +140,7 @@ export function advancedDiffViewerPlugin(repositoryDirectory, watchGit = watch) 
   }
 
   return {
-    name: "advanced-diff-index",
+    name: "advanced-enriched-patch",
     async configureServer(viteServer) {
       server = viteServer;
       server.watcher.add(repositoryDirectory);
@@ -150,12 +150,12 @@ export function advancedDiffViewerPlugin(repositoryDirectory, watchGit = watch) 
       await bindGitWatchers();
 
       server.middlewares.use(async (request, response, next) => {
-        if (request.method === "GET" && request.url === "/__diff-index/default") {
+        if (request.method === "GET" && request.url === "/__enriched-patch/default") {
           if (status === undefined) await (generation ?? regenerate());
           response.setHeader("Content-Type", "application/json");
           response.setHeader("Cache-Control", "no-store");
           response.end(JSON.stringify(status));
-        } else if (request.method === "POST" && request.url === "/__diff-index/refresh") {
+        } else if (request.method === "POST" && request.url === "/__enriched-patch/refresh") {
           clearTimeout(timer);
           timer = undefined;
           await regenerate();

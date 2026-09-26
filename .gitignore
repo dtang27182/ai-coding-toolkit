@@ -7,4 +7,5 @@ common/system-dataflow/visualizer/dist/
 enrich-diff/visualizer/dist/
 advanced-diff-viewer/visualizer/dist/
 advanced-diff-viewer/diff-index.json
+advanced-diff-viewer/enriched-patch.json
 .DS_Store

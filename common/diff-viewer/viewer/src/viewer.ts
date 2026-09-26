@@ -1,22 +1,22 @@
 import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
-import diffIndexSchema from "../../diff-index.schema.json";
+import enrichedPatchSchema from "../../enriched-patch.schema.json";
 import { changeBlocks, changeRuns } from "./change-navigation.ts";
-import { exampleIndex } from "./example.ts";
+import { examplePatch } from "./example.ts";
 import { clampSidebarWidth, MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH } from "./layout.ts";
 import { buildTree, expandedNodeIds, expansionStates, semanticError, statsForElement, unmatchedCount, type TreeNode } from "./model.ts";
 import { firstChangedLine, parsePatch } from "./patch.ts";
 import { isLineWrapShortcut } from "./shortcuts.ts";
 import styles from "./styles.css?inline";
-import type { DiffElement, DiffFile, DiffIndex } from "./types.ts";
+import type { DiffElement, DiffFile, EnrichedPatch } from "./types.ts";
 
 export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: boolean; expansionStorageKey?: string } = {}): {
-  loadIndex(value: unknown, name: string, preserveView?: boolean): void;
+  loadEnrichedPatch(value: unknown, name: string, preserveView?: boolean): void;
 } {
   const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
   root.innerHTML = `<style>${styles}</style><div id="app"></div>`;
   const app = root.querySelector<HTMLDivElement>("#app")!;
   const ajv = new Ajv2020({ allErrors: true });
-  const validate = ajv.compile<DiffIndex>(diffIndexSchema);
+  const validate = ajv.compile<EnrichedPatch>(enrichedPatchSchema);
   const ICONS: Record<"directory" | DiffElement["kind"], string> = {
     directory: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5h5l1.4 1.6h6.6v7.4h-13z"/></svg>',
     file: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5h6l4 4v9H3z"/><path d="M9 1.5v4h4"/></svg>',
@@ -24,12 +24,12 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
     method: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M5.5 10.5v-5L8 8l2.5-2.5v5"/></svg>',
   };
 
-  let index = exampleIndex;
+  let index = examplePatch;
   let files = parsePatch(index.patch);
-  let fileName = "bundled-example.diff-index.json";
+  let fileName = "bundled-example.enriched-patch.json";
   let selectedId = initialSelection(index);
   let expandedIds = expandedNodeIds(buildTree(index));
-  let hasLoadedIndex = false;
+  let hasLoadedEnrichedPatch = false;
   let statusMessage = "";
   let dragDepth = 0;
   let wrapLines = false;
@@ -48,7 +48,7 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
     return path.slice(path.lastIndexOf("/") + 1);
   }
 
-  function initialSelection(value: DiffIndex, useHash = true): string {
+  function initialSelection(value: EnrichedPatch, useHash = true): string {
     const hashId = useHash ? decodeURIComponent(location.hash.slice(1)) : "";
     let selection;
     if (value.elements[hashId] !== undefined) {
@@ -163,7 +163,7 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
             <span><i class="modified-dot"></i>Modified</span>
             <span><i class="deleted-dot"></i>Deleted</span>
           </div>
-          <button class="open-button" type="button" id="open-file">Open Diff Index</button>
+          <button class="open-button" type="button" id="open-file">Open Enriched Patch</button>
           <input type="file" id="file-input" accept="application/json,.json" hidden>
         </header>
         ${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}
@@ -207,7 +207,7 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
             </div>
           </main>
         </div>
-        <div class="drop-overlay"><div><strong>Open diff-index.json</strong><span>Drop the file anywhere</span></div></div>
+        <div class="drop-overlay"><div><strong>Open enriched-patch.json</strong><span>Drop the file anywhere</span></div></div>
       </div>`;
 
     app.querySelector<HTMLButtonElement>("#open-file")!.addEventListener("click", () => {
@@ -447,16 +447,16 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
   }
 
   function validationMessage(errors: ErrorObject[] | null | undefined): string {
-    return errors?.map((error) => `${error.instancePath || "/"} ${error.message}`).join("; ") ?? "Invalid diff index";
+    return errors?.map((error) => `${error.instancePath || "/"} ${error.message}`).join("; ") ?? "Invalid enriched patch";
   }
 
   function saveExpansion(): void {
-    if (options.expansionStorageKey !== undefined && hasLoadedIndex) {
+    if (options.expansionStorageKey !== undefined && hasLoadedEnrichedPatch) {
       sessionStorage.setItem(options.expansionStorageKey, JSON.stringify([...expansionStates(buildTree(index), expandedIds)]));
     }
   }
 
-  function loadIndex(value: unknown, name: string, preserveView = false): void {
+  function loadEnrichedPatch(value: unknown, name: string, preserveView = false): void {
     if (!validate(value)) {
       throw new Error(validationMessage(validate.errors));
     }
@@ -470,7 +470,7 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
     const previousParent = previousElement.parentId === undefined ? undefined : index.elements[previousElement.parentId]?.name;
     const previousScrollTop = app.querySelector<HTMLElement>("#diff-scroll")!.scrollTop;
     const previousScrollLeft = app.querySelector<HTMLElement>("#diff-scroll")!.scrollLeft;
-    const previousExpansion = hasLoadedIndex
+    const previousExpansion = hasLoadedEnrichedPatch
       ? expansionStates(buildTree(index), expandedIds)
       : new Map<string, boolean>(JSON.parse(
         options.expansionStorageKey === undefined ? "[]" : sessionStorage.getItem(options.expansionStorageKey) ?? "[]",
@@ -503,7 +503,7 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
       selectedId = initialSelection(index);
     }
     expandedIds = expandedNodeIds(buildTree(index), true, previousExpansion);
-    hasLoadedIndex = true;
+    hasLoadedEnrichedPatch = true;
     saveExpansion();
     statusMessage = "";
     render();
@@ -521,7 +521,7 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
 
   async function openFile(file: File): Promise<void> {
     try {
-      loadIndex(JSON.parse(await file.text()), file.name);
+      loadEnrichedPatch(JSON.parse(await file.text()), file.name);
     } catch (error) {
       statusMessage = error instanceof Error ? error.message : String(error);
       render();
@@ -530,10 +530,10 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
 
   async function loadDefault(): Promise<void> {
     try {
-      const response = await fetch("/__diff-index/default");
+      const response = await fetch("/__enriched-patch/default");
       if (response.ok && response.status !== 204) {
         const result = await response.json() as { fileName: string; contents: string };
-        loadIndex(JSON.parse(result.contents), result.fileName);
+        loadEnrichedPatch(JSON.parse(result.contents), result.fileName);
       }
     } catch {
       // Static builds and missing development middleware use the bundled example.
@@ -587,5 +587,5 @@ export function mountDiffViewer(host: HTMLElement, options: { loadDefault?: bool
   render();
   requestAnimationFrame(scrollToSelection);
   if (options.loadDefault !== false) void loadDefault();
-  return { loadIndex };
+  return { loadEnrichedPatch };
 }
