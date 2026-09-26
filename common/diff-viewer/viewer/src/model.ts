@@ -130,7 +130,7 @@ export function expandedNodeIds(
   for (const node of expandable) {
     const key = expansionKey(node);
     const wasExpanded = counts.get(key) === 1 ? previousStates.get(key) : undefined;
-    if (wasExpanded ?? (node.kind === "directory" || expandElements)) {
+    if (wasExpanded ?? (expandElements || (node.kind === "directory" && node.children.some((child) => child.kind === "directory")))) {
       expanded.add(node.id);
     }
   }
