@@ -9,11 +9,40 @@
   </head>
   <body>
     <div id="app">
-      <nav class="view-navigation" aria-label="Switch dataflow view">
-        <span class="viewer-title">HLD Dataflow</span>
-        <button type="button" data-view="system" class="active" aria-pressed="true">System Dataflow</button>
-        <button type="button" data-view="implementation" aria-pressed="false">Implementation Dataflow</button>
-      </nav>
+      <header class="review-header">
+        <div class="review-title-block">
+          <div class="review-title-line">
+            <span class="review-title">HLD Dataflow</span>
+            <span class="stage-chip" hidden></span>
+          </div>
+          <span class="review-path"></span>
+        </div>
+        <nav class="view-navigation" aria-label="Switch dataflow view">
+          <button class="view-button active" type="button" data-view="system" aria-selected="true" aria-current="page">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.5" y="2" width="5" height="4" rx="1"></rect><rect x="9.5" y="2" width="5" height="4" rx="1"></rect><rect x="5.5" y="10" width="5" height="4" rx="1"></rect><path d="M4 6v1.5a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6M8 8.5V10"></path></svg>
+            <span>System Dataflow</span>
+            <span class="view-count" data-count="system">nodes</span>
+          </button>
+          <button class="view-button" type="button" data-view="implementation" aria-selected="false">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2" y="1.5" width="12" height="13" rx="1.5"></rect><path d="M2 5.5h12M4.5 8.5h7M4.5 11.5h5"></path></svg>
+            <span>Implementation Dataflow</span>
+            <span class="view-count" data-count="implementation">classes</span>
+          </button>
+        </nav>
+        <div class="header-spacer"></div>
+        <div class="header-actions">
+          <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
+          <button class="control-button" type="button" data-proxy="toggle-unchanged" hidden>Hide unchanged</button>
+          <button class="control-button" type="button" data-proxy="toggle-user-flow" hidden>User flow only</button>
+          <button class="control-button" type="button" data-proxy="toggle-methods" hidden>Hide methods</button>
+          <div class="zoom-controls">
+            <button class="zoom-button" type="button" data-proxy="zoom-out" aria-label="Zoom out">−</button>
+            <button class="zoom-button" type="button" data-proxy="fit">Fit</button>
+            <button class="zoom-button" type="button" data-proxy="zoom-in" aria-label="Zoom in">+</button>
+          </div>
+          <button class="open-button" type="button" data-proxy="open">Open JSON</button>
+        </div>
+      </header>
       <main class="view-panels">
         <section class="view-panel active" data-panel="system" aria-label="System Dataflow">
           <iframe src="./system.html" title="System Dataflow"></iframe>

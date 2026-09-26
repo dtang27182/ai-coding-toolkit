@@ -17,6 +17,7 @@ import type {
   Selection,
 } from "./types";
 import { edgeKey, isInternalStateRelationship, mergeClassDataflows, methodKey } from "./types";
+import { droppedJsonFile, pickJsonFile, supportsJsonFileHandles, watchOpenedJson, type JsonFileHandle } from "../../../watch-opened-json.ts";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const ajv = new Ajv2020({ allErrors: true });
@@ -60,6 +61,8 @@ let selection: Selection | undefined;
 let hovered: Selection | undefined;
 let statusMessage = "";
 let dragDepth = 0;
+let openedRepositoryFile: string | undefined;
+let stopWatchingOpenedFile: (() => void) | undefined;
 
 function escapeHtml(value: string | number): string {
   return String(value)
@@ -796,7 +799,18 @@ function bindEvents(): void {
     render();
   });
   const input = app.querySelector<HTMLInputElement>("[data-file-input]")!;
-  app.querySelector<HTMLElement>("[data-open]")!.addEventListener("click", () => input.click());
+  app.querySelector<HTMLElement>("[data-open]")!.addEventListener("click", () => {
+    if (supportsJsonFileHandles()) {
+      void pickJsonFile().then((opened) => {
+        if (opened !== undefined) return openFile(opened.file, opened.handle);
+      }).catch((error) => {
+        statusMessage = `Could not open JSON: ${error instanceof Error ? error.message : String(error)}`;
+        render();
+      });
+    } else {
+      input.click();
+    }
+  });
   input.addEventListener("change", () => {
     const file = input.files?.[0];
     if (file !== undefined) void openFile(file);
@@ -918,12 +932,24 @@ function setImplementationDataflow(value: unknown, nextFileName: string): string
   }
 }
 
-async function openFile(file: File): Promise<void> {
+async function openFile(file: File, handle?: JsonFileHandle, contents?: string): Promise<void> {
   try {
-    const value: unknown = JSON.parse(await file.text());
+    const fileContents = contents ?? await file.text();
+    const value: unknown = JSON.parse(fileContents);
     const error = setImplementationDataflow(value, file.name);
     if (error === undefined) {
       localStorage.setItem(LAST_OPENED_KEY, JSON.stringify({ fileName: file.name, value }));
+      openedRepositoryFile = undefined;
+      stopWatchingOpenedFile?.();
+      stopWatchingOpenedFile = handle === undefined ? undefined : watchOpenedJson(
+        handle,
+        fileContents,
+        (changedFile, changedContents) => openFile(changedFile, handle, changedContents),
+        (watchError) => {
+          statusMessage = `Could not refresh ${file.name}: ${watchError instanceof Error ? watchError.message : String(watchError)}`;
+          render();
+        },
+      );
     } else {
       statusMessage = `Could not open ${file.name}: ${error}`;
     }
@@ -952,7 +978,11 @@ async function openDefaultFile(): Promise<void> {
       if (response.ok && response.status !== 204) {
         const defaultFile = await response.json() as { fileName: string; contents: string };
         const error = setImplementationDataflow(JSON.parse(defaultFile.contents), defaultFile.fileName);
-        if (error !== undefined) statusMessage = `Could not open ${defaultFile.fileName}: ${error}`;
+        if (error === undefined) {
+          openedRepositoryFile = defaultFile.fileName;
+        } else {
+          statusMessage = `Could not open ${defaultFile.fileName}: ${error}`;
+        }
       }
     } catch {
       // The bundled example remains the default when no repository file is available.
@@ -960,6 +990,18 @@ async function openDefaultFile(): Promise<void> {
   }
   render();
 }
+
+import.meta.hot?.on("hld-dataflow:file-change", (update: { fileName: string; contents: string }) => {
+  if (update.fileName === openedRepositoryFile) {
+    try {
+      const error = setImplementationDataflow(JSON.parse(update.contents), update.fileName);
+      if (error !== undefined) statusMessage = `Could not refresh ${update.fileName}: ${error}`;
+    } catch (error) {
+      statusMessage = `Could not refresh ${update.fileName}: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    render();
+  }
+});
 
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && selection !== undefined) {
@@ -986,8 +1028,12 @@ window.addEventListener("dragleave", (event) => {
 window.addEventListener("drop", (event) => {
   event.preventDefault();
   dragDepth = 0;
-  const file = event.dataTransfer?.files[0];
-  if (file !== undefined) void openFile(file);
+  void droppedJsonFile(event).then((opened) => {
+    if (opened !== undefined) return openFile(opened.file, opened.handle);
+  }).catch((error) => {
+    statusMessage = `Could not open JSON: ${error instanceof Error ? error.message : String(error)}`;
+    render();
+  });
 });
 
 const observer = new ResizeObserver(() => {

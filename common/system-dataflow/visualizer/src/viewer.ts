@@ -14,6 +14,7 @@ import type {
   SystemDataflowRelationship,
 } from "./types.ts";
 import { semanticError } from "./validation.ts";
+import { droppedJsonFile, pickJsonFile, supportsJsonFileHandles, watchOpenedJson, type JsonFileHandle } from "../../../watch-opened-json.ts";
 import styles from "./styles.css?inline";
 
 type DisplayChangeType = ChangeType | "unspecified";
@@ -70,6 +71,8 @@ export function mountSystemDataflowViewer(host: HTMLElement): void {
   let hovered: Selection | undefined;
   let statusMessage = "";
   let dragDepth = 0;
+  let openedRepositoryFile: string | undefined;
+  let stopWatchingOpenedFile: (() => void) | undefined;
   /** Which hunk is expanded in the Relevant diff list, per inspected entity. A null id means all are collapsed. */
   let openHunk: { owner: string; id: string | null } | undefined;
 
@@ -591,7 +594,18 @@ export function mountSystemDataflowViewer(host: HTMLElement): void {
       render();
     });
     const input = app.querySelector<HTMLInputElement>("[data-file-input]")!;
-    app.querySelector<HTMLElement>("[data-open]")!.addEventListener("click", () => input.click());
+    app.querySelector<HTMLElement>("[data-open]")!.addEventListener("click", () => {
+      if (supportsJsonFileHandles()) {
+        void pickJsonFile().then((opened) => {
+          if (opened !== undefined) return openFile(opened.file, opened.handle);
+        }).catch((error) => {
+          statusMessage = `Could not open JSON: ${error instanceof Error ? error.message : String(error)}`;
+          render();
+        });
+      } else {
+        input.click();
+      }
+    });
     input.addEventListener("change", () => {
       const file = input.files?.[0];
       if (file !== undefined) void openFile(file);
@@ -656,11 +670,26 @@ export function mountSystemDataflowViewer(host: HTMLElement): void {
     return error;
   }
 
-  async function openFile(file: File): Promise<void> {
+  async function openFile(file: File, handle?: JsonFileHandle, contents?: string): Promise<void> {
     try {
-      const value: unknown = JSON.parse(await file.text());
+      const fileContents = contents ?? await file.text();
+      const value: unknown = JSON.parse(fileContents);
       const error = setDataflow(value, file.name);
-      if (error !== undefined) statusMessage = `Could not open ${file.name}: ${error}`;
+      if (error === undefined) {
+        openedRepositoryFile = undefined;
+        stopWatchingOpenedFile?.();
+        stopWatchingOpenedFile = handle === undefined ? undefined : watchOpenedJson(
+          handle,
+          fileContents,
+          (changedFile, changedContents) => openFile(changedFile, handle, changedContents),
+          (watchError) => {
+            statusMessage = `Could not refresh ${file.name}: ${watchError instanceof Error ? watchError.message : String(watchError)}`;
+            render();
+          },
+        );
+      } else {
+        statusMessage = `Could not open ${file.name}: ${error}`;
+      }
     } catch (error) {
       statusMessage = `Could not open ${file.name}: ${error instanceof Error ? error.message : String(error)}`;
     }
@@ -673,7 +702,11 @@ export function mountSystemDataflowViewer(host: HTMLElement): void {
       if (response.ok && response.status !== 204) {
         const result = await response.json() as { fileName: string; contents: string };
         const error = setDataflow(JSON.parse(result.contents), result.fileName);
-        if (error !== undefined) {
+        if (error === undefined) {
+          openedRepositoryFile = result.fileName;
+          stopWatchingOpenedFile?.();
+          stopWatchingOpenedFile = undefined;
+        } else {
           statusMessage = `Could not open ${result.fileName}: ${error}`;
         }
         render();
@@ -682,6 +715,18 @@ export function mountSystemDataflowViewer(host: HTMLElement): void {
       // Static builds and missing development middleware use the bundled example.
     }
   }
+
+  import.meta.hot?.on("hld-dataflow:file-change", (update: { fileName: string; contents: string }) => {
+    if (update.fileName === openedRepositoryFile) {
+      try {
+        const error = setDataflow(JSON.parse(update.contents), update.fileName);
+        if (error !== undefined) statusMessage = `Could not refresh ${update.fileName}: ${error}`;
+      } catch (error) {
+        statusMessage = `Could not refresh ${update.fileName}: ${error instanceof Error ? error.message : String(error)}`;
+      }
+      render();
+    }
+  });
 
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && selection !== undefined) {
@@ -705,8 +750,12 @@ export function mountSystemDataflowViewer(host: HTMLElement): void {
   host.addEventListener("drop", (event) => {
     event.preventDefault();
     dragDepth = 0;
-    const file = event.dataTransfer?.files[0];
-    if (file !== undefined) void openFile(file);
+    void droppedJsonFile(event).then((opened) => {
+      if (opened !== undefined) return openFile(opened.file, opened.handle);
+    }).catch((error) => {
+      statusMessage = `Could not open JSON: ${error instanceof Error ? error.message : String(error)}`;
+      render();
+    });
   });
 
   const observer = new ResizeObserver(fitGraph);
