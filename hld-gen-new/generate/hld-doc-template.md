@@ -8,9 +8,9 @@
 
 <scope and assumptions>
 
-## User Outcomes
+## User Journeys
 
-<user outcomes>
+<user journeys>
 
 ## User Flows
 

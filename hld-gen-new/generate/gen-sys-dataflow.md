@@ -20,10 +20,10 @@ Generate the sys-dataflow as the candidate's proposed system-level design from i
 
 ### Flow Boundaries
 
-- Treat each numbered User Flow in the HLD doc as the scope of one separate connected subgraph.
-- Start each subgraph with a `user-input` node for the triggering user action, or a `system-input` node for an externally supplied input. Include later `user-input` nodes when the numbered steps require more user actions.
+- Treat each numbered User Flow in the HLD doc as the scope of one separate connected subgraph that maps its User Journey.
+- Start each subgraph with a `user-input` node for the journey's first user action. Include later `user-input` nodes for its other user actions and `system-input` nodes for externally supplied inputs needed by the flow.
 - Trace `dataflow` relationships from those inputs through relevant `system-state` updates, `data-processing` nodes, and requests to and responses from `external-dependency` nodes, to each `user-output`, `system-output`, or high-level `system-state` update named in the steps.
-- Find reads from `system-state` and `static-data` nodes required by that processing or those external dependency requests, and connect each read to its consumer with a `dataflow` relationship even when the steps do not name the read.
+- Find reads from `system-state` and `static-data` nodes required by the steps, processing, or external dependency requests, and connect each read to its consumer with a `dataflow` relationship even when the steps do not name the read.
 - Stop after all named effects are represented. Do not follow unchanged downstream behavior or related workflows that the steps do not name.
 - Never include one-time initialization, dependency setup, or object construction that occurs before the triggering `user-input` or `system-input`.
 
@@ -50,5 +50,5 @@ Generate the sys-dataflow as the candidate's proposed system-level design from i
 ## 5. Validate the Dataflow Artifact
 
 - Run `node ai-coding-toolkit/common/system-dataflow/validate-system-dataflow.mjs <output-path>` to check the schema, unique node names and relationship IDs, and valid relationship endpoints and directions.
-- Verify that every User Flow step's named output or high-level state update is represented.
+- Verify that every User Flow step's user input, named state read or update, output, and other effect is represented.
 - Correct every validation error before generating the Implementation Dataflow.
