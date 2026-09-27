@@ -11,3 +11,4 @@ Use the Implementation Dataflow JSON's changed classes and methods to find expos
 1. Run `node ai-coding-toolkit/hld-gen-new/eval/count-variable-exposure.mjs <json-path>` to validate the Implementation Dataflow JSON and write its `variableExposureCount` values. Fix validation failures before continuing.
 2. Run `node ai-coding-toolkit/hld-gen-new/eval/count-design-changes.mjs <json-path>` to validate the Implementation Dataflow JSON and write the five change counts. Fix failures before accepting the counts.
 3. Run `node ai-coding-toolkit/hld-gen-new/eval/validate-impl-dataflow.mjs --evaluated <json-path>` to verify that all six derived counts and Variable Exposure inventories are complete and non-null.
+4. Report the six counts to the caller, or report the failure and its reason.

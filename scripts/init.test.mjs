@@ -233,6 +233,52 @@ test("installs enrich-diff with the shared System Dataflow files", async (t) => 
   await assert.rejects(lstat(retiredEntryPoint), { code: "ENOENT" });
 });
 
+test("installs Claude Code skills with Claude-only frontmatter", async (t) => {
+  const repoDirectory = await createRepository(t);
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = install([repoDirectory, "--tool", "hld-gen-new", "--agent", "claude"]);
+    assert.equal(result.status, 0, result.stderr);
+  }
+  const sourceSkill = await readFile(path.join(toolkitDirectory, "hld-gen-new", "SKILL.md"), "utf8");
+  const claudeSkill = await readFile(path.join(repoDirectory, ".claude", "skills", "hld-gen", "SKILL.md"), "utf8");
+  const sourceFrontmatterEnd = sourceSkill.indexOf("\n---\n");
+  assert.ok(claudeSkill.startsWith(sourceSkill.slice(0, sourceFrontmatterEnd)));
+  assert.ok(claudeSkill.endsWith(sourceSkill.slice(sourceFrontmatterEnd)));
+  assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/hld-gen-new\/eval\/\*\)\n/);
+  assert.doesNotMatch(claudeSkill, /\ncontext: fork\n/);
+  await assert.rejects(lstat(path.join(repoDirectory, ".agents")), { code: "ENOENT" });
+
+  const bothAgents = install([repoDirectory, "--tool", "enrich-diff", "--agent", "codex,claude"]);
+  assert.equal(bothAgents.status, 0, bothAgents.stderr);
+  const sourceEnrichDiffSkill = await readFile(
+    path.join(toolkitDirectory, "enrich-diff", "skills", "enrich-diff", "SKILL.md"),
+    "utf8"
+  );
+  assert.equal(
+    await readFile(path.join(repoDirectory, ".agents", "skills", "enrich-diff", "SKILL.md"), "utf8"),
+    sourceEnrichDiffSkill
+  );
+  const claudeEnrichDiffSkill = await readFile(path.join(repoDirectory, ".claude", "skills", "enrich-diff", "SKILL.md"), "utf8");
+  assert.match(claudeEnrichDiffSkill, /\ncontext: fork\n/);
+  assert.ok(claudeEnrichDiffSkill.endsWith(sourceEnrichDiffSkill.slice(sourceEnrichDiffSkill.indexOf("\n---\n"))));
+
+  const conflictDirectory = path.join(repoDirectory, ".claude", "skills", "hld-gen");
+  await rm(conflictDirectory, { recursive: true });
+  await mkdir(conflictDirectory);
+  const emptyDirectoryInstall = install([repoDirectory, "--tool", "hld-gen-new", "--agent", "claude"]);
+  assert.equal(emptyDirectoryInstall.status, 0, emptyDirectoryInstall.stderr);
+  assert.equal(await readFile(path.join(conflictDirectory, "SKILL.md"), "utf8"), claudeSkill);
+
+  await rm(conflictDirectory, { recursive: true });
+  await mkdir(conflictDirectory);
+  await writeFile(path.join(conflictDirectory, "SKILL.md"), "existing skill");
+  const conflict = install([repoDirectory, "--tool", "hld-gen-new", "--agent", "claude"]);
+  assert.notEqual(conflict.status, 0);
+  assert.match(conflict.stderr, /Refusing to replace existing path/);
+  assert.equal(await readFile(path.join(conflictDirectory, "SKILL.md"), "utf8"), "existing skill");
+});
+
 test("installs advanced-diff-viewer independently", async (t) => {
   const repoDirectory = await createRepository(t);
   await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","advanced-diff-viewer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer","advanced-diff-viewer:generate":"node ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs"}}\n');
@@ -431,6 +477,7 @@ test("rejects missing targets and invalid arguments", async (t) => {
     [],
     [path.join(repoDirectory, "missing")],
     [repoDirectory, "--agent", "unknown"],
+    [repoDirectory, "--agent", "codex,unknown"],
     [repoDirectory, "--output-dir"],
     [repoDirectory, "--output-dir", "../outside"],
     [repoDirectory, "--output-dir", repoDirectory],
@@ -442,6 +489,7 @@ test("rejects missing targets and invalid arguments", async (t) => {
     assert.notEqual(install(argumentsList).status, 0, JSON.stringify(argumentsList));
   }
   await assert.rejects(realpath(path.join(repoDirectory, ".agents")), { code: "ENOENT" });
+  await assert.rejects(realpath(path.join(repoDirectory, ".claude")), { code: "ENOENT" });
   await assert.rejects(realpath(path.join(repoDirectory, "ai-coding-toolkit")), { code: "ENOENT" });
 });
 

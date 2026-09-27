@@ -40,13 +40,21 @@ The viewer generates `advanced-diff-viewer/enriched-patch.json` automatically fr
 
 The two HLD implementations expose the skill as `$hld-gen`; install one implementation into a target repository at a time.
 
+Skills install for Codex by default. To install them for Claude Code, where they are invoked as `/hld-gen` and `/enrich-diff`, pass `--agent claude`, or `--agent codex,claude` for both:
+
+```sh
+npm run install:hld-gen-new -- /path/to/code-repo --agent claude
+```
+
+Claude Code skills install under `.claude/skills/` with Claude-only frontmatter added: their toolkit scripts are pre-approved, and `enrich-diff` runs in a forked subagent context.
+
 The target directory must already exist. Relative target paths are resolved from the current working directory. For the HLD and enrich-diff tools, the output directory defaults to `docs/plans` under the target repository root. To choose another repository-relative directory, run:
 
 ```sh
 node scripts/init.mjs ../code-repo --output-dir architecture/plans
 ```
 
-In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the selected design tools and installed dependencies into `ai-coding-toolkit`, installs their skills under `.agents/skills/`, and adds supported npm commands when the repository has a root `package.json`.
+In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the selected design tools and installed dependencies into `ai-coding-toolkit`, installs their skills under `.agents/skills/` (Codex) or `.claude/skills/` (Claude Code), and adds supported npm commands when the repository has a root `package.json`.
 
 Each target repository has its own files and output configuration and works independently of this checkout. Rerun the installer to update its installed copies; this overwrites files in directories marked as toolkit installations. It will not replace unrelated existing directories or npm scripts. Links created by the earlier installer to this checkout are replaced with copies.
 
@@ -81,7 +89,7 @@ The final artifacts and iteration summary are ready for human review; applicatio
 
 The `hld-gen-new` tool installs as `$hld-gen` and provides the candidate generation, evaluation, comparison, and selection workflow without separate user-flow labeling, dataflow-narrative, or visualizer-description passes.
 
-`hld-gen-new` produces an HLD doc (`<feature>.hld.md`), a proposed System Dataflow (`<feature>.system-dataflow.json`), and a structured JSON representation of its Implementation Dataflow narrative (`<feature>.impl-dataflow.json`), in that order. It retains the same quality metrics and iteration structure as `hld-gen`.
+`hld-gen-new` produces an HLD doc (`<feature>.hld.md`), a proposed System Dataflow (`<feature>.system-dataflow.json`), and a structured JSON representation of its Implementation Dataflow narrative (`<feature>.impl-dataflow.json`), in that order. It retains the same quality metrics and iteration structure as `hld-gen`. When the agent supports subagents, it generates and evaluates each iteration's three candidates in parallel, one subagent per candidate; otherwise it generates them one at a time.
 
 It has independent validation and counting scripts. Run `npm run hld-visualizer` to switch between its System Dataflow and Implementation Dataflow views. The System view opens the newest matching artifact under the configured output directory. The Implementation view restores the last file opened in the browser, or opens the newest matching artifact when there is none. You can open or drag in another JSON file in either view. The views refresh when their open repository files change; files chosen with a browser file handle refresh too.
 

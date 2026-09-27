@@ -1,8 +1,8 @@
 # Generate an HLD Candidate
 
-Generate one candidate from the confirmed `Desired Behavior` and `Scope and Assumptions` in `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md`, the current code, and the caller's feature slug, iteration number, and candidate number. The caller owns behavior and scope confirmation and comparison.
+Generate one candidate from the confirmed `Desired Behavior` and `Scope and Assumptions` in `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md`, the current code, and the caller's feature slug, iteration number, candidate number, and design direction. The caller owns behavior and scope confirmation, comparison, and the iteration summary.
 
-Constrain the design only by the confirmed behavior and scope, not by the other candidates' design choices. Explore materially different responsibilities, state ownership, class boundaries, interfaces, or core dataflows. In later iterations, use the identified improvement approach as guidance while keeping other design choices open.
+Constrain the design only by the confirmed behavior and scope and the caller's design direction, not by the other candidates' design choices. The caller assigns each candidate a direction with materially different responsibilities, state ownership, class boundaries, interfaces, or core dataflows. In later iterations, use the identified improvement approach as guidance while keeping other design choices open.
 
 ## Understand the Design Quality Criteria
 
@@ -19,6 +19,6 @@ Constrain the design only by the confirmed behavior and scope, not by the other 
 8. Generate the sys-dataflow by following `ai-coding-toolkit/hld-gen-new/generate/gen-sys-dataflow.md`.
 9. Use the validated sys-dataflow JSON to generate the Implementation Dataflow narrative and JSON by following `ai-coding-toolkit/hld-gen-new/generate/gen-impl-dataflow.md`. Preserve earlier candidates and iterations.
 
-## Update the Iteration Record
+## Report the Result
 
-10. Record the candidate's HLD doc link, including a partial HLD doc written before a failure. Mark generation complete after the preceding steps succeed; otherwise record the failed status and reason.
+10. Report the candidate's HLD doc link to the caller, including a partial HLD doc written before a failure. Report generation as complete after the preceding steps succeed; otherwise report the failed status and reason.

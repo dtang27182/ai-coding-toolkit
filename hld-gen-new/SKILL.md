@@ -17,19 +17,24 @@ Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to
    - Ask the user every recorded clarification question. After each response, update `Desired Behavior` and `Scope and Assumptions`, remove each answered question, and record any necessary follow-up questions.
    - Continue until `Clarification Questions` is `None` and the user explicitly approves the updated `Desired Behavior` and `Scope and Assumptions`. Do not proceed to step 2 before both conditions are met.
 2. Read `ai-coding-toolkit/hld-gen-new/hld-quality.md` to understand the design quality criteria. Use these criteria to guide candidate generation and comparison.
-3. Generate three materially different candidate designs using `ai-coding-toolkit/hld-gen-new/generate/gen-hld.md`. Before generating them, initialize the candidate records in the template's iteration section for iteration 1 or append a new copy of that section for a later iteration. Replace `<iteration>` and leave each candidate's generation and evaluation pending.
+3. Initialize the iteration's candidate records: fill the template's iteration section for iteration 1, or append a new copy of that section for a later iteration. Replace `<iteration>`, record a distinct design direction for each candidate so the three are materially different, and leave each candidate's generation and evaluation pending.
    - Start at iteration 1 and increment for each new set of three candidates. Preserve earlier records and completed work.
-4. Evaluate all three designs using `ai-coding-toolkit/hld-gen-new/eval/eval-hld.md` and update their iteration records:
-   - Before updating a candidate's inventory or counts, mark its evaluation pending.
-   - After verification, copy all six counts into its record and mark it evaluated. On failure, mark it failed and record the reason.
-5. Analyze the current iteration and record its outcome:
+4. Generate and evaluate the three candidates in parallel. Launch three subagents at once, one per candidate, and wait for all three to finish. Give each subagent:
+   - The feature slug, iteration number, candidate number, its design direction, and any recorded improvement approach.
+   - Instructions to follow `ai-coding-toolkit/hld-gen-new/generate/gen-hld.md` and then `ai-coding-toolkit/hld-gen-new/eval/eval-hld.md` for its candidate only, write only inside its candidate directory, and leave the iteration summary unchanged.
+
+   If subagents are unavailable, follow the same two instructions for each candidate yourself, one at a time.
+5. Update each candidate's iteration record from its reported results:
+   - Record its HLD doc link and generation status.
+   - Copy all six counts into its record and mark it evaluated. On failure, mark it failed and record the reason.
+6. Analyze the current iteration and record its outcome:
    - Analyze the three candidates together.
       - Use their differences, commonalities, and any patterns or trends to identify an approach that could improve the quality metrics further.
       - Consider combining useful choices and changing shared choices that may limit all three designs.
    - Record the analysis and exactly one improvement outcome:
      - Set `improvementApproachExists` to `true` and record the approach identified by the analysis. Use `true` only for an untried or newly justified approach.
      - Set `improvementApproachExists` to `false` and explicitly state that no improvement approach was identified.
-6. Continue or finalize:
+7. Continue or finalize:
    - If `improvementApproachExists` is `true`, repeat from step 3 using the recorded approach.
    - Otherwise:
      - Select the best evaluated design across all iterations and record its rationale and tradeoffs in the iteration summary.

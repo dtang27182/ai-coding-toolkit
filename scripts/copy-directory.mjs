@@ -1,4 +1,4 @@
-import { cp, lstat, mkdir, readFile, readlink, unlink, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, readdir, readFile, readlink, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const installationMarker = ".ai-coding-toolkit-installed";
@@ -24,15 +24,13 @@ export async function copyDirectory(sourceDirectory, destinationDirectory, relat
   } else if (existingDirectory !== undefined) {
     let installedByToolkit = false;
     if (existingDirectory.isDirectory()) {
-      try {
-        installedByToolkit =
+      // An empty directory, such as one left by an interrupted installation, holds nothing to preserve.
+      const entries = await readdir(destinationDirectory);
+      installedByToolkit =
+        entries.length === 0 ||
+        (entries.includes(installationMarker) &&
           (await readFile(path.join(destinationDirectory, installationMarker), "utf8")) ===
-          "ai-coding-toolkit\n";
-      } catch (error) {
-        if (error.code !== "ENOENT") {
-          throw error;
-        }
-      }
+            "ai-coding-toolkit\n");
     }
     if (!installedByToolkit) {
       throw new Error(`Refusing to replace existing path: ${destinationDirectory}`);
