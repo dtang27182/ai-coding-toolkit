@@ -204,7 +204,7 @@ test("keeps ambiguous declarations as file-level changes", () => {
 test("the CLI writes a validated enriched patch beside the source patch by default", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "enriched-patch-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
-  const patchPath = path.join(directory, "feature.code-review.patch");
+  const patchPath = path.join(directory, "feature.patch");
   await writeFile(patchPath, modifiedPatch);
 
   const result = spawnSync(process.execPath, [generatorPath, patchPath], { encoding: "utf8" });

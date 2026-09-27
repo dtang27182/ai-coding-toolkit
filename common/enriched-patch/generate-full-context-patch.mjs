@@ -67,14 +67,65 @@ export async function generateFullContextPatch(outputPath, workingDirectory = pr
   }
 }
 
+export async function generateCommitPatch(outputPath, firstRevision, secondRevision, workingDirectory = process.cwd()) {
+  const repositoryDirectory = (await runGit(["rev-parse", "--show-toplevel"], workingDirectory)).trim();
+  const first = (await runGit(["rev-parse", "--verify", "--end-of-options", `${firstRevision}^{commit}`], repositoryDirectory)).trim();
+  const second = (await runGit(["rev-parse", "--verify", "--end-of-options", `${secondRevision}^{commit}`], repositoryDirectory)).trim();
+  const firstOnly = (await runGit(["rev-list", "--max-count=1", first, "--not", second], repositoryDirectory)).trim();
+  const secondOnly = (await runGit(["rev-list", "--max-count=1", second, "--not", first], repositoryDirectory)).trim();
+  let base;
+  let target;
+  if (firstOnly === "" && secondOnly !== "") {
+    base = first;
+    target = second;
+  } else if (secondOnly === "" && firstOnly !== "") {
+    base = second;
+    target = first;
+  } else if (firstOnly === "" && secondOnly === "") {
+    base = first;
+    target = second;
+  } else {
+    const firstTime = Number((await runGit(["show", "-s", "--format=%ct", first], repositoryDirectory)).trim());
+    const secondTime = Number((await runGit(["show", "-s", "--format=%ct", second], repositoryDirectory)).trim());
+    if (firstTime < secondTime) {
+      base = first;
+      target = second;
+    } else if (secondTime < firstTime) {
+      base = second;
+      target = first;
+    } else {
+      throw new Error("Cannot determine which commit is older: unrelated commits have the same committer timestamp.");
+    }
+  }
+  const patch = await runGit([
+    "diff",
+    "--no-ext-diff",
+    "--no-color",
+    "--binary",
+    "--unified=1000000",
+    base,
+    target,
+    "--",
+  ], repositoryDirectory);
+  const resolvedOutputPath = path.resolve(workingDirectory, outputPath);
+  await mkdir(path.dirname(resolvedOutputPath), { recursive: true });
+  await writeFile(resolvedOutputPath, patch);
+  return patch;
+}
+
 async function main() {
   const outputArgument = process.argv[2];
-  if (outputArgument === undefined) {
-    console.error("Usage: node generate-full-context-patch.mjs <output-patch>");
+  const commitMode = process.argv[3] === "--commits";
+  if (outputArgument === undefined || (commitMode && process.argv.length !== 6) || (!commitMode && process.argv.length !== 3)) {
+    console.error("Usage: node generate-full-context-patch.mjs <output-patch> [--commits <commit-1> <commit-2>]");
     process.exitCode = 1;
   } else {
     const outputPath = path.resolve(outputArgument);
-    await generateFullContextPatch(outputPath);
+    if (commitMode) {
+      await generateCommitPatch(outputPath, process.argv[4], process.argv[5]);
+    } else {
+      await generateFullContextPatch(outputPath);
+    }
     console.log(`Generated full-context patch: ${outputPath}`);
   }
 }

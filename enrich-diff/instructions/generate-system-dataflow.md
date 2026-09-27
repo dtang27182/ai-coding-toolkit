@@ -1,33 +1,25 @@
-# Generate a System Dataflow from the Current Diff
+# Generate a System Dataflow from the Selected Diff
 
-## 1. Find the HLD
-
-- Read `outputDirectory` from `ai-coding-toolkit/config.json`.
-- Find the most recently modified final HLD matching `<outputDirectory>/<feature>/<feature>.hld.md`.
-- Do not select an HLD under an `iterations` directory.
-- Use the HLD only to initialize the diff-description.
-
-## 2. Initialize the Diff Description
+## 1. Initialize the Diff Description
 
 - Read and follow `ai-coding-toolkit/enrich-diff/instructions/generate-diff-description.md`.
 - After creating the diff-description, use it instead of the HLD for all feature scope and user-flow references.
 
-## 3. Inspect the Implementation
+## 2. Inspect the Implementation
 
-- Run `git diff HEAD --` to compare the current index and working tree with the most recent commit on the current branch.
-- Read the changed files and enough surrounding code to understand the implemented dataflow.
-- Treat the diff and current code as the ground truth.
+- Read the generated patch and enough surrounding code to understand the implemented dataflow. For a commit comparison, read code from the target commit with `git show <target-commit>:<path>`; the checked-out files may have changed since that commit.
+- Treat the patch and the selected target version of the code as the ground truth.
 - Ground every changed node in an actual change in the diff.
-- Ground every unchanged node in actual current code.
-- Include only dataflow connections supported by the diff or current code.
-- Do not assume that planned implementation details were implemented unless the diff or current code supports them.
+- Ground every unchanged node in the selected target version of the code.
+- Include only dataflow connections supported by the patch or selected target code.
+- Do not assume that planned implementation details were implemented unless the patch or selected target code supports them.
 
-## 4. Read the Format
+## 3. Read the Format
 
 - Read `ai-coding-toolkit/common/system-dataflow/system-dataflow.schema.json`.
 - Read `ai-coding-toolkit/common/system-dataflow/system-dataflow.example.json`.
 
-## 5. Build the Graph
+## 4. Build the Graph
 
 - Treat each `###` user flow in the diff-description as the scope of one separate connected subgraph.
 - Start each subgraph with the flow's triggering user action, or with a system input when the described flow is externally triggered.
@@ -48,7 +40,7 @@
 - Represent simple data forwarding and request construction with relationships between participating components rather than a data-processing node.
 - Represent an algorithm implemented by multiple cooperating methods as one data-processing node.
 
-## 6. Write the Dataflow Artifact
+## 5. Write the Dataflow Artifact
 
 - Write `<outputDirectory>/<feature>/<feature>.system-dataflow.code-review.json`.
 - Set `stage` to `code-review`.
@@ -56,12 +48,11 @@
 - Store each hunk's repository-relative file path and its exact unified diff text, including the `@@` header.
 - Reference those IDs from the relevant nodes and relationships with `diffHunkIds`.
 
-## 7. Validate the Dataflow Artifact
+## 6. Validate the Dataflow Artifact
 
 - Run `node ai-coding-toolkit/enrich-diff/scripts/validate-system-dataflow.mjs <output-path>`.
 - Correct every validation error.
 
-## 8. Report the Result
+## 7. Report the Result
 
-- Report the diff base as `HEAD`.
 - Report the generated JSON path.

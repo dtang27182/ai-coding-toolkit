@@ -189,7 +189,7 @@ test("installs enrich-diff with the shared System Dataflow files", async (t) => 
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(validation.status, 0, validation.stderr);
 
-  const patchPath = path.join(repoDirectory, "feature.code-review.patch");
+  const patchPath = path.join(repoDirectory, "feature.patch");
   await writeFile(patchPath, [
     "diff --git a/src/feature.ts b/src/feature.ts",
     "new file mode 100644",

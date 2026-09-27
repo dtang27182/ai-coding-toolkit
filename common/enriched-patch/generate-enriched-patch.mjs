@@ -569,9 +569,7 @@ export function generateEnrichedPatch(patch) {
 }
 
 function defaultOutputPath(patchPath) {
-  if (patchPath.endsWith(".code-review.patch")) {
-    return `${patchPath.slice(0, -".code-review.patch".length)}.enriched-patch.json`;
-  } else if (patchPath.endsWith(".patch")) {
+  if (patchPath.endsWith(".patch")) {
     return `${patchPath.slice(0, -".patch".length)}.enriched-patch.json`;
   } else {
     return `${patchPath}.enriched-patch.json`;
