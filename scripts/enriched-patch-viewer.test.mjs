@@ -8,9 +8,17 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { changeBlocks, changeRuns } from "../common/enriched-patch/viewer/src/change-navigation.ts";
 import { examplePatch } from "../common/enriched-patch/viewer/src/example.ts";
 import { clampSidebarWidth } from "../common/enriched-patch/viewer/src/layout.ts";
-import { buildTree, expandedNodeIds, expansionStates, statsForElement, unmatchedCount } from "../common/enriched-patch/viewer/src/model.ts";
+import { buildTree, expandedNodeIds, expansionStates, filterTree, statsForElement, unmatchedCount } from "../common/enriched-patch/viewer/src/model.ts";
 import { firstChangedLine, parsePatch } from "../common/enriched-patch/viewer/src/patch.ts";
 import { isLineWrapShortcut } from "../common/enriched-patch/viewer/src/shortcuts.ts";
+import {
+  collectChanges,
+  elementFilterStates,
+  hiddenRowsByFile,
+  isChangeHidden,
+  rowChanges,
+  tagCounts,
+} from "../common/enriched-patch/viewer/src/tag-filter.ts";
 import { richDiffReferences } from "../enrich-diff/visualizer/src/rich-diff.ts";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -255,6 +263,55 @@ test("derives entity line counts and file-level unmatched counts", () => {
     changeType: "added",
   });
   assert.equal(unmatchedCount(examplePatch.elements["element-1"]), 0);
+});
+
+test("counts each tag across every element's changes in schema order", () => {
+  const counts = tagCounts(collectChanges(examplePatch)).map(({ tag, count }) => ({ tag, count }));
+  assert.deepEqual(counts, [
+    { tag: "initialization", count: 1 },
+    { tag: "data-plumbing", count: 1 },
+  ]);
+  assert.deepEqual(tagCounts([]), []);
+});
+
+test("hides a change when it carries any hidden tag", () => {
+  const change = { oldLines: [1, 1], newLines: null, tags: ["test-code", "initialization"] };
+  assert.equal(isChangeHidden(change, new Set()), false);
+  assert.equal(isChangeHidden(change, new Set(["initialization"])), true);
+  assert.equal(isChangeHidden({ ...change, tags: [] }, new Set(["initialization"])), false);
+});
+
+test("hides navigation elements only when every change beneath them is hidden", () => {
+  const partial = elementFilterStates(examplePatch, new Set(["initialization"]));
+  assert.deepEqual(partial.get("element-3"), { visible: false, totalChanges: 1, hiddenChanges: 1, visibleTags: [] });
+  assert.deepEqual(partial.get("element-2"), { visible: true, totalChanges: 2, hiddenChanges: 1, visibleTags: ["data-plumbing"] });
+  assert.equal(partial.get("element-1").visible, true);
+
+  const everything = elementFilterStates(examplePatch, new Set(["initialization", "data-plumbing"]));
+  assert.equal(everything.get("element-2").visible, false);
+  assert.equal(everything.get("element-1").visible, false);
+  assert.equal(everything.get("element-6").visible, true, "untagged changes are never hidden");
+
+  const filtered = filterTree(buildTree(examplePatch), (id) => everything.get(id).visible);
+  assert.equal(filtered.length, 1);
+  assert.deepEqual(filtered[0].children.map((node) => node.name), ["utils"]);
+  assert.equal(filtered[0].children[0].children[0].element.name, "src/utils/format.ts");
+});
+
+test("maps changed rows to their owning change and leaves hidden rows out of line counts", () => {
+  const files = parsePatch(examplePatch.patch);
+  const changes = collectChanges(examplePatch);
+  assert.deepEqual(rowChanges(files[0], changes).map((change) => change?.elementId), [
+    undefined, undefined, "element-3", "element-3", undefined, undefined, undefined,
+    "element-4", "element-4", "element-4", undefined, undefined,
+  ]);
+  const hiddenRows = hiddenRowsByFile(files, changes, new Set(["data-plumbing"]));
+  assert.deepEqual(hiddenRows.get("src/services/ChangeService.ts"), [
+    false, false, false, false, false, false, false, true, true, true, false, false,
+  ]);
+  assert.deepEqual(statsForElement(examplePatch.elements["element-1"], files, hiddenRows), { added: 1, removed: 1, changeType: "modified" });
+  assert.deepEqual(statsForElement(examplePatch.elements["element-2"], files, hiddenRows), { added: 1, removed: 1, changeType: "modified" });
+  assert.deepEqual(statsForElement(examplePatch.elements["element-4"], files, hiddenRows), { added: 0, removed: 0, changeType: "modified" });
 });
 
 test("the enrich-diff viewer loads both files through the newest Rich Diff manifest", async (t) => {

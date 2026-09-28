@@ -149,7 +149,7 @@ function locationChangeType(element: DiffElement): ChangeType {
   }
 }
 
-export function statsForElement(element: DiffElement, files: DiffFile[]): ElementStats {
+export function statsForElement(element: DiffElement, files: DiffFile[], hiddenRows?: ReadonlyMap<string, readonly boolean[]>): ElementStats {
   const filePath = element.kind === "file" ? element.name : element.locations[0].file;
   const file = files.find((candidate) => candidate.path === filePath);
   if (element.kind === "file") {
@@ -161,19 +161,47 @@ export function statsForElement(element: DiffElement, files: DiffFile[]): Elemen
     } else {
       changeType = "modified";
     }
-    return { added: file!.added, removed: file!.removed, changeType };
+    const hidden = hiddenRows?.get(filePath);
+    if (hidden === undefined) {
+      return { added: file!.added, removed: file!.removed, changeType };
+    } else {
+      const visibleRows = file!.rows.filter((_, rowIndex) => !hidden[rowIndex]);
+      return {
+        added: visibleRows.filter((row) => row.kind === "add").length,
+        removed: visibleRows.filter((row) => row.kind === "delete").length,
+        changeType,
+      };
+    }
   } else {
     let added = 0;
     let removed = 0;
-    for (const row of file!.rows) {
-      if (row.kind === "add" && element.locations.some((location) => lineIsInRange(row.newLine, location.newLines))) {
+    const hidden = hiddenRows?.get(filePath);
+    for (const [rowIndex, row] of file!.rows.entries()) {
+      const visible = hidden?.[rowIndex] !== true;
+      if (visible && row.kind === "add" && element.locations.some((location) => lineIsInRange(row.newLine, location.newLines))) {
         added += 1;
-      } else if (row.kind === "delete" && element.locations.some((location) => lineIsInRange(row.oldLine, location.oldLines))) {
+      } else if (visible && row.kind === "delete" && element.locations.some((location) => lineIsInRange(row.oldLine, location.oldLines))) {
         removed += 1;
       }
     }
     return { added, removed, changeType: locationChangeType(element) };
   }
+}
+
+/** Drops elements the tag filter hides, and directories left without visible children. */
+export function filterTree(nodes: TreeNode[], isVisible: (id: string) => boolean): TreeNode[] {
+  const filtered: TreeNode[] = [];
+  for (const node of nodes) {
+    if (node.kind === "directory") {
+      const children = filterTree(node.children, isVisible);
+      if (children.length > 0) {
+        filtered.push({ ...node, children });
+      }
+    } else if (isVisible(node.id)) {
+      filtered.push({ ...node, children: filterTree(node.children, isVisible) as ElementNode[] });
+    }
+  }
+  return filtered;
 }
 
 export function unmatchedCount(element: DiffElement): number {

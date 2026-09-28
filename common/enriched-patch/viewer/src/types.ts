@@ -6,11 +6,18 @@ export interface DiffLocation {
   newLines: LineRange | null;
 }
 
+export interface DiffChange {
+  oldLines: LineRange | null;
+  newLines: LineRange | null;
+  tags: string[];
+}
+
 export interface DiffElement {
   kind: "file" | "class" | "method";
   name: string;
   parentId?: string;
   locations: DiffLocation[];
+  changes?: DiffChange[];
 }
 
 export interface EnrichedPatch {

@@ -48,12 +48,14 @@ export const examplePatch: EnrichedPatch = {
       name: "configure",
       parentId: "element-2",
       locations: [{ file: "src/services/ChangeService.ts", oldLines: [2, 4], newLines: [2, 4] }],
+      changes: [{ oldLines: [3, 3], newLines: [3, 3], tags: ["initialization"] }],
     },
     "element-4": {
       kind: "method",
       name: "build",
       parentId: "element-2",
       locations: [{ file: "src/services/ChangeService.ts", oldLines: [6, 8], newLines: [6, 9] }],
+      changes: [{ oldLines: [7, 7], newLines: [7, 8], tags: ["data-plumbing"] }],
     },
     "element-5": {
       kind: "file",
@@ -65,6 +67,7 @@ export const examplePatch: EnrichedPatch = {
       name: "formatName",
       parentId: "element-5",
       locations: [{ file: "src/utils/format.ts", oldLines: null, newLines: [1, 3] }],
+      changes: [{ oldLines: null, newLines: [1, 3], tags: [] }],
     },
   },
 };
