@@ -21,7 +21,7 @@ import {
 } from "./tag-filter.ts";
 import type { DiffElement, DiffFile, EnrichedPatch } from "./types.ts";
 
-export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefault?: boolean; expansionStorageKey?: string } = {}): {
+export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefault?: boolean; expansionStorageKey?: string; hideTagsByDefault?: boolean } = {}): {
   loadEnrichedPatch(value: unknown, name: string, preserveView?: boolean): void;
 } {
   const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
@@ -67,16 +67,18 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     return path.slice(path.lastIndexOf("/") + 1);
   }
 
-  function initialSelection(value: EnrichedPatch, useHash = true): string {
+  function initialSelection(value: EnrichedPatch, useHash = true, states?: Map<string, ElementFilterState>): string {
     const hashId = useHash ? decodeURIComponent(location.hash.slice(1)) : "";
+    const entries = Object.entries(value.elements);
+    const visibleEntries = states === undefined ? entries : entries.filter(([id]) => states.get(id)?.visible !== false);
+    const candidates = visibleEntries.length > 0 ? visibleEntries : entries;
     let selection;
-    if (value.elements[hashId] !== undefined) {
+    if (value.elements[hashId] !== undefined && (states?.get(hashId)?.visible ?? true)) {
       selection = hashId;
     } else {
-      const entries = Object.entries(value.elements);
-      selection = entries.find(([, element]) => element.kind === "method")?.[0]
-        ?? entries.find(([, element]) => element.kind === "class")?.[0]
-        ?? entries[0][0];
+      selection = candidates.find(([, element]) => element.kind === "method")?.[0]
+        ?? candidates.find(([, element]) => element.kind === "class")?.[0]
+        ?? candidates[0][0];
     }
     return selection;
   }
@@ -85,11 +87,14 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     return ICONS[kind];
   }
 
-  function refreshTagFilter(): void {
+  function refreshTagFilter(applyDefaults = false): void {
+    const previousTags = new Set(tagList.map(({ tag }) => tag));
     changes = collectChanges(index);
     tagList = tagCounts(changes);
     const presentTags = new Set(tagList.map(({ tag }) => tag));
-    hiddenTags = new Set([...hiddenTags].filter((tag) => presentTags.has(tag)));
+    hiddenTags = applyDefaults
+      ? presentTags
+      : new Set([...presentTags].filter((tag) => hiddenTags.has(tag) || (options.hideTagsByDefault === true && !previousTags.has(tag))));
     filterStates = elementFilterStates(index, hiddenTags);
     hiddenRows = hiddenRowsByFile(files, changes, hiddenTags);
   }
@@ -699,7 +704,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     files = parsedFiles;
     fileName = name;
     revealedChanges = new Set();
-    refreshTagFilter();
+    refreshTagFilter(!preserveView && options.hideTagsByDefault === true);
     let preservedSelection = false;
     if (preserveView) {
       const match = Object.entries(index.elements).find(([, element]) =>
@@ -718,11 +723,11 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
         selectedId = fileMatch[0];
         preservedSelection = true;
       } else {
-        selectedId = initialSelection(index, false);
+        selectedId = initialSelection(index, false, filterStates);
       }
       history.replaceState(null, "", `#${encodeURIComponent(selectedId)}`);
     } else {
-      selectedId = initialSelection(index);
+      selectedId = initialSelection(index, true, filterStates);
     }
     expandedIds = expandedNodeIds(buildTree(index), true, previousExpansion);
     hasLoadedEnrichedPatch = true;
@@ -806,7 +811,8 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     }
   });
 
-  refreshTagFilter();
+  refreshTagFilter(options.hideTagsByDefault === true);
+  selectedId = initialSelection(index, true, filterStates);
   render();
   requestAnimationFrame(scrollToSelection);
   if (options.loadDefault !== false) void loadDefault();

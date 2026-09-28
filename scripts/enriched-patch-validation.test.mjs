@@ -57,6 +57,7 @@ test("the CLI validates saved enriched patches", async (t) => {
   t.after(() => rm(directory, { recursive: true, force: true }));
   const indexPath = path.join(directory, "run.enriched-patch.json");
   const index = generateEnrichedPatch(patch);
+  index.elements["element-2"].changes[0].tags = ["imports"];
   await writeFile(indexPath, JSON.stringify(index));
   assert.equal(spawnSync(process.execPath, [validatorPath, indexPath], { encoding: "utf8" }).status, 0);
 

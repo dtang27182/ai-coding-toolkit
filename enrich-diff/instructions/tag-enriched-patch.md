@@ -15,3 +15,4 @@ Use the Enriched Patch generated in the preceding step.
 - `data-plumbing`: Apply when the change's only purpose is to carry between parts of the system, such as forwarding arguments. A change that alters the underlying behavior beyond that transfer does not qualify solely because data passes through it. This includes, but is not limited to: 
   1. function parameter list change in a function that does not do anything with the changed parameter except passing the parameter to an nested function call 
   2. a nested function call that does not have any change except passing a modified parameter along that was also changed in the outer function parameter list
+- `imports`: Apply to changed import declarations or module-loading statements, including imported names and module paths in `import`, `require`, or dynamic `import()` expressions. Changes only to uses of an imported value elsewhere do not qualify.

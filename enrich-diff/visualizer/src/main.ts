@@ -60,7 +60,7 @@ const diffPanel = app.querySelector<HTMLElement>('[data-panel="diff"]')!;
 dataflowPanel.classList.add("embedded-view");
 diffPanel.classList.add("embedded-view");
 const dataflowViewer = mountSystemDataflowViewer(dataflowPanel, { loadDefault: false });
-const diffViewer = mountEnrichedPatchViewer(diffPanel, { loadDefault: false });
+const diffViewer = mountEnrichedPatchViewer(diffPanel, { loadDefault: false, hideTagsByDefault: true });
 
 let manifestName: string | undefined;
 let manifestError: string | undefined;

@@ -164,6 +164,10 @@
               {
                 "const": "data-plumbing",
                 "description": "Changed code purely for the purpose of plumbing data from one part of the system to another part of the system."
+              },
+              {
+                "const": "imports",
+                "description": "Import declarations or module-loading statements."
               }
             ]
           }

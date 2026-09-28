@@ -266,10 +266,12 @@ test("derives entity line counts and file-level unmatched counts", () => {
 });
 
 test("counts each tag across every element's changes in schema order", () => {
-  const counts = tagCounts(collectChanges(examplePatch)).map(({ tag, count }) => ({ tag, count }));
+  const changes = collectChanges(examplePatch);
+  const counts = tagCounts([...changes, { ...changes[0], tags: ["imports"] }]).map(({ tag, count }) => ({ tag, count }));
   assert.deepEqual(counts, [
     { tag: "initialization", count: 1 },
     { tag: "data-plumbing", count: 1 },
+    { tag: "imports", count: 1 },
   ]);
   assert.deepEqual(tagCounts([]), []);
 });
