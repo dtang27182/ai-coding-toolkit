@@ -11,6 +11,10 @@ import { generateEnrichedPatch } from "../common/enriched-patch/generate-enriche
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const generatorPath = path.join(toolkitDirectory, "common", "enriched-patch", "generate-enriched-patch.mjs");
 
+function withoutChanges(elements) {
+  return Object.fromEntries(Object.entries(elements).map(([id, { changes, ...element }]) => [id, element]));
+}
+
 const modifiedPatch = [
   "diff --git a/src/ChangeService.js b/src/ChangeService.js",
   "index 1111111..2222222 100644",
@@ -35,7 +39,7 @@ const modifiedPatch = [
 
 test("indexes changed classes and methods while retaining unmatched file changes", () => {
   const index = generateEnrichedPatch(modifiedPatch);
-  assert.deepEqual(index, {
+  assert.deepEqual({ ...index, elements: withoutChanges(index.elements) }, {
     schemaVersion: 1,
     patch: modifiedPatch,
     elements: {
@@ -67,6 +71,12 @@ test("indexes changed classes and methods while retaining unmatched file changes
       },
     },
   });
+  assert.deepEqual(Object.fromEntries(Object.entries(index.elements).map(([id, element]) => [id, element.changes])), {
+    "element-1": [{ oldLines: [11, 11], newLines: [12, 12], tags: [] }],
+    "element-2": [],
+    "element-3": [{ oldLines: [3, 3], newLines: [3, 3], tags: [] }],
+    "element-4": [{ oldLines: null, newLines: [7, 7], tags: [] }],
+  });
 });
 
 test("indexes deleted classes and methods from the old file image", () => {
@@ -83,7 +93,7 @@ test("indexes deleted classes and methods from the old file image", () => {
     "-}",
   ].join("\n");
   const index = generateEnrichedPatch(patch);
-  assert.deepEqual(index.elements, {
+  assert.deepEqual(withoutChanges(index.elements), {
     "element-1": { kind: "file", name: "src/OldService.ts", locations: [] },
     "element-2": {
       kind: "class",
@@ -98,6 +108,34 @@ test("indexes deleted classes and methods from the old file image", () => {
       locations: [{ file: "src/OldService.ts", oldLines: [2, 4], newLines: null }],
     },
   });
+  assert.deepEqual(index.elements["element-2"].changes, [
+    { oldLines: [1, 1], newLines: null, tags: [] },
+    { oldLines: [5, 5], newLines: null, tags: [] },
+  ]);
+  assert.deepEqual(index.elements["element-3"].changes, [
+    { oldLines: [2, 4], newLines: null, tags: [] },
+  ]);
+});
+
+test("separates changes to one element when context rows intervene", () => {
+  const patch = [
+    "diff --git a/notes.txt b/notes.txt",
+    "index 1111111..2222222 100644",
+    "--- a/notes.txt",
+    "+++ b/notes.txt",
+    "@@ -1,4 +1,4 @@",
+    "-old first",
+    "+new first",
+    " unchanged",
+    "-old second",
+    "+new second",
+    " unchanged",
+  ].join("\n");
+  const index = generateEnrichedPatch(patch);
+  assert.deepEqual(index.elements["element-1"].changes, [
+    { oldLines: [1, 1], newLines: [1, 1], tags: [] },
+    { oldLines: [3, 3], newLines: [3, 3], tags: [] },
+  ]);
 });
 
 test("indexes top-level functions under their file", () => {
@@ -112,7 +150,7 @@ test("indexes top-level functions under their file", () => {
     "+}",
   ].join("\n");
   const index = generateEnrichedPatch(patch);
-  assert.deepEqual(index.elements, {
+  assert.deepEqual(withoutChanges(index.elements), {
     "element-1": { kind: "file", name: "src/run.ts", locations: [] },
     "element-2": {
       kind: "method",
@@ -163,7 +201,7 @@ test("captures unsupported text changes and binary files as file elements", () =
     "Binary files a/assets/image.png and b/assets/image.png differ",
   ].join("\n");
   const index = generateEnrichedPatch(patch);
-  assert.deepEqual(index.elements, {
+  assert.deepEqual(withoutChanges(index.elements), {
     "element-1": {
       kind: "file",
       name: "src/task.py",
@@ -174,6 +212,7 @@ test("captures unsupported text changes and binary files as file elements", () =
     },
     "element-2": { kind: "file", name: "assets/image.png", locations: [] },
   });
+  assert.deepEqual(index.elements["element-2"].changes, []);
 });
 
 test("keeps ambiguous declarations as file-level changes", () => {
@@ -192,7 +231,7 @@ test("keeps ambiguous declarations as file-level changes", () => {
     "+}",
   ].join("\n");
   const index = generateEnrichedPatch(patch);
-  assert.deepEqual(index.elements, {
+  assert.deepEqual(withoutChanges(index.elements), {
     "element-1": {
       kind: "file",
       name: "src/run.js",

@@ -474,6 +474,44 @@ function indexFile(file, elements, nextId) {
   return nextId;
 }
 
+function populateChanges(files, elements) {
+  const allElements = Object.values(elements);
+  for (const element of allElements) element.changes = [];
+
+  for (const file of files) {
+    const fileName = file.newPath ?? file.oldPath;
+    const fileElement = allElements.find((element) => element.kind === "file" && element.name === fileName);
+    const methods = allElements.filter((element) => element.kind === "method" && element.locations[0].file === fileName);
+    const classes = allElements.filter((element) => element.kind === "class" && element.locations[0].file === fileName);
+    let activeOwner;
+    let activeChange;
+
+    for (const row of file.rows) {
+      if (row.kind === "context") {
+        activeOwner = undefined;
+      } else if (row.kind === "add" || row.kind === "delete") {
+        const side = row.kind === "add" ? "new" : "old";
+        const line = row[`${side}Line`];
+        const containsChangedLine = (element) => element.locations.some((location) =>
+          containsLine(location[`${side}Lines`] ?? undefined, line)
+        );
+        const owner = methods.find(containsChangedLine) ?? classes.find(containsChangedLine) ?? fileElement;
+        if (owner !== activeOwner) {
+          activeOwner = owner;
+          activeChange = { oldLines: null, newLines: null, tags: [] };
+          owner.changes.push(activeChange);
+        }
+        const range = activeChange[`${side}Lines`];
+        if (range === null) {
+          activeChange[`${side}Lines`] = [line, line];
+        } else {
+          range[1] = line;
+        }
+      }
+    }
+  }
+}
+
 function semanticErrors(index, files) {
   const errors = [];
   const entries = Object.entries(index.elements);
@@ -555,6 +593,7 @@ export function generateEnrichedPatch(patch) {
   const elements = {};
   let nextId = 1;
   for (const file of files) nextId = indexFile(file, elements, nextId);
+  populateChanges(files, elements);
   const index = { schemaVersion: 1, patch, elements };
 
   if (!validateSchema(index)) {
