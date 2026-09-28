@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI Coding Toolkit Enriched Patch",
-  "description": "A self-contained enriched patch viewer input containing a full-context unified patch and an element-first index that maps selectable navigation elements to source locations in that patch. The viewer renders the complete file section and uses each location only as a scroll target and changed-line range. Directory navigation nodes are derived from file paths and are not stored as elements.",
+  "description": "A self-contained enriched patch viewer input containing a full-context unified patch and an element-first index that maps selectable navigation elements to source locations in that patch. Elements may also own tagged changes so a filtered navigation tree can hide elements with no visible changes or descendants. The viewer renders the complete file section and uses each location only as a scroll target and changed-line range. Directory navigation nodes are derived from file paths and are not stored as elements.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -113,6 +113,79 @@
         }
       ]
     },
+    "change": {
+      "description": "A contiguous span of changed patch rows owned by the most specific indexed method, class, or file that contains it. Adjacent spans may be separate changes when their meanings differ. Do not repeat a change on ancestor elements; ancestor visibility is derived from visible descendant changes.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oldLines",
+        "newLines",
+        "tags"
+      ],
+      "properties": {
+        "oldLines": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/lineRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "newLines": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/lineRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Independent classifications of this change. Use an empty array when none applies.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "oneOf": [
+              {
+                "const": "non-code",
+                "description": "Documentation or other non-executable content."
+              },
+              {
+                "const": "test-code",
+                "description": "Tests or test helpers."
+              },
+              {
+                "const": "initialization",
+                "description": "Construction, setup, or initialzation code."
+              },
+              {
+                "const": "data-plumbing",
+                "description": "Changed code purely for the purpose of plumbing data from one part of the system to another part of the system."
+              }
+            ]
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "oldLines": {
+              "$ref": "#/$defs/lineRange"
+            }
+          }
+        },
+        {
+          "properties": {
+            "newLines": {
+              "$ref": "#/$defs/lineRange"
+            }
+          }
+        }
+      ]
+    },
     "element": {
       "type": "object",
       "additionalProperties": false,
@@ -145,6 +218,13 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/location"
+          }
+        },
+        "changes": {
+          "description": "Tagged changes directly owned by this element. Each changed patch row belongs to one element's changes; a filtered navigation element is visible when it owns a matching change or has a visible descendant. Optional for existing enriched patches that do not contain tags.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/change"
           }
         }
       },
