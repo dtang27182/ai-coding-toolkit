@@ -22,6 +22,17 @@ Read and follow these instructions in order:
 1. `ai-coding-toolkit/enrich-diff/instructions/gen-sys-dataflow.md`
 2. `ai-coding-toolkit/enrich-diff/instructions/generate-enriched-patch.md`
 
+Write `<outputDirectory>/<feature>/<feature>.rich-diff.json` with exactly two absolute paths:
+
+```json
+{
+  "enrichedPatch": "<absolute-path-to-feature-directory>/<feature>.enriched-patch.json",
+  "sysDataflow": "<absolute-path-to-feature-directory>/<feature>.cr.sys-dataflow.json"
+}
+```
+
+Verify that both paths point to the artifacts just generated. Report the rich-diff JSON path as the combined visualizer input.
+
 Report the selected base and target (working tree or commit), including resolved commit IDs.
 
 Do not modify application code as part of this workflow.

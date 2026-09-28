@@ -105,6 +105,10 @@ button:focus-visible {
   white-space: nowrap;
 }
 
+.review-path.error {
+  color: oklch(0.78 0.15 25);
+}
+
 .view-navigation {
   display: inline-flex;
   flex: 0 0 auto;

@@ -11,29 +11,33 @@ import { clampSidebarWidth } from "../common/enriched-patch/viewer/src/layout.ts
 import { buildTree, expandedNodeIds, expansionStates, statsForElement, unmatchedCount } from "../common/enriched-patch/viewer/src/model.ts";
 import { firstChangedLine, parsePatch } from "../common/enriched-patch/viewer/src/patch.ts";
 import { isLineWrapShortcut } from "../common/enriched-patch/viewer/src/shortcuts.ts";
+import { richDiffReferences } from "../enrich-diff/visualizer/src/rich-diff.ts";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-async function defaultEnrichedPatchFileName(configPath, repositoryDirectory) {
+async function richDiffPlugins(configPath, repositoryDirectory) {
   const originalDirectory = process.cwd();
   process.chdir(repositoryDirectory);
   try {
     const { default: config } = await import(`${pathToFileURL(configPath).href}?repository=${Date.now()}`);
-    let middleware;
-    config.plugins[0].configureServer({ middlewares: { use(handler) { middleware = handler; } } });
-    const response = {
-      statusCode: 200,
-      setHeader() {},
-      end(body) { this.body = body; },
-    };
-    await middleware({ method: "GET", url: "/__enriched-patch/default" }, response, () => {
-      assert.fail("The default index endpoint did not handle the request.");
-    });
-    assert.equal(response.statusCode, 200);
-    return JSON.parse(response.body).fileName;
+    return config.plugins;
   } finally {
     process.chdir(originalDirectory);
   }
+}
+
+async function pluginResponse(plugin, url) {
+  let middleware;
+  await plugin.configureServer({ middlewares: { use(handler) { middleware = handler; } } });
+  const response = {
+    statusCode: 200,
+    setHeader() {},
+    end(body) { this.body = body; },
+  };
+  await middleware({ method: "GET", url }, response, () => {
+    assert.fail(`No middleware handled ${url}`);
+  });
+  return response;
 }
 
 test("parses complete file rows and change counts from the embedded patch", () => {
@@ -100,6 +104,25 @@ test("uses diff headers for binary files without text-file headers", () => {
     added: 0,
     removed: 0,
   }]);
+});
+
+test("keeps file paths when changed content resembles patch headers", () => {
+  const files = parsePatch([
+    "diff --git a/review.patch b/review.patch",
+    "index 1111111..2222222 100644",
+    "--- a/review.patch",
+    "+++ b/review.patch",
+    "@@ -1 +1 @@",
+    "--- previous source line",
+    "+++ next source line",
+  ].join("\n"));
+  assert.equal(files[0].path, "review.patch");
+  assert.equal(files[0].oldPath, "review.patch");
+  assert.equal(files[0].newPath, "review.patch");
+  assert.deepEqual(files[0].rows.map(({ kind, text }) => ({ kind, text })), [
+    { kind: "delete", text: "-- previous source line" },
+    { kind: "add", text: "++ next source line" },
+  ]);
 });
 
 test("builds directory nodes above indexed files and preserves entity nesting", () => {
@@ -234,23 +257,45 @@ test("derives entity line counts and file-level unmatched counts", () => {
   assert.equal(unmatchedCount(examplePatch.elements["element-1"]), 0);
 });
 
-test("the enrich-diff viewer finds the newest enriched patch under the configured output directory", async (t) => {
+test("the enrich-diff viewer loads both files through the newest Rich Diff manifest", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "enriched-patch-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const repositoryDirectory = path.join(directory, "repository");
   const outputDirectory = path.join(repositoryDirectory, "docs", "plans", "feature");
   await mkdir(outputDirectory, { recursive: true });
-  const older = path.join(outputDirectory, "older.enriched-patch.json");
-  const newer = path.join(outputDirectory, "newer.enriched-patch.json");
+  const older = path.join(outputDirectory, "older.rich-diff.json");
+  const newer = path.join(outputDirectory, "newer.rich-diff.json");
+  const enrichedPatch = path.join(directory, "patches", "feature.enriched-patch.json");
+  const sysDataflow = path.join(directory, "diagrams", "feature.cr.sys-dataflow.json");
+  await mkdir(path.dirname(enrichedPatch));
+  await mkdir(path.dirname(sysDataflow));
+  await writeFile(enrichedPatch, '{"patch":"example"}');
+  await writeFile(sysDataflow, '{"feature":"example"}');
   await writeFile(older, "{}");
-  await writeFile(newer, "{}");
+  const manifest = { enrichedPatch, sysDataflow };
+  await writeFile(newer, JSON.stringify(manifest));
   await utimes(older, new Date(1_000), new Date(1_000));
   await utimes(newer, new Date(2_000), new Date(2_000));
-  await mkdir(path.join(repositoryDirectory, "advanced-diff-viewer"));
-  await writeFile(path.join(repositoryDirectory, "advanced-diff-viewer/enriched-patch.json"), "{}");
 
   const configPath = path.join(toolkitDirectory, "enrich-diff/visualizer/vite.config.mjs");
-  assert.equal(await defaultEnrichedPatchFileName(configPath, repositoryDirectory), "docs/plans/feature/newer.enriched-patch.json");
+  const plugins = await richDiffPlugins(configPath, repositoryDirectory);
+  const defaultResponse = await pluginResponse(plugins[0], "/__rich-diff/default");
+  assert.equal(defaultResponse.statusCode, 200);
+  assert.equal(JSON.parse(defaultResponse.body).fileName, "docs/plans/feature/newer.rich-diff.json");
+  assert.deepEqual(JSON.parse(JSON.parse(defaultResponse.body).contents), manifest);
+  assert.equal((await pluginResponse(plugins[1], `/__rich-diff/reference?path=${encodeURIComponent(enrichedPatch)}`)).body, '{"patch":"example"}');
+  assert.equal((await pluginResponse(plugins[1], `/__rich-diff/reference?path=${encodeURIComponent(sysDataflow)}`)).body, '{"feature":"example"}');
+  assert.equal((await pluginResponse(plugins[1], "/__rich-diff/reference?path=relative.json")).statusCode, 400);
+});
+
+test("Rich Diff requires only two absolute JSON paths", () => {
+  const manifest = {
+    enrichedPatch: "/tmp/feature.enriched-patch.json",
+    sysDataflow: "/elsewhere/feature.cr.sys-dataflow.json",
+  };
+  assert.deepEqual(richDiffReferences(manifest), manifest);
+  assert.throws(() => richDiffReferences({ ...manifest, sysDataflow: "feature.cr.sys-dataflow.json" }), /absolute/);
+  assert.throws(() => richDiffReferences({ ...manifest, extra: "value" }), /only enrichedPatch and sysDataflow/);
 });
 
 test("recognizes Alt or Option plus Z as the line-wrapping shortcut", () => {

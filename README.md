@@ -95,7 +95,7 @@ It has independent validation and counting scripts. Run `npm run hld-visualizer`
 
 ## Enrich the Current Diff
 
-After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$enrich-diff`. You can ask it to compare the working tree with the latest commit, the latest commit with its parent, or any two commits; it uses the older commit as the base regardless of the order you name them. Without a selection, it uses the working tree when staged, unstaged, or untracked changes exist; otherwise it compares `HEAD^` with `HEAD`. The skill writes the selected diff to `<feature>.patch` and a graph to `<feature>.cr.sys-dataflow.json` beside the HLD. It also writes `<feature>.enriched-patch.json` as a self-contained input for the enriched patch viewer, embedding the selected patch alongside locations for changed files, classes, and methods. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
+After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$enrich-diff`. You can ask it to compare the working tree with the latest commit, the latest commit with its parent, or any two commits; it uses the older commit as the base regardless of the order you name them. Without a selection, it uses the working tree when staged, unstaged, or untracked changes exist; otherwise it compares `HEAD^` with `HEAD`. The skill writes the selected diff to `<feature>.patch` and a graph to `<feature>.cr.sys-dataflow.json` beside the HLD. It also writes `<feature>.enriched-patch.json` as a self-contained input for the enriched patch viewer, embedding the selected patch alongside locations for changed files, classes, and methods. `<feature>.rich-diff.json` contains absolute paths to those two JSON artifacts for the combined visualizer. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
 
 `generate-enriched-patch.mjs` can currently identify class and method entities only in JavaScript and TypeScript files because it uses a deterministic AST parser. Future work could add an LLM-based entity-identification path for broader language support.
 
@@ -105,7 +105,7 @@ Run the combined visualizer from the target repository, then switch between the 
 npm run diff-visualizer
 ```
 
-Each view opens the newest matching `sys-dataflow.json` or `enriched-patch.json` artifact under the configured output directory. You can also open or drag in another file from either view.
+The combined visualizer opens the newest `rich-diff.json` under the configured output directory, then loads both JSON files named in it. You can open or drag in another rich-diff manifest to switch both views together.
 
 In the combined visualizer, the diff view derives its directory tree from indexed file paths and exposes the indexed files, classes, and methods. Selecting one opens its full-file diff and scrolls to the indexed declaration.
 

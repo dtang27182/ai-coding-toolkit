@@ -19,7 +19,9 @@ import styles from "./styles.css?inline";
 
 type DisplayChangeType = ChangeType | "unspecified";
 
-export function mountSystemDataflowViewer(host: HTMLElement): void {
+export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefault?: boolean } = {}): {
+  loadDataflow(value: unknown, name: string): void;
+} {
   const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
   root.innerHTML = `<style>${styles}</style><div id="app"></div>`;
   const app = root.querySelector<HTMLDivElement>("#app")!;
@@ -670,6 +672,15 @@ export function mountSystemDataflowViewer(host: HTMLElement): void {
     return error;
   }
 
+  function loadDataflow(value: unknown, name: string): void {
+    const error = setDataflow(value, name);
+    if (error !== undefined) throw new Error(error);
+    openedRepositoryFile = name;
+    stopWatchingOpenedFile?.();
+    stopWatchingOpenedFile = undefined;
+    render();
+  }
+
   async function openFile(file: File, handle?: JsonFileHandle, contents?: string): Promise<void> {
     try {
       const fileContents = contents ?? await file.text();
@@ -761,5 +772,6 @@ export function mountSystemDataflowViewer(host: HTMLElement): void {
   const observer = new ResizeObserver(fitGraph);
   render();
   observer.observe(app);
-  void loadDefault();
+  if (options.loadDefault !== false) void loadDefault();
+  return { loadDataflow };
 }

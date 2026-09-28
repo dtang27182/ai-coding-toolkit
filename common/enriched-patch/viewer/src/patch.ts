@@ -94,17 +94,17 @@ export function parsePatch(patch: string): DiffFile[] {
       };
       files.push(file);
       inHunk = false;
-    } else if (file !== undefined && line.startsWith("new file mode ")) {
+    } else if (file !== undefined && !inHunk && line.startsWith("new file mode ")) {
       file.oldPath = null;
-    } else if (file !== undefined && line.startsWith("deleted file mode ")) {
+    } else if (file !== undefined && !inHunk && line.startsWith("deleted file mode ")) {
       file.newPath = null;
       file.path = file.oldPath ?? "";
-    } else if (file !== undefined && line.startsWith("--- ")) {
+    } else if (file !== undefined && !inHunk && line.startsWith("--- ")) {
       file.oldPath = headerPath(line.slice(4));
-    } else if (file !== undefined && line.startsWith("+++ ")) {
+    } else if (file !== undefined && !inHunk && line.startsWith("+++ ")) {
       file.newPath = headerPath(line.slice(4));
       file.path = file.newPath ?? file.oldPath ?? "";
-    } else if (file !== undefined && (line.startsWith("Binary files ") || line === "GIT binary patch")) {
+    } else if (file !== undefined && !inHunk && (line.startsWith("Binary files ") || line === "GIT binary patch")) {
       file.binary = true;
       inHunk = false;
     } else if (file !== undefined && line.startsWith("@@ ")) {
