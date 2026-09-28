@@ -270,7 +270,6 @@ test("counts each tag across every element's changes in schema order", () => {
   const counts = tagCounts([...changes, { ...changes[0], tags: ["imports"] }]).map(({ tag, count }) => ({ tag, count }));
   assert.deepEqual(counts, [
     { tag: "initialization", count: 1 },
-    { tag: "data-plumbing", count: 1 },
     { tag: "imports", count: 1 },
   ]);
   assert.deepEqual(tagCounts([]), []);
@@ -284,17 +283,19 @@ test("hides a change when it carries any hidden tag", () => {
 });
 
 test("hides navigation elements only when every change beneath them is hidden", () => {
-  const partial = elementFilterStates(examplePatch, new Set(["initialization"]));
+  const index = structuredClone(examplePatch);
+  index.elements["element-4"].changes[0].tags = ["test-code"];
+  const partial = elementFilterStates(index, new Set(["initialization"]));
   assert.deepEqual(partial.get("element-3"), { visible: false, totalChanges: 1, hiddenChanges: 1, visibleTags: [] });
-  assert.deepEqual(partial.get("element-2"), { visible: true, totalChanges: 2, hiddenChanges: 1, visibleTags: ["data-plumbing"] });
+  assert.deepEqual(partial.get("element-2"), { visible: true, totalChanges: 2, hiddenChanges: 1, visibleTags: ["test-code"] });
   assert.equal(partial.get("element-1").visible, true);
 
-  const everything = elementFilterStates(examplePatch, new Set(["initialization", "data-plumbing"]));
+  const everything = elementFilterStates(index, new Set(["initialization", "test-code"]));
   assert.equal(everything.get("element-2").visible, false);
   assert.equal(everything.get("element-1").visible, false);
   assert.equal(everything.get("element-6").visible, true, "untagged changes are never hidden");
 
-  const filtered = filterTree(buildTree(examplePatch), (id) => everything.get(id).visible);
+  const filtered = filterTree(buildTree(index), (id) => everything.get(id).visible);
   assert.equal(filtered.length, 1);
   assert.deepEqual(filtered[0].children.map((node) => node.name), ["utils"]);
   assert.equal(filtered[0].children[0].children[0].element.name, "src/utils/format.ts");
@@ -302,12 +303,14 @@ test("hides navigation elements only when every change beneath them is hidden", 
 
 test("maps changed rows to their owning change and leaves hidden rows out of line counts", () => {
   const files = parsePatch(examplePatch.patch);
-  const changes = collectChanges(examplePatch);
+  const index = structuredClone(examplePatch);
+  index.elements["element-4"].changes[0].tags = ["test-code"];
+  const changes = collectChanges(index);
   assert.deepEqual(rowChanges(files[0], changes).map((change) => change?.elementId), [
     undefined, undefined, "element-3", "element-3", undefined, undefined, undefined,
     "element-4", "element-4", "element-4", undefined, undefined,
   ]);
-  const hiddenRows = hiddenRowsByFile(files, changes, new Set(["data-plumbing"]));
+  const hiddenRows = hiddenRowsByFile(files, changes, new Set(["test-code"]));
   assert.deepEqual(hiddenRows.get("src/services/ChangeService.ts"), [
     false, false, false, false, false, false, false, true, true, true, false, false,
   ]);

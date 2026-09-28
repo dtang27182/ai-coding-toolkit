@@ -55,7 +55,7 @@ export const examplePatch: EnrichedPatch = {
       name: "build",
       parentId: "element-2",
       locations: [{ file: "src/services/ChangeService.ts", oldLines: [6, 8], newLines: [6, 9] }],
-      changes: [{ oldLines: [7, 7], newLines: [7, 8], tags: ["data-plumbing"] }],
+      changes: [{ oldLines: [7, 7], newLines: [7, 8], tags: [] }],
     },
     "element-5": {
       kind: "file",

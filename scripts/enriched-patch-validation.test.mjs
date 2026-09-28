@@ -61,6 +61,12 @@ test("the CLI validates saved enriched patches", async (t) => {
   await writeFile(indexPath, JSON.stringify(index));
   assert.equal(spawnSync(process.execPath, [validatorPath, indexPath], { encoding: "utf8" }).status, 0);
 
+  index.elements["element-2"].changes[0].tags = ["data-plumbing"];
+  await writeFile(indexPath, JSON.stringify(index));
+  const removedTag = spawnSync(process.execPath, [validatorPath, indexPath], { encoding: "utf8" });
+  assert.notEqual(removedTag.status, 0);
+  assert.match(removedTag.stderr, /Enriched Patch does not match its schema/);
+
   index.elements["element-2"].changes = [];
   await writeFile(indexPath, JSON.stringify(index));
   const invalid = spawnSync(process.execPath, [validatorPath, indexPath], { encoding: "utf8" });

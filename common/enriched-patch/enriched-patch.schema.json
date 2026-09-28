@@ -162,12 +162,8 @@
                 "description": "Construction, setup, or initialzation code."
               },
               {
-                "const": "data-plumbing",
-                "description": "Changed code purely for the purpose of plumbing data from one part of the system to another part of the system."
-              },
-              {
                 "const": "imports",
-                "description": "Import declarations or module-loading statements."
+                "description": "Import declarations and module-loading expressions such as require() and import(). Export declarations, including re-exports, are excluded."
               }
             ]
           }

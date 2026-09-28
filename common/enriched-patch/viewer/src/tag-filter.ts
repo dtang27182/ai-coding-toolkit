@@ -2,7 +2,7 @@ import { lineIsInRange } from "./patch.ts";
 import type { DiffChange, DiffElement, DiffFile, DiffRow, EnrichedPatch } from "./types.ts";
 
 /** Tags defined by the enriched-patch schema, in display order. Unknown tags sort after these. */
-export const KNOWN_TAGS = ["non-code", "test-code", "initialization", "data-plumbing", "imports"];
+export const KNOWN_TAGS = ["non-code", "test-code", "initialization", "imports"];
 
 // Ten colors that stay clear of the green / amber / red used for added, modified and deleted.
 const TAG_PALETTE = [
