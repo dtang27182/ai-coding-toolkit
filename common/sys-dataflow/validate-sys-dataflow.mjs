@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
-const schemaPath = path.join(scriptDirectory, "system-dataflow.schema.json");
+const schemaPath = path.join(scriptDirectory, "sys-dataflow.schema.json");
 const inputPath = process.argv[2];
 
 const nodeDirections = {
@@ -19,7 +19,7 @@ const nodeDirections = {
 };
 
 if (inputPath === undefined) {
-  console.error("Usage: node validate-system-dataflow.mjs <path-to-json>");
+  console.error("Usage: node validate-sys-dataflow.mjs <path-to-json>");
   process.exitCode = 1;
 } else {
   const schema = JSON.parse(await readFile(schemaPath, "utf8"));

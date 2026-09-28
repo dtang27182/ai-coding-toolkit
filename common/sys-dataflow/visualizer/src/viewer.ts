@@ -1,6 +1,6 @@
 import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
-import schema from "../../system-dataflow.schema.json";
-import example from "../../system-dataflow.example.json";
+import schema from "../../sys-dataflow.schema.json";
+import example from "../../sys-dataflow.example.json";
 import { renderDiffSection } from "./diff.ts";
 import { escapeHtml, selectionKey } from "./html.ts";
 import { computeLayout } from "./layout.ts";
@@ -59,7 +59,7 @@ export function mountSystemDataflowViewer(host: HTMLElement): void {
   };
 
   let dataflow = example as SystemDataflow;
-  let fileName = "system-dataflow.example.json";
+  let fileName = "sys-dataflow.example.json";
   let showUnchanged = true;
   let zoom = 1;
   let panX = 0;

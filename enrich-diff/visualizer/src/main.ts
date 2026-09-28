@@ -1,5 +1,5 @@
 import { mountEnrichedPatchViewer } from "../../../common/enriched-patch/viewer/src/viewer.ts";
-import { mountSystemDataflowViewer } from "../../../common/system-dataflow/visualizer/src/viewer.ts";
+import { mountSystemDataflowViewer } from "../../../common/sys-dataflow/visualizer/src/viewer.ts";
 import "./styles.css";
 
 type View = "dataflow" | "diff";

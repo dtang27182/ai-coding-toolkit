@@ -14,7 +14,7 @@ export function watchDataflowFiles(repositoryDirectory, toolkitDirectory) {
           relativePath !== ".." &&
           !relativePath.startsWith(`..${path.sep}`) &&
           !path.isAbsolute(relativePath) &&
-          (/\.impl-dataflow\.json$/.test(filePath) || /\.system-dataflow(?:\.code-review)?\.json$/.test(filePath))
+          (/\.impl-dataflow\.json$/.test(filePath) || /\.(?:sys-dataflow|system-dataflow(?:\.code-review)?)\.json$/.test(filePath))
         ) {
           try {
             server.ws.send("hld-dataflow:file-change", {

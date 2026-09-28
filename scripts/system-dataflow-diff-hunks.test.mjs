@@ -7,7 +7,7 @@ import {
   lineIndent,
   parseHunk,
   renderDiffSection,
-} from "../common/system-dataflow/visualizer/src/diff.ts";
+} from "../common/sys-dataflow/visualizer/src/diff.ts";
 
 const plannerPatch = [
   "@@ -42,5 +42,6 @@ export class DeliveryPlanner {",

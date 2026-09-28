@@ -89,13 +89,13 @@ The final artifacts and iteration summary are ready for human review; applicatio
 
 The `hld-gen-new` tool installs as `$hld-gen` and provides the candidate generation, evaluation, comparison, and selection workflow without separate user-flow labeling, dataflow-narrative, or visualizer-description passes.
 
-`hld-gen-new` produces an HLD doc (`<feature>.hld.md`), a proposed System Dataflow (`<feature>.system-dataflow.json`), and a structured JSON representation of its Implementation Dataflow narrative (`<feature>.impl-dataflow.json`), in that order. It retains the same quality metrics and iteration structure as `hld-gen`. When the agent supports subagents, it generates and evaluates each iteration's three candidates in parallel, one subagent per candidate; otherwise it generates them one at a time.
+`hld-gen-new` produces an HLD doc (`<feature>.hld.md`), a proposed System Dataflow (`<feature>.sys-dataflow.json`), and a structured JSON representation of its Implementation Dataflow narrative (`<feature>.impl-dataflow.json`), in that order. `sys-dataflow` is shorthand for System Dataflow. It retains the same quality metrics and iteration structure as `hld-gen`. When the agent supports subagents, it generates and evaluates each iteration's three candidates in parallel, one subagent per candidate; otherwise it generates them one at a time.
 
 It has independent validation and counting scripts. Run `npm run hld-visualizer` to switch between its System Dataflow and Implementation Dataflow views. The System view opens the newest matching artifact under the configured output directory. The Implementation view restores the last file opened in the browser, or opens the newest matching artifact when there is none. You can open or drag in another JSON file in either view. The views refresh when their open repository files change; files chosen with a browser file handle refresh too.
 
 ## Enrich the Current Diff
 
-After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$enrich-diff`. You can ask it to compare the working tree with the latest commit, the latest commit with its parent, or any two commits; it uses the older commit as the base regardless of the order you name them. Without a selection, it uses the working tree when staged, unstaged, or untracked changes exist; otherwise it compares `HEAD^` with `HEAD`. The skill writes the selected diff to `<feature>.patch` and a graph to `<feature>.system-dataflow.code-review.json` beside the HLD. It also writes `<feature>.enriched-patch.json` as a self-contained input for the enriched patch viewer, embedding the selected patch alongside locations for changed files, classes, and methods. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
+After `hld-gen-new` produces a selected `<feature>.hld.md`, invoke `$enrich-diff`. You can ask it to compare the working tree with the latest commit, the latest commit with its parent, or any two commits; it uses the older commit as the base regardless of the order you name them. Without a selection, it uses the working tree when staged, unstaged, or untracked changes exist; otherwise it compares `HEAD^` with `HEAD`. The skill writes the selected diff to `<feature>.patch` and a graph to `<feature>.cr.sys-dataflow.json` beside the HLD. It also writes `<feature>.enriched-patch.json` as a self-contained input for the enriched patch viewer, embedding the selected patch alongside locations for changed files, classes, and methods. The generated graph focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
 
 `generate-enriched-patch.mjs` can currently identify class and method entities only in JavaScript and TypeScript files because it uses a deterministic AST parser. Future work could add an LLM-based entity-identification path for broader language support.
 
@@ -105,7 +105,7 @@ Run the combined visualizer from the target repository, then switch between the 
 npm run diff-visualizer
 ```
 
-Each view opens the newest matching `system-dataflow.json` or `enriched-patch.json` artifact under the configured output directory. You can also open or drag in another file from either view.
+Each view opens the newest matching `sys-dataflow.json` or `enriched-patch.json` artifact under the configured output directory. You can also open or drag in another file from either view.
 
 In the combined visualizer, the diff view derives its directory tree from indexed file paths and exposes the indexed files, classes, and methods. Selecting one opens its full-file diff and scrolls to the indexed declaration.
 

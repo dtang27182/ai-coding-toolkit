@@ -4,11 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import Ajv2020 from "ajv/dist/2020.js";
-import { findNewestSystemDataflow } from "../common/system-dataflow/visualizer/default-system-dataflow.mjs";
-import { semanticError } from "../common/system-dataflow/visualizer/src/validation.ts";
+import { findNewestSystemDataflow } from "../common/sys-dataflow/visualizer/default-system-dataflow.mjs";
+import { semanticError } from "../common/sys-dataflow/visualizer/src/validation.ts";
 
-const example = JSON.parse(await readFile(new URL("../common/system-dataflow/system-dataflow.example.json", import.meta.url), "utf8"));
-const schema = JSON.parse(await readFile(new URL("../common/system-dataflow/system-dataflow.schema.json", import.meta.url), "utf8"));
+const example = JSON.parse(await readFile(new URL("../common/sys-dataflow/sys-dataflow.example.json", import.meta.url), "utf8"));
+const schema = JSON.parse(await readFile(new URL("../common/sys-dataflow/sys-dataflow.schema.json", import.meta.url), "utf8"));
 const validate = new Ajv2020({ allErrors: true }).compile(schema);
 
 const directions = {
@@ -76,12 +76,15 @@ test("finds the newest System Dataflow under the configured output directory", a
   await mkdir(outputDirectory, { recursive: true });
   await mkdir(toolkitDirectory, { recursive: true });
   await writeFile(path.join(toolkitDirectory, "config.json"), '{"outputDirectory":"docs/plans"}\n');
-  const older = path.join(outputDirectory, "older.system-dataflow.json");
-  const newer = path.join(outputDirectory, "newer.system-dataflow.code-review.json");
+  const older = path.join(outputDirectory, "legacy.system-dataflow.json");
+  const proposed = path.join(outputDirectory, "feature.sys-dataflow.json");
+  const newer = path.join(outputDirectory, "feature.cr.sys-dataflow.json");
   await writeFile(older, "{}");
+  await writeFile(proposed, "{}");
   await writeFile(newer, "{}");
   await writeFile(path.join(outputDirectory, "ignored.json"), "{}");
   await utimes(older, new Date(1_000), new Date(1_000));
-  await utimes(newer, new Date(2_000), new Date(2_000));
+  await utimes(proposed, new Date(2_000), new Date(2_000));
+  await utimes(newer, new Date(3_000), new Date(3_000));
   assert.equal(await findNewestSystemDataflow(repositoryDirectory, toolkitDirectory), newer);
 });

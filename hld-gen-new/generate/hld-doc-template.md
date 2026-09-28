@@ -22,7 +22,7 @@
 
 ## System Dataflow
 
-[System Dataflow JSON](<feature>.system-dataflow.json)
+[System Dataflow JSON](<feature>.sys-dataflow.json)
 
 ## Implementation Dataflow
 

@@ -30,7 +30,7 @@ test("notifies the HLD visualizer when an output dataflow file changes", async (
   await watchDataflowFiles(repositoryDirectory, toolkitDirectory).configureServer(server);
   assert.equal(watchedDirectory, outputDirectory);
 
-  for (const fileName of ["feature.system-dataflow.json", "feature.impl-dataflow.json"]) {
+  for (const fileName of ["feature.sys-dataflow.json", "feature.cr.sys-dataflow.json", "feature.impl-dataflow.json"]) {
     const filePath = path.join(outputDirectory, fileName);
     await writeFile(filePath, `{"name":"${fileName}"}\n`);
     await listeners.get("change")(filePath);
@@ -45,7 +45,7 @@ test("notifies the HLD visualizer when an output dataflow file changes", async (
 
   await listeners.get("change")(path.join(repositoryDirectory, "outside.impl-dataflow.json"));
   await listeners.get("change")(path.join(outputDirectory, "notes.json"));
-  assert.equal(updates.length, 2);
+  assert.equal(updates.length, 3);
 });
 
 test("refreshes a selected JSON file when its handle returns new contents", async (t) => {

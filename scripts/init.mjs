@@ -216,6 +216,9 @@ if (argumentError !== undefined || repoDirectory === undefined) {
       relativePaths
     );
   }
+  if (toolNames.includes("hld-gen-new") || toolNames.includes("enrich-diff")) {
+    await rm(path.join(installedToolkitDirectory, "common", "system-dataflow"), { recursive: true, force: true });
+  }
   if (toolNames.includes("hld-gen")) {
     for (const relativePath of ["hld-architecture.md", "skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md", "scripts/architecture-diff-to-mermaid.mjs"]) {
       await rm(path.join(installedToolkitDirectory, "hld-gen", relativePath), { recursive: true, force: true });
@@ -226,6 +229,9 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     await rm(path.join(installedToolkitDirectory, "hld-gen-new", "visualizer", "dist"), { recursive: true, force: true });
   }
   if (toolNames.includes("enrich-diff")) {
+    for (const relativePath of ["instructions/generate-system-dataflow.md", "scripts/validate-system-dataflow.mjs"]) {
+      await rm(path.join(installedToolkitDirectory, "enrich-diff", relativePath), { force: true });
+    }
     await rm(path.join(installedToolkitDirectory, "common", "enriched-patch", "visualizer"), { recursive: true, force: true });
   }
   if (toolNames.includes("enrich-diff") || toolNames.includes("advanced-diff-viewer")) {

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI Coding Toolkit Implementation Dataflow",
-  "description": "Structured representation of an Implementation Dataflow narrative for visualization and evaluation.",
+  "description": "impl-dataflow is shorthand for implementation dataflow. This JSON models how a feature or system's behavior is realized by implementation entities: classes, methods, mutable instance state, interface and external components, static data, and direct data transfers, state accesses, and ownership relationships. It can represent proposed or implemented behavior. The toolkit currently uses it to structure, visualize, and evaluate implementation designs created during high-level design.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,10 +14,11 @@
   ],
   "properties": {
     "schemaVersion": {
+      "description": "Version of the Implementation Dataflow schema used by this document.",
       "const": 13
     },
     "stage": {
-      "description": "The activity that produced this implementation dataflow.",
+      "description": "The development stage represented by this dataflow: proposed implementation during high-level design or implemented behavior during code review.",
       "enum": [
         "high-level-design",
         "code-review"

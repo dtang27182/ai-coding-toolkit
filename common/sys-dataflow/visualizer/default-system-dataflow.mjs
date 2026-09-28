@@ -18,7 +18,7 @@ async function matchingFiles(directory) {
     const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       files.push(...await matchingFiles(entryPath));
-    } else if (entry.name.endsWith(".system-dataflow.json") || entry.name.endsWith(".system-dataflow.code-review.json")) {
+    } else if (entry.name.endsWith(".sys-dataflow.json") || entry.name.endsWith(".system-dataflow.json") || entry.name.endsWith(".system-dataflow.code-review.json")) {
       files.push(entryPath);
     }
   }

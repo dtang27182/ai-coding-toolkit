@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI Coding Toolkit System Dataflow",
-  "description": "A very-high-level graph of how data moves through a system. It can explain a feature's user workflows or visualize system dataflow for general system understanding, focusing on system boundaries, persistent state, and critical data processing.",
+  "description": "sys-dataflow is shorthand for system dataflow. This JSON models the high-level flow of information through a feature or system: its inputs and outputs, external dependencies, persistent state, static data, consequential processing, and directed transfers between them. It can represent proposed or implemented behavior. The toolkit currently uses it for high-level design and code-review diagrams, with diff hunks providing evidence in code-review files.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -103,7 +103,7 @@
   ],
   "$defs": {
     "diffHunk": {
-      "description": "One exact unified diff hunk from the current working tree compared with HEAD.",
+      "description": "One exact unified diff hunk from the comparison represented by a code-review dataflow.",
       "type": "object",
       "additionalProperties": false,
       "required": [

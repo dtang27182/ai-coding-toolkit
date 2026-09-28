@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
 import implementationConfig from "../../common/impl-dataflow/visualizer/vite.config.mjs";
-import { defaultSystemDataflowPlugin } from "../../common/system-dataflow/visualizer/vite-plugin.mjs";
+import { defaultSystemDataflowPlugin } from "../../common/sys-dataflow/visualizer/vite-plugin.mjs";
 import { watchDataflowFiles } from "./watch-dataflow-files.mjs";
 
 const visualizerDirectory = path.dirname(fileURLToPath(import.meta.url));

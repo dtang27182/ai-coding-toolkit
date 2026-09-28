@@ -16,8 +16,8 @@
 
 ## 3. Read the Format
 
-- Read `ai-coding-toolkit/common/system-dataflow/system-dataflow.schema.json`.
-- Read `ai-coding-toolkit/common/system-dataflow/system-dataflow.example.json`.
+- Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.schema.json`.
+- Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.example.json`.
 
 ## 4. Build the Graph
 
@@ -42,7 +42,7 @@
 
 ## 5. Write the Dataflow Artifact
 
-- Write `<outputDirectory>/<feature>/<feature>.system-dataflow.code-review.json`.
+- Write `<outputDirectory>/<feature>/<feature>.cr.sys-dataflow.json`.
 - Set `stage` to `code-review`.
 - Add only referenced hunks to `diffHunks`, using simple monotonically increasing IDs.
 - Store each hunk's repository-relative file path and its exact unified diff text, including the `@@` header.
@@ -50,7 +50,7 @@
 
 ## 6. Validate the Dataflow Artifact
 
-- Run `node ai-coding-toolkit/enrich-diff/scripts/validate-system-dataflow.mjs <output-path>`.
+- Run `node ai-coding-toolkit/enrich-diff/scripts/validate-sys-dataflow.mjs <output-path>`.
 - Correct every validation error.
 
 ## 7. Report the Result

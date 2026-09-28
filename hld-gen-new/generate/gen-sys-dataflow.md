@@ -1,6 +1,6 @@
 # Generate System Dataflow for an HLD Candidate
 
-`sys-dataflow` is shorthand for the structured JSON representation of the HLD candidate's system dataflow.
+`sys-dataflow` is shorthand for system dataflow.
 
 Generate the sys-dataflow as the candidate's proposed system-level design from its confirmed behavior, scope, User Flows, Design Context and Related Workflows, and current code, before generating the Implementation Dataflow.
 
@@ -13,8 +13,8 @@ Generate the sys-dataflow as the candidate's proposed system-level design from i
 
 ## 2. Read the Format
 
-- Read `ai-coding-toolkit/common/system-dataflow/system-dataflow.schema.json`.
-- Read `ai-coding-toolkit/common/system-dataflow/system-dataflow.example.json` as an HLD example.
+- Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.schema.json`.
+- Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.example.json` as an HLD example.
 
 ## 3. Build the Graph
 
@@ -44,11 +44,11 @@ Generate the sys-dataflow as the candidate's proposed system-level design from i
 
 ## 4. Write the Dataflow Artifact
 
-- Write `<feature>.system-dataflow.json` beside the candidate HLD doc.
+- Write `<feature>.sys-dataflow.json` beside the candidate HLD doc.
 - Set `schemaVersion` to `2` and `stage` to `high-level-design`.
 
 ## 5. Validate the Dataflow Artifact
 
-- Run `node ai-coding-toolkit/common/system-dataflow/validate-system-dataflow.mjs <output-path>` to check the schema, unique node names and relationship IDs, and valid relationship endpoints and directions.
+- Run `node ai-coding-toolkit/common/sys-dataflow/validate-sys-dataflow.mjs <output-path>` to check the schema, unique node names and relationship IDs, and valid relationship endpoints and directions.
 - Verify that every User Flow step's user input, named state read or update, output, and other effect is represented.
 - Correct every validation error before generating the Implementation Dataflow.

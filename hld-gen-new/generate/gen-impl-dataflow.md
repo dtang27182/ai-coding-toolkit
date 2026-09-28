@@ -1,8 +1,8 @@
 # Generate Implementation Dataflow Narrative and JSON
 
-`impl-dataflow` is shorthand for the structured JSON representation of the HLD doc's `Implementation Dataflow` narrative.
+`impl-dataflow` is shorthand for implementation dataflow.
 
-Use the validated `<feature>.system-dataflow.json` beside the candidate HLD doc to design the implementation changes that complete its User Journeys. Read the relevant code, then write and verify the Implementation Dataflow narrative before generating its `impl-dataflow` JSON.
+Use the validated `<feature>.sys-dataflow.json` beside the candidate HLD doc to design the implementation changes that complete its User Journeys. Read the relevant code, then write and verify the Implementation Dataflow narrative before generating its `impl-dataflow` JSON.
 
 ## Write the Implementation Dataflow Narrative
 

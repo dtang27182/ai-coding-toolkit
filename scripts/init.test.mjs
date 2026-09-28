@@ -138,8 +138,8 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   assert.equal(validation.status, 0, validation.stderr);
 
   const systemDataflowValidation = spawnSync(process.execPath, [
-    "ai-coding-toolkit/common/system-dataflow/validate-system-dataflow.mjs",
-    "ai-coding-toolkit/common/system-dataflow/system-dataflow.example.json",
+    "ai-coding-toolkit/common/sys-dataflow/validate-sys-dataflow.mjs",
+    "ai-coding-toolkit/common/sys-dataflow/sys-dataflow.example.json",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(systemDataflowValidation.status, 0, systemDataflowValidation.stderr);
 
@@ -183,9 +183,9 @@ test("installs enrich-diff with the shared System Dataflow files", async (t) => 
     "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer",
   });
 
-  const inputPath = "ai-coding-toolkit/common/system-dataflow/system-dataflow.example.json";
+  const inputPath = "ai-coding-toolkit/common/sys-dataflow/sys-dataflow.example.json";
   const validation = spawnSync(process.execPath, [
-    "ai-coding-toolkit/enrich-diff/scripts/validate-system-dataflow.mjs", inputPath,
+    "ai-coding-toolkit/enrich-diff/scripts/validate-sys-dataflow.mjs", inputPath,
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(validation.status, 0, validation.stderr);
 
@@ -209,7 +209,7 @@ test("installs enrich-diff with the shared System Dataflow files", async (t) => 
     "feature",
   );
 
-  for (const visualizerPath of ["enrich-diff/visualizer", "common/system-dataflow/visualizer"]) {
+  for (const visualizerPath of ["enrich-diff/visualizer", "common/sys-dataflow/visualizer"]) {
     const visualizerBuild = spawnSync(process.execPath, [
       "ai-coding-toolkit/node_modules/vite/bin/vite.js",
       "build",
@@ -228,9 +228,19 @@ test("installs enrich-diff with the shared System Dataflow files", async (t) => 
 
   const retiredEntryPoint = path.join(repoDirectory, "ai-coding-toolkit", "common", "enriched-patch", "viewer", "index.html");
   await writeFile(retiredEntryPoint, "retired entry point");
+  const retiredDataflowDirectory = path.join(repoDirectory, "ai-coding-toolkit", "common", "system-dataflow");
+  await mkdir(retiredDataflowDirectory);
+  await writeFile(path.join(retiredDataflowDirectory, "system-dataflow.schema.json"), "{}\n");
+  const retiredValidator = path.join(repoDirectory, "ai-coding-toolkit", "enrich-diff", "scripts", "validate-system-dataflow.mjs");
+  await writeFile(retiredValidator, "retired validator");
+  const retiredInstruction = path.join(repoDirectory, "ai-coding-toolkit", "enrich-diff", "instructions", "generate-system-dataflow.md");
+  await writeFile(retiredInstruction, "retired instruction");
   const reinstall = install([repoDirectory, "--tool", "enrich-diff"]);
   assert.equal(reinstall.status, 0, reinstall.stderr);
   await assert.rejects(lstat(retiredEntryPoint), { code: "ENOENT" });
+  await assert.rejects(lstat(retiredDataflowDirectory), { code: "ENOENT" });
+  await assert.rejects(lstat(retiredValidator), { code: "ENOENT" });
+  await assert.rejects(lstat(retiredInstruction), { code: "ENOENT" });
 });
 
 test("installs Claude Code skills with Claude-only frontmatter", async (t) => {
@@ -306,7 +316,7 @@ test("installs advanced-diff-viewer independently", async (t) => {
   await assert.rejects(lstat(path.join(repoDirectory, "docs/plans")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/enriched-patch.json")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/visualizer/dist")), { code: "ENOENT" });
-  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/common/system-dataflow")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/common/sys-dataflow")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, ".agents")), { code: "ENOENT" });
 
   const visualizerBuild = spawnSync(process.execPath, [

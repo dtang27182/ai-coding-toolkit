@@ -1,1 +1,1 @@
-import "../../../common/system-dataflow/visualizer/src/main.ts";
+import "../../../common/sys-dataflow/visualizer/src/main.ts";

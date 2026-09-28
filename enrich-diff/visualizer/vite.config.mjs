@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
 import { defaultOutputFilePlugin } from "../../common/default-output-file-plugin.mjs";
-import { defaultSystemDataflowPlugin } from "../../common/system-dataflow/visualizer/vite-plugin.mjs";
+import { defaultSystemDataflowPlugin } from "../../common/sys-dataflow/visualizer/vite-plugin.mjs";
 
 const visualizerDirectory = path.dirname(fileURLToPath(import.meta.url));
 const toolkitDirectory = path.resolve(visualizerDirectory, "../..");
