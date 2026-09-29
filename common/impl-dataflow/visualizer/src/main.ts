@@ -81,6 +81,17 @@ function chipStyle(changeType: ChangeType): string {
   return `color:${changeColor(changeType)};background:color-mix(in oklch, ${changeColor(changeType)} 15%, transparent)`;
 }
 
+function diffEvidence(ids: string[] | undefined): string {
+  if (ids === undefined || ids.length === 0) {
+    return "";
+  } else {
+    const hunks = ids.map((id) => implementationDataflow.diffHunks?.find((hunk) => hunk.id === id)).filter((hunk) => hunk !== undefined);
+    return hunks.length === 0 ? "" : section("Relevant diff", hunks.map((hunk) =>
+      `<details class="diff-evidence"><summary>${escapeHtml(hunk.file)} · ${escapeHtml(hunk.patch.split("\n")[0])}</summary><pre>${escapeHtml(hunk.patch)}</pre></details>`,
+    ).join(""), hunks.length);
+  }
+}
+
 function methodWidth(name: string, writesState: boolean): number {
   measureContext.font = "500 12.5px IBM Plex Mono, monospace";
   return Math.ceil(measureContext.measureText(name).width) + (writesState ? 57 : 42);
@@ -99,7 +110,7 @@ function componentWidth(name: string): number {
 function tabWidth(classDiff: ClassDiff): number {
   measureContext.font = "600 11.5px IBM Plex Mono, monospace";
   const exposure = classExposureCount(classDiff);
-  return Math.ceil(measureContext.measureText(classDiff.name).width) + String(exposure ?? "?").length * 6 + 56;
+  return Math.ceil(measureContext.measureText(classDiff.name).width) + (implementationDataflow.stage === "code-review" ? 42 : String(exposure ?? "?").length * 6 + 56);
 }
 
 function classExposureCount(classDiff: ClassDiff): number | null {
@@ -360,7 +371,7 @@ function renderGraph(graph: VisibleGraph): string {
       return `<button class="graph-node class-tab${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}" style="left:${box.x + 10}px;top:${box.y - 12}px" data-select="class" data-node="${escapeHtml(classDiff.name)}" data-class="${escapeHtml(classDiff.name)}" aria-label="Inspect class ${escapeHtml(classDiff.name)}">
         <span class="class-dot" style="background:${changeColor(classDiff.changeType)}"></span>
         <span class="class-name">${escapeHtml(classDiff.name)}</span>
-        <span class="exposure-badge">${exposure === null ? "?" : exposure} exp</span>
+        ${implementationDataflow.stage === "code-review" ? "" : `<span class="exposure-badge">${exposure === null ? "?" : exposure} exp</span>`}
       </button>`;
     })
     .join("");
@@ -515,7 +526,7 @@ function renderInspector(graph: VisibleGraph): string {
           const selected = selectionForEndpoint(relationship.from);
           return `<button class="flow-row state" style="border-color:${changeColor(relationship.relationship.changeType)}" data-jump="${escapeHtml(JSON.stringify(selected))}"><div class="flow-endpoint">${escapeHtml(endpointLabel(relationship.from))} ↝ ${escapeHtml(endpointLabel(relationship.to))}</div><div class="flow-label">${escapeHtml(relationship.relationship.dataDescription ?? "state update")}</div></button>`;
         }).join("")}</div>`;
-    return `<div class="overview-inspector"><section class="overview-section"><div class="section-heading"><span>Variable exposure by class</span><span class="inspector-count">${graph.variableExposureCount ?? "?"}</span></div><div class="exposure-ranking">${classes}</div></section><section class="overview-section"><div class="section-heading"><span>State updates</span><span class="inspector-count">${stateUpdates.length}</span></div>${stateRows}</section></div>`;
+    return `<div class="overview-inspector">${implementationDataflow.stage === "code-review" ? "" : `<section class="overview-section"><div class="section-heading"><span>Variable exposure by class</span><span class="inspector-count">${graph.variableExposureCount ?? "?"}</span></div><div class="exposure-ranking">${classes}</div></section>`}<section class="overview-section"><div class="section-heading"><span>State updates</span><span class="inspector-count">${stateUpdates.length}</span></div>${stateRows}</section></div>`;
   } else if (inspected.type === "method") {
     const methodSelection = inspected;
     const classDiff = graph.classes.find((item) => item.name === methodSelection.className)!;
@@ -525,16 +536,16 @@ function renderInspector(graph: VisibleGraph): string {
     const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update" && endpointMatches(relationship.from, methodSelection));
     const inventory = classDiff.variableExposure;
     const exposureCount = inventory === undefined || inventory === null ? undefined : inventory.filter((variable) => variable.kind === "instance" || variable.method === methodSelection.methodName).length;
-    return `${inspectorHeader(classDiff.name, method.name, method.changeType)}${section("Exposure in this scope", exposureSummary(classDiff, method.name), exposureCount)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${section("State written", flowRows(stateUpdates, "to", true), stateUpdates.length)}`;
+    return `${inspectorHeader(classDiff.name, method.name, method.changeType)}${diffEvidence(method.diffHunkIds)}${implementationDataflow.stage === "code-review" ? "" : section("Exposure in this scope", exposureSummary(classDiff, method.name), exposureCount)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${section("State written", flowRows(stateUpdates, "to", true), stateUpdates.length)}`;
   } else if (inspected.type === "component") {
     const component = graph.components.find((item) => item.name === inspected.componentName)!;
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, inspected));
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
-    return `${inspectorHeader(COMPONENT_LABELS[component.type], component.name, component.changeType)}${section("Description", `<p class="component-description">${escapeHtml(component.description)}</p>`)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
+    return `${inspectorHeader(COMPONENT_LABELS[component.type], component.name, component.changeType)}${diffEvidence(component.diffHunkIds)}${section("Description", `<p class="component-description">${escapeHtml(component.description)}</p>`)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
   } else if (inspected.type === "static-data") {
     const entry = graph.staticData.find((item) => item.name === inspected.staticDataName)!;
     const readers = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
-    return `${inspectorHeader("Static data", entry.name, entry.changeType)}${section("Read by", flowRows(readers, "to"), readers.length)}`;
+    return `${inspectorHeader("Static data", entry.name, entry.changeType)}${diffEvidence(entry.diffHunkIds)}${section("Read by", flowRows(readers, "to"), readers.length)}`;
   } else if (inspected.type === "relationship") {
     const edges = relationshipsForEdge(graph, inspected.edge);
     if (edges.length === 0) {
@@ -573,7 +584,7 @@ function renderInspector(graph: VisibleGraph): string {
       eyebrow = "State read";
     }
     const detail = merged ? `${edges.length} relationships` : first.relationship.userFlow === undefined ? undefined : first.relationship.userFlow ? "user flow" : "supporting";
-    return `${inspectorHeader(eyebrow, title, first.relationship.changeType, detail)}${section("Description", entries, merged ? edges.length : undefined)}`;
+    return `${inspectorHeader(eyebrow, title, first.relationship.changeType, detail)}${diffEvidence([...new Set(edges.flatMap((edge) => edge.relationship.diffHunkIds ?? []))])}${section("Description", entries, merged ? edges.length : undefined)}`;
   } else {
     const classSelection = inspected;
     const classDiff = graph.classes.find((item) => item.name === classSelection.className)!;
@@ -582,7 +593,8 @@ function renderInspector(graph: VisibleGraph): string {
       .map((method) => `<button class="method-row" style="border-color:${changeColor(method.changeType)}" data-jump="${escapeHtml(JSON.stringify({ type: "method", className: classDiff.name, methodName: method.name }))}"><div class="flow-endpoint">${escapeHtml(method.name)}</div><div class="flow-label">${method.changeType}</div></button>`)
       .join("");
     const exposureCount = classExposureCount(classDiff);
-    return `${inspectorHeader("Class", classDiff.name, classDiff.changeType, `${exposureCount === null ? "?" : exposureCount} exposed vars`)}${section("Variable exposure", exposureSummary(classDiff), exposureCount ?? undefined)}${section("Methods", methods.length === 0 ? '<p class="empty-copy">No visible methods</p>' : `<div class="method-list">${methods}</div>`, classDiff.methods.length)}${section("Instance state written by", flowRows(stateUpdates, "from", true), stateUpdates.length)}`;
+    const stateVariables = classDiff.stateVariables.map((variable) => `<div class="method-row" style="border-color:${changeColor(variable.changeType)}"><div class="flow-endpoint">${escapeHtml(variable.name)}</div><div class="flow-label">${variable.changeType}</div></div>${diffEvidence(variable.diffHunkIds)}`).join("");
+    return `${inspectorHeader("Class", classDiff.name, classDiff.changeType, implementationDataflow.stage === "code-review" ? undefined : `${exposureCount === null ? "?" : exposureCount} exposed vars`)}${diffEvidence(classDiff.diffHunkIds)}${implementationDataflow.stage === "code-review" ? "" : section("Variable exposure", exposureSummary(classDiff), exposureCount ?? undefined)}${section("Methods", methods.length === 0 ? '<p class="empty-copy">No visible methods</p>' : `<div class="method-list">${methods}</div>`, classDiff.methods.length)}${section("State variables", stateVariables || '<p class="empty-copy">None</p>', classDiff.stateVariables.length)}${section("Instance state written by", flowRows(stateUpdates, "from", true), stateUpdates.length)}`;
   }
 }
 
@@ -599,7 +611,7 @@ function render(): void {
         <div class="control-group">
           <button class="control-button open-button" data-open>Open JSON</button>
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
-          ${implementationDataflow.userFlows === undefined ? "" : `<button class="control-button${userFlowOnly ? " active" : ""}" data-toggle-user-flow aria-pressed="${userFlowOnly}">User flow only</button>`}
+          ${implementationDataflow.stage === "code-review" || implementationDataflow.userFlows === undefined ? "" : `<button class="control-button${userFlowOnly ? " active" : ""}" data-toggle-user-flow aria-pressed="${userFlowOnly}">User flow only</button>`}
           <button class="control-button${methodsHidden ? " active" : ""}" data-toggle-methods>${methodsHidden ? "Show methods" : "Hide methods"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
@@ -920,7 +932,7 @@ function setImplementationDataflow(value: unknown, nextFileName: string): string
       return error;
     } else {
       implementationDataflow = nextImplementationDataflow;
-      if (implementationDataflow.userFlows === undefined) userFlowOnly = false;
+      if (implementationDataflow.stage === "code-review" || implementationDataflow.userFlows === undefined) userFlowOnly = false;
       fileName = nextFileName;
       selection = undefined;
       hovered = undefined;
@@ -1040,5 +1052,17 @@ const observer = new ResizeObserver(() => {
   if (!userZoomed) render();
 });
 
-void openDefaultFile();
+if (new URLSearchParams(location.search).has("embedded")) {
+  document.body.classList.add("embedded");
+  window.addEventListener("message", (event: MessageEvent<{ type: string; value: unknown; name: string }>) => {
+    if (event.source === window.parent && event.origin === location.origin && event.data.type === "load-impl-dataflow") {
+      const error = setImplementationDataflow(event.data.value, event.data.name);
+      statusMessage = error === undefined ? "" : `Could not open ${event.data.name}: ${error}`;
+      render();
+    }
+  });
+  render();
+} else {
+  void openDefaultFile();
+}
 observer.observe(app);

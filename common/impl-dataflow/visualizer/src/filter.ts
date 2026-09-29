@@ -79,7 +79,7 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
     from: resolveEndpoint(relationship.from),
     to: resolveEndpoint(relationship.to),
   })).filter((relationship) => endpointVisible(relationship.from) && endpointVisible(relationship.to));
-  const variableExposureCount = classes.some((classDiff) => classDiff.variableExposure === null) ? null : new Set(
+  const variableExposureCount = classes.some((classDiff) => classDiff.variableExposure === undefined || classDiff.variableExposure === null) ? null : new Set(
     classes.flatMap((classDiff) => classDiff.variableExposure!.map((variable) =>
       JSON.stringify([variable.declaredAt.file, variable.declaredAt.line, variable.declaredAt.column]),
     )),

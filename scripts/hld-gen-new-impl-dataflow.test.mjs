@@ -33,6 +33,13 @@ function codeReview() {
   };
 }
 
+test("code-review graphs filter without variable exposure inventories", () => {
+  const graph = filterGraph(codeReview(), true, false);
+  assert.equal(graph.variableExposureCount, null);
+  assert.equal(graph.classes.length, 1);
+  assert.equal(graph.classes[0].variableExposureCount, null);
+});
+
 async function runValidator(t, input, ...argumentsList) {
   const directory = await mkdtemp(path.join(os.tmpdir(), "hld-gen-new validation "));
   t.after(() => rm(directory, { recursive: true, force: true }));

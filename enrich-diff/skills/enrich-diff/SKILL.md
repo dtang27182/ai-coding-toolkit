@@ -26,16 +26,17 @@ Read and follow these instructions in order:
 
 Generate the Implementation Dataflow starting from all changes in the selected patch, tracing the implementation to explain them. Use the diff-description's user flows as context, not as the basis for selecting changes. Do not use the System Dataflow as an input to it.
 
-Write `<outputDirectory>/<feature>/<feature>.rich-diff.json` with exactly two absolute paths:
+Write `<outputDirectory>/<feature>/<feature>.rich-diff.json` with exactly three absolute paths:
 
 ```json
 {
   "enrichedPatch": "<absolute-path-to-feature-directory>/<feature>.enriched-patch.json",
-  "sysDataflow": "<absolute-path-to-feature-directory>/<feature>.cr.sys-dataflow.json"
+  "sysDataflow": "<absolute-path-to-feature-directory>/<feature>.cr.sys-dataflow.json",
+  "implDataflow": "<absolute-path-to-feature-directory>/<feature>.cr.impl-dataflow.json"
 }
 ```
 
-Verify that both paths point to the artifacts just generated. Report the rich-diff JSON path as the combined visualizer input.
+Verify that all three paths point to the artifacts just generated. Report the rich-diff JSON path as the combined visualizer input.
 
 Also report `<outputDirectory>/<feature>/<feature>.cr.impl-dataflow.json` as the validated Implementation Dataflow artifact and `<outputDirectory>/<feature>/<feature>.cr.impl-dataflow.discrepencies.md` for schema limitations and unresolved discrepancies.
 

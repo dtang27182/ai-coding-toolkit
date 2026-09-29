@@ -3,7 +3,7 @@ import { mountSystemDataflowViewer } from "../../../common/sys-dataflow/visualiz
 import { richDiffReferences } from "./rich-diff.ts";
 import "./styles.css";
 
-type View = "dataflow" | "diff";
+type View = "dataflow" | "implementation" | "diff";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -20,8 +20,13 @@ app.innerHTML = `
       <nav class="view-navigation" aria-label="Switch view">
         <button class="view-button active" type="button" data-view="dataflow" aria-selected="true" aria-current="page">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.5" y="2" width="5" height="4" rx="1"></rect><rect x="9.5" y="2" width="5" height="4" rx="1"></rect><rect x="5.5" y="10" width="5" height="4" rx="1"></rect><path d="M4 6v1.5a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6M8 8.5V10"></path></svg>
-          <span>Dataflow</span>
+          <span>System Dataflow</span>
           <span class="view-count" data-count="dataflow">nodes</span>
+        </button>
+        <button class="view-button" type="button" data-view="implementation" aria-selected="false">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2" y="1.5" width="12" height="13" rx="1.5"></rect><path d="M2 5.5h12M4.5 8.5h7M4.5 11.5h5"></path></svg>
+          <span>Implementation Dataflow</span>
+          <span class="view-count" data-count="implementation">classes</span>
         </button>
         <button class="view-button" type="button" data-view="diff" aria-selected="false">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 1.5h6l4 4v9H3z"></path><path d="M6 7.5h4M8 5.5v4M6 12h4"></path></svg>
@@ -40,6 +45,16 @@ app.innerHTML = `
             <button class="zoom-button" type="button" data-proxy="zoom-in" aria-label="Zoom in">+</button>
           </div>
         </div>
+        <div class="dataflow-controls" data-toolbar="implementation" hidden>
+          <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
+          <button class="control-button" type="button" data-proxy="toggle-unchanged">Hide unchanged</button>
+          <button class="control-button" type="button" data-proxy="toggle-methods">Hide methods</button>
+          <div class="zoom-controls">
+            <button class="zoom-button" type="button" data-proxy="zoom-out" aria-label="Zoom out">−</button>
+            <button class="zoom-button" type="button" data-proxy="fit">Fit</button>
+            <button class="zoom-button" type="button" data-proxy="zoom-in" aria-label="Zoom in">+</button>
+          </div>
+        </div>
         <div class="diff-legend" data-toolbar="diff" hidden aria-label="Change types">
           <span><i class="added-dot"></i>Added</span>
           <span><i class="modified-dot"></i>Modified</span>
@@ -51,12 +66,16 @@ app.innerHTML = `
     </header>
     <main class="view-panels">
       <section class="view-panel active" data-panel="dataflow" aria-label="System Dataflow"></section>
+      <section class="view-panel" data-panel="implementation" aria-label="Implementation Dataflow" aria-hidden="true" inert>
+        <iframe src="./implementation.html?embedded" title="Implementation Dataflow"></iframe>
+      </section>
       <section class="view-panel" data-panel="diff" aria-label="Enriched Patch" aria-hidden="true"></section>
     </main>
   </div>`;
 
 const dataflowPanel = app.querySelector<HTMLElement>('[data-panel="dataflow"]')!;
 const diffPanel = app.querySelector<HTMLElement>('[data-panel="diff"]')!;
+const implementationFrame = app.querySelector<HTMLIFrameElement>('[data-panel="implementation"] iframe')!;
 dataflowPanel.classList.add("embedded-view");
 diffPanel.classList.add("embedded-view");
 const dataflowViewer = mountSystemDataflowViewer(dataflowPanel, { loadDefault: false });
@@ -64,9 +83,23 @@ const diffViewer = mountEnrichedPatchViewer(diffPanel, { loadDefault: false, hid
 
 let manifestName: string | undefined;
 let manifestError: string | undefined;
+let implementationFile: { value: unknown; name: string } | undefined;
+
+implementationFrame.addEventListener("load", () => {
+  if (implementationFile !== undefined) {
+    implementationFrame.contentWindow!.postMessage({ type: "load-impl-dataflow", ...implementationFile }, location.origin);
+  }
+  const root = implementationFrame.contentDocument?.querySelector("#app");
+  if (root !== null && root !== undefined) {
+    new MutationObserver(syncHeader).observe(root, { childList: true, subtree: true, characterData: true, attributes: true });
+  }
+  syncHeader();
+});
 
 function sourceControl(action: string): HTMLElement | null {
-  if (action === "toggle-unchanged") {
+  if (app.querySelector<HTMLElement>('[data-panel="implementation"]')!.classList.contains("active")) {
+    return implementationFrame.contentDocument?.querySelector<HTMLElement>(`[data-${action}]`) ?? null;
+  } else if (action === "toggle-unchanged") {
     return dataflowPanel.shadowRoot!.querySelector<HTMLElement>("[data-toggle-unchanged]");
   } else if (action === "zoom-out") {
     return dataflowPanel.shadowRoot!.querySelector<HTMLElement>("[data-zoom-out]");
@@ -85,14 +118,16 @@ function syncHeader(): void {
   const stage = dataflowRoot.querySelector<HTMLElement>(".stage-chip")?.textContent;
   const nodeCount = dataflowRoot.querySelector<HTMLElement>(".overview-counts strong")?.textContent;
   const fileCount = diffRoot.querySelector<HTMLElement>(".file-count")?.textContent;
+  const classCount = implementationFrame.contentDocument?.querySelectorAll(".class-tab").length;
 
   if (featureName !== undefined) app.querySelector<HTMLElement>(".review-title")!.textContent = featureName;
   if (stage !== undefined) app.querySelector<HTMLElement>(".stage-chip")!.textContent = stage;
   const pathLabel = app.querySelector<HTMLElement>(".review-path")!;
-  pathLabel.textContent = manifestError ?? manifestName ?? "Open a rich-diff.json to load both views";
+  pathLabel.textContent = manifestError ?? manifestName ?? "Open a rich-diff.json to load all three views";
   pathLabel.classList.toggle("error", manifestError !== undefined);
   if (nodeCount !== undefined) app.querySelector<HTMLElement>('[data-count="dataflow"]')!.textContent = `${nodeCount} nodes`;
   if (fileCount !== undefined) app.querySelector<HTMLElement>('[data-count="diff"]')!.textContent = `${fileCount} files`;
+  if (classCount !== undefined) app.querySelector<HTMLElement>('[data-count="implementation"]')!.textContent = `${classCount} classes`;
 
   for (const proxy of app.querySelectorAll<HTMLButtonElement>("[data-proxy]")) {
     const source = sourceControl(proxy.dataset.proxy!);
@@ -114,12 +149,15 @@ async function fetchReference(reference: string): Promise<unknown> {
 async function openRichDiff(value: unknown, name: string): Promise<void> {
   try {
     const references = richDiffReferences(value);
-    const [enrichedPatch, sysDataflow] = await Promise.all([
+    const [enrichedPatch, sysDataflow, implDataflow] = await Promise.all([
       fetchReference(references.enrichedPatch),
       fetchReference(references.sysDataflow),
+      fetchReference(references.implDataflow),
     ]);
     diffViewer.loadEnrichedPatch(enrichedPatch, references.enrichedPatch);
     dataflowViewer.loadDataflow(sysDataflow, references.sysDataflow);
+    implementationFile = { value: implDataflow, name: references.implDataflow };
+    implementationFrame.contentWindow?.postMessage({ type: "load-impl-dataflow", ...implementationFile }, location.origin);
     manifestName = name;
     manifestError = undefined;
   } catch (error) {
@@ -169,6 +207,7 @@ function selectView(view: View): void {
     const selected = panel.dataset.panel === view;
     panel.classList.toggle("active", selected);
     panel.setAttribute("aria-hidden", String(!selected));
+    panel.inert = !selected;
   }
   for (const toolbar of app.querySelectorAll<HTMLElement>("[data-toolbar]")) {
     toolbar.hidden = toolbar.dataset.toolbar !== view;

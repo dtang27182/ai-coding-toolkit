@@ -54,7 +54,7 @@ function richDiffReferencesPlugin() {
           if (
             reference === null ||
             !path.isAbsolute(reference) ||
-            !(reference.endsWith(".enriched-patch.json") || reference.endsWith(".sys-dataflow.json"))
+            !(reference.endsWith(".enriched-patch.json") || reference.endsWith(".sys-dataflow.json") || reference.endsWith(".impl-dataflow.json"))
           ) {
             response.statusCode = 400;
             response.end("Invalid rich-diff reference");
@@ -76,6 +76,7 @@ function richDiffReferencesPlugin() {
 }
 
 export default defineConfig({
+  base: "./",
   plugins: [
     defaultOutputFilePlugin(
       "default-rich-diff",
@@ -86,4 +87,12 @@ export default defineConfig({
     ),
     richDiffReferencesPlugin(),
   ],
+  build: {
+    rollupOptions: {
+      input: {
+        index: path.join(visualizerDirectory, "index.html"),
+        implementation: path.join(visualizerDirectory, "implementation.html"),
+      },
+    },
+  },
 });
