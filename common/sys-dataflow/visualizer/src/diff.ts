@@ -128,7 +128,7 @@ function hunkOwners(owners: Selection[], context: DiffSectionContext): string {
 
 export interface DiffSectionContext {
   dataflow: SystemDataflow;
-  /** The expanded hunk remembered for an entity; a null id means all collapsed. Absent or another entity's: the first opens. */
+  /** The expanded hunk remembered for an entity; a null id, absent choice, or another entity's choice means all collapsed. */
   openHunk: { owner: string; id: string | null } | undefined;
   /** Renders a node type's badge, as the graph cards and inspector header do. */
   badge: (nodeType: NodeType) => string;
@@ -141,7 +141,7 @@ export function renderDiffSection(owner: Selection, hunkIds: string[] | undefine
     return "";
   }
   const ownerKey = selectionKey(owner);
-  const expandedId = context.openHunk?.owner === ownerKey ? context.openHunk.id : hunkIds[0];
+  const expandedId = context.openHunk?.owner === ownerKey ? context.openHunk.id : null;
   const hunks = new Map((context.dataflow.diffHunks ?? []).map((hunk): [string, DiffHunk] => [hunk.id, hunk]));
   const references = hunkReferences(context.dataflow);
   let totalAdded = 0;

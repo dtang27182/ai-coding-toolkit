@@ -113,12 +113,20 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   const retiredArchitectureDiffPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "arch-diff");
   await mkdir(retiredArchitectureDiffPath, { recursive: true });
   await writeFile(path.join(retiredArchitectureDiffPath, "obsolete.json"), "obsolete format");
+  const systemVisualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "sys-dataflow", "visualizer");
+  for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
+    await assert.rejects(lstat(path.join(systemVisualizerPath, relativePath)), { code: "ENOENT" });
+    await writeFile(path.join(systemVisualizerPath, relativePath), "retired standalone file");
+  }
   await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","hld-gen-new-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer","hld-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer"}}\n');
   const upgrade = install([repoDirectory, "--tool", "hld-gen-new"]);
   assert.equal(upgrade.status, 0, upgrade.stderr);
   assert.equal((await lstat(path.join(visualizerPath, "index.html"))).isFile(), true);
   await assert.rejects(lstat(path.join(visualizerPath, "dist")), { code: "ENOENT" });
   await assert.rejects(lstat(retiredArchitectureDiffPath), { code: "ENOENT" });
+  for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
+    await assert.rejects(lstat(path.join(systemVisualizerPath, relativePath)), { code: "ENOENT" });
+  }
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
     "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer",
@@ -215,14 +223,12 @@ test("installs enrich-diff with the shared dataflow files", async (t) => {
     "feature",
   );
 
-  for (const visualizerPath of ["enrich-diff/visualizer", "common/sys-dataflow/visualizer"]) {
-    const visualizerBuild = spawnSync(process.execPath, [
-      "ai-coding-toolkit/node_modules/vite/bin/vite.js",
-      "build",
-      `ai-coding-toolkit/${visualizerPath}`,
-    ], { cwd: repoDirectory, encoding: "utf8" });
-    assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
-  }
+  const visualizerBuild = spawnSync(process.execPath, [
+    "ai-coding-toolkit/node_modules/vite/bin/vite.js",
+    "build",
+    "ai-coding-toolkit/enrich-diff/visualizer",
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
   await assert.rejects(
     lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "enriched-patch", "visualizer")),
     { code: "ENOENT" }
@@ -234,6 +240,11 @@ test("installs enrich-diff with the shared dataflow files", async (t) => {
 
   const retiredEntryPoint = path.join(repoDirectory, "ai-coding-toolkit", "common", "enriched-patch", "viewer", "index.html");
   await writeFile(retiredEntryPoint, "retired entry point");
+  const systemVisualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "sys-dataflow", "visualizer");
+  for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
+    await assert.rejects(lstat(path.join(systemVisualizerPath, relativePath)), { code: "ENOENT" });
+    await writeFile(path.join(systemVisualizerPath, relativePath), "retired standalone file");
+  }
   const retiredDataflowDirectory = path.join(repoDirectory, "ai-coding-toolkit", "common", "system-dataflow");
   await mkdir(retiredDataflowDirectory);
   await writeFile(path.join(retiredDataflowDirectory, "system-dataflow.schema.json"), "{}\n");
@@ -244,6 +255,9 @@ test("installs enrich-diff with the shared dataflow files", async (t) => {
   const reinstall = install([repoDirectory, "--tool", "enrich-diff"]);
   assert.equal(reinstall.status, 0, reinstall.stderr);
   await assert.rejects(lstat(retiredEntryPoint), { code: "ENOENT" });
+  for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
+    await assert.rejects(lstat(path.join(systemVisualizerPath, relativePath)), { code: "ENOENT" });
+  }
   await assert.rejects(lstat(retiredDataflowDirectory), { code: "ENOENT" });
   await assert.rejects(lstat(retiredValidator), { code: "ENOENT" });
   await assert.rejects(lstat(retiredInstruction), { code: "ENOENT" });

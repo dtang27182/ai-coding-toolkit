@@ -179,11 +179,18 @@ test("a relationship's section renders the hunks it cites", () => {
   const html = render(policyFlow, ["hunk-policy"]);
   assert.equal(count(html, 'class="hunk"'), 1);
   assert.match(html, /<span class="hunk-dir">config\/<\/span>policy\.yaml/);
-  assert.equal(count(html, 'class="hunk-line add"'), 1);
+  assert.deepEqual(expandedStates(html), ["false"]);
+  assert.equal(count(html, 'class="hunk-body"'), 0);
 });
 
-test("the first hunk opens by default and only it shows code", () => {
+test("all hunks are collapsed by default", () => {
   const html = render(ranker, ["hunk-planner", "hunk-score"]);
+  assert.deepEqual(expandedStates(html), ["false", "false"]);
+  assert.equal(count(html, 'class="hunk-body"'), 0);
+});
+
+test("opening the first hunk only shows its code", () => {
+  const html = render(ranker, ["hunk-planner", "hunk-score"], { openHunk: { owner: "node:Ranker", id: "hunk-planner" } });
   assert.deepEqual(expandedStates(html), ["true", "false"]);
   assert.equal(count(html, 'class="hunk-body"'), 1);
   assert.equal(count(html, 'class="hunk-line add"'), 3);
@@ -202,29 +209,29 @@ test("a null choice collapses every hunk", () => {
 });
 
 test("a choice remembered for another entity is ignored", () => {
-  const html = render(ranker, ["hunk-planner", "hunk-score"], { openHunk: { owner: "node:Policy", id: null } });
-  assert.deepEqual(expandedStates(html), ["true", "false"]);
+  const html = render(ranker, ["hunk-planner", "hunk-score"], { openHunk: { owner: "node:Policy", id: "hunk-policy" } });
+  assert.deepEqual(expandedStates(html), ["false", "false"]);
 });
 
 test("toggles carry what a click should open: nothing for the open row, the id for the others", () => {
-  const html = render(ranker, ["hunk-planner", "hunk-score"]);
+  const html = render(ranker, ["hunk-planner", "hunk-score"], { openHunk: { owner: "node:Ranker", id: "hunk-planner" } });
   const toggles = [...html.matchAll(/data-hunk-owner="([^"]*)" data-hunk-open="([^"]*)"/g)].map((match) => [match[1], match[2]]);
   assert.deepEqual(toggles, [["node:Ranker", ""], ["node:Ranker", "hunk-score"]]);
 });
 
 test("a shared hunk links to its other owners but never back to the one shown", () => {
-  const fromNode = render(policy, ["hunk-policy"]);
+  const fromNode = render(policy, ["hunk-policy"], { openHunk: { owner: "node:Policy", id: "hunk-policy" } });
   assert.match(fromNode, /shared ×1/);
   assert.match(fromNode, /data-jump-relationship="policy-to-ranker"/);
   assert.doesNotMatch(fromNode, /data-jump-node="Policy"/);
 
-  const fromRelationship = render(policyFlow, ["hunk-policy"]);
+  const fromRelationship = render(policyFlow, ["hunk-policy"], { openHunk: { owner: "relationship:policy-to-ranker", id: "hunk-policy" } });
   assert.match(fromRelationship, /data-jump-node="Policy"><badge data-processing><span>Policy<\/span>/);
   assert.doesNotMatch(fromRelationship, /data-jump-relationship="policy-to-ranker"/);
 });
 
 test("a hunk cited only once shows no sharing", () => {
-  const html = render(ranker, ["hunk-planner"]);
+  const html = render(ranker, ["hunk-planner"], { openHunk: { owner: "node:Ranker", id: "hunk-planner" } });
   assert.doesNotMatch(html, /shared ×/);
   assert.doesNotMatch(html, /Also used by/);
 });
@@ -238,7 +245,7 @@ test("a reference to a missing hunk shows an explicit row and adds nothing to th
 test("file paths and code are escaped", () => {
   const dataflow = codeReviewDataflow();
   dataflow.diffHunks[0] = { id: "hunk-planner", file: "src/a&b/<x>.ts", patch: '@@ -1 +1 @@\n-<script>alert("x")</script>\n+const a = 1 && b;' };
-  const html = render(ranker, ["hunk-planner"], { dataflow });
+  const html = render(ranker, ["hunk-planner"], { dataflow, openHunk: { owner: "node:Ranker", id: "hunk-planner" } });
   assert.doesNotMatch(html, /<script>|<x>/);
   assert.match(html, /&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;/);
   assert.match(html, /a&amp;b\/<\/span>&lt;x&gt;\.ts/);
@@ -246,7 +253,7 @@ test("file paths and code are escaped", () => {
 });
 
 test("code lines keep their indentation for wrapping, and colours come from the caller", () => {
-  const html = render(ranker, ["hunk-planner"]);
+  const html = render(ranker, ["hunk-planner"], { openHunk: { owner: "node:Ranker", id: "hunk-planner" } });
   assert.match(html, /style="--indent:4ch">    return plans<\/span>/);
   assert.match(html, /style="--added:ADD-COLOUR;--deleted:DEL-COLOUR"/);
 });
