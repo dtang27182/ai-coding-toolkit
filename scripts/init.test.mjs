@@ -160,7 +160,7 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   }
 });
 
-test("installs enrich-diff with the shared System Dataflow files", async (t) => {
+test("installs enrich-diff with the shared dataflow files", async (t) => {
   const repoDirectory = await createRepository(t);
   await writeFile(
     path.join(repoDirectory, "package.json"),
@@ -190,6 +190,12 @@ test("installs enrich-diff with the shared System Dataflow files", async (t) => 
   assert.equal(validation.status, 0, validation.stderr);
 
   const patchPath = path.join(repoDirectory, "feature.patch");
+  const implementationValidation = spawnSync(process.execPath, [
+    "ai-coding-toolkit/enrich-diff/scripts/validate-impl-dataflow.mjs",
+    "ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json",
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(implementationValidation.status, 0, implementationValidation.stderr);
+
   await writeFile(patchPath, [
     "diff --git a/src/feature.ts b/src/feature.ts",
     "new file mode 100644",

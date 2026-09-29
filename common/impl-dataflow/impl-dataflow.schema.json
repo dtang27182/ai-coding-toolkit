@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI Coding Toolkit Implementation Dataflow",
-  "description": "impl-dataflow is shorthand for implementation dataflow. This JSON models how a feature or system's behavior is realized by implementation entities: classes, methods, mutable instance state, interface and external components, static data, and direct data transfers, state accesses, and ownership relationships. It can represent proposed or implemented behavior. The toolkit currently uses it to structure, visualize, and evaluate implementation designs created during high-level design.",
+  "description": "impl-dataflow is shorthand for implementation dataflow. This JSON models how a feature or system's behavior is realized by implementation entities: classes, methods, mutable instance state, interface and external components, static data, and direct data transfers, state accesses, and ownership relationships. It represents proposed designs or implemented behavior, with diff hunks providing evidence during code review.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -23,6 +23,13 @@
         "high-level-design",
         "code-review"
       ]
+    },
+    "diffHunks": {
+      "description": "Exact unified diff hunks referenced by implementation entities and relationships during code review.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diffHunk"
+      }
     },
     "userFlows": {
       "description": "Optional user flows that give context for the implementation dataflow.",
@@ -95,7 +102,65 @@
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "code-review"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "diffHunks"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "diffHunks"
+          ]
+        }
+      }
+    }
+  ],
   "$defs": {
+    "diffHunk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "file",
+        "patch"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "file": {
+          "description": "Repository-relative path to the changed file.",
+          "type": "string",
+          "minLength": 1
+        },
+        "patch": {
+          "description": "Exact unified diff hunk, including the @@ header.",
+          "type": "string",
+          "pattern": "^@@"
+        }
+      }
+    },
+    "diffHunkIds": {
+      "description": "References to relevant diff hunks supporting this changed entry. Omit for unchanged entries and high-level designs.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "changeType": {
       "description": "How an entity or relationship differs from the existing architecture. Use added for a new entry, modified for a changed declaration, responsibility, contract, or relationship, deleted for a removed entry, and unchanged for an existing entry reused without such a change. Participation or a new connection alone does not modify an endpoint.",
       "enum": [
@@ -163,6 +228,9 @@
         "changeType"
       ],
       "properties": {
+        "diffHunkIds": {
+          "$ref": "#/$defs/diffHunkIds"
+        },
         "userFlow": {
           "$ref": "#/$defs/userFlow"
         },
@@ -210,6 +278,9 @@
         "changeType"
       ],
       "properties": {
+        "diffHunkIds": {
+          "$ref": "#/$defs/diffHunkIds"
+        },
         "name": {
           "type": "string",
           "minLength": 1
@@ -233,6 +304,9 @@
         "stateVariables"
       ],
       "properties": {
+        "diffHunkIds": {
+          "$ref": "#/$defs/diffHunkIds"
+        },
         "name": {
           "type": "string",
           "minLength": 1
@@ -323,6 +397,9 @@
         "changeType"
       ],
       "properties": {
+        "diffHunkIds": {
+          "$ref": "#/$defs/diffHunkIds"
+        },
         "userFlow": {
           "$ref": "#/$defs/userFlow"
         },
@@ -344,6 +421,9 @@
         "changeType"
       ],
       "properties": {
+        "diffHunkIds": {
+          "$ref": "#/$defs/diffHunkIds"
+        },
         "name": {
           "type": "string",
           "minLength": 1
@@ -564,6 +644,9 @@
         "changeType"
       ],
       "properties": {
+        "diffHunkIds": {
+          "$ref": "#/$defs/diffHunkIds"
+        },
         "userFlow": {
           "$ref": "#/$defs/userFlow"
         },

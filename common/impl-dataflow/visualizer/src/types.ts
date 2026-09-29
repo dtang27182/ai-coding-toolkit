@@ -4,6 +4,7 @@ export type ComponentType = "ui-component" | "system-input" | "system-output" | 
 export interface MethodDiff {
   name: string;
   changeType: ChangeType;
+  diffHunkIds?: string[];
   userFlow?: boolean;
 }
 
@@ -23,12 +24,14 @@ export interface ExposedVariable {
 export interface StateVariableDiff {
   name: string;
   changeType: ChangeType;
+  diffHunkIds?: string[];
   userFlow?: boolean;
 }
 
 export interface ClassDiff {
   name: string;
   changeType: ChangeType;
+  diffHunkIds?: string[];
   methods: MethodDiff[];
   stateVariables: StateVariableDiff[];
   variableExposure?: ExposedVariable[] | null;
@@ -40,12 +43,14 @@ export interface ComponentDiff {
   description: string;
   type: ComponentType;
   changeType: ChangeType;
+  diffHunkIds?: string[];
   userFlow?: boolean;
 }
 
 export interface StaticDataDiff {
   name: string;
   changeType: ChangeType;
+  diffHunkIds?: string[];
   userFlow?: boolean;
 }
 
@@ -75,6 +80,7 @@ interface RelationshipBase {
   from: RelationshipEndpoint;
   to: RelationshipEndpoint;
   changeType: ChangeType;
+  diffHunkIds?: string[];
 }
 
 export type Relationship = RelationshipBase & (
@@ -95,6 +101,7 @@ export interface UserFlowSet {
 export interface ImplementationDataflow {
   schemaVersion: 13;
   stage: "high-level-design" | "code-review";
+  diffHunks?: { id: string; file: string; patch: string }[];
   userFlows?: UserFlowSet[];
   classes: ClassDiff[];
   components: ComponentDiff[];

@@ -20,6 +20,7 @@ function codeReview() {
   return {
     schemaVersion: 13,
     stage: "code-review",
+    diffHunks: [],
     classes: [{
       name: "Service",
       changeType: "unchanged",
@@ -56,6 +57,7 @@ test("code-review implementation dataflows omit HLD-only fields", async (t) => {
 test("high-level-design validation requires HLD fields", async (t) => {
   const input = codeReview();
   input.stage = "high-level-design";
+  delete input.diffHunks;
   input.classes[0].stateVariables.push({ name: "value", changeType: "unchanged" });
   input.components.push({ name: "Panel", description: "Displays the inspection result.", type: "ui-component", changeType: "unchanged" });
   input.relationships.push({
@@ -165,12 +167,14 @@ test("component roles enforce system input and output directions", async (t) => 
 
 test("static data is a read-only source for methods", async (t) => {
   const input = codeReview();
+  input.diffHunks.push({ id: "hunk-1", file: "src/Service.ts", patch: "@@ -1 +1 @@\n-inspect()\n+inspect(rules)" });
   input.staticData.push({ name: "Lookup Rules", changeType: "unchanged" });
   input.relationships.push({
     from: { staticData: "Lookup Rules" },
     to: { class: "Service", method: "inspect" },
     type: "dataflow",
     changeType: "added",
+    diffHunkIds: ["hunk-1"],
     dataDescription: "Fixed lookup rules",
     purpose: "Guide inspection",
   });
@@ -223,18 +227,21 @@ test("static data names and user-flow classification are validated", async (t) =
 
   const hld = structuredClone(input);
   hld.stage = "high-level-design";
+  delete hld.diffHunks;
   hld.staticData[0].userFlow = undefined;
   assert.match((await runValidator(t, hld)).result.stderr, /static data requires userFlow/);
 });
 
 test("static data affects dataflow counts but not component counts", async (t) => {
   const input = codeReview();
-  input.staticData.push({ name: "Lookup Rules", changeType: "added" });
+  input.diffHunks.push({ id: "hunk-1", file: "src/Service.ts", patch: "@@ -1 +1 @@\n-inspect()\n+inspect(rules)" });
+  input.staticData.push({ name: "Lookup Rules", changeType: "added", diffHunkIds: ["hunk-1"] });
   input.relationships.push({
     from: { staticData: "Lookup Rules" },
     to: { class: "Service", method: "inspect" },
     type: "dataflow",
     changeType: "added",
+    diffHunkIds: ["hunk-1"],
     dataDescription: "Fixed lookup rules",
     purpose: "Guide inspection",
   });
