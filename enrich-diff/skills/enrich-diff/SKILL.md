@@ -20,8 +20,8 @@ Generate code-review System and Implementation Dataflows and a self-contained in
 Read and follow these instructions in order:
 
 1. `ai-coding-toolkit/enrich-diff/instructions/generate-diff-description.md`
-2. `ai-coding-toolkit/enrich-diff/instructions/gen-impl-dataflow-multipass.md`
-3. `ai-coding-toolkit/enrich-diff/instructions/gen-sys-dataflow-multipass.md`
+2. `ai-coding-toolkit/enrich-diff/instructions/gen-sys-dataflow-multipass.md`
+3. `ai-coding-toolkit/enrich-diff/instructions/gen-impl-dataflow-multipass.md`
 4. `ai-coding-toolkit/enrich-diff/instructions/generate-enriched-patch.md`
 
 Generate the Implementation Dataflow starting from all changes in the selected patch, tracing the implementation to explain them. Use the diff-description's user flows as context, not as the basis for selecting changes. Do not use the System Dataflow as an input to it.

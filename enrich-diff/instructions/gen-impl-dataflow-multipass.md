@@ -31,7 +31,7 @@ Map all changes in the selected diff into an understandable implementation graph
 ## 2. Trace and Write the Relationships
 
 - Inspect every diff hunk alongside the in-progress JSON and implementation. Write all added, modified, and deleted transfers, state accesses, and ownership relationships, including changes between unchanged endpoints. Include direct unchanged relationships between represented entities when they help explain a change.
-- Use the schema's explicit endpoint references and relationship types. Write `dataflow` relationships for method/component transfers and static-data reads, `state-read` and `state-update` relationships for mutable instance state, and `composition` relationships where represented classes own other represented classes.
+- Use the schema's explicit endpoint references and relationship types. Write `dataflow` relationships for method/component transfers and static-data reads, and `state-read` and `state-update` relationships for mutable instance state. Create a directed `composition` relationship from each represented class that owns another represented class to the class it owns.
 - Merge repeated transfers only when they have the same direct endpoints, relationship type, and change type; do not collapse a path through another method into an end-to-end edge. Independent changes may remain disconnected.
 - Describe the actual data transferred, read, or written in `dataDescription` and how it explains the change in `purpose`, identifying a user flow and step when relevant. Omit these fields for composition, as the schema requires.
 - Ground every relationship in an actual transfer, state access, or ownership relationship. Execution order or co-location within a method does not establish a data transfer.
