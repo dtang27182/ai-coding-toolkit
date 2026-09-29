@@ -218,6 +218,9 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   }
   if (toolNames.includes("hld-gen-new") || toolNames.includes("enrich-diff")) {
     await rm(path.join(installedToolkitDirectory, "common", "system-dataflow"), { recursive: true, force: true });
+    for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
+      await rm(path.join(installedToolkitDirectory, "common", "sys-dataflow", "visualizer", relativePath), { recursive: true, force: true });
+    }
   }
   if (toolNames.includes("hld-gen")) {
     for (const relativePath of ["hld-architecture.md", "skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md", "scripts/architecture-diff-to-mermaid.mjs"]) {
