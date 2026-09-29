@@ -19,7 +19,7 @@ Generate a code-review System Dataflow and a self-contained input for the enrich
 
 Read and follow these instructions in order:
 
-1. `ai-coding-toolkit/enrich-diff/instructions/gen-sys-dataflow.md`
+1. `ai-coding-toolkit/enrich-diff/instructions/gen-sys-dataflow-multipass.md`
 2. `ai-coding-toolkit/enrich-diff/instructions/generate-enriched-patch.md`
 
 Write `<outputDirectory>/<feature>/<feature>.rich-diff.json` with exactly two absolute paths:
