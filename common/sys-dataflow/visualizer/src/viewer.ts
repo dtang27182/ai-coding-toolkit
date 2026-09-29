@@ -369,12 +369,12 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
       const type = NODE_TYPES[node.type];
       const incoming = dataflow.relationships.filter((relationship) => relationship.to === node.name);
       const outgoing = dataflow.relationships.filter((relationship) => relationship.from === node.name);
-      const algorithm = node.algorithm === undefined ? "" : section("Algorithm", `<pre class="algorithm">${escapeHtml(node.algorithm)}</pre>`);
+      const pseudoCode = node["pseudo-code"] === undefined ? "" : section("Pseudo-code", `<pre class="pseudo-code">${escapeHtml(node["pseudo-code"])}</pre>`);
       return `${inspectorHeader(type.label, node.name, node.changeType, node.medium, node.type)}
         ${diffSection({ type: "node", name: node.name }, node.diffHunkIds)}
         ${section("Responsibility", `<p class="entry-copy">${escapeHtml(node.description)}</p>`)}
         ${section("Location", `<p class="location-copy">${escapeHtml(node.location)}</p>`)}
-        ${algorithm}
+        ${pseudoCode}
         ${section("Data in", relationshipRows(incoming, "in"), incoming.length)}
         ${section("Data out", relationshipRows(outgoing, "out"), outgoing.length)}`;
     } else {

@@ -105,7 +105,7 @@ button:focus-visible,
 .interaction-hint,
 .inspector-eyebrow,
 .location-copy,
-.algorithm {
+.pseudo-code {
   font-family: "IBM Plex Mono", monospace;
 }
 
@@ -649,7 +649,7 @@ button:focus-visible,
   font-size: 12px;
 }
 
-.algorithm {
+.pseudo-code {
   margin: 0;
   padding: 12px;
   overflow-x: auto;

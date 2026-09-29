@@ -82,7 +82,7 @@
       "medium": "TypeScript",
       "location": "DeliveryPlanner.buildCandidatePlans",
       "changeType": "added",
-      "algorithm": "For each cart item, find fulfillment centers with enough available-to-promise inventory and permitted service to the destination region. Build allocations incrementally, pruning any partial allocation that exceeds the maximum shipment count or cannot fulfill every remaining item. Consolidate items assigned to the same center into packages using the policy's weight and dimension limits. Deduplicate equivalent plans by their center, item, and package assignments."
+      "pseudo-code": "for each item in cart:\n  eligibleCenters = centers with enough inventory and service to destination\n  extend plans by assigning item to each eligible center\n  prune plans exceeding max shipments or unable to fulfill remaining items\nfor each plan:\n  package items at each center within weight and dimension limits\nreturn plans deduplicated by center, item, and package assignments"
     },
     {
       "type": "data-processing",
@@ -91,7 +91,7 @@
       "medium": "TypeScript",
       "location": "DeliveryPlanner.rankOptions",
       "changeType": "added",
-      "algorithm": "For each quoted plan, calculate its total shipping price and promised date from warehouse handling time plus carrier transit time. Discard plans outside the allowed delivery window. Remove plans dominated by another plan that is both cheaper and no slower. Score the remainder using shipping price, split-shipment penalty, and delivery-risk buffer; return the cheapest, fastest, and best-scoring options with deterministic ties by promised date and plan ID."
+      "pseudo-code": "for each plan with carrier quotes:\n  price = sum of quote prices\n  promisedDate = latest handling time plus transit time across shipments\n  discard plan if promisedDate is outside delivery window\nremove plans dominated by a cheaper and no slower plan\nscore remaining plans by price, split-shipment penalty, and delivery-risk buffer\nreturn cheapest, fastest, and best-scoring options, breaking ties by date and plan ID"
     },
     {
       "type": "system-state",

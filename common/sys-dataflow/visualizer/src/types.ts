@@ -16,7 +16,7 @@ export interface SystemDataflowNode {
   medium: string;
   location: string;
   changeType?: ChangeType;
-  algorithm?: string;
+  "pseudo-code"?: string;
   diffHunkIds?: string[];
 }
 

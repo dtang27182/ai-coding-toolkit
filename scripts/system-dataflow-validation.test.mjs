@@ -24,7 +24,7 @@ const directions = {
 
 function node(type, name) {
   const value = { type, name, description: `${name} description`, medium: "Test medium", location: "Test location" };
-  if (type === "data-processing") value.algorithm = "Transform the input.";
+  if (type === "data-processing") value["pseudo-code"] = "result = transform(input)";
   return value;
 }
 
@@ -50,6 +50,23 @@ function dataflow(type, direction) {
 test("the example satisfies schema and direction validation", () => {
   assert.equal(validate(example), true, JSON.stringify(validate.errors));
   assert.equal(semanticError(example), undefined);
+});
+
+test("processing nodes require pseudo-code and reject the old algorithm field", () => {
+  const value = structuredClone(example);
+  const processing = value.nodes.find((node) => node.type === "data-processing");
+  delete processing["pseudo-code"];
+  assert.equal(validate(value), false);
+
+  processing.algorithm = "Legacy algorithm";
+  assert.equal(validate(value), false);
+
+  processing["pseudo-code"] = "result = transform(input)";
+  assert.equal(validate(value), false);
+
+  delete processing.algorithm;
+  value.nodes[0]["pseudo-code"] = "result = transform(input)";
+  assert.equal(validate(value), false);
 });
 
 test("every node type permits only its legal relationship directions", () => {
