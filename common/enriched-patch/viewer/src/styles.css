@@ -449,6 +449,30 @@ button.tree-row,
   white-space: nowrap;
 }
 
+.element-button .node-label {
+  flex: none;
+  max-width: calc(100% - 39px);
+}
+
+.node-details {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.node-details > .unmapped,
+.node-details > .hidden-count,
+.node-details > .tag-dots,
+.node-details > .line-stats {
+  flex: none;
+  margin-left: 0;
+}
+
 .line-stats {
   display: flex;
   gap: 5px;

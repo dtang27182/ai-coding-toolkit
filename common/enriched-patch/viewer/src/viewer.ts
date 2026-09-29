@@ -46,7 +46,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   let statusMessage = "";
   let dragDepth = 0;
   let wrapLines = false;
-  let sidebarWidth = 330;
+  let sidebarWidth = 560;
   let hiddenTags = new Set<string>();
   let revealedChanges = new Set<string>();
   let changes: OwnedChange[] = [];
@@ -175,10 +175,12 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
               <button class="element-button" type="button" data-select="${escapeHtml(node.id)}">
                 <span class="node-icon">${icon(node.element.kind)}</span>
                 <span class="node-label">${escapeHtml(node.element.kind === "file" ? basename(node.element.name) : node.element.name)}</span>
-                ${unmapped > 0 ? `<span class="unmapped" title="Changed lines not matched to a class or method">${unmapped} unmapped</span>` : ""}
-                ${hiddenTags.size > 0 && filterState !== undefined && filterState.hiddenChanges > 0 ? `<span class="hidden-count" title="Changes hidden by the tag filter">${filterState.hiddenChanges} hidden</span>` : ""}
-                ${renderTagDots(filterState?.visibleTags ?? [])}
-                <span class="line-stats"><span class="plus">+${stats.added}</span><span class="minus">−${stats.removed}</span></span>
+                <span class="node-details">
+                  ${unmapped > 0 ? `<span class="unmapped" title="Changed lines not matched to a class or method">${unmapped} unmapped</span>` : ""}
+                  ${hiddenTags.size > 0 && filterState !== undefined && filterState.hiddenChanges > 0 ? `<span class="hidden-count" title="Changes hidden by the tag filter">${filterState.hiddenChanges} hidden</span>` : ""}
+                  ${renderTagDots(filterState?.visibleTags ?? [])}
+                  <span class="line-stats"><span class="plus">+${stats.added}</span><span class="minus">−${stats.removed}</span></span>
+                </span>
               </button>
             </div>
             ${children}
