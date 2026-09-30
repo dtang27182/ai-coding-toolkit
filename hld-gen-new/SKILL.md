@@ -13,9 +13,9 @@ The design is described by a High Level Design document (`hld-doc`) using the `.
 
 Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to the target repository root, for all generated artifacts. Choose one stable kebab-case feature slug (`<feature>`) for the run and pass it to candidate generation.
 
-1. Create an empty `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md` from `ai-coding-toolkit/hld-gen-new/hld-iteration-summary-template.md`, replacing `<feature>` in the title and paths. Use `ai-coding-toolkit/hld-gen-new/define/define-behavior-and-scope.md` to fill its `Desired Behavior`, `Scope and Assumptions`, and `Clarification Questions` sections.
-   - Ask the user every recorded clarification question. After each response, update `Desired Behavior` and `Scope and Assumptions`, remove each answered question, and record any necessary follow-up questions.
-   - Continue until `Clarification Questions` is `None` and the user explicitly approves the updated `Desired Behavior` and `Scope and Assumptions`. Do not proceed to step 2 before both conditions are met.
+1. Create an empty `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md` from `ai-coding-toolkit/hld-gen-new/hld-iteration-summary-template.md`, replacing `<feature>` in the title and paths. Use `ai-coding-toolkit/hld-gen-new/define/define-behavior-and-scope.md` to fill its `Desired Behavior`, `Scope and Assumptions`, `User Journeys`, and `Clarification Questions` sections.
+   - Ask the user every recorded clarification question. After each response, update `Desired Behavior`, `Scope and Assumptions`, and `User Journeys` as needed, remove each answered question, and record any necessary follow-up questions.
+   - Present all three sections to the user for review. Continue until `Clarification Questions` is `None` and the user explicitly approves the updated `Desired Behavior`, `Scope and Assumptions`, and `User Journeys`. Do not proceed to step 2 before both conditions are met.
 2. Read `ai-coding-toolkit/hld-gen-new/hld-quality.md` to understand the design quality criteria. Use these criteria to guide candidate generation and comparison.
 3. Initialize the iteration's candidate records: fill the template's iteration section for iteration 1, or append a new copy of that section for a later iteration. Replace `<iteration>`, record a distinct design direction for each candidate so the three are materially different, and leave each candidate's generation and evaluation pending.
    - Start at iteration 1 and increment for each new set of three candidates. Preserve earlier records and completed work.
@@ -40,7 +40,7 @@ Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to
      - Select the best evaluated design across all iterations and record its rationale and tradeoffs in the iteration summary.
      - Copy its HLD doc, sys-dataflow, and impl-dataflow from the candidate directory into `<outputDirectory>/<feature>/` without renaming them, preserving all candidate artifacts.
 
-If information required to define, generate, or evaluate the design is unavailable and cannot be resolved from the request, confirmed behavior and scope, current code, or repository guidance, record what is missing in the iteration summary if created, preserve existing artifacts, and stop with `needs-input`. If an execution failure prevents completion, record it and stop with `execution-error`.
+If information required to define, generate, or evaluate the design is unavailable and cannot be resolved from the request, confirmed behavior, scope, and user journeys, current code, or repository guidance, record what is missing in the iteration summary if created, preserve existing artifacts, and stop with `needs-input`. If an execution failure prevents completion, record it and stop with `execution-error`.
 
 ## Human Handoff
 

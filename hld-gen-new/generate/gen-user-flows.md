@@ -1,14 +1,6 @@
-# Generate User Journeys and User Flows
+# Generate User Flows
 
-Fill the HLD doc's `User Journeys` and `User Flows` sections in order after `Desired Behavior` and `Scope and Assumptions` have been copied from the iteration summary. Keep both sections concise and easy to scan. Avoid repeating information across sections.
-
-## User Journeys
-
-- Identify one or more user journeys from Desired Behavior, using Scope and Assumptions to constrain their interpretation.
-- A user journey is a logically grouped set of user input actions that together create a useful result for the user. It may contain one action or several actions that depend on one another, including actions taken after the user sees an earlier result.
-- Group actions by the useful result they create together. Keep actions in one journey when their sequence or shared state is needed for that result; separate actions that create distinct useful results. Do not translate Desired Behavior point by point.
-- Describe each journey as user actions and the result they create, without implementation details. Do not make separate journeys for constraints, storage choices, intermediate system behavior, or variations of the same journey.
-- Write User Journeys as a numbered list. Give each journey a short name and briefly state its user actions and useful result.
+Fill the HLD doc's `User Flows` section after `Desired Behavior`, `Scope and Assumptions`, and `User Journeys` have been copied from the iteration summary. Keep the section concise and easy to scan. Avoid repeating information from earlier sections.
 
 ## User Flows
 

@@ -8,6 +8,10 @@
 
 <scope and assumptions>
 
+## User Journeys
+
+<user journeys>
+
 ## Clarification Questions
 
 <clarification questions or None>

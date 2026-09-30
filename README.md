@@ -60,7 +60,7 @@ Each target repository has its own files and output configuration and works inde
 
 ## Generate a High-Level Design
 
-Start `$hld-gen` at any point in a conversation about a feature. Before drafting, the agent presents its understanding of the desired behavior and scope, asks the user to confirm or correct it, and waits for an explicit response. It does not create or revise the HLD before confirmation.
+Start `$hld-gen` at any point in a conversation about a feature. Before drafting candidates, the agent presents its understanding of the desired behavior, scope, and user journeys, asks the user to confirm or correct all three, and waits for explicit approval. It does not create or revise candidate HLDs before confirmation.
 
 The rubric in `hld-gen-new/hld-quality.md` scores change size, concentration, and Variable Exposure. See `hld-gen-new/eval/hld-variable-exposure.md` for the exposure rules.
 
