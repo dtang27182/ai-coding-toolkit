@@ -1,11 +1,11 @@
 import type { GraphLayout, GraphNode, Rect, ResolvedRelationship } from "./types.ts";
-import { methodKey } from "./types.ts";
+import { functionKey } from "./types.ts";
 
-export const METHOD_HEIGHT = 32;
+export const FUNCTION_HEIGHT = 32;
 export const STATE_VARIABLE_HEIGHT = 20;
 const STATE_VERTICAL_PADDING = 10;
 const STATE_BORDER = 2;
-const METHOD_GAP = 10;
+const FUNCTION_GAP = 10;
 const BOX_PADDING = 14;
 const TAB_HEIGHT = 26;
 const GAP_X = 64;
@@ -45,13 +45,13 @@ export function computeLayout(
   nodes: GraphNode[],
   relationships: ResolvedRelationship[],
   collapsed: boolean,
-  measureMethod: (name: string, writesState: boolean) => number,
+  measureFunction: (name: string, writesState: boolean) => number,
   measureStateVariable: (name: string) => number,
   measureComponent: (name: string) => number,
   stateWriters: Set<string>,
 ): GraphLayout {
   if (nodes.length === 0) {
-    return { boxes: new Map(), methodRects: new Map(), stateRects: new Map(), compositionRelationships: [], width: 320, height: 240 };
+    return { boxes: new Map(), functionRects: new Map(), stateRects: new Map(), compositionRelationships: [], width: 320, height: 240 };
   }
 
   const names = nodes.map((node) => node.name);
@@ -117,8 +117,8 @@ export function computeLayout(
   const minimumRank = Math.min(...names.map((name) => rank.get(name)!));
   for (const name of names) rank.set(name, rank.get(name)! - minimumRank);
 
-  function visibleMethods(node: GraphNode) {
-    return collapsed || node.nodeType !== undefined ? [] : node.methods;
+  function visibleFunctions(node: GraphNode) {
+    return collapsed || node.nodeType !== undefined ? [] : node.functions;
   }
 
   function visibleStateVariables(node: GraphNode) {
@@ -141,20 +141,20 @@ export function computeLayout(
 
   function widthOf(node: GraphNode): number {
     if (node.nodeType !== undefined) return Math.max(164, measureComponent(node.name) + 62);
-    const methods = visibleMethods(node);
-    const methodWidth = methods.reduce(
-      (total, method) => total + measureMethod(method.name, stateWriters.has(methodKey(node.name, method.name))) + METHOD_GAP,
-      -METHOD_GAP,
+    const functions = visibleFunctions(node);
+    const functionWidth = functions.reduce(
+      (total, functionDiff) => total + measureFunction(functionDiff.name, stateWriters.has(functionKey(node.name, functionDiff.name))) + FUNCTION_GAP,
+      -FUNCTION_GAP,
     );
     const stateBoxWidth = stateWidth(node);
-    const contentWidth = stateBoxWidth + (stateBoxWidth > 0 && methodWidth > 0 ? METHOD_GAP : 0) + Math.max(0, methodWidth);
+    const contentWidth = stateBoxWidth + (stateBoxWidth > 0 && functionWidth > 0 ? FUNCTION_GAP : 0) + Math.max(0, functionWidth);
     return Math.max(contentWidth + BOX_PADDING * 2, node.name.length * 7.4 + 120, 216);
   }
 
   function heightOf(node: GraphNode): number {
     if (node.nodeType !== undefined) return COMPONENT_HEIGHT;
-    const methodHeight = visibleMethods(node).length > 0 ? METHOD_HEIGHT : 0;
-    const contentHeight = Math.max(methodHeight, stateHeight(node));
+    const functionHeight = visibleFunctions(node).length > 0 ? FUNCTION_HEIGHT : 0;
+    const contentHeight = Math.max(functionHeight, stateHeight(node));
     if (contentHeight === 0) {
       return TAB_HEIGHT + BOX_PADDING * 2 + 4;
     } else {
@@ -222,7 +222,7 @@ export function computeLayout(
 
   const minimumX = Math.min(...names.map((name) => x.get(name)!));
   const boxes = new Map<string, Rect>();
-  const methodRects = new Map<string, Rect>();
+  const functionRects = new Map<string, Rect>();
   const stateRects = new Map<string, Rect>();
   for (const node of nodes) {
     const box = {
@@ -232,32 +232,32 @@ export function computeLayout(
       height: heightOf(node),
     };
     boxes.set(node.name, box);
-    let methodX = box.x + BOX_PADDING;
+    let functionX = box.x + BOX_PADDING;
     if (visibleStateVariables(node).length > 0) {
       const width = stateWidth(node);
       stateRects.set(node.name, {
-        x: methodX,
+        x: functionX,
         y: box.y + TAB_HEIGHT,
         width,
         height: stateHeight(node),
       });
-      methodX += width + METHOD_GAP;
+      functionX += width + FUNCTION_GAP;
     }
-    for (const method of visibleMethods(node)) {
-      const width = measureMethod(method.name, stateWriters.has(methodKey(node.name, method.name)));
-      methodRects.set(methodKey(node.name, method.name), {
-        x: methodX,
+    for (const functionDiff of visibleFunctions(node)) {
+      const width = measureFunction(functionDiff.name, stateWriters.has(functionKey(node.name, functionDiff.name)));
+      functionRects.set(functionKey(node.name, functionDiff.name), {
+        x: functionX,
         y: box.y + TAB_HEIGHT,
         width,
-        height: METHOD_HEIGHT,
+        height: FUNCTION_HEIGHT,
       });
-      methodX += width + METHOD_GAP;
+      functionX += width + FUNCTION_GAP;
     }
   }
 
   return {
     boxes,
-    methodRects,
+    functionRects,
     stateRects,
     compositionRelationships: composition,
     width: Math.max(320, ...nodes.map((node) => boxes.get(node.name)!.x + boxes.get(node.name)!.width)),

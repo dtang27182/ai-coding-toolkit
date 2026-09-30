@@ -1,8 +1,8 @@
-import type { ChangeType, ClassDiff, ComponentDiff, GraphNode, ImplementationDataflow, ResolvedEndpoint, ResolvedRelationship, StaticDataDiff } from "./types.ts";
-import { methodKey, resolveEndpoint, stateVariableKey } from "./types.ts";
+import type { ChangeType, ComponentDiff, GraphContainerDiff, GraphNode, ImplementationDataflow, ResolvedEndpoint, ResolvedRelationship, StaticDataDiff } from "./types.ts";
+import { functionKey, resolveEndpoint, stateVariableKey } from "./types.ts";
 
 export interface VisibleGraph {
-  classes: ClassDiff[];
+  classes: GraphContainerDiff[];
   components: ComponentDiff[];
   staticData: StaticDataDiff[];
   nodes: GraphNode[];
@@ -13,45 +13,54 @@ export interface VisibleGraph {
 export function filterGraph(implementationDataflow: ImplementationDataflow, showUnchanged: boolean, userFlowOnly: boolean): VisibleGraph {
   const visible = (entry: { changeType: ChangeType; userFlow?: boolean }) =>
     (showUnchanged || entry.changeType !== "unchanged") && (!userFlowOnly || entry.userFlow === true);
-  const classes = implementationDataflow.classes.filter((classDiff) =>
+  const classes: GraphContainerDiff[] = implementationDataflow.classes.filter((classDiff) =>
     (showUnchanged || classDiff.changeType !== "unchanged") &&
-    (!userFlowOnly || classDiff.stateVariables.some((stateVariable) => stateVariable.userFlow === true) || classDiff.methods.some((method) => method.userFlow === true) || implementationDataflow.relationships.some(
+    (!userFlowOnly || classDiff.stateVariables.some((stateVariable) => stateVariable.userFlow === true) || classDiff.functions.some((functionDiff) => functionDiff.userFlow === true) || implementationDataflow.relationships.some(
       (relationship) => relationship.type === "dataflow" && relationship.userFlow === true &&
         (("class" in relationship.from && relationship.from.class === classDiff.name) ||
           ("class" in relationship.to && relationship.to.class === classDiff.name)),
     )),
   ).map((classDiff) => {
-    const methods = classDiff.methods.filter(visible);
+    const functions = classDiff.functions.filter(visible);
     const variableExposure = classDiff.variableExposure === undefined || classDiff.variableExposure === null ? null : classDiff.variableExposure.filter(
-      (variable) => variable.kind === "instance" || methods.some((method) => method.name === variable.method),
+      (variable) => variable.kind === "instance" || functions.some((functionDiff) => functionDiff.name === variable.function),
     );
     return {
       ...classDiff,
-      methods,
+      functions,
       variableExposure,
       variableExposureCount: variableExposure === null ? null : variableExposure.length,
     };
   });
+  classes.push(...(implementationDataflow.modules ?? []).filter((moduleDiff) =>
+    (showUnchanged || moduleDiff.changeType !== "unchanged") &&
+    (!userFlowOnly || moduleDiff.functions.some((functionDiff) => functionDiff.userFlow === true)),
+  ).map((moduleDiff) => ({
+    ...moduleDiff,
+    functions: moduleDiff.functions.filter(visible),
+    stateVariables: [],
+    containerType: "module" as const,
+  })));
   const components = implementationDataflow.components.filter(visible);
   const staticData = implementationDataflow.staticData.filter(visible);
   const nodes: GraphNode[] = [
     ...classes.map((classDiff) => ({
       name: classDiff.name,
       changeType: classDiff.changeType,
-      methods: classDiff.methods,
+      functions: classDiff.functions,
       stateVariables: classDiff.stateVariables,
     })),
     ...components.map((component) => ({
       name: component.name,
       changeType: component.changeType,
-      methods: [],
+      functions: [],
       stateVariables: [],
       nodeType: component.type,
     })),
     ...staticData.map((entry) => ({
       name: entry.name,
       changeType: entry.changeType,
-      methods: [],
+      functions: [],
       stateVariables: [],
       nodeType: "static-data" as const,
     })),
@@ -59,15 +68,15 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
   const classNames = new Set(classes.map((classDiff) => classDiff.name));
   const componentNames = new Set(components.map((component) => component.name));
   const staticDataNames = new Set(staticData.map((entry) => entry.name));
-  const methodNames = new Set(classes.flatMap((classDiff) => classDiff.methods.map((method) => methodKey(classDiff.name, method.name))));
+  const functionNames = new Set(classes.flatMap((classDiff) => classDiff.functions.map((functionDiff) => functionKey(classDiff.name, functionDiff.name))));
   const stateVariableNames = new Set(classes.flatMap((classDiff) => classDiff.stateVariables.map((stateVariable) => stateVariableKey(classDiff.name, stateVariable.name))));
   const endpointVisible = (endpoint: ResolvedEndpoint) => {
     if (endpoint.staticData) {
       return staticDataNames.has(endpoint.nodeName);
     } else if (endpoint.component) {
       return componentNames.has(endpoint.nodeName);
-    } else if (endpoint.methodName !== undefined) {
-      return classNames.has(endpoint.nodeName) && methodNames.has(methodKey(endpoint.nodeName, endpoint.methodName));
+    } else if (endpoint.functionName !== undefined) {
+      return classNames.has(endpoint.nodeName) && functionNames.has(functionKey(endpoint.nodeName, endpoint.functionName));
     } else if (endpoint.stateVariableName !== undefined) {
       return classNames.has(endpoint.nodeName) && stateVariableNames.has(stateVariableKey(endpoint.nodeName, endpoint.stateVariableName));
     } else {
@@ -79,8 +88,9 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
     from: resolveEndpoint(relationship.from),
     to: resolveEndpoint(relationship.to),
   })).filter((relationship) => endpointVisible(relationship.from) && endpointVisible(relationship.to));
-  const variableExposureCount = classes.some((classDiff) => classDiff.variableExposure === undefined || classDiff.variableExposure === null) ? null : new Set(
-    classes.flatMap((classDiff) => classDiff.variableExposure!.map((variable) =>
+  const exposureClasses = classes.filter((classDiff) => classDiff.containerType !== "module");
+  const variableExposureCount = exposureClasses.some((classDiff) => classDiff.variableExposure === undefined || classDiff.variableExposure === null) ? null : new Set(
+    exposureClasses.flatMap((classDiff) => classDiff.variableExposure!.map((variable) =>
       JSON.stringify([variable.declaredAt.file, variable.declaredAt.line, variable.declaredAt.column]),
     )),
   ).size;

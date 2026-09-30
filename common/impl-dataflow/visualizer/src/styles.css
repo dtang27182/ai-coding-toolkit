@@ -351,7 +351,7 @@ body.embedded .topbar {
   color: oklch(0.76 0.02 250);
 }
 
-.method-pill {
+.function-pill {
   z-index: 2;
   display: flex;
   align-items: center;
@@ -364,13 +364,13 @@ body.embedded .topbar {
   box-shadow: 0 1px 2px oklch(0.1 0.02 255 / 0.35);
 }
 
-.method-pill:hover,
-.method-pill.selected {
+.function-pill:hover,
+.function-pill.selected {
   border-color: var(--accent);
   background: oklch(0.33 0.034 255);
 }
 
-.method-accent {
+.function-accent {
   position: absolute;
   top: 5px;
   bottom: 5px;
@@ -379,14 +379,14 @@ body.embedded .topbar {
   border-radius: 2px;
 }
 
-.method-glyph,
+.function-glyph,
 .state-glyph {
   flex: 0 0 auto;
   font-family: "IBM Plex Mono", monospace;
   font-size: 11px;
 }
 
-.method-name {
+.function-name {
   flex: 1 1 auto;
   overflow: hidden;
   font-family: "IBM Plex Mono", monospace;
@@ -745,9 +745,9 @@ body.embedded .topbar {
 }
 
 .flow-list,
-.method-list,
+.function-list,
 .flow-row,
-.method-row {
+.function-row {
   padding: 0 0 0 9px;
   border: 0;
   border-left: 2px solid var(--unchanged);
@@ -757,12 +757,12 @@ body.embedded .topbar {
 }
 
 button.flow-row,
-button.method-row {
+button.function-row {
   cursor: pointer;
 }
 
 button.flow-row:hover,
-button.method-row:hover {
+button.function-row:hover {
   opacity: 0.7;
 }
 

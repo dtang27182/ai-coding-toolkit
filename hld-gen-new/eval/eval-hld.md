@@ -4,7 +4,7 @@ Generate quantitative counts for one candidate using its Implementation Dataflow
 
 ## Populate Variable Exposure
 
-Use the Implementation Dataflow JSON's changed classes and methods to find exposed variables in the current code. Populate `variableExposure` using `ai-coding-toolkit/hld-gen-new/eval/hld-variable-exposure.md`. Use `null` when exposure remains unknown.
+Use the Implementation Dataflow JSON's changed classes and functions to find exposed variables in the current code. Populate `variableExposure` using `ai-coding-toolkit/hld-gen-new/eval/hld-variable-exposure.md`. Use `null` when exposure remains unknown.
 
 ## Calculate the Quality Metrics
 

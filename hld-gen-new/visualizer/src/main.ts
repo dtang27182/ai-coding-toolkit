@@ -38,7 +38,7 @@ function syncHeader(): void {
     app.querySelector<HTMLElement>(".review-path")!.textContent = separator === -1 ? fileName : fileName.slice(0, separator + 1);
   }
   if (nodeCount !== undefined) app.querySelector<HTMLElement>('[data-count="system"]')!.textContent = `${nodeCount} nodes`;
-  if (classCount !== undefined) app.querySelector<HTMLElement>('[data-count="implementation"]')!.textContent = `${classCount} classes`;
+  if (classCount !== undefined) app.querySelector<HTMLElement>('[data-count="implementation"]')!.textContent = `${classCount} units`;
 
   for (const proxy of app.querySelectorAll<HTMLButtonElement>("[data-proxy]")) {
     const source = sourceControl(proxy.dataset.proxy!);

@@ -7,7 +7,7 @@ Changed means `added`, `modified`, or `deleted`. The counts cover the core user 
 | Criterion                          | What it measures                                                                           | Best value |
 | ---------------------------------- | ------------------------------------------------------------------------------------------ | ---------: |
 | Changed Classes                    | Number of changed classes.                                                                 |          0 |
-| Changed Methods                    | Number of changed methods within changed classes.                                          |          0 |
+| Changed Functions                  | Changed functions in changed classes and modules.                                          |          0 |
 | Changed Components                 | Number of changed UI, system input/output, and external dependency components.             |          0 |
 | Changed Dataflow Relationships     | Number of changed dataflow relationships, excluding state updates and composition.         |          0 |
 | Changed State-Update Relationships | Number of changed state-update relationships.                                              |          0 |

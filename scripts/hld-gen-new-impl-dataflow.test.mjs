@@ -24,7 +24,7 @@ function codeReview() {
     classes: [{
       name: "Service",
       changeType: "unchanged",
-      methods: [{ name: "inspect", changeType: "unchanged" }],
+      functions: [{ name: "inspect", changeType: "unchanged" }],
       stateVariables: [],
     }],
     components: [],
@@ -69,7 +69,7 @@ test("high-level-design validation requires HLD fields", async (t) => {
   input.components.push({ name: "Panel", description: "Displays the inspection result.", type: "ui-component", changeType: "unchanged" });
   input.relationships.push({
     from: { component: "Panel" },
-    to: { class: "Service", method: "inspect" },
+    to: { class: "Service", function: "inspect" },
     type: "dataflow",
     changeType: "unchanged",
     dataDescription: "request",
@@ -80,7 +80,7 @@ test("high-level-design validation requires HLD fields", async (t) => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /requires userFlows/);
   assert.match(result.stderr, /requires variableExposure/);
-  assert.match(result.stderr, /method requires userFlow/);
+  assert.match(result.stderr, /function requires userFlow/);
   assert.match(result.stderr, /state variable requires userFlow/);
   assert.match(result.stderr, /component requires userFlow/);
   assert.match(result.stderr, /relationship requires userFlow/);
@@ -95,7 +95,7 @@ test("generic validation rejects invalid architecture references and changes", a
 
   const unknownEndpoint = codeReview();
   unknownEndpoint.relationships.push({
-    from: { class: "Service", method: "inspect" },
+    from: { class: "Service", function: "inspect" },
     to: { component: "Missing" },
     type: "dataflow",
     changeType: "unchanged",
@@ -107,7 +107,7 @@ test("generic validation rejects invalid architecture references and changes", a
   assert.match(endpointResult.result.stderr, /Unknown relationship component/);
 
   const changedMember = codeReview();
-  changedMember.classes[0].methods[0].changeType = "modified";
+  changedMember.classes[0].functions[0].changeType = "modified";
   const memberResult = await runValidator(t, changedMember);
   assert.equal(memberResult.result.status, 1);
 
@@ -115,7 +115,7 @@ test("generic validation rejects invalid architecture references and changes", a
   malformedStateRead.classes[0].changeType = "modified";
   malformedStateRead.classes[0].stateVariables.push({ name: "value", changeType: "modified" });
   malformedStateRead.relationships.push({
-    from: { class: "Service", method: "inspect" },
+    from: { class: "Service", function: "inspect" },
     to: { class: "Service", stateVariable: "value" },
     type: "state-read",
     changeType: "modified",
@@ -136,13 +136,13 @@ test("component roles enforce system input and output directions", async (t) => 
   );
   for (const name of ["Panel", "Incoming Event", "Remote Service"]) {
     input.relationships.push({
-      from: { component: name }, to: { class: "Service", method: "inspect" }, type: "dataflow",
+      from: { component: name }, to: { class: "Service", function: "inspect" }, type: "dataflow",
       changeType: "unchanged", dataDescription: "input", purpose: "Inspect the input",
     });
   }
   for (const name of ["Panel", "Outgoing Event", "Remote Service"]) {
     input.relationships.push({
-      from: { class: "Service", method: "inspect" }, to: { component: name }, type: "dataflow",
+      from: { class: "Service", function: "inspect" }, to: { component: name }, type: "dataflow",
       changeType: "unchanged", dataDescription: "result", purpose: "Deliver the result",
     });
   }
@@ -172,13 +172,13 @@ test("component roles enforce system input and output directions", async (t) => 
   assert.match(semanticError(inputAsTarget), /System-input component cannot receive data/);
 });
 
-test("static data is a read-only source for methods", async (t) => {
+test("static data is a read-only source for functions", async (t) => {
   const input = codeReview();
   input.diffHunks.push({ id: "hunk-1", file: "src/Service.ts", patch: "@@ -1 +1 @@\n-inspect()\n+inspect(rules)" });
   input.staticData.push({ name: "Lookup Rules", changeType: "unchanged" });
   input.relationships.push({
     from: { staticData: "Lookup Rules" },
-    to: { class: "Service", method: "inspect" },
+    to: { class: "Service", function: "inspect" },
     type: "dataflow",
     changeType: "added",
     diffHunkIds: ["hunk-1"],
@@ -212,7 +212,7 @@ test("static data names and user-flow classification are validated", async (t) =
   input.staticData.push({ name: "Lookup Rules", changeType: "unchanged", userFlow: false });
   input.relationships.push({
     from: { staticData: "Lookup Rules" },
-    to: { class: "Service", method: "inspect" },
+    to: { class: "Service", function: "inspect" },
     type: "dataflow",
     changeType: "unchanged",
     dataDescription: "Fixed lookup rules",
@@ -245,7 +245,7 @@ test("static data affects dataflow counts but not component counts", async (t) =
   input.staticData.push({ name: "Lookup Rules", changeType: "added", diffHunkIds: ["hunk-1"] });
   input.relationships.push({
     from: { staticData: "Lookup Rules" },
-    to: { class: "Service", method: "inspect" },
+    to: { class: "Service", function: "inspect" },
     type: "dataflow",
     changeType: "added",
     diffHunkIds: ["hunk-1"],
@@ -261,14 +261,14 @@ test("static data affects dataflow counts but not component counts", async (t) =
   assert.equal(counted.changedDataflowRelationshipCount, 1);
 });
 
-test("user-flow filtering keeps static data read by a participating method", async () => {
+test("user-flow filtering keeps static data read by a participating function", async () => {
   const example = JSON.parse(await readFile(
     path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"),
     "utf8"
   ));
   const graph = filterGraph(example, true, true);
   assert.ok(graph.staticData.some((entry) => entry.name === "Diff Format Rules"));
-  assert.ok(graph.relationships.some((relationship) => relationship.from.staticData && relationship.to.methodName === "buildChangeSet"));
+  assert.ok(graph.relationships.some((relationship) => relationship.from.staticData && relationship.to.functionName === "buildChangeSet"));
 });
 
 test("two user flows share implementation state and static data", async (t) => {
@@ -284,10 +284,10 @@ test("two user flows share implementation state and static data", async (t) => {
       { id: 3, text: "The app displays the preview." },
     ],
   });
-  input.classes[0].methods.push({ name: "previewChanges", changeType: "added", userFlow: true });
+  input.classes[0].functions.push({ name: "previewChanges", changeType: "added", userFlow: true });
   input.relationships.push({
     from: { staticData: "Diff Format Rules" },
-    to: { class: "ChangeService", method: "previewChanges" },
+    to: { class: "ChangeService", function: "previewChanges" },
     type: "dataflow",
     changeType: "added",
     dataDescription: "Fixed hunk formatting rules",
@@ -295,14 +295,14 @@ test("two user flows share implementation state and static data", async (t) => {
     userFlow: true,
   }, {
     from: { class: "ChangeModel", stateVariable: "changes" },
-    to: { class: "ChangeService", method: "previewChanges" },
+    to: { class: "ChangeService", function: "previewChanges" },
     type: "state-read",
     changeType: "added",
     dataDescription: "The retained change set",
     purpose: "Supply the preview input in step 2.",
     userFlow: true,
   }, {
-    from: { class: "ChangeService", method: "previewChanges" },
+    from: { class: "ChangeService", function: "previewChanges" },
     to: { component: "Change Panel" },
     type: "dataflow",
     changeType: "added",
@@ -315,7 +315,7 @@ test("two user flows share implementation state and static data", async (t) => {
   const graph = filterGraph(input, true, true);
   assert.equal(graph.staticData.filter((entry) => entry.name === "Diff Format Rules").length, 1);
   assert.equal(graph.relationships.filter((relationship) => relationship.from.staticData).length, 2);
-  assert.ok(graph.relationships.some((relationship) => relationship.relationship.type === "state-read" && relationship.to.methodName === "previewChanges"));
+  assert.ok(graph.relationships.some((relationship) => relationship.relationship.type === "state-read" && relationship.to.functionName === "previewChanges"));
   assert.ok(graph.components.some((component) => component.name === "Source Files on Disk"));
 });
 
@@ -324,6 +324,7 @@ test("evaluated validation requires complete HLD metrics", async (t) => {
     path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"),
     "utf8"
   ));
+  example.modules = [{ name: "src/helpers", changeType: "added", functions: [{ name: "normalize", changeType: "added", userFlow: true }] }];
   const pending = await runValidator(t, example, "--evaluated");
   assert.equal(pending.result.status, 1);
   assert.match(pending.result.stderr, /requires non-null changedClassCount/);
@@ -332,6 +333,8 @@ test("evaluated validation requires complete HLD metrics", async (t) => {
   assert.equal(exposureCount.status, 0, exposureCount.stderr);
   const changeCount = spawnSync(process.execPath, [changeCounterPath, pending.inputPath], { encoding: "utf8" });
   assert.equal(changeCount.status, 0, changeCount.stderr);
+  const counted = JSON.parse(await readFile(pending.inputPath, "utf8"));
+  assert.equal(counted.changedFunctionCount, counted.classes.flatMap((classDiff) => classDiff.functions).filter((functionDiff) => functionDiff.changeType !== "unchanged").length + 1);
   const evaluated = spawnSync(process.execPath, [validatorPath, "--evaluated", pending.inputPath], { encoding: "utf8" });
   assert.equal(evaluated.status, 0, evaluated.stderr);
 });

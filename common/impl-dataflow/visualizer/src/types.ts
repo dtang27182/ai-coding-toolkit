@@ -1,7 +1,7 @@
 export type ChangeType = "added" | "modified" | "deleted" | "unchanged";
 export type ComponentType = "ui-component" | "system-input" | "system-output" | "external-dependency";
 
-export interface MethodDiff {
+export interface FunctionDiff {
   name: string;
   changeType: ChangeType;
   diffHunkIds?: string[];
@@ -17,7 +17,7 @@ export interface DeclaredAt {
 export interface ExposedVariable {
   name: string;
   kind: "instance" | "parameter" | "local";
-  method?: string;
+  function?: string;
   declaredAt: DeclaredAt;
 }
 
@@ -32,11 +32,20 @@ export interface ClassDiff {
   name: string;
   changeType: ChangeType;
   diffHunkIds?: string[];
-  methods: MethodDiff[];
+  functions: FunctionDiff[];
   stateVariables: StateVariableDiff[];
   variableExposure?: ExposedVariable[] | null;
   variableExposureCount?: number | null;
 }
+
+export interface ModuleDiff {
+  name: string;
+  changeType: ChangeType;
+  diffHunkIds?: string[];
+  functions: FunctionDiff[];
+}
+
+export type GraphContainerDiff = ClassDiff & { containerType?: "module" };
 
 export interface ComponentDiff {
   name: string;
@@ -58,8 +67,8 @@ export interface ClassEndpoint {
   class: string;
 }
 
-export interface MethodEndpoint extends ClassEndpoint {
-  method: string;
+export interface ClassFunctionEndpoint extends ClassEndpoint {
+  function: string;
 }
 
 export interface StateVariableEndpoint extends ClassEndpoint {
@@ -74,7 +83,14 @@ export interface StaticDataEndpoint {
   staticData: string;
 }
 
-export type RelationshipEndpoint = ClassEndpoint | MethodEndpoint | StateVariableEndpoint | ComponentEndpoint | StaticDataEndpoint;
+export interface ModuleFunctionEndpoint {
+  module: string;
+  function: string;
+}
+
+export type FunctionEndpoint = ClassFunctionEndpoint | ModuleFunctionEndpoint;
+
+export type RelationshipEndpoint = ClassEndpoint | FunctionEndpoint | StateVariableEndpoint | ComponentEndpoint | StaticDataEndpoint;
 
 interface RelationshipBase {
   from: RelationshipEndpoint;
@@ -104,37 +120,38 @@ export interface ImplementationDataflow {
   diffHunks?: { id: string; file: string; patch: string }[];
   userFlows?: UserFlowSet[];
   classes: ClassDiff[];
+  modules?: ModuleDiff[];
   components: ComponentDiff[];
   staticData: StaticDataDiff[];
   relationships: Relationship[];
   variableExposureCount?: number | null;
 }
 
-export interface MethodRef {
+export interface FunctionRef {
   className: string;
-  methodName: string;
+  functionName: string;
 }
 
 export type Selection =
   | { type: "class"; className: string }
-  | { type: "method"; className: string; methodName: string }
+  | { type: "function"; className: string; functionName: string }
   | { type: "component"; componentName: string }
   | { type: "static-data"; staticDataName: string }
   | { type: "relationship"; edge: string };
 
 /**
- * Identifies a drawn edge. Collapsing methods merges dataflows between the same
- * classes into one line, so the key drops method names in that mode and a single
+ * Identifies a drawn edge. Collapsing functions merges dataflows between the same
+ * classes into one line, so the key drops function names in that mode and a single
  * key then stands for every relationship merged into it.
  */
 export function edgeKey(relationship: ResolvedRelationship, collapsed: boolean): string {
   const side = (endpoint: ResolvedEndpoint) => {
     if (endpoint.stateVariableName !== undefined) {
       return `${endpoint.nodeName}.${endpoint.stateVariableName}`;
-    } else if (collapsed || endpoint.methodName === undefined) {
+    } else if (collapsed || endpoint.functionName === undefined) {
       return endpoint.nodeName;
     } else {
-      return `${endpoint.nodeName}.${endpoint.methodName}`;
+      return `${endpoint.nodeName}.${endpoint.functionName}`;
     }
   };
   return JSON.stringify([relationship.relationship.type, side(relationship.from), side(relationship.to)]);
@@ -150,17 +167,18 @@ export interface Rect {
 export interface GraphNode {
   name: string;
   changeType: ChangeType;
-  methods: MethodDiff[];
+  functions: FunctionDiff[];
   stateVariables: StateVariableDiff[];
   nodeType?: ComponentType | "static-data";
 }
 
 export interface ResolvedEndpoint {
   nodeName: string;
-  methodName?: string;
+  functionName?: string;
   stateVariableName?: string;
   component: boolean;
   staticData?: boolean;
+  module?: boolean;
 }
 
 export interface ResolvedRelationship {
@@ -176,15 +194,15 @@ export function isInternalStateRelationship(relationship: ResolvedRelationship):
 
 export interface GraphLayout {
   boxes: Map<string, Rect>;
-  methodRects: Map<string, Rect>;
+  functionRects: Map<string, Rect>;
   stateRects: Map<string, Rect>;
   compositionRelationships: ResolvedRelationship[];
   width: number;
   height: number;
 }
 
-export function methodKey(className: string, methodName: string): string {
-  return `${className}\u0000${methodName}`;
+export function functionKey(className: string, functionName: string): string {
+  return `${className}\u0000${functionName}`;
 }
 
 export function stateVariableKey(className: string, stateVariableName: string): string {
@@ -196,8 +214,10 @@ export function resolveEndpoint(endpoint: RelationshipEndpoint): ResolvedEndpoin
     return { nodeName: endpoint.component, component: true };
   } else if ("staticData" in endpoint) {
     return { nodeName: endpoint.staticData, component: false, staticData: true };
-  } else if ("method" in endpoint) {
-    return { nodeName: endpoint.class, methodName: endpoint.method, component: false };
+  } else if ("module" in endpoint) {
+    return { nodeName: endpoint.module, functionName: endpoint.function, component: false, module: true };
+  } else if ("function" in endpoint) {
+    return { nodeName: endpoint.class, functionName: endpoint.function, component: false };
   } else if ("stateVariable" in endpoint) {
     return { nodeName: endpoint.class, stateVariableName: endpoint.stateVariable, component: false };
   } else {

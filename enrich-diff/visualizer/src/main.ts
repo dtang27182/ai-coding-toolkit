@@ -26,7 +26,7 @@ app.innerHTML = `
         <button class="view-button" type="button" data-view="implementation" aria-selected="false">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2" y="1.5" width="12" height="13" rx="1.5"></rect><path d="M2 5.5h12M4.5 8.5h7M4.5 11.5h5"></path></svg>
           <span>Implementation Dataflow</span>
-          <span class="view-count" data-count="implementation">classes</span>
+          <span class="view-count" data-count="implementation">units</span>
         </button>
         <button class="view-button" type="button" data-view="diff" aria-selected="false">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 1.5h6l4 4v9H3z"></path><path d="M6 7.5h4M8 5.5v4M6 12h4"></path></svg>
@@ -48,7 +48,7 @@ app.innerHTML = `
         <div class="dataflow-controls" data-toolbar="implementation" hidden>
           <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
           <button class="control-button" type="button" data-proxy="toggle-unchanged">Hide unchanged</button>
-          <button class="control-button" type="button" data-proxy="toggle-methods">Hide methods</button>
+          <button class="control-button" type="button" data-proxy="toggle-functions">Hide functions</button>
           <div class="zoom-controls">
             <button class="zoom-button" type="button" data-proxy="zoom-out" aria-label="Zoom out">−</button>
             <button class="zoom-button" type="button" data-proxy="fit">Fit</button>
@@ -127,7 +127,7 @@ function syncHeader(): void {
   pathLabel.classList.toggle("error", manifestError !== undefined);
   if (nodeCount !== undefined) app.querySelector<HTMLElement>('[data-count="dataflow"]')!.textContent = `${nodeCount} nodes`;
   if (fileCount !== undefined) app.querySelector<HTMLElement>('[data-count="diff"]')!.textContent = `${fileCount} files`;
-  if (classCount !== undefined) app.querySelector<HTMLElement>('[data-count="implementation"]')!.textContent = `${classCount} classes`;
+  if (classCount !== undefined) app.querySelector<HTMLElement>('[data-count="implementation"]')!.textContent = `${classCount} units`;
 
   for (const proxy of app.querySelectorAll<HTMLButtonElement>("[data-proxy]")) {
     const source = sourceControl(proxy.dataset.proxy!);

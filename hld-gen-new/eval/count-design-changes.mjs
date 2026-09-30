@@ -30,8 +30,8 @@ if (inputArguments.length !== 1) {
     const changedClasses = implementationDataflow.classes.filter(isChanged);
 
     implementationDataflow.changedClassCount = changedClasses.length;
-    implementationDataflow.changedMethodCount = changedClasses.reduce(
-      (count, classDiff) => count + classDiff.methods.filter(isChanged).length,
+    implementationDataflow.changedFunctionCount = [...changedClasses, ...(implementationDataflow.modules ?? []).filter(isChanged)].reduce(
+      (count, classDiff) => count + classDiff.functions.filter(isChanged).length,
       0
     );
     implementationDataflow.changedComponentCount = implementationDataflow.components.filter(isChanged).length;

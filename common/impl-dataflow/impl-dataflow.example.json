@@ -15,7 +15,7 @@
     {
       "name": "ChangeService",
       "changeType": "added",
-      "methods": [
+      "functions": [
         {
           "name": "configure",
           "changeType": "added",
@@ -34,7 +34,7 @@
     {
       "name": "ChangeModel",
       "changeType": "added",
-      "methods": [
+      "functions": [
         {
           "name": "currentChanges",
           "changeType": "added",
@@ -54,7 +54,7 @@
     {
       "name": "Repository",
       "changeType": "unchanged",
-      "methods": [
+      "functions": [
         {
           "name": "readSourceFiles",
           "changeType": "unchanged",
@@ -68,7 +68,7 @@
     {
       "name": "LegacyChangeAdapter",
       "changeType": "deleted",
-      "methods": [
+      "functions": [
         {
           "name": "adaptLegacyChange",
           "changeType": "deleted",
@@ -89,7 +89,7 @@
         {
           "name": "sourceFiles",
           "kind": "parameter",
-          "method": "adaptLegacyChange",
+          "function": "adaptLegacyChange",
           "declaredAt": {
             "file": "src/LegacyChangeAdapter.js",
             "line": 4,
@@ -99,7 +99,7 @@
         {
           "name": "changes",
           "kind": "local",
-          "method": "adaptLegacyChange",
+          "function": "adaptLegacyChange",
           "declaredAt": {
             "file": "src/LegacyChangeAdapter.js",
             "line": 5,
@@ -143,7 +143,7 @@
   "relationships": [
     {
       "from": { "staticData": "Diff Format Rules" },
-      "to": { "class": "ChangeService", "method": "buildChangeSet" },
+      "to": { "class": "ChangeService", "function": "buildChangeSet" },
       "type": "dataflow",
       "dataDescription": "Fixed hunk formatting and line-matching rules used for each change set.",
       "purpose": "Supplies the rules used while step 2 computes the change set.",
@@ -151,8 +151,8 @@
       "userFlow": true
     },
     {
-      "from": { "class": "Repository", "method": "readSourceFiles" },
-      "to": { "class": "ChangeService", "method": "buildChangeSet" },
+      "from": { "class": "Repository", "function": "readSourceFiles" },
+      "to": { "class": "ChangeService", "function": "buildChangeSet" },
       "type": "dataflow",
       "dataDescription": "The contents of each selected file, keyed by repository-relative path, together with the paths that could not be read.",
       "purpose": "Supplies the text buildChangeSet diffs against, so step 2 can compute a change set without the service reaching the filesystem itself.",
@@ -166,8 +166,8 @@
       "changeType": "added"
     },
     {
-      "from": { "class": "Repository", "method": "readSourceFiles" },
-      "to": { "class": "LegacyChangeAdapter", "method": "adaptLegacyChange" },
+      "from": { "class": "Repository", "function": "readSourceFiles" },
+      "to": { "class": "LegacyChangeAdapter", "function": "adaptLegacyChange" },
       "type": "dataflow",
       "dataDescription": "The same file contents, in the shape the legacy adapter expected.",
       "purpose": "Fed the adapter that ChangeService replaces, and is removed with it; nothing in the flow reads its output after the change.",
@@ -176,7 +176,7 @@
     },
     {
       "from": { "component": "Diff Settings File" },
-      "to": { "class": "ChangeService", "method": "configure" },
+      "to": { "class": "ChangeService", "function": "configure" },
       "type": "dataflow",
       "dataDescription": "Stored diff options: context line count, whitespace handling, and the ignore globs.",
       "purpose": "Configures the service when it is constructed. No user action triggers it, but every change set is computed under these options.",
@@ -185,7 +185,7 @@
     },
     {
       "from": { "component": "Change Panel" },
-      "to": { "class": "ChangeService", "method": "buildChangeSet" },
+      "to": { "class": "ChangeService", "function": "buildChangeSet" },
       "type": "dataflow",
       "dataDescription": "The paths the user selected, with the comparison target they chose.",
       "purpose": "Carries the request that opens step 1. Nothing downstream runs until this arrives, and the selection it carries scopes everything that follows.",
@@ -193,8 +193,8 @@
       "userFlow": true
     },
     {
-      "from": { "class": "ChangeService", "method": "buildChangeSet" },
-      "to": { "class": "Repository", "method": "readSourceFiles" },
+      "from": { "class": "ChangeService", "function": "buildChangeSet" },
+      "to": { "class": "Repository", "function": "readSourceFiles" },
       "type": "dataflow",
       "dataDescription": "The validated list of paths to read.",
       "purpose": "Delegates file access to Repository, keeping the service independent of storage while step 2 gathers its input.",
@@ -202,7 +202,7 @@
       "userFlow": true
     },
     {
-      "from": { "class": "Repository", "method": "readSourceFiles" },
+      "from": { "class": "Repository", "function": "readSourceFiles" },
       "to": { "component": "Source Files on Disk" },
       "type": "dataflow",
       "dataDescription": "A read request for each selected path.",
@@ -212,7 +212,7 @@
     },
     {
       "from": { "component": "Source Files on Disk" },
-      "to": { "class": "Repository", "method": "readSourceFiles" },
+      "to": { "class": "Repository", "function": "readSourceFiles" },
       "type": "dataflow",
       "dataDescription": "The bytes of each readable file, and a not-found result for the rest.",
       "purpose": "Returns the only content the change set can be computed from; the not-found results are what step 3 reports as skipped files.",
@@ -220,7 +220,7 @@
       "userFlow": true
     },
     {
-      "from": { "class": "ChangeModel", "method": "currentChanges" },
+      "from": { "class": "ChangeModel", "function": "currentChanges" },
       "to": { "component": "Change Panel" },
       "type": "dataflow",
       "dataDescription": "The finished change set: one entry per file with its diff hunks, plus the counts of changed and skipped files.",
@@ -229,7 +229,7 @@
       "userFlow": true
     },
     {
-      "from": { "class": "ChangeService", "method": "buildChangeSet" },
+      "from": { "class": "ChangeService", "function": "buildChangeSet" },
       "to": { "class": "ChangeModel", "stateVariable": "changes" },
       "type": "state-update",
       "dataDescription": "Writes the finished change set into `changes`, replacing any set retained from an earlier request.",
@@ -239,7 +239,7 @@
     },
     {
       "from": { "class": "ChangeModel", "stateVariable": "changes" },
-      "to": { "class": "ChangeModel", "method": "currentChanges" },
+      "to": { "class": "ChangeModel", "function": "currentChanges" },
       "type": "state-read",
       "dataDescription": "Reads the retained change set, including its file entries and summary counts.",
       "purpose": "Supplies the result that step 3 displays without recomputing the diff or re-reading the files.",

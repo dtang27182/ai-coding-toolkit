@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI Coding Toolkit Implementation Dataflow",
-  "description": "impl-dataflow is shorthand for implementation dataflow. This JSON models how a feature or system's behavior is realized by implementation entities: classes, methods, mutable instance state, interface and external components, static data, and direct data transfers, state accesses, and ownership relationships. It represents proposed designs or implemented behavior, with diff hunks providing evidence during code review.",
+  "description": "impl-dataflow is shorthand for implementation dataflow. This JSON models how a feature or system's behavior is realized by implementation entities: classes and modules with their functions, mutable instance state, interface and external components, static data, and direct data transfers, state accesses, and ownership relationships. It represents proposed designs or implemented behavior, with diff hunks providing evidence during code review.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -52,8 +52,8 @@
       "type": "integer",
       "minimum": 0
     },
-    "changedMethodCount": {
-      "description": "Derived number of added, modified, or deleted methods in changed classes.",
+    "changedFunctionCount": {
+      "description": "Derived number of added, modified, or deleted functions in changed classes and modules.",
       "type": "integer",
       "minimum": 0
     },
@@ -73,11 +73,17 @@
       "minimum": 0
     },
     "classes": {
-      "description": "Implementation classes represented by the document. Class, component, and static-data names must be unique across the document.",
+      "description": "Implementation classes represented by the document. Use an empty array when none are represented. Class, module, component, and static-data names must be unique across the document.",
       "type": "array",
-      "minItems": 1,
       "items": {
         "$ref": "#/$defs/class"
+      }
+    },
+    "modules": {
+      "description": "Named implementation units containing functions that are not owned by classes. A unit may be a language-level module, namespace, package, or source file. Use an empty array when none are represented. Names must be unique across classes, modules, components, and static data.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/module"
       }
     },
     "components": {
@@ -88,7 +94,7 @@
       }
     },
     "staticData": {
-      "description": "Fixed data read by represented methods, such as constants or static lookup data. Use an empty array when none are represented. External files and storage remain external-dependency components.",
+      "description": "Fixed data read by represented functions, such as constants or static lookup data. Use an empty array when none are represented. External files and storage remain external-dependency components.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/staticData"
@@ -103,6 +109,27 @@
     }
   },
   "allOf": [
+    {
+      "anyOf": [
+        {
+          "properties": {
+            "classes": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "modules"
+          ],
+          "properties": {
+            "modules": {
+              "minItems": 1
+            }
+          }
+        }
+      ]
+    },
     {
       "if": {
         "properties": {
@@ -218,7 +245,7 @@
       }
     },
     "component": {
-      "description": "A UI surface, system input or output, or external dependency. Represent implementation handlers and adapters as classes and methods instead.",
+      "description": "A UI surface, system input or output, or external dependency. Represent implementation handlers and adapters as class or module functions instead.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -235,7 +262,7 @@
           "$ref": "#/$defs/userFlow"
         },
         "name": {
-          "description": "Unique across classes, components, and static data; referenced by relationship endpoints.",
+          "description": "Unique across classes, modules, components, and static data; referenced by relationship endpoints.",
           "type": "string",
           "minLength": 1
         },
@@ -270,7 +297,7 @@
       }
     },
     "staticData": {
-      "description": "Fixed data that a represented method reads without updating. Its name is unique across classes, components, and static data.",
+      "description": "Fixed data that a represented function reads without updating. Its name is unique across classes, modules, components, and static data.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -300,7 +327,7 @@
       "required": [
         "name",
         "changeType",
-        "methods",
+        "functions",
         "stateVariables"
       ],
       "properties": {
@@ -314,11 +341,11 @@
         "changeType": {
           "$ref": "#/$defs/changeType"
         },
-        "methods": {
-          "description": "Methods represented for this class. Method names must be unique within the class.",
+        "functions": {
+          "description": "Functions represented for this class. Function names must be unique within the class.",
           "type": "array",
           "items": {
-            "$ref": "#/$defs/method"
+            "$ref": "#/$defs/function"
           }
         },
         "stateVariables": {
@@ -361,7 +388,7 @@
           },
           "then": {
             "properties": {
-              "methods": {
+              "functions": {
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -388,8 +415,66 @@
         }
       ]
     },
-    "method": {
-      "description": "An implementation method represented for its class.",
+    "module": {
+      "description": "A named implementation unit that groups functions without a class owner, regardless of the source language's term for that unit.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "changeType",
+        "functions"
+      ],
+      "properties": {
+        "diffHunkIds": {
+          "$ref": "#/$defs/diffHunkIds"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changeType": {
+          "$ref": "#/$defs/changeType"
+        },
+        "functions": {
+          "description": "Functions represented for this unit that are not owned by a class. Function names must be unique within the unit.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/function"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "changeType": {
+                "const": "unchanged"
+              }
+            },
+            "required": [
+              "changeType"
+            ]
+          },
+          "then": {
+            "properties": {
+              "functions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "changeType": {
+                      "const": "unchanged"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "function": {
+      "description": "An implementation function owned by a class or grouped in a module.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -456,8 +541,8 @@
             "local"
           ]
         },
-        "method": {
-          "description": "Existing method containing the parameter or local.",
+        "function": {
+          "description": "Existing function containing the parameter or local.",
           "type": "string",
           "minLength": 1
         },
@@ -500,7 +585,7 @@
           },
           "then": {
             "required": [
-              "method"
+              "function"
             ]
           }
         },
@@ -515,7 +600,7 @@
           "then": {
             "not": {
               "required": [
-                "method"
+                "function"
               ]
             }
           }
@@ -536,24 +621,39 @@
         }
       }
     },
-    "methodEndpoint": {
-      "description": "References a method by its class name and class-local method name.",
+    "functionEndpoint": {
+      "description": "References a function by name and its class or module owner.",
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "class",
-        "method"
+        "function"
       ],
       "properties": {
         "class": {
           "type": "string",
           "minLength": 1
         },
-        "method": {
+        "module": {
+          "type": "string",
+          "minLength": 1
+        },
+        "function": {
           "type": "string",
           "minLength": 1
         }
-      }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "class"
+          ]
+        },
+        {
+          "required": [
+            "module"
+          ]
+        }
+      ]
     },
     "stateVariableEndpoint": {
       "description": "References a state variable by its class name and class-local state-variable name.",
@@ -603,10 +703,10 @@
       }
     },
     "dataflowEndpoint": {
-      "description": "A method or component that directly sends or receives data.",
+      "description": "A class or module function, or component that directly sends or receives data.",
       "oneOf": [
         {
-          "$ref": "#/$defs/methodEndpoint"
+          "$ref": "#/$defs/functionEndpoint"
         },
         {
           "$ref": "#/$defs/componentEndpoint"
@@ -617,15 +717,15 @@
       "oneOf": [
         {
           "const": "dataflow",
-          "description": "A direct data transfer between method or component endpoints, or a read from static data by a method. System-input components may only be sources and system-output components may only be targets. Record request and response paths as separate relationships."
+          "description": "A direct data transfer between function or component endpoints, or a read from static data by a function. System-input components may only be sources and system-output components may only be targets. Record request and response paths as separate relationships."
         },
         {
           "const": "state-read",
-          "description": "A method reads a value from mutable instance state; the state variable is the source and the method is the target."
+          "description": "A function reads a value from mutable instance state; the state variable is the source and the function is the target."
         },
         {
           "const": "state-update",
-          "description": "A method writes mutable instance state; the method is the source and the state variable is the target."
+          "description": "A function writes mutable instance state; the function is the source and the state variable is the target."
         },
         {
           "const": "composition",
@@ -694,7 +794,7 @@
                 "$ref": "#/$defs/stateVariableEndpoint"
               },
               "to": {
-                "$ref": "#/$defs/methodEndpoint"
+                "$ref": "#/$defs/functionEndpoint"
               }
             }
           }
@@ -729,7 +829,7 @@
                     "$ref": "#/$defs/staticDataEndpoint"
                   },
                   "to": {
-                    "$ref": "#/$defs/methodEndpoint"
+                    "$ref": "#/$defs/functionEndpoint"
                   }
                 }
               }
@@ -751,7 +851,7 @@
             ],
             "properties": {
               "from": {
-                "$ref": "#/$defs/methodEndpoint"
+                "$ref": "#/$defs/functionEndpoint"
               },
               "to": {
                 "$ref": "#/$defs/stateVariableEndpoint"

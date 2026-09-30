@@ -16,11 +16,11 @@
 
 ### Candidates
 
-| Candidate | Approach    | Generation | Evaluation | Changed classes | Changed methods | Changed components | Changed dataflows | Changed state updates | Variable exposure |
-| --------- | ----------- | ---------- | ---------- | --------------: | --------------: | -----------------: | ----------------: | --------------------: | ----------------: |
-| 1         | <summary>   | pending    | pending    |               — |               — |                  — |                 — |                     — |                 — |
-| 2         | <summary>   | pending    | pending    |               — |               — |                  — |                 — |                     — |                 — |
-| 3         | <summary>   | pending    | pending    |               — |               — |                  — |                 — |                     — |                 — |
+| Candidate | Approach    | Generation | Evaluation | Changed classes | Changed functions | Changed components | Changed dataflows | Changed state updates | Variable exposure |
+| --------- | ----------- | ---------- | ---------- | --------------: | ----------------: | -----------------: | ----------------: | --------------------: | ----------------: |
+| 1         | <summary>   | pending    | pending    |               — |                 — |                  — |                 — |                     — |                 — |
+| 2         | <summary>   | pending    | pending    |               — |                 — |                  — |                 — |                     — |                 — |
+| 3         | <summary>   | pending    | pending    |               — |                 — |                  — |                 — |                     — |                 — |
 
 - Candidate 1: [HLD doc](iterations/<iteration>/candidate-1/<feature>.hld.md).
 - Candidate 2: [HLD doc](iterations/<iteration>/candidate-2/<feature>.hld.md).
