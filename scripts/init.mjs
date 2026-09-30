@@ -48,7 +48,7 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
 
 const supportedAgents = ["codex", "claude"];
 const supportedTools = ["hld-gen-new", "enrich-diff", "advanced-diff-viewer"];
-const toolNames = selectedTool === undefined ? ["hld-gen-new"] : [selectedTool];
+const toolNames = selectedTool === undefined ? ["hld-gen-new", "enrich-diff"] : [selectedTool];
 const relativeOutputDirectory = path.normalize(outputDirectory);
 const outputIsRepoSubdirectory =
   relativeOutputDirectory !== "." &&

@@ -23,7 +23,7 @@ async function createRepository(t) {
 
 test("copies skills and scripts that work after the source checkout is removed", async (t) => {
   const sourceDirectory = await createRepository(t);
-  for (const directoryName of ["scripts", "adapters", "hld-gen-new", "common", "node_modules"]) {
+  for (const directoryName of ["scripts", "adapters", "hld-gen-new", "enrich-diff", "common", "node_modules"]) {
     await cp(path.join(toolkitDirectory, directoryName), path.join(sourceDirectory, directoryName), {
       recursive: true,
       dereference: true,
@@ -44,16 +44,21 @@ test("copies skills and scripts that work after the source checkout is removed",
     await readFile(skillPath, "utf8"),
     await readFile(path.join(toolkitDirectory, "hld-gen-new", "SKILL.md"), "utf8")
   );
-  for (const directoryName of ["hld-gen-new", "common", "node_modules"]) {
+  assert.equal(
+    await readFile(path.join(repoDirectory, ".agents", "skills", "enrich-diff", "SKILL.md"), "utf8"),
+    await readFile(path.join(toolkitDirectory, "enrich-diff", "skills", "enrich-diff", "SKILL.md"), "utf8")
+  );
+  for (const directoryName of ["hld-gen-new", "enrich-diff", "common", "node_modules"]) {
     assert.equal(
       (await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isSymbolicLink(),
       false
     );
   }
-  assert.equal(
-    JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts.test,
-    "existing"
-  );
+  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
+    test: "existing",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer",
+    "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer",
+  });
 
   const inputPath = "ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json";
   const validation = spawnSync(process.execPath, [

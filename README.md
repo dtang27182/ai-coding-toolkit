@@ -9,16 +9,16 @@ Keep this toolkit checkout anywhere on your machine. From this directory, instal
 ```sh
 cd ai-coding-toolkit
 npm install
-node scripts/init.mjs /path/to/code-repo
+npm run install:all -- /path/to/code-repo
 ```
 
-The initializer installs `hld-gen-new` by default. You can also install it with:
+The default installer installs both `hld-gen-new` and `enrich-diff` for Codex. To install only the `$hld-gen` skill, run:
 
 ```sh
 npm run install:hld-gen-new -- /path/to/code-repo
 ```
 
-To install the `$enrich-diff` skill, run:
+To install only the `$enrich-diff` skill, run:
 
 ```sh
 npm run install:enrich-diff -- /path/to/code-repo
@@ -43,7 +43,7 @@ The HLD generator exposes the skill as `$hld-gen`.
 Skills install for Codex by default. To install them for Claude Code, where they are invoked as `/hld-gen` and `/enrich-diff`, pass `--agent claude`, or `--agent codex,claude` for both:
 
 ```sh
-npm run install:hld-gen-new -- /path/to/code-repo --agent claude
+npm run install:all -- /path/to/code-repo --agent claude
 ```
 
 Claude Code skills install under `.claude/skills/` with Claude-only frontmatter added: their toolkit scripts are pre-approved, and `enrich-diff` runs in a forked subagent context.

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "install:all": "node scripts/init.mjs",
     "install:hld-gen-new": "node scripts/init.mjs --agent codex --tool hld-gen-new",
     "install:enrich-diff": "node scripts/init.mjs --agent codex --tool enrich-diff",
     "install:adv-diff": "node scripts/init.mjs --agent codex --tool advanced-diff-viewer",
