@@ -6,7 +6,7 @@
 
 ## Changes the Schema Cannot Represent
 
-<!-- Repeat this entry for each change. Write "None." when there are no findings. -->
+<!-- Repeat this entry only for production implementation changes the schema cannot represent. Write "None." when there are no findings. -->
 
 ### <Short description of the change>
 

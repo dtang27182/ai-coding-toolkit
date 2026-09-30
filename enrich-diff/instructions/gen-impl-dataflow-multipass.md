@@ -1,6 +1,6 @@
 # Generate an Implementation Dataflow from the Selected Diff in Three Passes
 
-Map all changes in the selected diff into an understandable implementation graph: write the changed entities and required endpoints, connect direct transfers and state accesses, and validate diff coverage and implementation accuracy.
+Map production implementation changes in the selected diff into an understandable graph: write the changed entities and required endpoints, connect direct transfers and state accesses, and validate coverage and implementation accuracy.
 
 ## Preparation
 
@@ -12,6 +12,7 @@ Map all changes in the selected diff into an understandable implementation graph
 
 ## Rules for All Passes
 
+- Production implementation changes include application code, configuration, and static data, including constructors and initializers. Exclude test code, comments, documentation, and other nonbehavioral edits from the graph and schema-limitation report, even when they share a hunk with production changes.
 - Ground changed entries in the shared patch's diff hunks and unchanged entries in selected target code. For commit comparisons, read target files with `git show <target-commit>:<path>`. Ground deleted entries and transfers in removed hunks and base code when needed; mark them `deleted` rather than current behavior.
 - Use one entry per actual class, method, state variable, component, and static-data source across the graph.
 - Set `changeType` from the diff. A new relationship alone does not modify its endpoints, and a runtime write alone does not make an existing state variable `modified`. A class with a changed method or state variable cannot be `unchanged`.
@@ -20,17 +21,17 @@ Map all changes in the selected diff into an understandable implementation graph
 
 ## 1. Inspect the Diff and Write the Changed Entities
 
-- Inspect every changed file and each hunk's added and removed lines. Locate the actual entities whose declarations or behavior were added, modified, or deleted, including changes to initialization, object construction, configuration, and behavior outside documented user flows. Unchanged context lines help interpret changes but do not establish them.
+- Inspect every changed file and each hunk's added and removed lines to identify production implementation changes. Locate the actual entities whose declarations or behavior were added, modified, or deleted, including changes to initialization, object construction, configuration, and behavior outside documented user flows. Unchanged context lines help interpret changes but do not establish them.
 - Write changed classes and methods under their actual owners in `classes`, including their owning classes when only members changed. For changes to transfers, state accesses, or ownership, write the endpoint entities even when those endpoints are unchanged, and track the relationships to add in pass 2.
 - Write `ui-component`, `system-input`, `system-output`, and `external-dependency` entries in `components` as appropriate. Merge inputs and outputs that refer to the same actual UI component or system endpoint into one component. Use `external-dependency` for a system endpoint that both supplies and receives data.
 - Add changed mutable instance fields to their owning class's `stateVariables` and changed fixed data sources to `staticData`. Follow the schema's state-variable criteria; constructor initialization, local variables, and fields used only to hold child objects are not mutable instance state.
 - Represent browser, file, database, and object storage as `external-dependency` components. Add the application methods that access these resources under their owning classes in `classes`. Include a known path, key, URL, or other concrete identifier in each component's `description`.
-- Map each change to its relevant entities or pending relationships. If a change cannot be represented by the schema, add it to the report's "Changes the Schema Cannot Represent" section rather than inventing an entity or silently omitting it.
+- Map each production implementation change to its relevant entities or pending relationships. If one cannot be represented by the schema, add it to the report's "Changes the Schema Cannot Represent" section rather than inventing an entity or silently omitting it.
 - Write these entries and their diff hunk references to the JSON as they are identified. Leave `relationships` empty until pass 2.
 
 ## 2. Trace and Write the Relationships
 
-- Inspect every diff hunk alongside the in-progress JSON and implementation. Write all added, modified, and deleted transfers, state accesses, and ownership relationships, including changes between unchanged endpoints. Include direct unchanged relationships between represented entities when they help explain a change.
+- Inspect hunks with production implementation changes alongside the in-progress JSON and implementation. Write all added, modified, and deleted transfers, state accesses, and ownership relationships, including changes between unchanged endpoints. Include direct unchanged relationships between represented entities when they help explain a change.
 - Use the schema's explicit endpoint references and relationship types. Write `dataflow` relationships for method/component transfers and static-data reads, and `state-read` and `state-update` relationships for mutable instance state. Create a directed `composition` relationship from each represented class that owns another represented class to the class it owns.
 - Merge repeated transfers only when they have the same direct endpoints, relationship type, and change type; do not collapse a path through another method into an end-to-end edge. Independent changes may remain disconnected.
 - Describe the actual data transferred, read, or written in `dataDescription` and how it explains the change in `purpose`, identifying a user flow and step when relevant. Omit these fields for composition, as the schema requires.
@@ -40,9 +41,9 @@ Map all changes in the selected diff into an understandable implementation graph
 
 ## 3. Validate Diff Coverage and Implementation Accuracy
 
-- Revisit every added and removed line in every changed file. Verify that each change is represented by the appropriate entities and relationships or recorded in the report as unrepresentable. Referencing a hunk does not establish coverage of every change within it.
+- Revisit added and removed lines across the patch. Verify that each production implementation change is represented by the appropriate entities and relationships or recorded in `<outputDirectory>/<feature>/<feature>.cr.impl-dataflow.discrepencies.md` under "Changes the Schema Cannot Represent". Referencing a hunk does not establish coverage of every production change within it.
 - Compare the graph with the implementation: check entity identities, ownership, state-variable eligibility, processing, direct transfers, and request/response directions. Remove duplicates and unchanged behavior that does not help explain a change.
-- Check relevant relationship purposes against the diff-description. Record unresolved discrepancies between the graph, diff, implementation, and user-flow context in the report's "Unresolved Discrepancies" section.
+- Check relevant relationship purposes against the diff-description. Record unresolved discrepancies between the graph, diff, implementation, and user-flow context in `<outputDirectory>/<feature>/<feature>.cr.impl-dataflow.discrepencies.md` under "Unresolved Discrepancies".
 - Verify every `changeType` against the patch. Confirm that changed entries' `diffHunkIds` reference relevant hunks showing their declaration, behavior, transfer, or ownership changes, and that hunk text matches the patch exactly. Unchanged entries must have no `diffHunkIds`.
 - Run `node ai-coding-toolkit/enrich-diff/scripts/validate-impl-dataflow.mjs <output-path>` for structural validation. Correct all errors and rerun after corrections.
 
