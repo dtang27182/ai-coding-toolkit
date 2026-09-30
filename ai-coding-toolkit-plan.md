@@ -11,7 +11,7 @@ Provide a portable collection of skills and scripts that helps a human developer
 - `adapters/` contains the discovery and configuration logic for each supported agent.
 - Root configuration and package files support the toolkit as a whole.
 
-For example, everything specific to the HLD generator lives under `hld-gen/`. Agent adapters expose skills from these tool directories through each agent's discovery mechanism.
+For example, everything specific to the HLD generator lives under `hld-gen-new/`. Agent adapters expose skills from these tool directories through each agent's discovery mechanism.
 
 ## Installation
 

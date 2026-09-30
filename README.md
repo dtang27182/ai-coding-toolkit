@@ -12,7 +12,7 @@ npm install
 node scripts/init.mjs /path/to/code-repo
 ```
 
-To install only the alternative `hld-gen-new` implementation, run:
+The initializer installs `hld-gen-new` by default. You can also install it with:
 
 ```sh
 npm run install:hld-gen-new -- /path/to/code-repo
@@ -38,7 +38,7 @@ npm run adv-diff
 
 The viewer generates `advanced-diff-viewer/enriched-patch.json` automatically from current staged, unstaged, deleted, and untracked changes against `HEAD`. It updates as files change and provides a Refresh button. The generated enriched patch and, in installed repositories, the copied `ai-coding-toolkit` runtime are excluded from the comparison. You can open or drag in another enriched patch from the viewer.
 
-The two HLD implementations expose the skill as `$hld-gen`; install one implementation into a target repository at a time.
+The HLD generator exposes the skill as `$hld-gen`.
 
 Skills install for Codex by default. To install them for Claude Code, where they are invoked as `/hld-gen` and `/enrich-diff`, pass `--agent claude`, or `--agent codex,claude` for both:
 
@@ -58,13 +58,11 @@ In the target repository, the installer records the selection in `ai-coding-tool
 
 Each target repository has its own files and output configuration and works independently of this checkout. Rerun the installer to update its installed copies; this overwrites files in directories marked as toolkit installations. It will not replace unrelated existing directories or npm scripts. Links created by the earlier installer to this checkout are replaced with copies.
 
-Full toolkit upgrades remove the retired toolkit-owned `hld-eval` skill, `SKILL.next.md` files, evaluation report format, Mermaid converter, and Mermaid npm command. Reinstalling also removes the legacy Architecture Diff viewer npm command when it matches the toolkit version. Unrelated skills, links, custom commands, and previously generated diagrams are preserved.
-
 ## Generate a High-Level Design
 
 Start `$hld-gen` at any point in a conversation about a feature. Before drafting, the agent presents its understanding of the desired behavior and scope, asks the user to confirm or correct it, and waits for an explicit response. It does not create or revise the HLD before confirmation.
 
-The rubric in `hld-gen/instructions/hld-quality.md` scores change size, concentration, and Variable Exposure. See `hld-gen/instructions/hld-variable-exposure.md` for the exposure rules.
+The rubric in `hld-gen-new/hld-quality.md` scores change size, concentration, and Variable Exposure. See `hld-gen-new/eval/hld-variable-exposure.md` for the exposure rules.
 
 Ask the agent:
 
@@ -72,24 +70,11 @@ Ask the agent:
 Use $hld-gen to develop a design from our workbook-import conversation so far.
 ```
 
-`hld-gen` generates three candidate designs per iteration, each with a narrative and Architecture Diff. Shared instructions in `generate-hld.md` and `eval-hld.md` handle candidate generation and quantitative counting. The skill compares the candidates, retains the best design across iterations, and records their metrics, analysis, and improvement outcomes in an iteration summary. It generates three new candidates for an untried or newly justified improvement approach; otherwise, it selects the best design across the run.
+`hld-gen-new` produces an HLD doc (`<feature>.hld.md`), a proposed System Dataflow (`<feature>.sys-dataflow.json`), and a structured JSON representation of its Implementation Dataflow narrative (`<feature>.impl-dataflow.json`), in that order. `sys-dataflow` is shorthand for System Dataflow. When the agent supports subagents, it generates and evaluates each iteration's three candidates in parallel, one subagent per candidate; otherwise it generates them one at a time.
 
-Results are grouped by feature under the configured output directory:
-
-- `<feature>/<feature>.hld.md`: narrative, stated intent and constraints, proposed approach, working assumptions, and open questions.
-- `<feature>/<feature>.architecture-diff.hld.json`: current Architecture Diff.
-- `<feature>/<feature>.hld-iteration-summary.md`: candidate metrics, analysis, improvement approaches, selection rationale, and stopping reason for each iteration.
-- `<feature>/iterations/<iteration>/candidate-<candidate>/`: retained candidate narratives and Architecture Diff files.
-
-The Architecture Diff records each class's `variableExposure` inventory. The exposure counter writes per-class counts and a deduplicated total; `null` means the exposure is unknown. The design change counter writes the other five quality metrics to the same JSON file.
+The skill compares the candidates, retains the best design across iterations, and records their metrics, analysis, and improvement outcomes in an iteration summary. Results are grouped by feature under the configured output directory, with selected artifacts in `<feature>/`, the iteration summary at `<feature>/<feature>.hld-iteration-summary.md`, and retained candidates under `<feature>/iterations/<iteration>/candidate-<candidate>/`.
 
 The final artifacts and iteration summary are ready for human review; application implementation is a separate step.
-
-## Alternative HLD Generator
-
-The `hld-gen-new` tool installs as `$hld-gen` and provides the candidate generation, evaluation, comparison, and selection workflow without separate user-flow labeling, dataflow-narrative, or visualizer-description passes.
-
-`hld-gen-new` produces an HLD doc (`<feature>.hld.md`), a proposed System Dataflow (`<feature>.sys-dataflow.json`), and a structured JSON representation of its Implementation Dataflow narrative (`<feature>.impl-dataflow.json`), in that order. `sys-dataflow` is shorthand for System Dataflow. It retains the same quality metrics and iteration structure as `hld-gen`. When the agent supports subagents, it generates and evaluates each iteration's three candidates in parallel, one subagent per candidate; otherwise it generates them one at a time.
 
 It has independent validation and counting scripts. Run `npm run hld-visualizer` to switch between its System Dataflow and Implementation Dataflow views. The System view opens the newest matching artifact under the configured output directory. The Implementation view restores the last file opened in the browser, or opens the newest matching artifact when there is none. You can open or drag in another JSON file in either view. The views refresh when their open repository files change; files chosen with a browser file handle refresh too.
 
@@ -110,23 +95,3 @@ npm run diff-visualizer
 The combined visualizer opens the newest `rich-diff.json` under the configured output directory, then loads all three JSON files named in it. You can open or drag in another rich-diff manifest to switch all three views together.
 
 In the combined visualizer, the diff view derives its directory tree from indexed file paths and exposes the indexed files, classes, and methods. Selecting one opens its full-file diff and scrolls to the indexed declaration.
-
-## Architecture Diff Viewer
-
-Run the interactive visualizer from this toolkit checkout:
-
-```sh
-node node_modules/vite/bin/vite.js hld-gen/visualizer
-```
-
-From an installed target repository, run `node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer`.
-
-The visualizer restores the last Architecture Diff opened in the browser. If there is no previous file, it opens the most recently modified Architecture Diff under the `outputDirectory` configured in `ai-coding-toolkit/config.json`, falling back to the bundled workbook-import sample when that directory contains none. Open or drag in any schema-v7 `architecture-diff.json` file to inspect its classes, methods, UI and external I/O components, dataflows, state updates, composition, and variable exposure. Its controls can hide unchanged elements, show only user-flow participants, collapse methods, and adjust the graph zoom. Filters apply to the graph and inspector; exposure counts exclude parameters and locals of filtered methods. Schema v7 requires `hasUserFlowState` on classes and `userFlow` on methods, components, dataflows, and state updates. Class visibility is derived from user-flow state, methods, or connected dataflows. Classes and composition edges have no `userFlow` flag; composition is shown only between visible classes. Older versions are not supported.
-
-## Validate an Architecture Diff
-
-Validate an Architecture Diff from the repository root with:
-
-```sh
-node ai-coding-toolkit/hld-gen/scripts/validate-architecture-diff.mjs <path-to-json>
-```

@@ -23,7 +23,7 @@ async function createRepository(t) {
 
 test("copies skills and scripts that work after the source checkout is removed", async (t) => {
   const sourceDirectory = await createRepository(t);
-  for (const directoryName of ["scripts", "adapters", "hld-gen", "node_modules"]) {
+  for (const directoryName of ["scripts", "adapters", "hld-gen-new", "common", "node_modules"]) {
     await cp(path.join(toolkitDirectory, directoryName), path.join(sourceDirectory, directoryName), {
       recursive: true,
       dereference: true,
@@ -35,7 +35,6 @@ test("copies skills and scripts that work after the source checkout is removed",
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const result = install([path.relative(sourceDirectory, repoDirectory)], sourceDirectory);
     assert.equal(result.status, 0, result.stderr);
-    await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/hld-gen/hld-architecture.md")), { code: "ENOENT" });
   }
   await rm(sourceDirectory, { recursive: true });
 
@@ -43,10 +42,9 @@ test("copies skills and scripts that work after the source checkout is removed",
   assert.equal((await lstat(path.dirname(skillPath))).isSymbolicLink(), false);
   assert.equal(
     await readFile(skillPath, "utf8"),
-    await readFile(path.join(toolkitDirectory, "hld-gen", "skills", "hld-gen", "SKILL.md"), "utf8")
+    await readFile(path.join(toolkitDirectory, "hld-gen-new", "SKILL.md"), "utf8")
   );
-  await assert.rejects(lstat(path.join(repoDirectory, ".agents", "skills", "hld-eval")), { code: "ENOENT" });
-  for (const directoryName of ["hld-gen", "node_modules"]) {
+  for (const directoryName of ["hld-gen-new", "common", "node_modules"]) {
     assert.equal(
       (await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isSymbolicLink(),
       false
@@ -57,23 +55,19 @@ test("copies skills and scripts that work after the source checkout is removed",
     "existing"
   );
 
-  const inputPath = "ai-coding-toolkit/hld-gen/references/architecture-diff.example.json";
+  const inputPath = "ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json";
   const validation = spawnSync(process.execPath, [
-    "ai-coding-toolkit/hld-gen/scripts/validate-architecture-diff.mjs", inputPath,
+    "ai-coding-toolkit/hld-gen-new/eval/validate-impl-dataflow.mjs", inputPath,
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(validation.status, 0, validation.stderr);
 
   const count = spawnSync(process.execPath, [
-    "ai-coding-toolkit/hld-gen/scripts/count-variable-exposure.mjs", inputPath,
+    "ai-coding-toolkit/hld-gen-new/eval/count-variable-exposure.mjs", inputPath,
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(count.status, 0, count.stderr);
   assert.equal(JSON.parse(await readFile(path.join(repoDirectory, inputPath), "utf8")).variableExposureCount, 3);
 
-  assert.equal(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts.mermaid, undefined);
-  assert.equal(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts.visualizer, undefined);
-  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs")), { code: "ENOENT" });
-
-  for (const toolName of ["hld-gen"]) {
+  for (const toolName of ["hld-gen-new"]) {
     await rm(path.join(repoDirectory, "ai-coding-toolkit", toolName, "visualizer", "dist"), {
       recursive: true,
       force: true,
@@ -86,7 +80,7 @@ test("copies skills and scripts that work after the source checkout is removed",
     assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
     assert.match(
       await readFile(path.join(repoDirectory, "ai-coding-toolkit", toolName, "visualizer", "dist", "index.html"), "utf8"),
-      /Architecture Diff Viewer/
+      /HLD Dataflow Visualizer/
     );
   }
 });
@@ -108,7 +102,6 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "impl-dataflow"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "node_modules"))).isDirectory(), true);
-  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen")), { code: "ENOENT" });
   const visualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new", "visualizer");
   const retiredArchitectureDiffPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "arch-diff");
   await mkdir(retiredArchitectureDiffPath, { recursive: true });
@@ -184,7 +177,6 @@ test("installs enrich-diff with the shared dataflow files", async (t) => {
   for (const directoryName of ["enrich-diff", "common", "node_modules"]) {
     assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isDirectory(), true);
   }
-  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new")), { code: "ENOENT" });
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
@@ -365,7 +357,7 @@ test("refreshes installed copies on repeat installation", async (t) => {
   assert.equal(firstInstall.status, 0, firstInstall.stderr);
   const relativePaths = [
     ".agents/skills/hld-gen/SKILL.md",
-    "ai-coding-toolkit/hld-gen/instructions/hld-narrative.md",
+    "ai-coding-toolkit/hld-gen-new/generate/gen-hld.md",
     "ai-coding-toolkit/node_modules/ajv/package.json",
   ];
   const installedContents = [];
@@ -378,101 +370,6 @@ test("refreshes installed copies on repeat installation", async (t) => {
   for (let index = 0; index < relativePaths.length; index += 1) {
     assert.equal(await readFile(path.join(repoDirectory, relativePaths[index]), "utf8"), installedContents[index]);
   }
-});
-
-test("removes retired toolkit files on upgrade while preserving other installed content", async (t) => {
-  const repoDirectory = await createRepository(t);
-  const firstInstall = install([repoDirectory]);
-  assert.equal(firstInstall.status, 0, firstInstall.stderr);
-  const retiredPaths = [
-    "ai-coding-toolkit/hld-gen/hld-architecture.md",
-    ".agents/skills/hld-gen/SKILL.next.md",
-    ".agents/skills/hld-eval/SKILL.md",
-    "ai-coding-toolkit/hld-gen/skills/hld-gen/SKILL.next.md",
-    "ai-coding-toolkit/hld-gen/skills/hld-eval/SKILL.md",
-    "ai-coding-toolkit/hld-gen/references/hld-evaluation-format.md",
-    "ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs",
-  ];
-  for (const relativePath of retiredPaths) {
-    await mkdir(path.dirname(path.join(repoDirectory, relativePath)), { recursive: true });
-    await writeFile(path.join(repoDirectory, relativePath), "retired instructions");
-  }
-  await writeFile(
-    path.join(repoDirectory, ".agents/skills/hld-eval/.ai-coding-toolkit-installed"),
-    "ai-coding-toolkit\n"
-  );
-  const notesPath = path.join(repoDirectory, ".agents/skills/hld-gen/notes.md");
-  await writeFile(notesPath, "local notes");
-  await writeFile(path.join(repoDirectory, "package.json"), JSON.stringify({
-    scripts: {
-      test: "existing",
-      mermaid: "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs",
-      visualizer: "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer",
-    },
-  }));
-  const diagramPath = path.join(repoDirectory, "docs/plans/example.mermaid.md");
-  await writeFile(diagramPath, "saved diagram");
-
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const upgrade = install([repoDirectory]);
-    assert.equal(upgrade.status, 0, upgrade.stderr);
-    for (const relativePath of retiredPaths) {
-      await assert.rejects(lstat(path.join(repoDirectory, relativePath)), { code: "ENOENT" });
-    }
-    await assert.rejects(lstat(path.join(repoDirectory, ".agents/skills/hld-eval")), { code: "ENOENT" });
-    assert.equal(await readFile(notesPath, "utf8"), "local notes");
-    assert.equal(await readFile(diagramPath, "utf8"), "saved diagram");
-    assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
-      test: "existing",
-    });
-    assert.equal(
-      await readFile(path.join(repoDirectory, ".agents/skills/hld-gen/SKILL.md"), "utf8"),
-      await readFile(path.join(toolkitDirectory, "hld-gen/skills/hld-gen/SKILL.md"), "utf8")
-    );
-  }
-});
-
-test("preserves unrelated hld-eval directories and links during installation", async (t) => {
-  for (const kind of ["unmarked", "foreign-marker", "link"]) {
-    const repoDirectory = await createRepository(t);
-    const skillDirectory = path.join(repoDirectory, ".agents/skills/hld-eval");
-    const externalDirectory = await createRepository(t);
-    await writeFile(path.join(externalDirectory, "SKILL.md"), "unrelated skill");
-    await writeFile(path.join(externalDirectory, ".ai-coding-toolkit-installed"), "ai-coding-toolkit\n");
-    if (kind === "link") {
-      await mkdir(path.dirname(skillDirectory), { recursive: true });
-      await symlink(externalDirectory, skillDirectory, "dir");
-    } else if (kind === "unmarked" || kind === "foreign-marker") {
-      await mkdir(skillDirectory, { recursive: true });
-      await writeFile(path.join(skillDirectory, "SKILL.md"), "unrelated skill");
-      if (kind === "foreign-marker") {
-        await writeFile(path.join(skillDirectory, ".ai-coding-toolkit-installed"), "another-toolkit\n");
-      }
-    }
-
-    const result = install([repoDirectory]);
-    assert.equal(result.status, 0, result.stderr);
-    assert.equal(await readFile(path.join(skillDirectory, "SKILL.md"), "utf8"), "unrelated skill");
-    assert.equal(await readFile(path.join(externalDirectory, "SKILL.md"), "utf8"), "unrelated skill");
-    if (kind === "link") {
-      assert.equal((await lstat(skillDirectory)).isSymbolicLink(), true);
-      assert.equal(await realpath(skillDirectory), await realpath(externalDirectory));
-    }
-  }
-});
-
-test("removes a retired skill link pointing to this toolkit", async (t) => {
-  const repoDirectory = await realpath(await createRepository(t));
-  const skillDirectory = path.join(repoDirectory, ".agents/skills/hld-eval");
-  await mkdir(path.dirname(skillDirectory), { recursive: true });
-  await symlink(
-    path.relative(path.dirname(skillDirectory), path.join(toolkitDirectory, "hld-gen/skills/hld-eval")),
-    skillDirectory,
-    "dir"
-  );
-  const result = install([repoDirectory]);
-  assert.equal(result.status, 0, result.stderr);
-  await assert.rejects(lstat(skillDirectory), { code: "ENOENT" });
 });
 
 test("keeps configuration in each target and preserves unrelated npm commands", async (t) => {
@@ -535,12 +432,12 @@ test("preserves conflicting skill paths and runtime links", async (t) => {
 
   const otherRepo = await createRepository(t);
   await mkdir(path.join(otherRepo, "ai-coding-toolkit"));
-  await symlink(repoDirectory, path.join(otherRepo, "ai-coding-toolkit", "hld-gen"), "dir");
+  await symlink(repoDirectory, path.join(otherRepo, "ai-coding-toolkit", "hld-gen-new"), "dir");
   const linkConflict = install([otherRepo]);
   assert.notEqual(linkConflict.status, 0);
   assert.match(linkConflict.stderr, /Refusing to replace existing link/);
   assert.equal(
-    await realpath(path.join(otherRepo, "ai-coding-toolkit", "hld-gen")),
+    await realpath(path.join(otherRepo, "ai-coding-toolkit", "hld-gen-new")),
     await realpath(repoDirectory)
   );
 });
@@ -550,8 +447,8 @@ test("replaces earlier toolkit links with independent copies", async (t) => {
   await mkdir(path.join(repoDirectory, "ai-coding-toolkit"));
   await mkdir(path.join(repoDirectory, ".agents", "skills"), { recursive: true });
   const directories = [
-    ["hld-gen", "ai-coding-toolkit/hld-gen"],
-    ["hld-gen/skills/hld-gen", ".agents/skills/hld-gen"],
+    ["hld-gen-new", "ai-coding-toolkit/hld-gen-new"],
+    ["hld-gen-new", ".agents/skills/hld-gen"],
   ];
   for (const [sourcePath, destinationPath] of directories) {
     await symlink(

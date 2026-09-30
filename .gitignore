@@ -1,6 +1,5 @@
 node_modules/
 adiff-visualize-design/
-hld-gen/visualizer/dist/
 common/impl-dataflow/visualizer/dist/
 hld-gen-new/visualizer/dist/
 enrich-diff/visualizer/dist/

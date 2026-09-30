@@ -47,8 +47,8 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
 }
 
 const supportedAgents = ["codex", "claude"];
-const supportedTools = ["hld-gen", "hld-gen-new", "enrich-diff", "advanced-diff-viewer"];
-const toolNames = selectedTool === undefined ? ["hld-gen"] : [selectedTool];
+const supportedTools = ["hld-gen-new", "enrich-diff", "advanced-diff-viewer"];
+const toolNames = selectedTool === undefined ? ["hld-gen-new"] : [selectedTool];
 const relativeOutputDirectory = path.normalize(outputDirectory);
 const outputIsRepoSubdirectory =
   relativeOutputDirectory !== "." &&
@@ -108,18 +108,6 @@ async function installRootCommands() {
       packageChanged = true;
       console.log("Updated npm command: npm run hld-visualizer");
     }
-    if (toolNames.includes("hld-gen") && packageJson.scripts?.mermaid === "node ai-coding-toolkit/hld-gen/scripts/architecture-diff-to-mermaid.mjs") {
-      delete packageJson.scripts.mermaid;
-      packageChanged = true;
-      console.log("Removed retired npm command: npm run mermaid");
-    }
-    if (
-      packageJson.scripts?.visualizer === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen/visualizer"
-    ) {
-      delete packageJson.scripts.visualizer;
-      packageChanged = true;
-      console.log("Removed retired npm command: npm run visualizer");
-    }
     if (
       packageJson.scripts?.["advanced-diff-viewer:generate"] === "node ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs"
     ) {
@@ -172,7 +160,7 @@ async function installRootCommands() {
 if (argumentError !== undefined || repoDirectory === undefined) {
   console.error(argumentError ?? "Target repository path is required.");
   console.error(
-    "Usage: node scripts/init.mjs <target-repo> [--agent <codex|claude|codex,claude>] [--tool <hld-gen|hld-gen-new|enrich-diff|advanced-diff-viewer>] [--output-dir <relative-directory>]"
+    "Usage: node scripts/init.mjs <target-repo> [--agent <codex|claude|codex,claude>] [--tool <hld-gen-new|enrich-diff|advanced-diff-viewer>] [--output-dir <relative-directory>]"
   );
   process.exitCode = 1;
 } else if (agentNames.some((agentName) => !supportedAgents.includes(agentName))) {
@@ -220,11 +208,6 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     await rm(path.join(installedToolkitDirectory, "common", "system-dataflow"), { recursive: true, force: true });
     for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
       await rm(path.join(installedToolkitDirectory, "common", "sys-dataflow", "visualizer", relativePath), { recursive: true, force: true });
-    }
-  }
-  if (toolNames.includes("hld-gen")) {
-    for (const relativePath of ["hld-architecture.md", "skills/hld-eval", "skills/hld-gen/SKILL.next.md", "references/hld-evaluation-format.md", "scripts/architecture-diff-to-mermaid.mjs"]) {
-      await rm(path.join(installedToolkitDirectory, "hld-gen", relativePath), { recursive: true, force: true });
     }
   }
   if (toolNames.includes("hld-gen-new")) {

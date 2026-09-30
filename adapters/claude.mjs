@@ -5,10 +5,6 @@ import { copyDirectory } from "../scripts/copy-directory.mjs";
 
 // Claude Code-only frontmatter added to installed copies so the shared SKILL.md files stay agent-agnostic.
 const claudeFrontmatter = {
-  "hld-gen": [
-    "allowed-tools:",
-    "  - Bash(node ai-coding-toolkit/hld-gen/scripts/*)",
-  ],
   "hld-gen-new": [
     "allowed-tools:",
     "  - Bash(node ai-coding-toolkit/hld-gen-new/eval/*)",
