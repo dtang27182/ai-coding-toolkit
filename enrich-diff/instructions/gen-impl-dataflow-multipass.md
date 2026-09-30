@@ -26,7 +26,7 @@ Map production implementation changes in the selected diff into an understandabl
 - Write `ui-component`, `system-input`, `system-output`, and `external-dependency` entries in `components` as appropriate. Merge inputs and outputs that refer to the same actual UI component or system endpoint into one component. Use `external-dependency` for a system endpoint that both supplies and receives data.
 - Add changed mutable instance fields to their owning class's `stateVariables` and changed fixed data sources to `staticData`. Follow the schema's state-variable criteria; constructor initialization, local variables, and fields used only to hold child objects are not mutable instance state.
 - Represent browser, file, database, and object storage as `external-dependency` components. Add the application methods that access these resources under their owning classes in `classes`. Include a known path, key, URL, or other concrete identifier in each component's `description`.
-- Map each production implementation change to its relevant entities or pending relationships. If one cannot be represented by the schema, add it to the report's "Changes the Schema Cannot Represent" section rather than inventing an entity or silently omitting it.
+- Map each production implementation change to its relevant entities or pending relationships. Record schema limitations in the report's "Changes the Schema Cannot Represent" section according to its template rather than inventing an entity.
 - Write these entries and their diff hunk references to the JSON as they are identified. Leave `relationships` empty until pass 2.
 
 ## 2. Trace and Write the Relationships
@@ -41,7 +41,7 @@ Map production implementation changes in the selected diff into an understandabl
 
 ## 3. Validate Diff Coverage and Implementation Accuracy
 
-- Revisit added and removed lines across the patch. Verify that each production implementation change is represented by the appropriate entities and relationships or recorded in `<outputDirectory>/<feature>/<feature>.cr.impl-dataflow.discrepencies.md` under "Changes the Schema Cannot Represent". Referencing a hunk does not establish coverage of every production change within it.
+- Revisit added and removed lines across the patch. Verify that production implementation changes are represented by the appropriate entities and relationships, or recorded in `<outputDirectory>/<feature>/<feature>.cr.impl-dataflow.discrepencies.md` under "Changes the Schema Cannot Represent" according to its template. Referencing a hunk does not establish coverage of every production change within it.
 - Compare the graph with the implementation: check entity identities, ownership, state-variable eligibility, processing, direct transfers, and request/response directions. Remove duplicates and unchanged behavior that does not help explain a change.
 - Check relevant relationship purposes against the diff-description. Record unresolved discrepancies between the graph, diff, implementation, and user-flow context in `<outputDirectory>/<feature>/<feature>.cr.impl-dataflow.discrepencies.md` under "Unresolved Discrepancies".
 - Verify every `changeType` against the patch. Confirm that changed entries' `diffHunkIds` reference relevant hunks showing their declaration, behavior, transfer, or ownership changes, and that hunk text matches the patch exactly. Unchanged entries must have no `diffHunkIds`.
