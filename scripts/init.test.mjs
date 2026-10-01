@@ -23,7 +23,7 @@ async function createRepository(t) {
 
 test("copies skills and scripts that work after the source checkout is removed", async (t) => {
   const sourceDirectory = await createRepository(t);
-  for (const directoryName of ["scripts", "adapters", "hld-gen-new", "enrich-diff", "common", "node_modules"]) {
+  for (const directoryName of ["scripts", "adapters", "hld-gen-new", "enrich-diff", "advanced-diff-viewer", "common", "node_modules"]) {
     await cp(path.join(toolkitDirectory, directoryName), path.join(sourceDirectory, directoryName), {
       recursive: true,
       dereference: true,
@@ -48,7 +48,7 @@ test("copies skills and scripts that work after the source checkout is removed",
     await readFile(path.join(repoDirectory, ".agents", "skills", "enrich-diff", "SKILL.md"), "utf8"),
     await readFile(path.join(toolkitDirectory, "enrich-diff", "skills", "enrich-diff", "SKILL.md"), "utf8")
   );
-  for (const directoryName of ["hld-gen-new", "enrich-diff", "common", "node_modules"]) {
+  for (const directoryName of ["hld-gen-new", "enrich-diff", "advanced-diff-viewer", "common", "node_modules"]) {
     assert.equal(
       (await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isSymbolicLink(),
       false
@@ -58,6 +58,7 @@ test("copies skills and scripts that work after the source checkout is removed",
     test: "existing",
     "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer",
     "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer",
+    "adv-diff": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer",
   });
 
   const inputPath = "ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json";
@@ -72,7 +73,11 @@ test("copies skills and scripts that work after the source checkout is removed",
   assert.equal(count.status, 0, count.stderr);
   assert.equal(JSON.parse(await readFile(path.join(repoDirectory, inputPath), "utf8")).variableExposureCount, 3);
 
-  for (const toolName of ["hld-gen-new"]) {
+  for (const [toolName, title] of [
+    ["hld-gen-new", "HLD Dataflow Visualizer"],
+    ["enrich-diff", "Enriched Diff Visualizer"],
+    ["advanced-diff-viewer", "Advanced Diff Viewer"],
+  ]) {
     await rm(path.join(repoDirectory, "ai-coding-toolkit", toolName, "visualizer", "dist"), {
       recursive: true,
       force: true,
@@ -85,7 +90,7 @@ test("copies skills and scripts that work after the source checkout is removed",
     assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
     assert.match(
       await readFile(path.join(repoDirectory, "ai-coding-toolkit", toolName, "visualizer", "dist", "index.html"), "utf8"),
-      /HLD Dataflow Visualizer/
+      new RegExp(title)
     );
   }
 });

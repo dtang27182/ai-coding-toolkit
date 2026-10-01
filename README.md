@@ -12,7 +12,7 @@ npm install
 npm run install:all -- /path/to/code-repo
 ```
 
-The default installer installs both `hld-gen-new` and `enrich-diff` for Codex. To install only the `$hld-gen` skill, run:
+The default installer installs `hld-gen-new` and `enrich-diff` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the `$hld-gen` skill, run:
 
 ```sh
 npm run install:hld-gen-new -- /path/to/code-repo

@@ -48,7 +48,7 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
 
 const supportedAgents = ["codex", "claude"];
 const supportedTools = ["hld-gen-new", "enrich-diff", "advanced-diff-viewer"];
-const toolNames = selectedTool === undefined ? ["hld-gen-new", "enrich-diff"] : [selectedTool];
+const toolNames = selectedTool === undefined ? supportedTools : [selectedTool];
 const relativeOutputDirectory = path.normalize(outputDirectory);
 const outputIsRepoSubdirectory =
   relativeOutputDirectory !== "." &&
@@ -186,7 +186,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   ];
   for (const directoryName of installedDirectories) {
     let relativePaths;
-    if (directoryName === "common" && toolNames.includes("advanced-diff-viewer")) {
+    if (directoryName === "common" && selectedTool === "advanced-diff-viewer") {
       relativePaths = ["enriched-patch", "default-output-file-plugin.mjs"];
     } else if (directoryName === "advanced-diff-viewer") {
       relativePaths = [
@@ -233,7 +233,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     await installClaudeSkills(repoDirectory, toolkitDirectory, skillToolNames);
   }
   await installRootCommands();
-  if (!toolNames.includes("advanced-diff-viewer")) {
+  if (toolNames.includes("hld-gen-new") || toolNames.includes("enrich-diff")) {
     await mkdir(outputPath, { recursive: true });
     await writeFile(
       path.join(installedToolkitDirectory, "config.json"),
