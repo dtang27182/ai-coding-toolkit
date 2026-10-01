@@ -36,7 +36,7 @@ In either this toolkit checkout or an installed target repository, open the view
 npm run adv-diff
 ```
 
-The viewer generates `advanced-diff-viewer/enriched-patch.json` automatically from current staged, unstaged, deleted, and untracked changes against `HEAD`. It updates as files change and provides a Refresh button. The generated enriched patch and, in installed repositories, the copied `ai-coding-toolkit` runtime are excluded from the comparison. You can open or drag in another enriched patch from the viewer.
+The viewer generates `adv-diff/enriched-patch.json` automatically from current staged, unstaged, deleted, and untracked changes against `HEAD`. It updates as files change and provides a Refresh button. The generated enriched patch and, in installed repositories, the copied `ai-coding-toolkit` runtime and the output directory configured in `ai-coding-toolkit/config.json` are excluded from the comparison and do not trigger refreshes. You can open or drag in another enriched patch from the viewer.
 
 The HLD generator exposes the skill as `$hld-gen`.
 

@@ -336,7 +336,7 @@ test("installs advanced-diff-viewer independently", async (t) => {
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/enriched-patch"))).isDirectory(), true);
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/config.json")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "docs/plans")), { code: "ENOENT" });
-  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/enriched-patch.json")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/adv-diff/enriched-patch.json")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/visualizer/dist")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/common/sys-dataflow")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, ".agents")), { code: "ENOENT" });
@@ -351,14 +351,14 @@ test("installs advanced-diff-viewer independently", async (t) => {
     "ai-coding-toolkit/advanced-diff-viewer/generate-enriched-patch.mjs",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(generated.status, 0, generated.stderr);
-  const index = JSON.parse(await readFile(path.join(repoDirectory, "advanced-diff-viewer/enriched-patch.json"), "utf8"));
+  const index = JSON.parse(await readFile(path.join(repoDirectory, "adv-diff/enriched-patch.json"), "utf8"));
   assert.match(index.patch, /diff --git a\/app\.ts b\/app\.ts/);
   assert.doesNotMatch(index.patch, /diff --git a\/ai-coding-toolkit\//);
 
   const reinstall = install([repoDirectory, "--tool", "advanced-diff-viewer"]);
   assert.equal(reinstall.status, 0, reinstall.stderr);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/visualizer/src/main.ts"))).isFile(), true);
-  assert.equal((await lstat(path.join(repoDirectory, "advanced-diff-viewer/enriched-patch.json"))).isFile(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "adv-diff/enriched-patch.json"))).isFile(), true);
 });
 
 test("refreshes installed copies on repeat installation", async (t) => {

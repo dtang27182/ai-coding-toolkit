@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -48,7 +48,10 @@ export async function generateFullContextPatch(outputPath, workingDirectory = pr
 
   try {
     await runGit(["read-tree", "HEAD"], repositoryDirectory, environment);
-    await runGit(["add", "-A", "--", ".", ...excludedPaths.map((file) => `:(exclude)${file}`)], repositoryDirectory, environment);
+    const unignoredPaths = excludedPaths.filter((file) =>
+      spawnSync("git", ["check-ignore", "--quiet", "--", file], { cwd: repositoryDirectory }).status !== 0
+    );
+    await runGit(["add", "-A", "--", ".", ...unignoredPaths.map((file) => `:(exclude,literal)${file}`)], repositoryDirectory, environment);
     const patch = await runGit([
       "diff",
       "--cached",
@@ -58,6 +61,8 @@ export async function generateFullContextPatch(outputPath, workingDirectory = pr
       "--unified=1000000",
       "HEAD",
       "--",
+      ".",
+      ...excludedPaths.map((file) => `:(exclude,literal)${file}`),
     ], repositoryDirectory, environment);
     await mkdir(path.dirname(resolvedOutputPath), { recursive: true });
     await writeFile(resolvedOutputPath, patch);
