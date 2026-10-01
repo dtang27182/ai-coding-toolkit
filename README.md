@@ -48,7 +48,7 @@ npm run install:all -- /path/to/code-repo --agent claude
 
 Claude Code skills install under `.claude/skills/` with Claude-only frontmatter added: their toolkit scripts are pre-approved, and `enrich-diff` runs in a forked subagent context.
 
-The target directory must already exist. Relative target paths are resolved from the current working directory. For the HLD and enrich-diff tools, the output directory defaults to `docs/plans` under the target repository root. To choose another repository-relative directory, run:
+The target directory must already exist. Relative target paths are resolved from the current working directory. For the HLD and enrich-diff tools, the output directory defaults to `docs/plans/features` under the target repository root. To choose another repository-relative directory, run:
 
 ```sh
 node scripts/init.mjs ../code-repo --output-dir architecture/plans

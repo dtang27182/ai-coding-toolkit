@@ -399,7 +399,7 @@ test("keeps configuration in each target and preserves unrelated npm commands", 
   );
   assert.deepEqual(
     JSON.parse(await readFile(path.join(secondRepo, "ai-coding-toolkit", "config.json"), "utf8")),
-    { outputDirectory: "docs/plans" }
+    { outputDirectory: "docs/plans/features" }
   );
   assert.equal(await readFile(path.join(toolkitDirectory, "config.json"), "utf8"), sourceConfig);
   const installedPackage = JSON.parse(await readFile(path.join(firstRepo, "package.json"), "utf8"));

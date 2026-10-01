@@ -11,7 +11,7 @@ const toolkitDirectory = await realpath(path.resolve(scriptDirectory, ".."));
 const inputArguments = process.argv.slice(2);
 let repoDirectory;
 let agentNames = ["codex"];
-let outputDirectory = "docs/plans";
+let outputDirectory = "docs/plans/features";
 let selectedTool;
 let argumentError;
 
