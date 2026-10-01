@@ -69,6 +69,7 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
   let graphWidth = 320;
   let graphHeight = 240;
   let userZoomed = false;
+  let inspectorWidth: number | undefined;
   let selection: Selection | undefined;
   let hovered: Selection | undefined;
   let statusMessage = "";
@@ -417,13 +418,14 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
       </header>
-      <div class="workspace">
+      <div class="workspace" style="${inspectorWidth === undefined ? "" : `--inspector-width:${inspectorWidth}px`}">
         <main class="canvas" aria-label="System dataflow graph">
           ${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}
           ${dragDepth === 0 ? "" : '<div class="drop-overlay">Drop a System Dataflow JSON file</div>'}
           ${renderGraph()}
           ${renderLegend()}
         </main>
+        <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuemin="240" tabindex="0"></div>
         <aside class="inspector" aria-label="Dataflow inspector">${renderInspector()}</aside>
       </div>
       <input data-file-input type="file" accept="application/json,.json" hidden />
@@ -489,6 +491,46 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
 
   function bindInteractions(): void {
     bindInspector();
+    const workspace = app.querySelector<HTMLElement>(".workspace")!;
+    const inspectorResizer = app.querySelector<HTMLElement>("[data-inspector-resizer]")!;
+    inspectorResizer.setAttribute("aria-valuemax", String(workspace.clientWidth - 260));
+    inspectorResizer.setAttribute("aria-valuenow", String(Math.round(app.querySelector<HTMLElement>(".inspector")!.getBoundingClientRect().width)));
+    let resizePointer: number | undefined;
+    let resizeStartX = 0;
+    let resizeStartWidth = 0;
+    inspectorResizer.addEventListener("pointerdown", (event) => {
+      if (event.button === 0) {
+        resizePointer = event.pointerId;
+        resizeStartX = event.clientX;
+        resizeStartWidth = app.querySelector<HTMLElement>(".inspector")!.getBoundingClientRect().width;
+        inspectorResizer.setPointerCapture(event.pointerId);
+        workspace.classList.add("resizing-inspector");
+        event.preventDefault();
+      }
+    });
+    inspectorResizer.addEventListener("pointermove", (event) => {
+      if (event.pointerId === resizePointer) {
+        setInspectorWidth(resizeStartWidth - (event.clientX - resizeStartX));
+      }
+    });
+    inspectorResizer.addEventListener("pointerup", (event) => {
+      if (event.pointerId === resizePointer) {
+        inspectorResizer.releasePointerCapture(event.pointerId);
+      }
+    });
+    inspectorResizer.addEventListener("lostpointercapture", () => {
+      workspace.classList.remove("resizing-inspector");
+      resizePointer = undefined;
+    });
+    inspectorResizer.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") {
+        setInspectorWidth(app.querySelector<HTMLElement>(".inspector")!.getBoundingClientRect().width + 16);
+        event.preventDefault();
+      } else if (event.key === "ArrowRight") {
+        setInspectorWidth(app.querySelector<HTMLElement>(".inspector")!.getBoundingClientRect().width - 16);
+        event.preventDefault();
+      }
+    });
     for (const element of app.querySelectorAll<HTMLElement>("[data-select]")) {
       const target = (): Selection => {
         if (element.dataset.select === "node") {
@@ -612,6 +654,15 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
       const file = input.files?.[0];
       if (file !== undefined) void openFile(file);
     });
+  }
+
+  function setInspectorWidth(nextWidth: number): void {
+    const workspace = app.querySelector<HTMLElement>(".workspace")!;
+    inspectorWidth = Math.min(workspace.clientWidth - 260, Math.max(240, nextWidth));
+    workspace.style.setProperty("--inspector-width", `${inspectorWidth}px`);
+    app.querySelector<HTMLElement>("[data-inspector-resizer]")!.setAttribute("aria-valuemax", String(workspace.clientWidth - 260));
+    app.querySelector<HTMLElement>("[data-inspector-resizer]")!.setAttribute("aria-valuenow", String(Math.round(inspectorWidth)));
+    fitGraph();
   }
 
   function updateGraphTransform(): void {
