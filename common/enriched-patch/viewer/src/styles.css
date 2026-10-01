@@ -721,6 +721,11 @@ button.tree-row,
   background: var(--red-bg);
 }
 
+.diff-row.selected-declaration {
+  background-image: linear-gradient(rgba(88, 166, 255, 0.12), rgba(88, 166, 255, 0.12));
+  box-shadow: inset 3px 0 var(--blue), inset 0 0 0 1px rgba(88, 166, 255, 0.4);
+}
+
 .line-number {
   padding-right: 9px;
   border-right: 1px solid rgba(51, 69, 82, 0.55);

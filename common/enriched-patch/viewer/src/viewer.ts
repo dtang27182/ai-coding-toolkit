@@ -214,8 +214,12 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   }
 
   function renderDiffRow(row: DiffFile["rows"][number], blockAttribute: string): string {
+    const element = index.elements[selectedId];
+    const selectedDeclaration = element.kind === "method" && (element.locations[0].newLines !== null
+      ? row.newLine === element.locations[0].newLines[0]
+      : row.oldLine === element.locations[0].oldLines![0]);
     return `
-        <div class="diff-row ${row.kind}" ${row.oldLine === undefined ? "" : `data-old-line="${row.oldLine}"`} ${row.newLine === undefined ? "" : `data-new-line="${row.newLine}"`} ${blockAttribute}>
+        <div class="diff-row ${row.kind}${selectedDeclaration ? " selected-declaration" : ""}" ${row.oldLine === undefined ? "" : `data-old-line="${row.oldLine}"`} ${row.newLine === undefined ? "" : `data-new-line="${row.newLine}"`} ${blockAttribute}>
           <span class="line-number old-number">${row.oldLine ?? ""}</span>
           <span class="line-number new-number">${row.newLine ?? ""}</span>
           <span class="marker">${row.kind === "add" ? "+" : row.kind === "delete" ? "−" : ""}</span>
