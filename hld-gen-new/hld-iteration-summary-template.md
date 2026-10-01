@@ -26,9 +26,9 @@
 | 2         | <summary>   | pending    | pending    |               — |                 — |                  — |                 — |                     — |                 — |
 | 3         | <summary>   | pending    | pending    |               — |                 — |                  — |                 — |                     — |                 — |
 
-- Candidate 1: [HLD doc](iterations/<iteration>/candidate-1/<feature>.hld.md).
-- Candidate 2: [HLD doc](iterations/<iteration>/candidate-2/<feature>.hld.md).
-- Candidate 3: [HLD doc](iterations/<iteration>/candidate-3/<feature>.hld.md).
+- Candidate 1: [HLD doc](iterations/<iteration>/candidate-1/<feature>.hld.md), [manifest](iterations/<iteration>/candidate-1/<feature>.hld-manifest.json).
+- Candidate 2: [HLD doc](iterations/<iteration>/candidate-2/<feature>.hld.md), [manifest](iterations/<iteration>/candidate-2/<feature>.hld-manifest.json).
+- Candidate 3: [HLD doc](iterations/<iteration>/candidate-3/<feature>.hld.md), [manifest](iterations/<iteration>/candidate-3/<feature>.hld-manifest.json).
 - Failures: <candidate and reason, or None>
 
 ### Analysis

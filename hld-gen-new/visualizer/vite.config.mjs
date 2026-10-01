@@ -3,8 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { defineConfig } from "vite";
 
-import implementationConfig from "../../common/impl-dataflow/visualizer/vite.config.mjs";
-import { defaultSystemDataflowPlugin } from "../../common/sys-dataflow/visualizer/vite-plugin.mjs";
+import { hldManifestPlugin } from "./hld-manifest-plugin.mjs";
 import { watchDataflowFiles } from "./watch-dataflow-files.mjs";
 
 const visualizerDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -14,8 +13,7 @@ const repositoryDirectory = process.cwd();
 export default defineConfig({
   base: "./",
   plugins: [
-    ...implementationConfig.plugins,
-    defaultSystemDataflowPlugin(repositoryDirectory, toolkitDirectory),
+    ...hldManifestPlugin(repositoryDirectory, toolkitDirectory),
     watchDataflowFiles(repositoryDirectory, toolkitDirectory),
   ],
   build: {

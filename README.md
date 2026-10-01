@@ -70,13 +70,13 @@ Ask the agent:
 Use $hld-gen to develop a design from our workbook-import conversation so far.
 ```
 
-`hld-gen-new` produces an HLD doc (`<feature>.hld.md`), a proposed System Dataflow (`<feature>.sys-dataflow.json`), and a structured JSON representation of its Implementation Dataflow narrative (`<feature>.impl-dataflow.json`), in that order. `sys-dataflow` is shorthand for System Dataflow. When the agent supports subagents, it generates and evaluates each iteration's three candidates in parallel, one subagent per candidate; otherwise it generates them one at a time.
+`hld-gen-new` produces an HLD doc (`<feature>.hld.md`), a proposed System Dataflow (`<feature>.sys-dataflow.json`), and a structured JSON representation of its Implementation Dataflow narrative (`<feature>.impl-dataflow.json`), in that order. Each candidate also gets `<feature>.hld-manifest.json` with absolute paths to those three files. `sys-dataflow` is shorthand for System Dataflow. When the agent supports subagents, it generates and evaluates each iteration's three candidates in parallel, one subagent per candidate; otherwise it generates them one at a time.
 
-The skill compares the candidates, retains the best design across iterations, and records their metrics, analysis, and improvement outcomes in an iteration summary. Results are grouped by feature under the configured output directory, with selected artifacts in `<feature>/`, the iteration summary at `<feature>/<feature>.hld-iteration-summary.md`, and retained candidates under `<feature>/iterations/<iteration>/candidate-<candidate>/`.
+The skill compares the candidates, retains the best design across iterations, and records their metrics, analysis, and improvement outcomes in an iteration summary. Results are grouped by feature under the configured output directory, with selected artifacts and their manifest in `<feature>/`, the iteration summary at `<feature>/<feature>.hld-iteration-summary.md`, and retained candidates under `<feature>/iterations/<iteration>/candidate-<candidate>/`.
 
 The final artifacts and iteration summary are ready for human review; application implementation is a separate step.
 
-It has independent validation and counting scripts. Run `npm run hld-visualizer` to switch between its System Dataflow and Implementation Dataflow views. The System view opens the newest matching artifact under the configured output directory. The Implementation view restores the last file opened in the browser, or opens the newest matching artifact when there is none. You can open or drag in another JSON file in either view. The views refresh when their open repository files change; files chosen with a browser file handle refresh too.
+It has independent validation and counting scripts. Run `npm run hld-visualizer` to switch between its System Dataflow and Implementation Dataflow views. The visualizer loads the newest HLD manifest under the configured output directory, keeping both views on the same candidate or selected design. You can open or drag in another HLD manifest. The views refresh when the open repository manifest or either referenced dataflow changes; manifests chosen with a browser file handle refresh too.
 
 ## Enrich the Current Diff
 

@@ -40,7 +40,8 @@
             <button class="zoom-button" type="button" data-proxy="fit">Fit</button>
             <button class="zoom-button" type="button" data-proxy="zoom-in" aria-label="Zoom in">+</button>
           </div>
-          <button class="open-button" type="button" data-proxy="open">Open JSON</button>
+          <button class="open-button" type="button" id="open-hld-manifest">Open HLD Manifest</button>
+          <input id="hld-manifest-input" type="file" accept="application/json,.json" hidden>
         </div>
       </header>
       <main class="view-panels">
@@ -48,7 +49,7 @@
           <iframe src="./system.html" title="System Dataflow"></iframe>
         </section>
         <section class="view-panel" data-panel="implementation" aria-label="Implementation Dataflow" aria-hidden="true" inert>
-          <iframe src="./implementation.html" title="Implementation Dataflow"></iframe>
+          <iframe src="./implementation.html?embedded" title="Implementation Dataflow"></iframe>
         </section>
       </main>
     </div>
