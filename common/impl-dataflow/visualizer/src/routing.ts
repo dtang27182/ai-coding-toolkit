@@ -68,7 +68,7 @@ export function routeEdge(from: Rect, to: Rect, spread: number | EdgeSpread = 0,
     lastControl = { x: end.x, y: end.y + bend };
   }
 
-  const clearance = 20 + Math.max(Math.abs(startSpread), Math.abs(endSpread));
+  const clearance = 20;
   const blocked = expandObstacles(obstacles, clearance);
   let path: string;
   if (curveBlocked([start, firstControl, lastControl, end], blocked)) {
