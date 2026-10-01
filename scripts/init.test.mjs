@@ -23,7 +23,7 @@ async function createRepository(t) {
 
 test("copies skills and scripts that work after the source checkout is removed", async (t) => {
   const sourceDirectory = await createRepository(t);
-  for (const directoryName of ["scripts", "adapters", "hld-gen-new", "enrich-diff", "common", "node_modules"]) {
+  for (const directoryName of ["scripts", "adapters", "hld-gen-new", "enrich-diff", "advanced-diff-viewer", "common", "node_modules"]) {
     await cp(path.join(toolkitDirectory, directoryName), path.join(sourceDirectory, directoryName), {
       recursive: true,
       dereference: true,
@@ -48,7 +48,7 @@ test("copies skills and scripts that work after the source checkout is removed",
     await readFile(path.join(repoDirectory, ".agents", "skills", "enrich-diff", "SKILL.md"), "utf8"),
     await readFile(path.join(toolkitDirectory, "enrich-diff", "skills", "enrich-diff", "SKILL.md"), "utf8")
   );
-  for (const directoryName of ["hld-gen-new", "enrich-diff", "common", "node_modules"]) {
+  for (const directoryName of ["hld-gen-new", "enrich-diff", "advanced-diff-viewer", "common", "node_modules"]) {
     assert.equal(
       (await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isSymbolicLink(),
       false
@@ -58,6 +58,7 @@ test("copies skills and scripts that work after the source checkout is removed",
     test: "existing",
     "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer",
     "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer",
+    "adv-diff": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer",
   });
 
   const inputPath = "ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json";
@@ -72,7 +73,11 @@ test("copies skills and scripts that work after the source checkout is removed",
   assert.equal(count.status, 0, count.stderr);
   assert.equal(JSON.parse(await readFile(path.join(repoDirectory, inputPath), "utf8")).variableExposureCount, 3);
 
-  for (const toolName of ["hld-gen-new"]) {
+  for (const [toolName, title] of [
+    ["hld-gen-new", "HLD Dataflow Visualizer"],
+    ["enrich-diff", "Enriched Diff Visualizer"],
+    ["advanced-diff-viewer", "Advanced Diff Viewer"],
+  ]) {
     await rm(path.join(repoDirectory, "ai-coding-toolkit", toolName, "visualizer", "dist"), {
       recursive: true,
       force: true,
@@ -85,7 +90,7 @@ test("copies skills and scripts that work after the source checkout is removed",
     assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
     assert.match(
       await readFile(path.join(repoDirectory, "ai-coding-toolkit", toolName, "visualizer", "dist", "index.html"), "utf8"),
-      /HLD Dataflow Visualizer/
+      new RegExp(title)
     );
   }
 });
@@ -331,7 +336,7 @@ test("installs advanced-diff-viewer independently", async (t) => {
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/enriched-patch"))).isDirectory(), true);
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/config.json")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "docs/plans")), { code: "ENOENT" });
-  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/enriched-patch.json")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/adv-diff/enriched-patch.json")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/visualizer/dist")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/common/sys-dataflow")), { code: "ENOENT" });
   await assert.rejects(lstat(path.join(repoDirectory, ".agents")), { code: "ENOENT" });
@@ -346,14 +351,14 @@ test("installs advanced-diff-viewer independently", async (t) => {
     "ai-coding-toolkit/advanced-diff-viewer/generate-enriched-patch.mjs",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(generated.status, 0, generated.stderr);
-  const index = JSON.parse(await readFile(path.join(repoDirectory, "advanced-diff-viewer/enriched-patch.json"), "utf8"));
+  const index = JSON.parse(await readFile(path.join(repoDirectory, "adv-diff/enriched-patch.json"), "utf8"));
   assert.match(index.patch, /diff --git a\/app\.ts b\/app\.ts/);
   assert.doesNotMatch(index.patch, /diff --git a\/ai-coding-toolkit\//);
 
   const reinstall = install([repoDirectory, "--tool", "advanced-diff-viewer"]);
   assert.equal(reinstall.status, 0, reinstall.stderr);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/advanced-diff-viewer/visualizer/src/main.ts"))).isFile(), true);
-  assert.equal((await lstat(path.join(repoDirectory, "advanced-diff-viewer/enriched-patch.json"))).isFile(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "adv-diff/enriched-patch.json"))).isFile(), true);
 });
 
 test("refreshes installed copies on repeat installation", async (t) => {

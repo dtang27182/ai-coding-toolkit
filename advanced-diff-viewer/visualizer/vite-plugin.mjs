@@ -3,7 +3,7 @@ import { watch } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
-import { generateAdvancedEnrichedPatch } from "../generate-enriched-patch.mjs";
+import { advancedDiffExcludedPaths, generateAdvancedEnrichedPatch } from "../generate-enriched-patch.mjs";
 
 function git(repositoryDirectory, argumentsList) {
   return execFileSync("git", argumentsList, { cwd: repositoryDirectory, encoding: "utf8" }).trim();
@@ -38,6 +38,7 @@ export function advancedDiffViewerPlugin(repositoryDirectory, watchGit = watch) 
   let gitWatchers = [];
   let watchVersion = 0;
   let closed = false;
+  let excludedPaths;
 
   function notify() {
     if (!closed) server.ws.send("advanced-diff:update", { version: status.version });
@@ -89,15 +90,14 @@ export function advancedDiffViewerPlugin(repositoryDirectory, watchGit = watch) 
 
   function onRepositoryChange(file) {
     const relativePath = path.relative(repositoryDirectory, path.resolve(file));
-    if (relativePath === "advanced-diff-viewer/enriched-patch.json") {
-      return;
-    } else if (relativePath === "ai-coding-toolkit" || relativePath.startsWith(`ai-coding-toolkit${path.sep}`)) {
-      return;
-    } else if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
-      return;
+    if (
+      !excludedPaths.some((excludedPath) => relativePath === excludedPath || relativePath.startsWith(`${excludedPath}${path.sep}`)) &&
+      relativePath !== "ai-coding-toolkit" && !relativePath.startsWith(`ai-coding-toolkit${path.sep}`) &&
+      !relativePath.startsWith("..") && !path.isAbsolute(relativePath)
+    ) {
+      const ignored = spawnSync("git", ["check-ignore", "--quiet", "--", relativePath], { cwd: repositoryDirectory });
+      if (ignored.status !== 0) scheduleRegeneration();
     }
-    const ignored = spawnSync("git", ["check-ignore", "--quiet", "--", relativePath], { cwd: repositoryDirectory });
-    if (ignored.status !== 0) scheduleRegeneration();
   }
 
   async function bindGitWatchers() {
@@ -143,6 +143,7 @@ export function advancedDiffViewerPlugin(repositoryDirectory, watchGit = watch) 
     name: "advanced-enriched-patch",
     async configureServer(viteServer) {
       server = viteServer;
+      excludedPaths = await advancedDiffExcludedPaths(repositoryDirectory);
       server.watcher.add(repositoryDirectory);
       for (const event of ["add", "change", "unlink"]) {
         server.watcher.on(event, onRepositoryChange);

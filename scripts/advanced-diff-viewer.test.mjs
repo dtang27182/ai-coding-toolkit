@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
-import { mkdir, mkdtemp, readFile, realpath, rm, unlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, realpath, rm, symlink, unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -18,13 +18,13 @@ function git(repositoryDirectory, argumentsList) {
   return result.stdout;
 }
 
-async function createServer(repositoryDirectory) {
+async function createServer(repositoryDirectory, pluginFactory = advancedDiffViewerPlugin) {
   const watcher = new EventEmitter();
   watcher.add = () => {};
   const updates = new EventEmitter();
   const gitWatchers = [];
   let middleware;
-  const plugin = advancedDiffViewerPlugin(repositoryDirectory, (directory, callback) => {
+  const plugin = pluginFactory(repositoryDirectory, (directory, callback) => {
     const watcher = { directory, callback, closed: false, on() {}, close() { this.closed = true; } };
     gitWatchers.push(watcher);
     return watcher;
@@ -98,7 +98,7 @@ test("generates a repeatable enriched patch for current changes without indexing
 
   const firstRun = spawnSync(process.execPath, [generatorPath, repositoryDirectory], { encoding: "utf8" });
   assert.equal(firstRun.status, 0, firstRun.stderr);
-  const outputFile = path.join(repositoryDirectory, "advanced-diff-viewer", "enriched-patch.json");
+  const outputFile = path.join(repositoryDirectory, "adv-diff", "enriched-patch.json");
   const firstOutput = await readFile(outputFile, "utf8");
   const secondRun = spawnSync(process.execPath, [generatorPath, repositoryDirectory], { encoding: "utf8" });
   assert.equal(secondRun.status, 0, secondRun.stderr);
@@ -110,7 +110,7 @@ test("generates a repeatable enriched patch for current changes without indexing
     .filter((element) => element.kind === "file")
     .map((element) => element.name);
   assert.deepEqual(indexedFiles, ["changed.ts", "deleted.ts", "new.ts", "staged.ts"]);
-  assert.doesNotMatch(index.patch, /advanced-diff-viewer\/enriched-patch\.json/);
+  assert.doesNotMatch(index.patch, /adv-diff\/enriched-patch\.json/);
   const originalDirectory = process.cwd();
   process.chdir(repositoryDirectory);
   try {
@@ -120,10 +120,91 @@ test("generates a repeatable enriched patch for current changes without indexing
     server = await createServer(repositoryDirectory);
     const response = await server.request("GET", "/__enriched-patch/default");
     assert.equal(response.state, "ready");
-    assert.equal(response.fileName, "advanced-diff-viewer/enriched-patch.json");
+    assert.equal(response.fileName, "adv-diff/enriched-patch.json");
     assert.equal(response.contents, firstOutput);
   } finally {
     process.chdir(originalDirectory);
+  }
+});
+
+test("installed viewer excludes configured output changes and refresh events", async (t) => {
+  for (const configuredDirectory of ["docs/plans", "architecture/review [draft]/"]) {
+    await t.test(configuredDirectory, async (t) => {
+      const repositoryDirectory = await realpath(await mkdtemp(path.join(os.tmpdir(), "advanced-diff-installed-")));
+      const installedToolkitDirectory = path.join(repositoryDirectory, "ai-coding-toolkit");
+      const outputPath = path.join(repositoryDirectory, configuredDirectory);
+      const outputDirectory = path.relative(repositoryDirectory, outputPath);
+      let server;
+      t.after(async () => {
+        if (server !== undefined) await server.close();
+        await rm(repositoryDirectory, { recursive: true, force: true });
+      });
+      git(repositoryDirectory, ["init", "--quiet"]);
+      git(repositoryDirectory, ["config", "user.email", "test@example.com"]);
+      git(repositoryDirectory, ["config", "user.name", "Test User"]);
+      await mkdir(outputPath, { recursive: true });
+      await mkdir(installedToolkitDirectory);
+      await writeFile(path.join(installedToolkitDirectory, "config.json"), JSON.stringify({ outputDirectory: configuredDirectory }));
+      await writeFile(path.join(repositoryDirectory, "app.ts"), "export const value = 1;\n");
+      for (const file of ["changed.md", "staged.md", "deleted.md"]) {
+        await writeFile(path.join(outputPath, file), "original artifact\n");
+      }
+      git(repositoryDirectory, ["add", "."]);
+      git(repositoryDirectory, ["commit", "--quiet", "-m", "base"]);
+
+      for (const file of [
+        "advanced-diff-viewer/generate-enriched-patch.mjs",
+        "advanced-diff-viewer/visualizer/vite-plugin.mjs",
+        "common/enriched-patch/generate-enriched-patch.mjs",
+        "common/enriched-patch/generate-full-context-patch.mjs",
+        "common/enriched-patch/enriched-patch.schema.json",
+      ]) {
+        const installedFile = path.join(installedToolkitDirectory, file);
+        await mkdir(path.dirname(installedFile), { recursive: true });
+        await cp(path.join(toolkitDirectory, file), installedFile);
+      }
+      await symlink(path.join(toolkitDirectory, "node_modules"), path.join(installedToolkitDirectory, "node_modules"));
+      const { advancedDiffViewerPlugin: installedPlugin } = await import(pathToFileURL(path.join(installedToolkitDirectory, "advanced-diff-viewer/visualizer/vite-plugin.mjs")).href);
+      server = await createServer(repositoryDirectory, installedPlugin);
+      assert.equal((await server.request("GET", "/__enriched-patch/default")).state, "empty");
+
+      await writeFile(path.join(outputPath, "changed.md"), "modified artifact\n");
+      await writeFile(path.join(outputPath, "staged.md"), "staged artifact\n");
+      git(repositoryDirectory, ["add", path.join(outputDirectory, "staged.md")]);
+      await unlink(path.join(outputPath, "deleted.md"));
+      await mkdir(path.join(outputPath, "nested"));
+      await writeFile(path.join(outputPath, "nested/new.md"), "new artifact\n");
+      const indexBefore = git(repositoryDirectory, ["ls-files", "--stage"]);
+      const onlyArtifacts = await server.request("POST", "/__enriched-patch/refresh");
+      assert.equal(onlyArtifacts.state, "empty");
+      assert.equal(git(repositoryDirectory, ["ls-files", "--stage"]), indexBefore);
+
+      const events = [];
+      server.updates.on("refreshing", () => events.push("refreshing"));
+      server.updates.on("update", () => events.push("update"));
+      server.watcher.emit("change", path.join(outputPath, "changed.md"));
+      server.watcher.emit("add", path.join(outputPath, "nested/new.md"));
+      server.watcher.emit("unlink", path.join(outputPath, "deleted.md"));
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      assert.deepEqual(events, []);
+      assert.equal((await server.request("GET", "/__enriched-patch/default")).version, onlyArtifacts.version);
+
+      const neighborPath = path.join(repositoryDirectory, `${outputDirectory}-notes.md`);
+      await writeFile(neighborPath, "review notes\n");
+      const updated = nextUpdate(server.updates, onlyArtifacts.version);
+      server.watcher.emit("add", neighborPath);
+      await updated;
+      const response = await server.request("GET", "/__enriched-patch/default");
+      const files = Object.values(JSON.parse(response.contents).elements)
+        .filter((element) => element.kind === "file")
+        .map((element) => element.name);
+      assert.deepEqual(files, [`${outputDirectory}-notes.md`]);
+
+      await writeFile(path.join(repositoryDirectory, ".gitignore"), `${outputDirectory.replaceAll("[", "\\[").replaceAll("]", "\\]")}/\n`);
+      git(repositoryDirectory, ["check-ignore", "--quiet", "--", path.join(outputDirectory, "nested/new.md")]);
+      const withIgnoredOutput = await server.request("POST", "/__enriched-patch/refresh");
+      assert.doesNotMatch(JSON.parse(withIgnoredOutput.contents).patch, /artifact/);
+    });
   }
 });
 
@@ -145,7 +226,7 @@ test("generates on first request and refreshes after repository changes", async 
   server = await createServer(repositoryDirectory);
   const initial = await server.request("GET", "/__enriched-patch/default");
   assert.equal(initial.state, "empty");
-  await assert.rejects(readFile(path.join(repositoryDirectory, "advanced-diff-viewer/enriched-patch.json")), { code: "ENOENT" });
+  await assert.rejects(readFile(path.join(repositoryDirectory, "adv-diff/enriched-patch.json")), { code: "ENOENT" });
 
   const events = [];
   server.updates.on("refreshing", () => events.push("refreshing"));
@@ -177,7 +258,7 @@ test("generates on first request and refreshes after repository changes", async 
   const withoutAdded = await server.request("GET", "/__enriched-patch/default");
   assert.doesNotMatch(withoutAdded.contents, /added\.ts/);
 
-  server.watcher.emit("change", path.join(repositoryDirectory, "advanced-diff-viewer/enriched-patch.json"));
+  server.watcher.emit("change", path.join(repositoryDirectory, "adv-diff/enriched-patch.json"));
   server.watcher.emit("change", path.join(repositoryDirectory, "ai-coding-toolkit/README.md"));
   const eventsBeforeRefresh = events.length;
   const refreshed = await server.request("POST", "/__enriched-patch/refresh");
