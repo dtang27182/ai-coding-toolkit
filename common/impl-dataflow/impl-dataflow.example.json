@@ -1,16 +1,6 @@
 {
   "schemaVersion": 13,
   "stage": "high-level-design",
-  "userFlows": [
-    {
-      "name": "Request a change set",
-      "steps": [
-        { "id": 1, "text": "The user selects source files and requests a change set." },
-        { "id": 2, "text": "The app reads the selected files and computes the change set." },
-        { "id": 3, "text": "The app retains the change set and displays it to the user." }
-      ]
-    }
-  ],
   "classes": [
     {
       "name": "ChangeService",
@@ -146,7 +136,7 @@
       "to": { "class": "ChangeService", "function": "buildChangeSet" },
       "type": "dataflow",
       "dataDescription": "Fixed hunk formatting and line-matching rules used for each change set.",
-      "purpose": "Supplies the rules used while step 2 computes the change set.",
+      "purpose": "Supplies the rules used to compute the change set.",
       "changeType": "added",
       "userFlow": true
     },
@@ -155,7 +145,7 @@
       "to": { "class": "ChangeService", "function": "buildChangeSet" },
       "type": "dataflow",
       "dataDescription": "The contents of each selected file, keyed by repository-relative path, together with the paths that could not be read.",
-      "purpose": "Supplies the text buildChangeSet diffs against, so step 2 can compute a change set without the service reaching the filesystem itself.",
+      "purpose": "Supplies the text buildChangeSet diffs against, so it can compute a change set without the service reaching the filesystem itself.",
       "changeType": "unchanged",
       "userFlow": true
     },
@@ -188,7 +178,7 @@
       "to": { "class": "ChangeService", "function": "buildChangeSet" },
       "type": "dataflow",
       "dataDescription": "The paths the user selected, with the comparison target they chose.",
-      "purpose": "Carries the request that opens step 1. Nothing downstream runs until this arrives, and the selection it carries scopes everything that follows.",
+      "purpose": "Carries the user's change-set request. Nothing downstream runs until this arrives, and the selection it carries scopes everything that follows.",
       "changeType": "added",
       "userFlow": true
     },
@@ -197,7 +187,7 @@
       "to": { "class": "Repository", "function": "readSourceFiles" },
       "type": "dataflow",
       "dataDescription": "The validated list of paths to read.",
-      "purpose": "Delegates file access to Repository, keeping the service independent of storage while step 2 gathers its input.",
+      "purpose": "Delegates file access to Repository, keeping the service independent of storage while gathering its input.",
       "changeType": "added",
       "userFlow": true
     },
@@ -206,7 +196,7 @@
       "to": { "component": "Source Files on Disk" },
       "type": "dataflow",
       "dataDescription": "A read request for each selected path.",
-      "purpose": "The only point at which this feature touches the filesystem, so step 2 depends on it for real file state rather than cached state.",
+      "purpose": "The only point at which this feature touches the filesystem, supplying real file state rather than cached state.",
       "changeType": "unchanged",
       "userFlow": true
     },
@@ -215,7 +205,7 @@
       "to": { "class": "Repository", "function": "readSourceFiles" },
       "type": "dataflow",
       "dataDescription": "The bytes of each readable file, and a not-found result for the rest.",
-      "purpose": "Returns the only content the change set can be computed from; the not-found results are what step 3 reports as skipped files.",
+      "purpose": "Returns the only content the change set can be computed from; the not-found results are reported as skipped files.",
       "changeType": "unchanged",
       "userFlow": true
     },
@@ -224,7 +214,7 @@
       "to": { "component": "Change Panel" },
       "type": "dataflow",
       "dataDescription": "The finished change set: one entry per file with its diff hunks, plus the counts of changed and skipped files.",
-      "purpose": "Delivers the retained outcome the user asked for, completing step 3. Until it arrives the panel still shows the state from before the request.",
+      "purpose": "Delivers the retained outcome the user asked for. Until it arrives the panel still shows the state from before the request.",
       "changeType": "added",
       "userFlow": true
     },
@@ -233,7 +223,7 @@
       "to": { "class": "ChangeModel", "stateVariable": "changes" },
       "type": "state-update",
       "dataDescription": "Writes the finished change set into `changes`, replacing any set retained from an earlier request.",
-      "purpose": "Retains the result across the request so step 3 can redisplay it without recomputing the diff or re-reading the files.",
+      "purpose": "Retains the result across the request so it can be redisplayed without recomputing the diff or re-reading the files.",
       "changeType": "added",
       "userFlow": true
     },
@@ -242,7 +232,7 @@
       "to": { "class": "ChangeModel", "function": "currentChanges" },
       "type": "state-read",
       "dataDescription": "Reads the retained change set, including its file entries and summary counts.",
-      "purpose": "Supplies the result that step 3 displays without recomputing the diff or re-reading the files.",
+      "purpose": "Supplies the displayed result without recomputing the diff or re-reading the files.",
       "changeType": "added",
       "userFlow": true
     }

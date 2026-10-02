@@ -100,10 +100,6 @@ if (inputArgument === undefined) {
         }
       }
 
-      if (implementationDataflow.stage === "high-level-design" && !Array.isArray(implementationDataflow.userFlows)) {
-        semanticErrors.push("High-level-design implementation dataflow requires userFlows");
-      }
-
       for (const classDiff of implementationDataflow.classes) {
         if (nodeNames.has(classDiff.name)) {
           semanticErrors.push(`Duplicate class name: ${classDiff.name}`);

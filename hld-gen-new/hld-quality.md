@@ -2,7 +2,7 @@
 
 Compare design complexity while preserving required behavior and clear responsibilities. Lower counts are better. Consider tradeoffs between criteria without normalizing, combining, or weighting the counts.
 
-Changed means `added`, `modified`, or `deleted`. The counts cover the core user flows.
+Changed means `added`, `modified`, or `deleted`. The counts cover the core user journeys.
 
 | Criterion                          | What it measures                                                                           | Best value |
 | ---------------------------------- | ------------------------------------------------------------------------------------------ | ---------: |

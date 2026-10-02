@@ -78,12 +78,29 @@ test("high-level-design validation requires HLD fields", async (t) => {
 
   const { result } = await runValidator(t, input);
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /requires userFlows/);
   assert.match(result.stderr, /requires variableExposure/);
   assert.match(result.stderr, /function requires userFlow/);
   assert.match(result.stderr, /state variable requires userFlow/);
   assert.match(result.stderr, /component requires userFlow/);
   assert.match(result.stderr, /relationship requires userFlow/);
+});
+
+test("high-level-design validation accepts omitted flows and validates optional legacy steps", async (t) => {
+  const input = JSON.parse(await readFile(
+    path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"),
+    "utf8"
+  ));
+  const withoutFlows = await runValidator(t, input);
+  assert.equal(withoutFlows.result.status, 0, withoutFlows.result.stderr);
+
+  input.userFlows = [{ name: "Request a change set", steps: [{ id: 1, text: "The user requests a change set." }] }];
+  const withFlows = await runValidator(t, input);
+  assert.equal(withFlows.result.status, 0, withFlows.result.stderr);
+
+  input.userFlows[0].steps[0].id = 2;
+  const invalidSteps = await runValidator(t, input);
+  assert.equal(invalidSteps.result.status, 1);
+  assert.match(invalidSteps.result.stderr, /must be numbered 1\.\.n/);
 });
 
 test("generic validation rejects invalid architecture references and changes", async (t) => {
@@ -271,19 +288,11 @@ test("user-flow filtering keeps static data read by a participating function", a
   assert.ok(graph.relationships.some((relationship) => relationship.from.staticData && relationship.to.functionName === "buildChangeSet"));
 });
 
-test("two user flows share implementation state and static data", async (t) => {
+test("two user journeys share implementation state and static data", async (t) => {
   const input = JSON.parse(await readFile(
     path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"),
     "utf8"
   ));
-  input.userFlows.push({
-    name: "Preview the retained change set",
-    steps: [
-      { id: 1, text: "The user requests a preview of the retained change set." },
-      { id: 2, text: "The app reads and formats the retained change set." },
-      { id: 3, text: "The app displays the preview." },
-    ],
-  });
   input.classes[0].functions.push({ name: "previewChanges", changeType: "added", userFlow: true });
   input.relationships.push({
     from: { staticData: "Diff Format Rules" },
@@ -291,7 +300,7 @@ test("two user flows share implementation state and static data", async (t) => {
     type: "dataflow",
     changeType: "added",
     dataDescription: "Fixed hunk formatting rules",
-    purpose: "Format the preview in step 2.",
+    purpose: "Format the preview.",
     userFlow: true,
   }, {
     from: { class: "ChangeModel", stateVariable: "changes" },
@@ -299,7 +308,7 @@ test("two user flows share implementation state and static data", async (t) => {
     type: "state-read",
     changeType: "added",
     dataDescription: "The retained change set",
-    purpose: "Supply the preview input in step 2.",
+    purpose: "Supply the preview input.",
     userFlow: true,
   }, {
     from: { class: "ChangeService", function: "previewChanges" },
@@ -307,7 +316,7 @@ test("two user flows share implementation state and static data", async (t) => {
     type: "dataflow",
     changeType: "added",
     dataDescription: "The formatted preview",
-    purpose: "Display the preview in step 3.",
+    purpose: "Display the preview.",
     userFlow: true,
   });
   const { result } = await runValidator(t, input);

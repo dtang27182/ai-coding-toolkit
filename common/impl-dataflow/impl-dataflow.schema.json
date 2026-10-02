@@ -198,7 +198,7 @@
       ]
     },
     "userFlow": {
-      "description": "Whether this entry lies on a documented user-flow path from its trigger to persisted state or an output. Setup and ownership alone do not qualify.",
+      "description": "Whether this entry lies on a documented user-journey or user-flow path from its trigger to a required system effect or output. Setup and ownership alone do not qualify.",
       "type": "boolean"
     },
     "userFlowSet": {

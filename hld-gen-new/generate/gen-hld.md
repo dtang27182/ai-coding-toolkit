@@ -15,12 +15,11 @@ Apply `Design Guidelines` to every generated section and artifact. Constrain the
 4. Copy `Design Guidelines` verbatim from the iteration summary.
 5. Copy `High Level Requirements`, including all three subsections, verbatim from the iteration summary.
 6. Set the Detailed Requirements link to `../../../<feature>.detailed-requirements.md`, referencing the shared file without using its contents for design generation.
-7. Fill User Flows by following `ai-coding-toolkit/hld-gen-new/generate/gen-user-flows.md`.
-8. Fill Design Context and Related Workflows by following `ai-coding-toolkit/hld-gen-new/generate/gen-design-context.md`.
-9. Generate the sys-dataflow by following `ai-coding-toolkit/hld-gen-new/generate/gen-sys-dataflow.md`.
-10. Use the validated sys-dataflow JSON to generate the Implementation Dataflow narrative and JSON by following `ai-coding-toolkit/hld-gen-new/generate/gen-impl-dataflow.md`. Preserve earlier candidates and iterations.
-11. After the HLD and both dataflows exist, run `node ai-coding-toolkit/hld-gen-new/generate/write-hld-manifest.mjs <candidate-hld-path> <outputDirectory>/<feature>/<feature>.detailed-requirements.md` to write `<feature>.hld-manifest.json` beside them. Its `hld`, `sysDataflow`, `implDataflow`, and `detailedRequirements` fields contain absolute paths.
+7. Fill Design Context and Related Workflows by following `ai-coding-toolkit/hld-gen-new/generate/gen-design-context.md`.
+8. Generate the sys-dataflow directly from User Journeys by following `ai-coding-toolkit/hld-gen-new/generate/gen-sys-dataflow.md`.
+9. Use the validated sys-dataflow JSON to generate the Implementation Dataflow narrative and JSON by following `ai-coding-toolkit/hld-gen-new/generate/gen-impl-dataflow.md`. Preserve earlier candidates and iterations.
+10. After the HLD and both dataflows exist, run `node ai-coding-toolkit/hld-gen-new/generate/write-hld-manifest.mjs <candidate-hld-path> <outputDirectory>/<feature>/<feature>.detailed-requirements.md` to write `<feature>.hld-manifest.json` beside them. Its `hld`, `sysDataflow`, `implDataflow`, and `detailedRequirements` fields contain absolute paths.
 
 ## Report the Result
 
-12. Report the candidate's HLD doc and manifest links to the caller, including a partial HLD doc written before a failure. Report generation as complete after the preceding steps succeed; otherwise report the failed status and reason.
+11. Report the candidate's HLD doc and manifest links to the caller, including a partial HLD doc written before a failure. Report generation as complete after the preceding steps succeed; otherwise report the failed status and reason.

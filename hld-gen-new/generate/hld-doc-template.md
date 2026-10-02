@@ -23,10 +23,6 @@
 
 [Detailed Requirements](<feature>.detailed-requirements.md)
 
-## User Flows
-
-<user flows>
-
 ## Design Context and Related Workflows
 
 <design context and related workflows>

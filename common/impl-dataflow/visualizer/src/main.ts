@@ -612,7 +612,7 @@ function render(): void {
         <div class="control-group">
           <button class="control-button open-button" data-open>Open JSON</button>
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
-          ${implementationDataflow.stage === "code-review" || implementationDataflow.userFlows === undefined ? "" : `<button class="control-button${userFlowOnly ? " active" : ""}" data-toggle-user-flow aria-pressed="${userFlowOnly}">User flow only</button>`}
+          ${implementationDataflow.stage === "code-review" ? "" : `<button class="control-button${userFlowOnly ? " active" : ""}" data-toggle-user-flow aria-pressed="${userFlowOnly}">User flow only</button>`}
           <button class="control-button${functionsHidden ? " active" : ""}" data-toggle-functions>${functionsHidden ? "Show functions" : "Hide functions"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
@@ -933,7 +933,7 @@ function setImplementationDataflow(value: unknown, nextFileName: string): string
       return error;
     } else {
       implementationDataflow = nextImplementationDataflow;
-      if (implementationDataflow.stage === "code-review" || implementationDataflow.userFlows === undefined) userFlowOnly = false;
+      if (implementationDataflow.stage === "code-review") userFlowOnly = false;
       fileName = nextFileName;
       selection = undefined;
       hovered = undefined;
