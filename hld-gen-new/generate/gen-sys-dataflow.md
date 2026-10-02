@@ -13,13 +13,13 @@ Use two primary inputs:
 
 Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.schema.json` and `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.example.json` to understand the graph's node types, relationship format, and permitted directions.
 
-Initialize `<feature>.sys-dataflow.json` with `schemaVersion` set to `2`, `stage` set to `high-level-design`, the feature name, and empty `nodes` and `relationships` arrays. Use this file as the working design artifact: write nodes and relationships as decisions are made, then revise them as code inspection and journey tracing reveal gaps or better choices.
+Initialize `<feature>.sys-dataflow.json` with `schemaVersion` set to `3`, `stage` set to `high-level-design`, the feature name, and an empty `subgraphs` array. Use this file as the working design artifact: write nodes and relationships as decisions are made, then revise them as code inspection and journey tracing reveal gaps or better choices.
 
 ## 2. Design and Extend the Graph for Each User Journey
 
 ### Bound the Journey
 
-- Create one subgraph for each numbered User Journey. Each subgraph must be internally connected, with no relationships connecting it to another journey's subgraph.
+- Create one entry in `subgraphs` for each numbered User Journey, in journey order. Give it a unique `id`, a descriptive `name`, and its own `nodes` and `relationships` arrays. Membership is explicit through these arrays; do not infer it from node-name prefixes. Keep node names and relationship IDs unique across the document. Each subgraph must be internally connected, with no relationships connecting it to another journey's subgraph.
 - Start each subgraph with a `user-input` node for the journey's first user action. Include later `user-input` nodes for its other user actions and `system-input` nodes for externally supplied inputs needed by the journey.
 - Explicitly capture the journey's useful result and required effects as `user-output` nodes, `system-output` nodes, or `dataflow` relationships into `system-state` nodes. Stop tracing once these outputs and state updates are represented. Do not follow unchanged downstream behavior or related workflows outside the journey.
 - Never include one-time initialization, dependency setup, or object construction that occurs before the triggering `user-input` or `system-input`.
@@ -59,5 +59,5 @@ Write these decisions into the JSON as you go. Revisit existing entries when lat
 - Trace each subgraph from its trigger to its required effects. Check that it is connected, that each relationship supplies data its consumer needs, and that every node and relationship is within the journey's scope.
 - Verify that every `changeType` reflects what the design reuses, modifies, adds, or removes relative to the current code.
 - Resolve gaps by inspecting more code and updating the JSON. Remove unnecessary nodes and relationships as the design is refined.
-- Run `node ai-coding-toolkit/common/sys-dataflow/validate-sys-dataflow.mjs <output-path>` to check the schema, unique node names and relationship IDs, and valid relationship endpoints and directions. Correct errors and rerun validation after revisions.
+- Run `node ai-coding-toolkit/common/sys-dataflow/validate-sys-dataflow.mjs <output-path>` to check the schema, unique subgraph IDs, node names, and relationship IDs, and valid relationship endpoints within each subgraph and permitted directions. Correct errors and rerun validation after revisions.
 - Complete journey coverage and correct every validation error before using the graph to generate the Implementation Dataflow.

@@ -32,18 +32,28 @@ if (inputPath === undefined) {
     process.exitCode = 1;
   } else {
     const errors = [];
+    const nodes = dataflow.subgraphs.flatMap((subgraph) => subgraph.nodes);
+    const relationships = dataflow.subgraphs.flatMap((subgraph) => subgraph.relationships);
+    const subgraphIds = new Set();
     const names = new Set();
     const relationshipIds = new Set();
     const diffHunkIds = new Set();
     const referencedDiffHunkIds = new Set();
-    for (const node of dataflow.nodes) {
+    for (const subgraph of dataflow.subgraphs) {
+      if (subgraphIds.has(subgraph.id)) {
+        errors.push(`Subgraph IDs must be unique: ${subgraph.id}`);
+      } else {
+        subgraphIds.add(subgraph.id);
+      }
+    }
+    for (const node of nodes) {
       if (names.has(node.name)) {
         errors.push(`Node names must be unique: ${node.name}`);
       } else {
         names.add(node.name);
       }
     }
-    for (const relationship of dataflow.relationships) {
+    for (const relationship of relationships) {
       if (relationshipIds.has(relationship.id)) {
         errors.push(`Relationship IDs must be unique: ${relationship.id}`);
       } else {
@@ -58,7 +68,7 @@ if (inputPath === undefined) {
           diffHunkIds.add(diffHunk.id);
         }
       }
-      for (const entity of [...dataflow.nodes, ...dataflow.relationships]) {
+      for (const entity of [...nodes, ...relationships]) {
         for (const diffHunkId of entity.diffHunkIds ?? []) {
           if (diffHunkIds.has(diffHunkId)) {
             referencedDiffHunkIds.add(diffHunkId);
@@ -73,18 +83,20 @@ if (inputPath === undefined) {
         }
       }
     }
-    const nodesByName = new Map(dataflow.nodes.map((node) => [node.name, node]));
-    for (const relationship of dataflow.relationships) {
-      const source = nodesByName.get(relationship.from);
-      const destination = nodesByName.get(relationship.to);
-      if (source === undefined) {
-        errors.push(`Relationship “${relationship.id}” references unknown source node “${relationship.from}”.`);
-      } else if (destination === undefined) {
-        errors.push(`Relationship “${relationship.id}” references unknown destination node “${relationship.to}”.`);
-      } else if (!nodeDirections[source.type].outgoing) {
-        errors.push(`Relationship “${relationship.id}” cannot leave ${source.type} node “${source.name}”.`);
-      } else if (!nodeDirections[destination.type].incoming) {
-        errors.push(`Relationship “${relationship.id}” cannot enter ${destination.type} node “${destination.name}”.`);
+    for (const subgraph of dataflow.subgraphs) {
+      const nodesByName = new Map(subgraph.nodes.map((node) => [node.name, node]));
+      for (const relationship of subgraph.relationships) {
+        const source = nodesByName.get(relationship.from);
+        const destination = nodesByName.get(relationship.to);
+        if (source === undefined) {
+          errors.push(`Relationship “${relationship.id}” references unknown source node “${relationship.from}”.`);
+        } else if (destination === undefined) {
+          errors.push(`Relationship “${relationship.id}” references unknown destination node “${relationship.to}”.`);
+        } else if (!nodeDirections[source.type].outgoing) {
+          errors.push(`Relationship “${relationship.id}” cannot leave ${source.type} node “${source.name}”.`);
+        } else if (!nodeDirections[destination.type].incoming) {
+          errors.push(`Relationship “${relationship.id}” cannot enter ${destination.type} node “${destination.name}”.`);
+        }
       }
     }
     if (errors.length > 0) {

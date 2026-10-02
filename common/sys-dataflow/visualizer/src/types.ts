@@ -37,13 +37,19 @@ export interface DiffHunk {
   patch: string;
 }
 
+export interface SystemDataflowSubgraph {
+  id: string;
+  name: string;
+  nodes: SystemDataflowNode[];
+  relationships: SystemDataflowRelationship[];
+}
+
 export interface SystemDataflow {
-  schemaVersion: 2;
+  schemaVersion: 3;
   stage: "high-level-design" | "code-review";
   feature: string;
   diffHunks?: DiffHunk[];
-  nodes: SystemDataflowNode[];
-  relationships: SystemDataflowRelationship[];
+  subgraphs: SystemDataflowSubgraph[];
 }
 
 export interface Rect {

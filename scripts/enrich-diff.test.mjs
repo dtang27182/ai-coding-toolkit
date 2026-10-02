@@ -26,8 +26,8 @@ async function codeReviewDataflow() {
     file: "src/delivery-options.ts",
     patch: "@@ -1 +1 @@\n-old value\n+new value",
   }];
-  dataflow.nodes[0].diffHunkIds = ["hunk-1"];
-  dataflow.relationships[0].diffHunkIds = ["hunk-1"];
+  dataflow.subgraphs[0].nodes[0].diffHunkIds = ["hunk-1"];
+  dataflow.subgraphs[0].relationships[0].diffHunkIds = ["hunk-1"];
   return dataflow;
 }
 
@@ -38,10 +38,55 @@ test("validates a System Dataflow artifact", () => {
 
 test("rejects an illegal node direction", async (t) => {
   const dataflow = JSON.parse(await readFile(examplePath, "utf8"));
-  dataflow.relationships[0].from = "Delivery options display";
+  dataflow.subgraphs[0].relationships[0].from = "Delivery options display";
   const result = await runValidator(t, dataflow);
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /cannot leave user-output node/);
+});
+
+test("rejects endpoints in another subgraph", async (t) => {
+  for (const endpoint of ["from", "to"]) {
+    const dataflow = JSON.parse(await readFile(examplePath, "utf8"));
+    dataflow.subgraphs.push({
+      id: "another-flow",
+      name: "Another flow",
+      nodes: [{ ...dataflow.subgraphs[0].nodes[0], name: "Other input" }],
+      relationships: [],
+    });
+    dataflow.subgraphs[0].relationships[0][endpoint] = "Other input";
+    const result = await runValidator(t, dataflow);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /references unknown (source|destination) node “Other input”/);
+  }
+});
+
+test("rejects duplicate subgraph IDs", async (t) => {
+  const dataflow = JSON.parse(await readFile(examplePath, "utf8"));
+  dataflow.subgraphs.push({
+    id: dataflow.subgraphs[0].id,
+    name: "Another flow",
+    nodes: [{ ...dataflow.subgraphs[0].nodes[0], name: "Other input" }],
+    relationships: [],
+  });
+  const result = await runValidator(t, dataflow);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Subgraph IDs must be unique/);
+});
+
+test("a document-level diff hunk can be shared across subgraphs", async (t) => {
+  const dataflow = await codeReviewDataflow();
+  dataflow.subgraphs.push({
+    id: "another-flow",
+    name: "Another flow",
+    nodes: [{ ...dataflow.subgraphs[0].nodes[0], name: "Other input" }],
+    relationships: [],
+  });
+  const result = await runValidator(t, dataflow);
+  assert.equal(result.status, 0, result.stderr);
+  dataflow.subgraphs[1].nodes[0].diffHunkIds = ["missing-hunk"];
+  const invalidResult = await runValidator(t, dataflow);
+  assert.notEqual(invalidResult.status, 0);
+  assert.match(invalidResult.stderr, /Unknown diff hunk reference: missing-hunk/);
 });
 
 test("validates a shared diff hunk reference", async (t) => {
@@ -51,7 +96,7 @@ test("validates a shared diff hunk reference", async (t) => {
 
 test("rejects an unknown diff hunk reference", async (t) => {
   const dataflow = await codeReviewDataflow();
-  dataflow.nodes[0].diffHunkIds = ["hunk-missing"];
+  dataflow.subgraphs[0].nodes[0].diffHunkIds = ["hunk-missing"];
   const result = await runValidator(t, dataflow);
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Unknown diff hunk reference: hunk-missing/);

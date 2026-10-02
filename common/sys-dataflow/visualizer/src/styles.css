@@ -246,6 +246,22 @@ button:focus-visible,
   pointer-events: none;
 }
 
+.subgraph {
+  position: absolute;
+  border: 1px solid oklch(0.32 0.028 255);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.subgraph h2 {
+  margin: 16px 26px;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .graph-node {
   position: absolute;
   z-index: 2;

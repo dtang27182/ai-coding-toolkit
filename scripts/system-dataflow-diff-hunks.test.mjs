@@ -35,7 +35,7 @@ function relationship(id, from, to, diffHunkIds) {
 /** Ranker cites two hunks; Policy and the policy-to-ranker flow share a third; Display cites none. */
 function codeReviewDataflow() {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     stage: "code-review",
     feature: "Diff hunk rendering",
     diffHunks: [
@@ -43,15 +43,19 @@ function codeReviewDataflow() {
       { id: "hunk-score", file: "src/delivery/score.ts", patch: "@@ -0,0 +1,2 @@\n+export const score = 1;\n+export const weight = 2;" },
       { id: "hunk-policy", file: "config/policy.yaml", patch: "@@ -3,2 +3,3 @@ handling:\n   days: 1\n+  splitPenalty: 450\n window: 7" },
     ],
-    nodes: [
-      node("Ranker", ["hunk-planner", "hunk-score"]),
-      node("Policy", ["hunk-policy"]),
-      node("Display"),
-    ],
-    relationships: [
-      relationship("policy-to-ranker", "Policy", "Ranker", ["hunk-policy"]),
-      relationship("ranker-to-display", "Ranker", "Display"),
-    ],
+    subgraphs: [{
+      id: "journey-1",
+      name: "Test flow",
+      nodes: [
+        node("Ranker", ["hunk-planner", "hunk-score"]),
+        node("Policy", ["hunk-policy"]),
+        node("Display"),
+      ],
+      relationships: [
+        relationship("policy-to-ranker", "Policy", "Ranker", ["hunk-policy"]),
+        relationship("ranker-to-display", "Ranker", "Display"),
+      ],
+    }],
   };
 }
 
@@ -136,10 +140,18 @@ test("references collect every node and relationship citing a hunk", () => {
   assert.equal(references.size, 3);
 });
 
+test("shared hunk references link to owners in other subgraphs", () => {
+  const dataflow = codeReviewDataflow();
+  dataflow.subgraphs.push({ id: "another-flow", name: "Another flow", nodes: [node("Other processor", ["hunk-policy"])], relationships: [] });
+  assert.deepEqual(hunkReferences(dataflow).get("hunk-policy"), [policy, { type: "node", name: "Other processor" }, policyFlow]);
+  const html = render(policy, ["hunk-policy"], { dataflow, openHunk: { owner: "node:Policy", id: "hunk-policy" } });
+  assert.match(html, /data-jump-node="Other processor"><badge data-processing>/);
+});
+
 test("a dataflow with no hunk references yields no references", () => {
   const dataflow = { ...codeReviewDataflow(), stage: "high-level-design", diffHunks: undefined };
-  dataflow.nodes = dataflow.nodes.map(({ diffHunkIds, ...rest }) => rest);
-  dataflow.relationships = dataflow.relationships.map(({ diffHunkIds, ...rest }) => rest);
+  dataflow.subgraphs[0].nodes = dataflow.subgraphs[0].nodes.map(({ diffHunkIds, ...rest }) => rest);
+  dataflow.subgraphs[0].relationships = dataflow.subgraphs[0].relationships.map(({ diffHunkIds, ...rest }) => rest);
   assert.equal(hunkReferences(dataflow).size, 0);
 });
 

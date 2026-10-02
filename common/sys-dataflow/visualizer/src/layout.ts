@@ -1,4 +1,4 @@
-import type { GraphLayout, Rect, SystemDataflowNode, SystemDataflowRelationship } from "./types.ts";
+import type { GraphLayout, Rect, SystemDataflowNode, SystemDataflowRelationship, SystemDataflowSubgraph } from "./types.ts";
 
 const NODE_WIDTH = 248;
 const NODE_HEIGHT = 92;
@@ -35,7 +35,7 @@ function acyclicRelationships(nodes: SystemDataflowNode[], relationships: System
   return kept;
 }
 
-export function computeLayout(nodes: SystemDataflowNode[], relationships: SystemDataflowRelationship[]): GraphLayout {
+function computeSubgraphLayout(nodes: SystemDataflowNode[], relationships: SystemDataflowRelationship[]): GraphLayout {
   if (nodes.length === 0) {
     return { boxes: new Map(), width: 320, height: 240 };
   }
@@ -77,4 +77,23 @@ export function computeLayout(nodes: SystemDataflowNode[], relationships: System
     width: contentWidth + PADDING * 2,
     height: PADDING * 2 + (maximumRank + 1) * NODE_HEIGHT + maximumRank * GAP_Y,
   };
+}
+
+export function computeLayout(subgraphs: SystemDataflowSubgraph[]): GraphLayout & { subgraphs: Map<string, Rect> } {
+  const boxes = new Map<string, Rect>();
+  const subgraphBoxes = new Map<string, Rect>();
+  const headingHeight = 48;
+  let width = 0;
+  let height = 0;
+  for (const subgraph of subgraphs) {
+    const layout = computeSubgraphLayout(subgraph.nodes, subgraph.relationships);
+    const x = width + (subgraphBoxes.size === 0 ? 0 : GAP_X);
+    subgraphBoxes.set(subgraph.id, { x, y: 0, width: layout.width, height: layout.height + headingHeight });
+    for (const [name, box] of layout.boxes) {
+      boxes.set(name, { ...box, x: box.x + x, y: box.y + headingHeight });
+    }
+    width = x + layout.width;
+    height = Math.max(height, layout.height + headingHeight);
+  }
+  return { boxes, subgraphs: subgraphBoxes, width, height };
 }

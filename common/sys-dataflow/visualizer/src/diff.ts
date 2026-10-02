@@ -59,10 +59,10 @@ export function hunkReferences(dataflow: SystemDataflow): Map<string, Selection[
   const add = (id: string, owner: Selection): void => {
     references.set(id, [...(references.get(id) ?? []), owner]);
   };
-  for (const node of dataflow.nodes) {
+  for (const node of dataflow.subgraphs.flatMap((subgraph) => subgraph.nodes)) {
     for (const id of node.diffHunkIds ?? []) add(id, { type: "node", name: node.name });
   }
-  for (const relationship of dataflow.relationships) {
+  for (const relationship of dataflow.subgraphs.flatMap((subgraph) => subgraph.relationships)) {
     for (const id of relationship.diffHunkIds ?? []) add(id, { type: "relationship", id: relationship.id });
   }
   return references;
@@ -116,7 +116,7 @@ function hunkOwners(owners: Selection[], context: DiffSectionContext): string {
   const links = owners
     .map((owner) => {
       if (owner.type === "node") {
-        const node = context.dataflow.nodes.find((item) => item.name === owner.name);
+        const node = context.dataflow.subgraphs.flatMap((subgraph) => subgraph.nodes).find((item) => item.name === owner.name);
         return `<button class="hunk-owner" data-jump-node="${escapeHtml(owner.name)}">${node === undefined ? "" : context.badge(node.type)}<span>${escapeHtml(owner.name)}</span></button>`;
       } else {
         return `<button class="hunk-owner relationship" data-jump-relationship="${escapeHtml(owner.id)}">${escapeHtml(owner.id)}</button>`;

@@ -12,31 +12,37 @@ const NODE_DIRECTIONS: Record<NodeType, { incoming: boolean; outgoing: boolean }
 };
 
 export function semanticError(value: SystemDataflow): string | undefined {
-  const names = value.nodes.map((node) => node.name);
-  const relationshipIds = value.relationships.map((relationship) => relationship.id);
+  const subgraphIds = value.subgraphs.map((subgraph) => subgraph.id);
+  const names = value.subgraphs.flatMap((subgraph) => subgraph.nodes.map((node) => node.name));
+  const relationshipIds = value.subgraphs.flatMap((subgraph) => subgraph.relationships.map((relationship) => relationship.id));
   let error: string | undefined;
-  if (new Set(names).size !== names.length) {
+  if (new Set(subgraphIds).size !== subgraphIds.length) {
+    error = "Subgraph IDs must be unique.";
+  } else if (new Set(names).size !== names.length) {
     error = "Node names must be unique.";
   } else if (new Set(relationshipIds).size !== relationshipIds.length) {
     error = "Relationship IDs must be unique.";
   } else {
-    const nodesByName = new Map(value.nodes.map((node) => [node.name, node]));
-    for (const relationship of value.relationships) {
-      const source = nodesByName.get(relationship.from);
-      const destination = nodesByName.get(relationship.to);
-      if (source === undefined) {
-        error = `Relationship “${relationship.id}” references unknown source node “${relationship.from}”.`;
-        break;
-      } else if (destination === undefined) {
-        error = `Relationship “${relationship.id}” references unknown destination node “${relationship.to}”.`;
-        break;
-      } else if (!NODE_DIRECTIONS[source.type].outgoing) {
-        error = `Relationship “${relationship.id}” cannot leave ${source.type} node “${source.name}”.`;
-        break;
-      } else if (!NODE_DIRECTIONS[destination.type].incoming) {
-        error = `Relationship “${relationship.id}” cannot enter ${destination.type} node “${destination.name}”.`;
-        break;
+    for (const subgraph of value.subgraphs) {
+      const nodesByName = new Map(subgraph.nodes.map((node) => [node.name, node]));
+      for (const relationship of subgraph.relationships) {
+        const source = nodesByName.get(relationship.from);
+        const destination = nodesByName.get(relationship.to);
+        if (source === undefined) {
+          error = `Relationship “${relationship.id}” references unknown source node “${relationship.from}”.`;
+          break;
+        } else if (destination === undefined) {
+          error = `Relationship “${relationship.id}” references unknown destination node “${relationship.to}”.`;
+          break;
+        } else if (!NODE_DIRECTIONS[source.type].outgoing) {
+          error = `Relationship “${relationship.id}” cannot leave ${source.type} node “${source.name}”.`;
+          break;
+        } else if (!NODE_DIRECTIONS[destination.type].incoming) {
+          error = `Relationship “${relationship.id}” cannot enter ${destination.type} node “${destination.name}”.`;
+          break;
+        }
       }
+      if (error !== undefined) break;
     }
   }
   return error;

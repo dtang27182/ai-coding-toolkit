@@ -6,6 +6,7 @@ import test from "node:test";
 import Ajv2020 from "ajv/dist/2020.js";
 import { findNewestSystemDataflow } from "../common/sys-dataflow/visualizer/default-system-dataflow.mjs";
 import { semanticError } from "../common/sys-dataflow/visualizer/src/validation.ts";
+import { computeLayout } from "../common/sys-dataflow/visualizer/src/layout.ts";
 
 const example = JSON.parse(await readFile(new URL("../common/sys-dataflow/sys-dataflow.example.json", import.meta.url), "utf8"));
 const schema = JSON.parse(await readFile(new URL("../common/sys-dataflow/sys-dataflow.schema.json", import.meta.url), "utf8"));
@@ -32,17 +33,21 @@ function dataflow(type, direction) {
   const endpoint = node(type, "Endpoint");
   const processor = node("data-processing", "Processor");
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     stage: "high-level-design",
     feature: "Direction validation",
-    nodes: [endpoint, processor],
-    relationships: [{
-      id: "relationship-1",
-      from: direction === "outgoing" ? endpoint.name : processor.name,
-      to: direction === "outgoing" ? processor.name : endpoint.name,
-      type: "dataflow",
-      data: "Test data",
-      purpose: "Verify the permitted direction.",
+    subgraphs: [{
+      id: "journey-1",
+      name: "Test flow",
+      nodes: [endpoint, processor],
+      relationships: [{
+        id: "relationship-1",
+        from: direction === "outgoing" ? endpoint.name : processor.name,
+        to: direction === "outgoing" ? processor.name : endpoint.name,
+        type: "dataflow",
+        data: "Test data",
+        purpose: "Verify the permitted direction.",
+      }],
     }],
   };
 }
@@ -52,9 +57,92 @@ test("the example satisfies schema and direction validation", () => {
   assert.equal(semanticError(example), undefined);
 });
 
+test("requires explicit named subgraphs and rejects the flat format", () => {
+  const value = structuredClone(example);
+  value.schemaVersion = 2;
+  value.nodes = value.subgraphs[0].nodes;
+  value.relationships = value.subgraphs[0].relationships;
+  delete value.subgraphs;
+  assert.equal(validate(value), false);
+
+  for (const field of ["id", "name", "nodes", "relationships"]) {
+    const value = structuredClone(example);
+    delete value.subgraphs[0][field];
+    assert.equal(validate(value), false, `Subgraphs must contain ${field}`);
+  }
+});
+
+test("rejects duplicate subgraph IDs and document-wide node names and relationship IDs", () => {
+  for (const duplicate of ["subgraph", "node", "relationship"]) {
+    const value = dataflow("user-input", "outgoing");
+    value.subgraphs.push({
+      id: duplicate === "subgraph" ? value.subgraphs[0].id : "another-flow",
+      name: "Another flow",
+      nodes: [node("user-input", duplicate === "node" ? "Endpoint" : "Another input"), node("user-output", "Another output")],
+      relationships: [{
+        ...value.subgraphs[0].relationships[0],
+        id: duplicate === "relationship" ? value.subgraphs[0].relationships[0].id : "another-relationship",
+        from: duplicate === "node" ? "Endpoint" : "Another input",
+        to: "Another output",
+      }],
+    });
+    assert.equal(validate(value), true, JSON.stringify(validate.errors));
+    assert.match(semanticError(value), /must be unique/);
+  }
+});
+
+test("relationship endpoints must belong to their containing subgraph", () => {
+  for (const endpoint of ["from", "to"]) {
+    const value = dataflow("user-input", "outgoing");
+    value.subgraphs.push({ id: "another-flow", name: "Another flow", nodes: [node("system-state", "Other state")], relationships: [] });
+    assert.equal(semanticError(value), undefined);
+    value.subgraphs[0].relationships[0][endpoint] = "Other state";
+    assert.equal(validate(value), true, JSON.stringify(validate.errors));
+    assert.match(semanticError(value), /references unknown (source|destination) node “Other state”/);
+  }
+});
+
+test("high-level-design nodes and relationships cannot reference diff hunks inside subgraphs", () => {
+  for (const collection of ["nodes", "relationships"]) {
+    const value = structuredClone(example);
+    value.subgraphs[0][collection][0].diffHunkIds = ["hunk-1"];
+    assert.equal(validate(value), false);
+  }
+});
+
+test("lays out explicit subgraphs separately in document order", () => {
+  const subgraphs = [
+    { id: "first", name: "First flow", nodes: [node("user-input", "Start"), node("user-output", "Finish")], relationships: [{ id: "transfer", from: "Start", to: "Finish" }] },
+    { id: "second", name: "Second flow", nodes: [node("system-state", "Independent state")], relationships: [] },
+    { id: "third", name: "Third flow", nodes: [node("user-input", "Other input")], relationships: [] },
+  ];
+  const layout = computeLayout(subgraphs);
+  let previousRight = 0;
+  for (const subgraph of subgraphs) {
+    const bounds = layout.subgraphs.get(subgraph.id);
+    assert.ok(bounds.x >= previousRight);
+    for (const node of subgraph.nodes) {
+      const box = layout.boxes.get(node.name);
+      assert.ok(box.x >= bounds.x && box.x + box.width <= bounds.x + bounds.width);
+      assert.ok(box.y > bounds.y && box.y + box.height <= bounds.y + bounds.height);
+    }
+    previousRight = bounds.x + bounds.width;
+  }
+  assert.equal(layout.width, previousRight);
+  assert.ok(layout.boxes.get("Finish").y > layout.boxes.get("Start").y);
+  assert.equal(layout.boxes.get("Independent state").y, layout.boxes.get("Other input").y);
+});
+
+test("keeps subgraph bounds when filters leave it empty", () => {
+  const layout = computeLayout([{ id: "filtered-flow", name: "Filtered flow", nodes: [], relationships: [] }]);
+  assert.equal(layout.boxes.size, 0);
+  assert.ok(layout.subgraphs.get("filtered-flow").width > 0);
+  assert.ok(layout.width > 0 && layout.height > 0);
+});
+
 test("processing nodes require pseudo-code and reject the old algorithm field", () => {
   const value = structuredClone(example);
-  const processing = value.nodes.find((node) => node.type === "data-processing");
+  const processing = value.subgraphs[0].nodes.find((node) => node.type === "data-processing");
   delete processing["pseudo-code"];
   assert.equal(validate(value), false);
 
@@ -65,7 +153,7 @@ test("processing nodes require pseudo-code and reject the old algorithm field", 
   assert.equal(validate(value), false);
 
   delete processing.algorithm;
-  value.nodes[0]["pseudo-code"] = "result = transform(input)";
+  value.subgraphs[0].nodes[0]["pseudo-code"] = "result = transform(input)";
   assert.equal(validate(value), false);
 });
 

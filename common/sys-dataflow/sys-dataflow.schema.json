@@ -8,13 +8,12 @@
     "schemaVersion",
     "stage",
     "feature",
-    "nodes",
-    "relationships"
+    "subgraphs"
   ],
   "properties": {
     "schemaVersion": {
       "description": "Version of the System Dataflow schema used by this document.",
-      "const": 2
+      "const": 3
     },
     "stage": {
       "description": "The development stage represented by the dataflow: proposed behavior during high-level design or implemented behavior during code review.",
@@ -35,19 +34,12 @@
         "$ref": "#/$defs/diffHunk"
       }
     },
-    "nodes": {
-      "description": "User inputs and outputs, external dependencies, system inputs and outputs, persistent state, static data, and critical data processing in the dataflow.",
+    "subgraphs": {
+      "description": "Explicit subgraphs in display order, each owning its nodes and relationships. Membership is defined by containment, not node names or connectivity.",
       "type": "array",
       "minItems": 1,
       "items": {
-        "$ref": "#/$defs/node"
-      }
-    },
-    "relationships": {
-      "description": "Directed data flows connecting the nodes.",
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/relationship"
+        "$ref": "#/$defs/subgraph"
       }
     }
   },
@@ -75,25 +67,33 @@
           ]
         },
         "properties": {
-          "nodes": {
+          "subgraphs": {
             "type": "array",
             "items": {
               "type": "object",
-              "not": {
-                "required": [
-                  "diffHunkIds"
-                ]
-              }
-            }
-          },
-          "relationships": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "not": {
-                "required": [
-                  "diffHunkIds"
-                ]
+              "properties": {
+                "nodes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "not": {
+                      "required": [
+                        "diffHunkIds"
+                      ]
+                    }
+                  }
+                },
+                "relationships": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "not": {
+                      "required": [
+                        "diffHunkIds"
+                      ]
+                    }
+                  }
+                }
               }
             }
           }
@@ -102,6 +102,44 @@
     }
   ],
   "$defs": {
+    "subgraph": {
+      "description": "One named flow. All relationship endpoints must belong to this subgraph; node names and relationship IDs remain unique across the document.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "nodes",
+        "relationships"
+      ],
+      "properties": {
+        "id": {
+          "description": "Unique identifier for the subgraph within the document.",
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "description": "Display title describing the journey or user flow.",
+          "type": "string",
+          "minLength": 1
+        },
+        "nodes": {
+          "description": "User inputs and outputs, external dependencies, system inputs and outputs, persistent state, static data, and critical data processing in the dataflow.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        },
+        "relationships": {
+          "description": "Directed data flows connecting the nodes.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relationship"
+          }
+        }
+      }
+    },
     "diffHunk": {
       "description": "One exact unified diff hunk from the comparison represented by a code-review dataflow.",
       "type": "object",

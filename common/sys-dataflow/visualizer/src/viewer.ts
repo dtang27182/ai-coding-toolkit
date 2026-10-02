@@ -12,6 +12,7 @@ import type {
   SystemDataflow,
   SystemDataflowNode,
   SystemDataflowRelationship,
+  SystemDataflowSubgraph,
 } from "./types.ts";
 import { semanticError } from "./validation.ts";
 import { droppedJsonFile, pickJsonFile, supportsJsonFileHandles, watchOpenedJson, type JsonFileHandle } from "../../../watch-opened-json.ts";
@@ -96,16 +97,23 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
     }
   }
 
-  function visibleDataflow(): { nodes: SystemDataflowNode[]; relationships: SystemDataflowRelationship[] } {
-    const nodes = showUnchanged ? dataflow.nodes : dataflow.nodes.filter((node) => node.changeType !== "unchanged");
-    const nodeNames = new Set(nodes.map((node) => node.name));
-    const relationships = dataflow.relationships.filter(
-      (relationship) =>
-        (showUnchanged || relationship.changeType !== "unchanged") &&
-        nodeNames.has(relationship.from) &&
-        nodeNames.has(relationship.to),
-    );
-    return { nodes, relationships };
+  function visibleDataflow(): { subgraphs: SystemDataflowSubgraph[]; nodes: SystemDataflowNode[]; relationships: SystemDataflowRelationship[] } {
+    const subgraphs = dataflow.subgraphs.map((subgraph) => {
+      const nodes = showUnchanged ? subgraph.nodes : subgraph.nodes.filter((node) => node.changeType !== "unchanged");
+      const nodeNames = new Set(nodes.map((node) => node.name));
+      const relationships = subgraph.relationships.filter(
+        (relationship) =>
+          (showUnchanged || relationship.changeType !== "unchanged") &&
+          nodeNames.has(relationship.from) &&
+          nodeNames.has(relationship.to),
+      );
+      return { ...subgraph, nodes, relationships };
+    });
+    return {
+      subgraphs,
+      nodes: subgraphs.flatMap((subgraph) => subgraph.nodes),
+      relationships: subgraphs.flatMap((subgraph) => subgraph.relationships),
+    };
   }
 
   function related(relationship: SystemDataflowRelationship, value: Selection | undefined): boolean {
@@ -192,7 +200,7 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
 
   function renderGraph(): string {
     const graph = visibleDataflow();
-    const layout = computeLayout(graph.nodes, graph.relationships);
+    const layout = computeLayout(graph.subgraphs);
     graphWidth = layout.width;
     graphHeight = layout.height;
     const focus = hovered ?? selection;
@@ -281,6 +289,10 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
       ${graph.nodes.length === 0 ? '<div class="empty-graph">No nodes match the current filters</div>' : ""}
       <div class="graph" style="left:calc(50% + ${panX}px);top:calc(50% + ${panY}px);width:${layout.width}px;height:${layout.height}px;transform:translate(-50%, -50%) scale(${zoom})">
         <svg class="graph-svg" width="${layout.width}" height="${layout.height}" aria-hidden="true"><defs>${renderMarkers()}</defs>${edges}</svg>
+        ${graph.subgraphs.map((subgraph) => {
+          const box = layout.subgraphs.get(subgraph.id)!;
+          return `<section class="subgraph" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px" aria-label="${escapeHtml(subgraph.name)}"><h2>${escapeHtml(subgraph.name)}</h2></section>`;
+        }).join("")}
         ${nodes}
       </div>
     </div>`;
@@ -366,10 +378,10 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
     if (inspected === undefined) {
       return renderOverview();
     } else if (inspected.type === "node") {
-      const node = dataflow.nodes.find((item) => item.name === inspected.name)!;
+      const node = dataflow.subgraphs.flatMap((subgraph) => subgraph.nodes).find((item) => item.name === inspected.name)!;
       const type = NODE_TYPES[node.type];
-      const incoming = dataflow.relationships.filter((relationship) => relationship.to === node.name);
-      const outgoing = dataflow.relationships.filter((relationship) => relationship.from === node.name);
+      const incoming = dataflow.subgraphs.flatMap((subgraph) => subgraph.relationships).filter((relationship) => relationship.to === node.name);
+      const outgoing = dataflow.subgraphs.flatMap((subgraph) => subgraph.relationships).filter((relationship) => relationship.from === node.name);
       const pseudoCode = node["pseudo-code"] === undefined ? "" : section("Pseudo-code", `<pre class="pseudo-code">${escapeHtml(node["pseudo-code"])}</pre>`);
       return `${inspectorHeader(type.label, node.name, node.changeType, node.medium, node.type)}
         ${diffSection({ type: "node", name: node.name }, node.diffHunkIds)}
@@ -379,9 +391,9 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
         ${section("Data in", relationshipRows(incoming, "in"), incoming.length)}
         ${section("Data out", relationshipRows(outgoing, "out"), outgoing.length)}`;
     } else {
-      const relationship = dataflow.relationships.find((item) => item.id === inspected.id)!;
-      const source = dataflow.nodes.find((item) => item.name === relationship.from);
-      const destination = dataflow.nodes.find((item) => item.name === relationship.to);
+      const relationship = dataflow.subgraphs.flatMap((subgraph) => subgraph.relationships).find((item) => item.id === inspected.id)!;
+      const source = dataflow.subgraphs.flatMap((subgraph) => subgraph.nodes).find((item) => item.name === relationship.from);
+      const destination = dataflow.subgraphs.flatMap((subgraph) => subgraph.nodes).find((item) => item.name === relationship.to);
       const endpoint = (role: string, name: string, node: SystemDataflowNode | undefined): string =>
         `<button data-jump-node="${escapeHtml(name)}"><span class="endpoint-role">${role}</span>${node === undefined ? "" : typeBadge(node.type)}<span class="endpoint-name">${escapeHtml(name)}</span></button>`;
       return `${inspectorHeader("Dataflow", `${relationship.from} → ${relationship.to}`, relationship.changeType, relationship.id)}
@@ -404,7 +416,7 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
   }
 
   function render(): void {
-    const hasUnchanged = dataflow.nodes.some((node) => node.changeType === "unchanged") || dataflow.relationships.some((relationship) => relationship.changeType === "unchanged");
+    const hasUnchanged = dataflow.subgraphs.flatMap((subgraph) => subgraph.nodes).some((node) => node.changeType === "unchanged") || dataflow.subgraphs.flatMap((subgraph) => subgraph.relationships).some((relationship) => relationship.changeType === "unchanged");
     app.innerHTML = `<div class="app-shell">
       <header class="topbar">
         <div class="brand-block">
