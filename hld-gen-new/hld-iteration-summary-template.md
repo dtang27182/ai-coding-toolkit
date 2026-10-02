@@ -1,14 +1,21 @@
 # <feature> HLD Iteration Summary
 
-## Desired Behavior
+## Design Guidelines
+
+- <intended level of detail>
+- Exclude error handling paths.
+
+## High Level Requirements
+
+### Desired Behavior
 
 <desired behavior>
 
-## Scope and Assumptions
+### Scope and Assumptions
 
 <scope and assumptions>
 
-## User Journeys
+### User Journeys
 
 <user journeys>
 

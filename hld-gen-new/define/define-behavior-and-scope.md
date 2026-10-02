@@ -1,20 +1,22 @@
 # Define Behavior and Scope
 
-Populate the `Desired Behavior`, `Scope and Assumptions`, `User Journeys`, `Detailed Requirements`, and `Clarification Questions` sections in `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md`. The confirmed behavior, scope, user journeys, and detailed requirements are the source of truth for every candidate design.
+Populate the `High Level Requirements` subsections (`Desired Behavior`, `Scope and Assumptions`, and `User Journeys`), `Detailed Requirements`, and `Clarification Questions` in `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md`. Apply the summary's `Design Guidelines` to `High Level Requirements`. The confirmed high-level requirements are the source of truth for every candidate design; detailed requirements guide implementation after design selection.
 
 Read the feature context from chat, relevant code, and repository guidance. Use the current code to understand existing behavior and constraints, not to choose an implementation. Preserve explicit requirements and decisions without adding design choices that the request does not require.
 
-## Desired Behavior
+## High Level Requirements
+
+### Desired Behavior
 
 - Use concise bullets for intended outcomes, core use cases, and externally observable behavior.
 
-## Scope and Assumptions
+### Scope and Assumptions
 
 - State what is beyond the scope of the design as it relates to the Desired Behavior.
 - Identify related existing behaviors that are in scope for modification and those that must remain unchanged while realizing the Desired Behavior.
 - State assumptions needed to interpret the Desired Behavior that the user did not explicitly provide. Keep assumptions independent of candidate design choices, and ask the user to resolve any uncertainty that could materially change the behavior or scope.
 
-## User Journeys
+### User Journeys
 
 - Identify one or more user journeys from Desired Behavior, using Scope and Assumptions to constrain their interpretation.
 - A user journey describes one or more actions and their user-visible outputs or effects that together create a useful result for the user. Omit implementation details.
@@ -25,7 +27,7 @@ Read the feature context from chat, relevant code, and repository guidance. Use 
 
 ## Detailed Requirements
 
-- Record explicit requirements from the user request and supplied references that need more detail than Desired Behavior, Scope and Assumptions, or User Journeys, such as UI controls, copy, formatting, validation rules, and error handling.
+- Record explicit requirements for implementation after design selection, such as UI controls, copy, formatting, validation rules, and error handling. Preserve requirements from the user request and supplied references even when `Design Guidelines` exclude those details from the HLD design.
 - Use concise bullets, grouping related requirements as needed. Preserve required details without repeating the higher-level sections or adding unspecified behavior or implementation choices.
 - Write `None` when no detailed requirements are specified.
 
