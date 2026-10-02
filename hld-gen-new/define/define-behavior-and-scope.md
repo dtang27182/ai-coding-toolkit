@@ -13,6 +13,7 @@ Use the current code to understand existing behavior and constraints, not to cho
 ### Desired Behavior
 
 - Use concise bullets for intended outcomes, core use cases, and externally observable behavior.
+- Do not mention existing behavior that should stay unchanged. Existing behavior not mentioned here is implicitly assumed to remain as is.
 
 ### Scope and Assumptions
 
