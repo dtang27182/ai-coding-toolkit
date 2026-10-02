@@ -1,6 +1,6 @@
 # Define Behavior and Scope
 
-Populate the `Desired Behavior`, `Scope and Assumptions`, `User Journeys`, and `Clarification Questions` sections in `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md`. The confirmed behavior, scope, and user journeys are the source of truth for every candidate design.
+Populate the `Desired Behavior`, `Scope and Assumptions`, `User Journeys`, `Detailed Requirements`, and `Clarification Questions` sections in `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md`. The confirmed behavior, scope, user journeys, and detailed requirements are the source of truth for every candidate design.
 
 Read the feature context from chat, relevant code, and repository guidance. Use the current code to understand existing behavior and constraints, not to choose an implementation. Preserve explicit requirements and decisions without adding design choices that the request does not require.
 
@@ -22,6 +22,12 @@ Read the feature context from chat, relevant code, and repository guidance. Use 
 - Keep actions in one journey when the user is working toward one goal and later actions depend on what they did or saw earlier. Separate actions that create distinct useful results. Do not translate Desired Behavior point by point.
 - Do not make separate journeys for constraints, storage choices, intermediate system behavior, or variations of the same journey.
 - Write User Journeys as a numbered list, giving each journey a short name.
+
+## Detailed Requirements
+
+- Record explicit requirements from the user request and supplied references that need more detail than Desired Behavior, Scope and Assumptions, or User Journeys, such as UI controls, copy, formatting, validation rules, and error handling.
+- Use concise bullets, grouping related requirements as needed. Preserve required details without repeating the higher-level sections or adding unspecified behavior or implementation choices.
+- Write `None` when no detailed requirements are specified.
 
 ## Clarification Questions
 

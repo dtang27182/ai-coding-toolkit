@@ -12,6 +12,10 @@
 
 <user journeys>
 
+## Detailed Requirements
+
+<detailed requirements or None>
+
 ## User Flows
 
 <user flows>

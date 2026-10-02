@@ -12,6 +12,10 @@
 
 <user journeys>
 
+## Detailed Requirements
+
+<detailed requirements or None>
+
 ## Clarification Questions
 
 <clarification questions or None>
