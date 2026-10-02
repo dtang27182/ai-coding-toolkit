@@ -21,7 +21,7 @@
 
 ## Detailed Requirements
 
-<detailed requirements or None>
+[Detailed Requirements](<feature>.detailed-requirements.md)
 
 ## Clarification Questions
 

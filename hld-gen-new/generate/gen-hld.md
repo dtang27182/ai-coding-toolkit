@@ -14,12 +14,12 @@ Apply `Design Guidelines` to every generated section and artifact. Constrain the
 3. Replace `<feature>` in the HLD doc.
 4. Copy `Design Guidelines` verbatim from the iteration summary.
 5. Copy `High Level Requirements`, including all three subsections, verbatim from the iteration summary.
-6. Leave `Detailed Requirements` unfilled for the caller to populate after design selection.
+6. Set the Detailed Requirements link to `../../../<feature>.detailed-requirements.md`, referencing the shared file without using its contents for design generation.
 7. Fill User Flows by following `ai-coding-toolkit/hld-gen-new/generate/gen-user-flows.md`.
 8. Fill Design Context and Related Workflows by following `ai-coding-toolkit/hld-gen-new/generate/gen-design-context.md`.
 9. Generate the sys-dataflow by following `ai-coding-toolkit/hld-gen-new/generate/gen-sys-dataflow.md`.
 10. Use the validated sys-dataflow JSON to generate the Implementation Dataflow narrative and JSON by following `ai-coding-toolkit/hld-gen-new/generate/gen-impl-dataflow.md`. Preserve earlier candidates and iterations.
-11. After all three artifacts exist, run `node ai-coding-toolkit/hld-gen-new/generate/write-hld-manifest.mjs <candidate-hld-path>` to write `<feature>.hld-manifest.json` beside them. Its `hld`, `sysDataflow`, and `implDataflow` fields contain absolute paths.
+11. After the HLD and both dataflows exist, run `node ai-coding-toolkit/hld-gen-new/generate/write-hld-manifest.mjs <candidate-hld-path> <outputDirectory>/<feature>/<feature>.detailed-requirements.md` to write `<feature>.hld-manifest.json` beside them. Its `hld`, `sysDataflow`, `implDataflow`, and `detailedRequirements` fields contain absolute paths.
 
 ## Report the Result
 

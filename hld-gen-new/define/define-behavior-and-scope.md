@@ -1,8 +1,12 @@
 # Define Behavior and Scope
 
-Populate the `High Level Requirements` subsections (`Desired Behavior`, `Scope and Assumptions`, and `User Journeys`), `Detailed Requirements`, and `Clarification Questions` in `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md`. Apply the summary's `Design Guidelines` to `High Level Requirements`. The confirmed high-level requirements are the source of truth for every candidate design; detailed requirements guide implementation after design selection.
+1. Read `Design Guidelines` in `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md` to understand the intended level of detail and exclusions.
+2. Read the feature context from chat, relevant code, and repository guidance. Generate the requirements, using `Design Guidelines` to decide which relevant information belongs in `High Level Requirements` and which belongs in `Detailed Requirements`.
+   - Populate the iteration summary's `High Level Requirements` subsections: `Desired Behavior`, `Scope and Assumptions`, and `User Journeys`.
+   - Write Detailed Requirements in `<outputDirectory>/<feature>/<feature>.detailed-requirements.md` and link to it from the summary's `Detailed Requirements` section.
+   - Record unresolved questions in the summary's `Clarification Questions` section.
 
-Read the feature context from chat, relevant code, and repository guidance. Use the current code to understand existing behavior and constraints, not to choose an implementation. Preserve explicit requirements and decisions without adding design choices that the request does not require.
+Use the current code to understand existing behavior and constraints, not to choose an implementation. Preserve explicit requirements and decisions without adding design choices that the request does not require. The confirmed high-level requirements are the source of truth for every candidate design; detailed requirements guide implementation after design selection.
 
 ## High Level Requirements
 
@@ -27,6 +31,7 @@ Read the feature context from chat, relevant code, and repository guidance. Use 
 
 ## Detailed Requirements
 
+- Title the separate file `# <feature> Detailed Requirements`.
 - Record explicit requirements for implementation after design selection, such as UI controls, copy, formatting, validation rules, and error handling. Preserve requirements from the user request and supplied references even when `Design Guidelines` exclude those details from the HLD design.
 - Use concise bullets, grouping related requirements as needed. Preserve required details without repeating the higher-level sections or adding unspecified behavior or implementation choices.
 - Write `None` when no detailed requirements are specified.
