@@ -23,6 +23,10 @@
 
 [Detailed Requirements](<feature>.detailed-requirements.md)
 
+## Clarification Questions
+
+<clarification questions or None>
+
 ## Design Context and Related Workflows
 
 <design context and related workflows>
@@ -39,7 +43,7 @@
 
 ## Implementation Instructions
 
-For the coding agent implementing this HLD after design selection:
+For the coding agent implementing this HLD after design handoff:
 
 1. Read this HLD, its linked Detailed Requirements, System Dataflow, and Implementation Dataflow artifacts, and the relevant code and repository guidance.
 2. Make the change as specified by the HLD and flesh out the implementation as necessary to satisfy the Detailed Requirements. Design Guidelines limit the HLD's detail, not the implementation requirements.

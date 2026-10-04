@@ -1,12 +1,12 @@
 # Define Behavior and Scope
 
-1. Read `Design Guidelines` in `<outputDirectory>/<feature>/<feature>.hld-iteration-summary.md` to understand the intended level of detail and exclusions.
+1. Read `Design Guidelines` in `<outputDirectory>/<feature>/<feature>.hld.md` to understand the intended level of detail and exclusions.
 2. Read the feature context from chat, relevant code, and repository guidance. Generate the requirements, using `Design Guidelines` to decide which relevant information belongs in `High Level Requirements` and which belongs in `Detailed Requirements`.
-   - Populate the iteration summary's `High Level Requirements` subsections: `Desired Behavior`, `Scope and Assumptions`, and `User Journeys`.
-   - Write Detailed Requirements in `<outputDirectory>/<feature>/<feature>.detailed-requirements.md` and link to it from the summary's `Detailed Requirements` section.
-   - Record unresolved questions in the summary's `Clarification Questions` section.
+   - Populate the HLD's `High Level Requirements` subsections: `Desired Behavior`, `Scope and Assumptions`, and `User Journeys`.
+   - Write Detailed Requirements in `<outputDirectory>/<feature>/<feature>.detailed-requirements.md` and link to it from the HLD's `Detailed Requirements` section.
+   - Record unresolved questions in the HLD's `Clarification Questions` section.
 
-Use the current code to understand existing behavior and constraints, not to choose an implementation. Preserve explicit requirements and decisions without adding design choices that the request does not require. The confirmed high-level requirements are the source of truth for every candidate design; detailed requirements guide implementation after design selection.
+Use the current code to understand existing behavior and constraints, not to choose an implementation. Preserve explicit requirements and decisions without adding design choices that the request does not require. The confirmed high-level requirements are the source of truth for the design; detailed requirements guide implementation after design handoff.
 
 ## High Level Requirements
 
@@ -19,7 +19,7 @@ Use the current code to understand existing behavior and constraints, not to cho
 
 - State what is beyond the scope of the design as it relates to the Desired Behavior.
 - Identify related existing behaviors that are in scope for modification and those that must remain unchanged while realizing the Desired Behavior.
-- State assumptions needed to interpret the Desired Behavior that the user did not explicitly provide. Keep assumptions independent of candidate design choices, and ask the user to resolve any uncertainty that could materially change the behavior or scope.
+- State assumptions needed to interpret the Desired Behavior that the user did not explicitly provide. Keep assumptions independent of design choices, and ask the user to resolve any uncertainty that could materially change the behavior or scope.
 
 ### User Journeys
 
@@ -33,7 +33,7 @@ Use the current code to understand existing behavior and constraints, not to cho
 ## Detailed Requirements
 
 - Title the separate file `# <feature> Detailed Requirements`.
-- Record explicit requirements for implementation after design selection, such as UI controls, copy, formatting, validation rules, and error handling. Preserve requirements from the user request and supplied references even when `Design Guidelines` exclude those details from the HLD design.
+- Record explicit requirements for implementation after design handoff, such as UI controls, copy, formatting, validation rules, and error handling. Preserve requirements from the user request and supplied references even when `Design Guidelines` exclude those details from the HLD design.
 - Use concise bullets, grouping related requirements as needed. Preserve required details without repeating the higher-level sections or adding unspecified behavior or implementation choices.
 - Write `None` when no detailed requirements are specified.
 

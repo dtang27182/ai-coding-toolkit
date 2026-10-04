@@ -8,7 +8,7 @@ Design how the system will realize each User Journey by building and refining `<
 
 Use two primary inputs:
 
-- **User Journeys:** Read the candidate HLD doc's User Journeys to identify the user actions, outputs, required system effects, and useful results the design must realize. Apply the Desired Behavior, Scope and Assumptions, and Design Guidelines sections as constraints.
+- **User Journeys:** Read the HLD doc's User Journeys to identify the user actions, outputs, required system effects, and useful results the design must realize. Apply the Desired Behavior, Scope and Assumptions, and Design Guidelines sections as constraints.
 - **Current codebase:** Read the relevant code and enough surrounding code to understand the existing dataflow, state, and external dependencies. Use Design Context and Related Workflows to locate relevant paths without expanding the design's scope.
 
 Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.schema.json` and `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.example.json` to understand the graph's node types, relationship format, and permitted directions.
@@ -23,7 +23,7 @@ Initialize `<feature>.sys-dataflow.json` with `schemaVersion` set to `3`, `stage
 - Start each subgraph with a `user-input` node for the journey's first user action. Include later `user-input` nodes for its other user actions and `system-input` nodes for externally supplied inputs needed by the journey.
 - Explicitly capture the journey's useful result and required effects as `user-output` nodes, `system-output` nodes, or `dataflow` relationships into `system-state` nodes. Stop tracing once these outputs and state updates are represented. Do not follow unchanged downstream behavior or related workflows outside the journey.
 - Never include one-time initialization, dependency setup, or object construction that occurs before the triggering `user-input` or `system-input`.
-- Do not import design choices from other candidates or expand the graph to cover related workflows described only as context.
+- Do not expand the graph to cover related workflows described only as context.
 
 ### Decide What to Reuse, Modify, or Add
 

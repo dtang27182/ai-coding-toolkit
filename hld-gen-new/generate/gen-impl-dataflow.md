@@ -2,7 +2,7 @@
 
 `impl-dataflow` is shorthand for implementation dataflow.
 
-Use the validated `<feature>.sys-dataflow.json` beside the candidate HLD doc to design the implementation changes that complete its User Journeys. Read the relevant code, then write and verify the Implementation Dataflow narrative before generating its `impl-dataflow` JSON.
+Use the validated `<feature>.sys-dataflow.json` beside the HLD doc to design the implementation changes that complete its User Journeys. Read the relevant code, then write and verify the Implementation Dataflow narrative before generating its `impl-dataflow` JSON.
 
 ## Write the Implementation Dataflow Narrative
 
@@ -43,6 +43,6 @@ After the Implementation Dataflow narrative is complete, create `<feature>.impl-
 
 - Treat the narrative as the authoritative design, not an exhaustive inventory. Represent every entity, relationship, and change needed to realize it, using its entity identities. Fill in individual dataflows, state accesses, and other details the narrative leaves implicit from the current code, but make no design decisions it lacks.
 - Add `composition` relationships between represented classes where one owns the other. Find existing ownership in the current code; for added classes, use the ownership the narrative gives, or decide it and add it to the narrative.
-- Set `stage` to `high-level-design` and every class's `variableExposure` to `null`. Omit derived counts until evaluation.
+- Set `stage` to `high-level-design` and every class's `variableExposure` to `null`. Omit derived counts; this workflow does not calculate quantitative quality metrics.
 - Omit `userFlows`. Set `userFlow` on functions, state variables, components, static data, and non-composition relationships according to whether they participate in a User Journey's path from its trigger to a required output or system effect; setup and ownership alone do not qualify.
 - If the representation exposes a design gap, update the narrative before continuing rather than revising the design only in the JSON.
