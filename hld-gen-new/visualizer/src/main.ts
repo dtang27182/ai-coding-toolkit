@@ -9,6 +9,7 @@ let activeView: View = "system";
 let manifestName: string | undefined;
 let manifestError: string | undefined;
 let manifestValue: unknown;
+let manifestIsRepositoryFile = false;
 let systemFile: { value: unknown; name: string } | undefined;
 let implementationFile: { value: unknown; name: string } | undefined;
 let openedRepositoryFiles: string[] = [];
@@ -81,8 +82,9 @@ async function openManifest(value: unknown, name: string, repositoryFile = false
     app.querySelector<HTMLIFrameElement>('[data-panel="implementation"] iframe')!.contentWindow?.postMessage({ type: "load-impl-dataflow", ...implementationFile }, location.origin);
     manifestName = name;
     manifestValue = value;
+    manifestIsRepositoryFile = repositoryFile;
     manifestError = undefined;
-    openedRepositoryFiles = repositoryFile ? [name, system.fileName, implementation.fileName] : [];
+    openedRepositoryFiles = repositoryFile ? [name, system.fileName, implementation.fileName] : [system.fileName, implementation.fileName];
   } catch (error) {
     manifestError = `Could not open HLD manifest: ${error instanceof Error ? error.message : String(error)}`;
   }
@@ -196,7 +198,7 @@ import.meta.hot?.on("hld-dataflow:file-change", (update: { fileName: string; con
         syncHeader();
       }
     } else {
-      void openManifest(manifestValue, manifestName!, true);
+      void openManifest(manifestValue, manifestName!, manifestIsRepositoryFile);
     }
   }
 });

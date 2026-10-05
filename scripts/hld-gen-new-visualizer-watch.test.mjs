@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { stripTypeScriptTypes } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 
+import { hldManifestReferences } from "../hld-gen-new/visualizer/src/hld-manifest.ts";
 import { watchDataflowFiles } from "../hld-gen-new/visualizer/watch-dataflow-files.mjs";
 import { watchOpenedJson } from "../common/watch-opened-json.ts";
 
@@ -77,4 +80,101 @@ test("refreshes a selected JSON file when its handle returns new contents", asyn
   assert.equal(changes.length, 1);
   stop();
   assert.equal(stopped, true);
+});
+
+test("refreshes referenced dataflows for automatically and manually opened manifests", async (t) => {
+  const mainSource = await readFile(new URL("../hld-gen-new/visualizer/src/main.ts", import.meta.url), "utf8");
+  const watcherSource = await readFile(new URL("../common/watch-opened-json.ts", import.meta.url), "utf8");
+  const source = stripTypeScriptTypes(watcherSource).replaceAll("export ", "") +
+    stripTypeScriptTypes(mainSource).replace(/^import .*\n/gm, "").replace("import.meta.hot", "hot");
+
+  for (const opening of ["default", "picker", "input", "drop"]) {
+    await t.test(opening, async () => {
+      const manifest = {
+        hld: "/repository/docs/plans/feature.hld.md",
+        sysDataflow: "/repository/docs/plans/feature.sys-dataflow.json",
+        implDataflow: "/repository/docs/plans/feature.impl-dataflow.json",
+      };
+      const manifestPath = "docs/plans/feature.hld-manifest.json";
+      const file = { name: "feature.hld-manifest.json", text: async () => JSON.stringify(manifest) };
+      const elements = new Map();
+      const events = new Map();
+      const messages = { system: [], implementation: [] };
+      const values = new Map([
+        [manifest.sysDataflow, { revision: "system-before" }],
+        [manifest.implDataflow, { revision: "implementation-before" }],
+      ]);
+      for (const view of ["system", "implementation"]) {
+        elements.set(`[data-panel="${view}"] iframe`, {
+          contentDocument: null,
+          contentWindow: { postMessage(message) { messages[view].push(structuredClone(message)); } },
+          addEventListener() {},
+        });
+      }
+      for (const selector of ["#open-hld-manifest", "#hld-manifest-input", ".review-path"]) {
+        elements.set(selector, {
+          files: [file],
+          classList: { toggle() {} },
+          addEventListener(event, callback) { events.set(`${selector}:${event}`, callback); },
+        });
+      }
+      const app = {
+        querySelector(selector) { return elements.get(selector); },
+        querySelectorAll(selector) { return selector === "iframe" ? [elements.get('[data-panel="system"] iframe'), elements.get('[data-panel="implementation"] iframe')] : []; },
+        addEventListener(event, callback) { events.set(event, callback); },
+      };
+      const window = { setInterval() { return 1; }, clearInterval() {} };
+      if (opening === "picker") {
+        window.showOpenFilePicker = async () => [{ kind: "file", getFile: async () => file }];
+      }
+      runInNewContext(source, {
+        document: { querySelector() { return app; } },
+        window,
+        location: { origin: "http://localhost" },
+        hldManifestReferences,
+        hot: { on(event, callback) { events.set(event, callback); } },
+        async fetch(url) {
+          if (url === "/__hld-manifest/default") {
+            return { status: opening === "default" ? 200 : 204, ok: true, json: async () => ({ fileName: manifestPath, contents: JSON.stringify(manifest) }) };
+          } else {
+            const reference = new URL(url, "http://localhost").searchParams.get("path");
+            assert.equal(values.has(reference), true);
+            return { ok: true, json: async () => ({ fileName: path.relative("/repository", reference), contents: JSON.stringify(values.get(reference)) }) };
+          }
+        },
+      });
+      await new Promise(setImmediate);
+      if (opening === "picker") {
+        events.get("#open-hld-manifest:click")();
+      } else if (opening === "input") {
+        events.get("#hld-manifest-input:change")({ currentTarget: elements.get("#hld-manifest-input") });
+      } else if (opening === "drop") {
+        events.get("drop")({ preventDefault() {}, stopPropagation() {}, dataTransfer: { items: [], files: [file] } });
+      }
+      await new Promise(setImmediate);
+      assert.equal(messages.system.length, 1);
+      assert.equal(messages.implementation.length, 1);
+
+      for (const [reference, view] of [[manifest.sysDataflow, "system"], [manifest.implDataflow, "implementation"], [manifest.sysDataflow, "system"]]) {
+        values.set(reference, { revision: `${view}-${messages[view].length}` });
+        events.get("hld-dataflow:file-change")({ fileName: path.relative("/repository", reference), contents: JSON.stringify(values.get(reference)) });
+        await new Promise(setImmediate);
+        assert.deepEqual(messages[view].at(-1).value, values.get(reference));
+      }
+      const count = messages.system.length;
+      events.get("hld-dataflow:file-change")({ fileName: "other/feature.sys-dataflow.json", contents: '{}' });
+      await new Promise(setImmediate);
+      assert.equal(messages.system.length, count);
+      if (opening === "default") {
+        values.set(manifest.sysDataflow, { revision: "manifest-refresh" });
+        events.get("hld-dataflow:file-change")({ fileName: manifestPath, contents: JSON.stringify(manifest) });
+        await new Promise(setImmediate);
+        assert.deepEqual(messages.system.at(-1).value, values.get(manifest.sysDataflow));
+      } else {
+        events.get("hld-dataflow:file-change")({ fileName: file.name, contents: JSON.stringify(manifest) });
+        await new Promise(setImmediate);
+        assert.equal(messages.system.length, count);
+      }
+    });
+  }
 });
