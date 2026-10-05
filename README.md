@@ -62,7 +62,7 @@ Each target repository has its own files and output configuration and works inde
 
 Start `$hld-gen` at any point in a conversation about a feature. Before generating the design, the agent drafts requirements in the HLD, presents its understanding of the desired behavior, scope, and user journeys, asks the user to confirm or correct all three, and waits for explicit approval.
 
-`hld-gen-new/hld-quality.md` will define qualitative guidance for generating one design. Its definition is a placeholder for now; the workflow proceeds using confirmed requirements and repository guidance and reports that the quality definition is pending.
+`hld-gen-new/hld-quality.md` defines qualitative guidance for generating one design. The goal is to minimize end-state complexity, then minimize change complexity wherever doing so does not increase end-state complexity.
 
 Ask the agent:
 

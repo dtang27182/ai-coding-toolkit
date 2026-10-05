@@ -6,7 +6,7 @@ Apply `Design Guidelines` to every generated section and artifact. Use the confi
 
 ## Understand the Design Quality Criteria
 
-1. Read `ai-coding-toolkit/hld-gen-new/hld-quality.md` and use its qualitative criteria to guide generation. While the definition is a placeholder, proceed using the confirmed requirements and repository guidance without inventing a rubric.
+1. Read `ai-coding-toolkit/hld-gen-new/hld-quality.md` and use its qualitative principles to guide generation. Minimize end-state complexity, and minimize change complexity wherever doing so does not increase end-state complexity.
 
 ## Complete the HLD Doc
 

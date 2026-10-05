@@ -19,7 +19,7 @@ Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to
 2. Use `ai-coding-toolkit/hld-gen-new/define/define-behavior-and-scope.md` to fill `High Level Requirements` and `Clarification Questions` in the HLD and write `<outputDirectory>/<feature>/<feature>.detailed-requirements.md`. Link to that file from the HLD's `Detailed Requirements` section.
    - Ask the user every recorded clarification question. After each response, update `High Level Requirements` and the Detailed Requirements file as needed, remove each answered question, and record any necessary follow-up questions.
    - Present the high-level and detailed requirements to the user for review, including all three `High Level Requirements` subsections. Continue until `Clarification Questions` is `None` and the user explicitly approves the updated requirements. Do not proceed to step 3 before both conditions are met.
-3. Follow `ai-coding-toolkit/hld-gen-new/generate/gen-hld.md` to complete the HLD, generate and validate its System Dataflow and Implementation Dataflow artifacts, and write its manifest. Use `ai-coding-toolkit/hld-gen-new/hld-quality.md` as qualitative guidance during generation. While the definition is a placeholder, proceed using the confirmed requirements and repository guidance and disclose that the quality definition is pending.
+3. Follow `ai-coding-toolkit/hld-gen-new/generate/gen-hld.md` to complete the HLD, generate and validate its System Dataflow and Implementation Dataflow artifacts, and write its manifest. Use `ai-coding-toolkit/hld-gen-new/hld-quality.md` as qualitative guidance during generation. Minimize end-state complexity, and minimize change complexity wherever doing so does not increase end-state complexity.
 
 Generate one design without candidate comparison, quantitative quality evaluation, or an automatic improvement loop. Complete the artifact validation required by the generation instructions before handing off the design.
 
@@ -27,6 +27,6 @@ If information required to define or generate the design is unavailable and cann
 
 ## Human Handoff
 
-Link the HLD, Detailed Requirements, both dataflows, and manifest that were generated. Report generation and artifact validation status, any incomplete artifacts, and the stopping reason. Disclose when the qualitative quality definition is still pending.
+Link the HLD, Detailed Requirements, both dataflows, and manifest that were generated. Report generation and artifact validation status, any incomplete artifacts, and the stopping reason.
 
 Hand off the design for human review. Do not implement application code or claim human approval of the generated design as part of this workflow.
