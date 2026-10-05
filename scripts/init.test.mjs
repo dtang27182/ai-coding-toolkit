@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cp, lstat, mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, mkdtemp, readdir, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -20,6 +20,33 @@ async function createRepository(t) {
   t.after(() => rm(directory, { recursive: true, force: true }));
   return directory;
 }
+
+test("reports missing toolkit dependencies before modifying the target", async (t) => {
+  const sourceDirectory = await createRepository(t);
+  for (const directoryName of ["scripts", "adapters"]) {
+    await cp(path.join(toolkitDirectory, directoryName), path.join(sourceDirectory, directoryName), {
+      recursive: true,
+    });
+  }
+  const repoDirectory = await createRepository(t);
+  const existingPackage = '{"scripts":{"test":"existing"}}\n';
+  await writeFile(path.join(repoDirectory, "package.json"), existingPackage);
+
+  for (const argumentsList of [
+    [repoDirectory],
+    [repoDirectory, "--tool", "hld-gen-new"],
+    [repoDirectory, "--tool", "enrich-diff"],
+    [repoDirectory, "--tool", "advanced-diff-viewer"],
+  ]) {
+    const result = install(argumentsList, sourceDirectory);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Toolkit dependencies are missing/);
+    assert.ok(result.stderr.includes(`Run "npm install" in ${await realpath(sourceDirectory)}`));
+    assert.equal(result.stdout, "");
+    assert.deepEqual(await readdir(repoDirectory), ["package.json"]);
+    assert.equal(await readFile(path.join(repoDirectory, "package.json"), "utf8"), existingPackage);
+  }
+});
 
 test("copies skills and scripts that work after the source checkout is removed", async (t) => {
   const sourceDirectory = await createRepository(t);

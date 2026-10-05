@@ -12,6 +12,8 @@ npm install
 npm run install:all -- /path/to/code-repo
 ```
 
+Run `npm install` in this toolkit checkout before using any installer command; the installer copies its `node_modules` into the target repository. If an earlier attempt stopped with a missing `node_modules` error, install the dependencies and rerun the same installer command to finish the installation.
+
 The default installer installs `hld-gen-new` and `enrich-diff` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the `$hld-gen` skill, run:
 
 ```sh

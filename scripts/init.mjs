@@ -176,6 +176,15 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   if (!(await stat(repoDirectory)).isDirectory()) {
     throw new Error(`Target repository is not a directory: ${repoDirectory}`);
   }
+  try {
+    await stat(path.join(toolkitDirectory, "node_modules"));
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw new Error(`Toolkit dependencies are missing. Run "npm install" in ${toolkitDirectory}, then rerun the installer.`);
+    } else {
+      throw error;
+    }
+  }
   repoDirectory = await realpath(repoDirectory);
   const installedToolkitDirectory = path.join(repoDirectory, "ai-coding-toolkit");
   const outputPath = path.resolve(repoDirectory, relativeOutputDirectory);
