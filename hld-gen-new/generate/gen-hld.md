@@ -10,7 +10,7 @@ Apply `Design Guidelines` to every generated section and artifact. Use the confi
 
 ## Complete the HLD Doc
 
-2. Preserve `Design Guidelines` and the confirmed `High Level Requirements`, including all three subsections, in the initialized HLD.
+2. Preserve `Design Guidelines` and the confirmed `High Level Requirements`, including all its subsections, in the initialized HLD.
 3. Set the Detailed Requirements link to `<feature>.detailed-requirements.md`, referencing the file beside the HLD without using its contents for design generation.
 4. Fill Design Context and Related Workflows by following `ai-coding-toolkit/hld-gen-new/generate/gen-design-context.md`.
 5. Generate the sys-dataflow directly from User Journeys by following `ai-coding-toolkit/hld-gen-new/generate/gen-sys-dataflow.md`.

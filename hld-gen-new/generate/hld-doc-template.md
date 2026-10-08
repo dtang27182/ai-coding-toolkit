@@ -5,19 +5,7 @@
 - <intended level of detail>
 - Exclude error handling paths.
 
-## High Level Requirements
-
-### Desired Behavior
-
-<desired behavior>
-
-### Scope and Assumptions
-
-<scope and assumptions>
-
-### User Journeys
-
-<user journeys>
+<high level requirements section>
 
 ## Detailed Requirements
 
