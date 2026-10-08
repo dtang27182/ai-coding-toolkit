@@ -15,7 +15,7 @@ Apply `Design Guidelines` to every generated section and artifact. Use the confi
 4. Fill Design Context and Related Workflows by following `ai-coding-toolkit/hld-gen-new/generate/gen-design-context.md`.
 5. Generate the sys-dataflow directly from User Journeys by following `ai-coding-toolkit/hld-gen-new/generate/gen-sys-dataflow.md`.
 6. Use the validated sys-dataflow JSON to generate the Implementation Dataflow narrative and JSON by following `ai-coding-toolkit/hld-gen-new/generate/gen-impl-dataflow.md`.
-7. Run `node ai-coding-toolkit/hld-gen-new/eval/validate-impl-dataflow.mjs <outputDirectory>/<feature>/<feature>.impl-dataflow.json` to validate the Implementation Dataflow. Correct errors and rerun validation after revisions.
+7. Run `node ai-coding-toolkit/common/impl-dataflow/validate-impl-dataflow.mjs <outputDirectory>/<feature>/<feature>.impl-dataflow.json` to validate the Implementation Dataflow. Correct errors and rerun validation after revisions.
 8. After the HLD and both validated dataflows exist, run `node ai-coding-toolkit/hld-gen-new/generate/write-hld-manifest.mjs <hld-path> <outputDirectory>/<feature>/<feature>.detailed-requirements.md` to write `<feature>.hld-manifest.json` beside them. Its `hld`, `sysDataflow`, `implDataflow`, and `detailedRequirements` fields contain absolute paths.
 
 ## Report the Result

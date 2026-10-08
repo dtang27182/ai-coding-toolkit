@@ -220,6 +220,9 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     }
   }
   if (toolNames.includes("hld-gen-new")) {
+    for (const relativePath of ["eval/count-design-changes.mjs", "eval/count-variable-exposure.mjs", "eval/hld-variable-exposure.md", "eval/validate-impl-dataflow.mjs"]) {
+      await rm(path.join(installedToolkitDirectory, "hld-gen-new", relativePath), { force: true });
+    }
     await rm(path.join(installedToolkitDirectory, "common", "arch-diff"), { recursive: true, force: true });
     await rm(path.join(installedToolkitDirectory, "hld-gen-new", "visualizer", "dist"), { recursive: true, force: true });
   }

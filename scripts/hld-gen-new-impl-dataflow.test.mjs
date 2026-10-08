@@ -12,9 +12,7 @@ import { mergeClassDataflows } from "../common/impl-dataflow/visualizer/src/type
 import { semanticError } from "../common/impl-dataflow/visualizer/src/validation.ts";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const validatorPath = path.join(toolkitDirectory, "hld-gen-new/eval/validate-impl-dataflow.mjs");
-const exposureCounterPath = path.join(toolkitDirectory, "hld-gen-new/eval/count-variable-exposure.mjs");
-const changeCounterPath = path.join(toolkitDirectory, "hld-gen-new/eval/count-design-changes.mjs");
+const validatorPath = path.join(toolkitDirectory, "common/impl-dataflow/validate-impl-dataflow.mjs");
 
 function codeReview() {
   return {
@@ -256,28 +254,6 @@ test("static data names and user-flow classification are validated", async (t) =
   assert.match((await runValidator(t, hld)).result.stderr, /static data requires userFlow/);
 });
 
-test("static data affects dataflow counts but not component counts", async (t) => {
-  const input = codeReview();
-  input.diffHunks.push({ id: "hunk-1", file: "src/Service.ts", patch: "@@ -1 +1 @@\n-inspect()\n+inspect(rules)" });
-  input.staticData.push({ name: "Lookup Rules", changeType: "added", diffHunkIds: ["hunk-1"] });
-  input.relationships.push({
-    from: { staticData: "Lookup Rules" },
-    to: { class: "Service", function: "inspect" },
-    type: "dataflow",
-    changeType: "added",
-    diffHunkIds: ["hunk-1"],
-    dataDescription: "Fixed lookup rules",
-    purpose: "Guide inspection",
-  });
-  const { inputPath, result } = await runValidator(t, input);
-  assert.equal(result.status, 0, result.stderr);
-  const count = spawnSync(process.execPath, [changeCounterPath, inputPath], { encoding: "utf8" });
-  assert.equal(count.status, 0, count.stderr);
-  const counted = JSON.parse(await readFile(inputPath, "utf8"));
-  assert.equal(counted.changedComponentCount, 0);
-  assert.equal(counted.changedDataflowRelationshipCount, 1);
-});
-
 test("user-flow filtering keeps static data read by a participating function", async () => {
   const example = JSON.parse(await readFile(
     path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"),
@@ -333,17 +309,15 @@ test("evaluated validation requires complete HLD metrics", async (t) => {
     path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"),
     "utf8"
   ));
-  example.modules = [{ name: "src/helpers", changeType: "added", functions: [{ name: "normalize", changeType: "added", userFlow: true }] }];
   const pending = await runValidator(t, example, "--evaluated");
   assert.equal(pending.result.status, 1);
   assert.match(pending.result.stderr, /requires non-null changedClassCount/);
 
-  const exposureCount = spawnSync(process.execPath, [exposureCounterPath, pending.inputPath], { encoding: "utf8" });
-  assert.equal(exposureCount.status, 0, exposureCount.stderr);
-  const changeCount = spawnSync(process.execPath, [changeCounterPath, pending.inputPath], { encoding: "utf8" });
-  assert.equal(changeCount.status, 0, changeCount.stderr);
-  const counted = JSON.parse(await readFile(pending.inputPath, "utf8"));
-  assert.equal(counted.changedFunctionCount, counted.classes.flatMap((classDiff) => classDiff.functions).filter((functionDiff) => functionDiff.changeType !== "unchanged").length + 1);
-  const evaluated = spawnSync(process.execPath, [validatorPath, "--evaluated", pending.inputPath], { encoding: "utf8" });
-  assert.equal(evaluated.status, 0, evaluated.stderr);
+  example.changedClassCount = 3;
+  example.changedFunctionCount = 4;
+  example.changedComponentCount = 1;
+  example.changedDataflowRelationshipCount = 6;
+  example.changedStateUpdateRelationshipCount = 1;
+  const evaluated = await runValidator(t, example, "--evaluated");
+  assert.equal(evaluated.result.status, 0, evaluated.result.stderr);
 });

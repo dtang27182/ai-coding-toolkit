@@ -90,15 +90,9 @@ test("copies skills and scripts that work after the source checkout is removed",
 
   const inputPath = "ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json";
   const validation = spawnSync(process.execPath, [
-    "ai-coding-toolkit/hld-gen-new/eval/validate-impl-dataflow.mjs", inputPath,
+    "ai-coding-toolkit/common/impl-dataflow/validate-impl-dataflow.mjs", inputPath,
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(validation.status, 0, validation.stderr);
-
-  const count = spawnSync(process.execPath, [
-    "ai-coding-toolkit/hld-gen-new/eval/count-variable-exposure.mjs", inputPath,
-  ], { cwd: repoDirectory, encoding: "utf8" });
-  assert.equal(count.status, 0, count.stderr);
-  assert.equal(JSON.parse(await readFile(path.join(repoDirectory, inputPath), "utf8")).variableExposureCount, 3);
 
   for (const [toolName, title] of [
     ["hld-gen-new", "HLD Dataflow Visualizer"],
@@ -140,6 +134,14 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "impl-dataflow"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "node_modules"))).isDirectory(), true);
   const visualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new", "visualizer");
+  const retiredEvaluationPaths = ["count-design-changes.mjs", "count-variable-exposure.mjs", "hld-variable-exposure.md", "validate-impl-dataflow.mjs"].map(
+    (fileName) => path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new", "eval", fileName)
+  );
+  for (const evaluationPath of retiredEvaluationPaths) {
+    await assert.rejects(lstat(evaluationPath), { code: "ENOENT" });
+    await mkdir(path.dirname(evaluationPath), { recursive: true });
+    await writeFile(evaluationPath, "retired evaluation file");
+  }
   const retiredArchitectureDiffPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "arch-diff");
   await mkdir(retiredArchitectureDiffPath, { recursive: true });
   await writeFile(path.join(retiredArchitectureDiffPath, "obsolete.json"), "obsolete format");
@@ -151,6 +153,9 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","hld-gen-new-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer","hld-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer"}}\n');
   const upgrade = install([repoDirectory, "--tool", "hld-gen-new"]);
   assert.equal(upgrade.status, 0, upgrade.stderr);
+  for (const evaluationPath of retiredEvaluationPaths) {
+    await assert.rejects(lstat(evaluationPath), { code: "ENOENT" });
+  }
   assert.equal((await lstat(path.join(visualizerPath, "index.html"))).isFile(), true);
   await assert.rejects(lstat(path.join(visualizerPath, "dist")), { code: "ENOENT" });
   await assert.rejects(lstat(retiredArchitectureDiffPath), { code: "ENOENT" });
@@ -171,7 +176,7 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
 
   const inputPath = "ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json";
   const validation = spawnSync(process.execPath, [
-    "ai-coding-toolkit/hld-gen-new/eval/validate-impl-dataflow.mjs", inputPath,
+    "ai-coding-toolkit/common/impl-dataflow/validate-impl-dataflow.mjs", inputPath,
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(validation.status, 0, validation.stderr);
 
@@ -180,12 +185,6 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
     "ai-coding-toolkit/common/sys-dataflow/sys-dataflow.example.json",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(systemDataflowValidation.status, 0, systemDataflowValidation.stderr);
-
-  const count = spawnSync(process.execPath, [
-    "ai-coding-toolkit/hld-gen-new/eval/count-variable-exposure.mjs", inputPath,
-  ], { cwd: repoDirectory, encoding: "utf8" });
-  assert.equal(count.status, 0, count.stderr);
-  assert.equal(JSON.parse(await readFile(path.join(repoDirectory, inputPath), "utf8")).variableExposureCount, 3);
 
   const visualizerBuild = spawnSync(process.execPath, [
     "ai-coding-toolkit/node_modules/vite/bin/vite.js",
