@@ -1,14 +1,13 @@
-# Define Behavior and Scope
+# Define Requirements
 
 1. Read `Design Guidelines` in `<outputDirectory>/<feature>/<feature>.hld.md` to understand the intended level of detail and exclusions.
-2. Read the feature context from chat, relevant code, and repository guidance. Generate the requirements, using `Design Guidelines` to decide which relevant information belongs in `High Level Requirements` and which belongs in `Detailed Requirements`.
-   - Populate the HLD's `High Level Requirements` subsections: `Desired Behavior`, `Scope and Assumptions`, and `User Journeys`.
-   - Write Detailed Requirements in `<outputDirectory>/<feature>/<feature>.detailed-requirements.md` and link to it from the HLD's `Detailed Requirements` section.
-   - Record unresolved questions in the HLD's `Clarification Questions` section.
+2. Read the feature context from chat, relevant code, and repository guidance. Use `Design Guidelines` to decide which relevant information belongs in `High Level Requirements` and which belongs in `Detailed Requirements`.
 
 Use the current code to understand existing behavior and constraints, not to choose an implementation. Preserve explicit requirements and decisions without adding design choices that the request does not require. The confirmed high-level requirements are the source of truth for the design; detailed requirements guide implementation after design handoff.
 
-## High Level Requirements
+## Define High Level Requirements
+
+Replace `<high level requirements section>` in the HLD with the contents of `ai-coding-toolkit/hld-gen-new/define/high-level-requirements-template.md`. Fill its `Desired Behavior`, `Scope and Assumptions`, and `User Journeys` subsections using the guidance below.
 
 ### Desired Behavior
 
@@ -30,13 +29,15 @@ Use the current code to understand existing behavior and constraints, not to cho
 - Do not make separate journeys for constraints, storage choices, intermediate system behavior, or variations of the same journey.
 - Write User Journeys as a numbered list, giving each journey a short name.
 
-## Detailed Requirements
+## Define Detailed Requirements
+
+Write `<outputDirectory>/<feature>/<feature>.detailed-requirements.md` and link to it from the HLD's `Detailed Requirements` section.
 
 - Title the separate file `# <feature> Detailed Requirements`.
 - Record explicit requirements for implementation after design handoff, such as UI controls, copy, formatting, validation rules, and error handling. Preserve requirements from the user request and supplied references even when `Design Guidelines` exclude those details from the HLD design.
 - Use concise bullets, grouping related requirements as needed. Preserve required details without repeating the higher-level sections or adding unspecified behavior or implementation choices.
 - Write `None` when no detailed requirements are specified.
 
-## Clarification Questions
+## Record Clarification Questions
 
-- Record unresolved clarification questions as a numbered list. Write `None` when no questions remain.
+- Record only unresolved questions about High Level Requirements in the HLD's `Clarification Questions` section, as a numbered list. Write `None` when no questions remain.

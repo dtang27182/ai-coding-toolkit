@@ -83,7 +83,7 @@ test("copies skills and scripts that work after the source checkout is removed",
   }
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
     "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer",
     "adv-diff": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer",
   });
@@ -95,7 +95,7 @@ test("copies skills and scripts that work after the source checkout is removed",
   assert.equal(validation.status, 0, validation.stderr);
 
   for (const [toolName, title] of [
-    ["hld-gen-new", "HLD Dataflow Visualizer"],
+    ["common/hld", "HLD Dataflow Visualizer"],
     ["enrich-diff", "Enriched Diff Visualizer"],
     ["advanced-diff-viewer", "Advanced Diff Viewer"],
   ]) {
@@ -124,7 +124,7 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
   });
   assert.equal(
     await readFile(path.join(repoDirectory, ".agents", "skills", "hld-gen", "SKILL.md"), "utf8"),
@@ -133,7 +133,15 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "impl-dataflow"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "node_modules"))).isDirectory(), true);
-  const visualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new", "visualizer");
+  const visualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "hld", "visualizer");
+  const retiredHldPaths = ["generate/gen-hld.md", "visualizer/src/main.ts", "hld-quality.md", "define/define-behavior-and-scope.md"].map(
+    (relativePath) => path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new", relativePath)
+  );
+  for (const retiredPath of retiredHldPaths) {
+    await assert.rejects(lstat(retiredPath), { code: "ENOENT" });
+    await mkdir(path.dirname(retiredPath), { recursive: true });
+    await writeFile(retiredPath, "previous HLD location");
+  }
   const retiredEvaluationPaths = ["count-design-changes.mjs", "count-variable-exposure.mjs", "hld-variable-exposure.md", "validate-impl-dataflow.mjs"].map(
     (fileName) => path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new", "eval", fileName)
   );
@@ -153,6 +161,9 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","hld-gen-new-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer","hld-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer"}}\n');
   const upgrade = install([repoDirectory, "--tool", "hld-gen-new"]);
   assert.equal(upgrade.status, 0, upgrade.stderr);
+  for (const retiredPath of retiredHldPaths) {
+    await assert.rejects(lstat(retiredPath), { code: "ENOENT" });
+  }
   for (const evaluationPath of retiredEvaluationPaths) {
     await assert.rejects(lstat(evaluationPath), { code: "ENOENT" });
   }
@@ -164,7 +175,13 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   }
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
+  });
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-gen-new-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer","hld-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer"}}\n');
+  const relocatedCommands = install([repoDirectory, "--tool", "hld-gen-new"]);
+  assert.equal(relocatedCommands.status, 0, relocatedCommands.stderr);
+  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
   });
   await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-gen-new-visualizer":"custom old viewer","hld-visualizer":"custom new viewer"}}\n');
   const conflictingCommands = install([repoDirectory, "--tool", "hld-gen-new"]);
@@ -189,7 +206,7 @@ test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => 
   const visualizerBuild = spawnSync(process.execPath, [
     "ai-coding-toolkit/node_modules/vite/bin/vite.js",
     "build",
-    "ai-coding-toolkit/hld-gen-new/visualizer",
+    "ai-coding-toolkit/common/hld/visualizer",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
   for (const htmlFile of ["index.html", "system.html", "implementation.html"]) {
@@ -303,7 +320,8 @@ test("installs Claude Code skills with Claude-only frontmatter", async (t) => {
   const sourceFrontmatterEnd = sourceSkill.indexOf("\n---\n");
   assert.ok(claudeSkill.startsWith(sourceSkill.slice(0, sourceFrontmatterEnd)));
   assert.ok(claudeSkill.endsWith(sourceSkill.slice(sourceFrontmatterEnd)));
-  assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/hld-gen-new\/eval\/\*\)\n/);
+  assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/hld\/generate\/\*\)\n/);
+  assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/impl-dataflow\/\*\)\n/);
   assert.doesNotMatch(claudeSkill, /\ncontext: fork\n/);
   await assert.rejects(lstat(path.join(repoDirectory, ".agents")), { code: "ENOENT" });
 
@@ -393,7 +411,7 @@ test("refreshes installed copies on repeat installation", async (t) => {
   assert.equal(firstInstall.status, 0, firstInstall.stderr);
   const relativePaths = [
     ".agents/skills/hld-gen/SKILL.md",
-    "ai-coding-toolkit/hld-gen-new/generate/gen-hld.md",
+    "ai-coding-toolkit/common/hld/generate/gen-hld.md",
     "ai-coding-toolkit/node_modules/ajv/package.json",
   ];
   const installedContents = [];

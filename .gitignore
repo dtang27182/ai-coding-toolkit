@@ -1,7 +1,7 @@
 node_modules/
 adiff-visualize-design/
 common/impl-dataflow/visualizer/dist/
-hld-gen-new/visualizer/dist/
+common/hld/visualizer/dist/
 enrich-diff/visualizer/dist/
 advanced-diff-viewer/visualizer/dist/
 advanced-diff-viewer/diff-index.json

@@ -2,13 +2,13 @@
 
 `impl-dataflow` is shorthand for implementation dataflow.
 
-Use the validated `<feature>.sys-dataflow.json` beside the HLD doc to design the implementation changes that complete its User Journeys. Read the relevant code, then write and verify the Implementation Dataflow narrative before generating its `impl-dataflow` JSON.
+Use the validated `<feature>.sys-dataflow.json` beside the HLD doc to design the implementation changes that complete its User Journeys and satisfy the confirmed High Level Requirements. Read the relevant code, then write and verify the Implementation Dataflow narrative before generating its `impl-dataflow` JSON.
 
 ## Write the Implementation Dataflow Narrative
 
 ### Design the Implementation Paths
 
-- Follow each User Journey's sys-dataflow path from its first `user-input` through later user inputs to its required outputs and system effects. Locate the relevant existing classes and functions, and read their implementations, callers, and consumers to understand how the current system handles the behavior and where it falls short of the User Journey's useful result.
+- Follow each User Journey's sys-dataflow path from its first `user-input` through later user inputs to its required outputs and system effects. Locate the relevant existing classes and functions, and read their implementations, callers, and consumers to understand how the current system handles the behavior and what must change to satisfy the confirmed High Level Requirements.
 - For each high-level `dataflow` relationship, work out how the data will actually reach and be used by its consumer. Identify the sending, intermediate, and receiving functions, the data each needs, and the changes required to their behavior or contracts. Choose existing classes and functions to reuse or modify, and design new ones where needed. Describe the resulting direct transfers, including unchanged intermediaries.
 - For each `data-processing` node, determine how its required algorithm fits the existing implementation. Read the relevant function bodies and supporting code; decide how to change or extend their processing, or allocate new processing across new classes and functions. Prefer to keep the implementation of the algorithms descripted in the data-processing nodes confined to as few implementation functions as possible. Describe the inputs, transformations, decisions, and results each function is responsible for, including how they complete the User Journey.
 - As the implementation takes shape, trace where every required value comes from, what state must be retained or updated, and what external work must occur. Design the necessary state reads and updates, static-data reads, and interactions with existing or new external dependencies. These implementation requirements may be absent from the sys-dataflow; include them when needed to complete a User Journey.

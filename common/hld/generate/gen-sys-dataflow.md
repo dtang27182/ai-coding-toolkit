@@ -8,7 +8,7 @@ Design how the system will realize each User Journey by building and refining `<
 
 Use two primary inputs:
 
-- **User Journeys:** Read the HLD doc's User Journeys to identify the user actions, outputs, required system effects, and useful results the design must realize. Apply the Desired Behavior, Scope and Assumptions, and Design Guidelines sections as constraints.
+- **User Journeys:** Read the HLD doc's User Journeys to identify the user actions, outputs, required system effects, and useful results the design must realize. Apply the goals, scope, and constraints in High Level Requirements and Design Guidelines.
 - **Current codebase:** Read the relevant code and enough surrounding code to understand the existing dataflow, state, and external dependencies. Use Design Context and Related Workflows to locate relevant paths without expanding the design's scope.
 
 Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.schema.json` and `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.example.json` to understand the graph's node types, relationship format, and permitted directions.

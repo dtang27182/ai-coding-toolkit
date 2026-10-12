@@ -1,7 +1,7 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 
-import { defaultOutputFilePlugin } from "../../common/default-output-file-plugin.mjs";
+import { defaultOutputFilePlugin } from "../../default-output-file-plugin.mjs";
 
 async function newestManifest(directory) {
   let entries;

@@ -1,6 +1,6 @@
 # HLD Design Quality
 
-The goal is to minimize end-state complexity while fully satisfying the requirements and implementing the desired behavior within the confirmed scope. Minimize change complexity wherever doing so does not increase end-state complexity.
+The goal is to minimize end-state complexity while fully satisfying the confirmed High Level Requirements and realizing the User Journeys within the confirmed scope. Minimize change complexity wherever doing so does not increase end-state complexity.
 
 Behavior should be easy to trace through direct paths with few unnecessary special cases.
 

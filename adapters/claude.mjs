@@ -7,7 +7,8 @@ import { copyDirectory } from "../scripts/copy-directory.mjs";
 const claudeFrontmatter = {
   "hld-gen-new": [
     "allowed-tools:",
-    "  - Bash(node ai-coding-toolkit/hld-gen-new/eval/*)",
+    "  - Bash(node ai-coding-toolkit/common/hld/generate/*)",
+    "  - Bash(node ai-coding-toolkit/common/impl-dataflow/*)",
     "  - Bash(node ai-coding-toolkit/common/sys-dataflow/*)",
   ],
   "enrich-diff": [

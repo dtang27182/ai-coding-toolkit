@@ -1,6 +1,6 @@
 import "./styles.css";
 import { hldManifestReferences } from "./hld-manifest.ts";
-import { droppedJsonFile, pickJsonFile, supportsJsonFileHandles, watchOpenedJson, type JsonFileHandle } from "../../../common/watch-opened-json.ts";
+import { droppedJsonFile, pickJsonFile, supportsJsonFileHandles, watchOpenedJson, type JsonFileHandle } from "../../../watch-opened-json.ts";
 
 type View = "system" | "implementation";
 

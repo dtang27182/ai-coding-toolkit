@@ -6,8 +6,8 @@ import path from "node:path";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
 
-import { hldManifestReferences } from "../hld-gen-new/visualizer/src/hld-manifest.ts";
-import { watchDataflowFiles } from "../hld-gen-new/visualizer/watch-dataflow-files.mjs";
+import { hldManifestReferences } from "../common/hld/visualizer/src/hld-manifest.ts";
+import { watchDataflowFiles } from "../common/hld/visualizer/watch-dataflow-files.mjs";
 import { watchOpenedJson } from "../common/watch-opened-json.ts";
 
 test("notifies the HLD visualizer when an output dataflow file changes", async (t) => {
@@ -83,7 +83,7 @@ test("refreshes a selected JSON file when its handle returns new contents", asyn
 });
 
 test("refreshes referenced dataflows for automatically and manually opened manifests", async (t) => {
-  const mainSource = await readFile(new URL("../hld-gen-new/visualizer/src/main.ts", import.meta.url), "utf8");
+  const mainSource = await readFile(new URL("../common/hld/visualizer/src/main.ts", import.meta.url), "utf8");
   const watcherSource = await readFile(new URL("../common/watch-opened-json.ts", import.meta.url), "utf8");
   const source = stripTypeScriptTypes(watcherSource).replaceAll("export ", "") +
     stripTypeScriptTypes(mainSource).replace(/^import .*\n/gm, "").replace("import.meta.hot", "hot");

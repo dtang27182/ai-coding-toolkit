@@ -71,7 +71,7 @@ async function installRootCommands() {
   if (packageJson !== undefined) {
     const commands = {};
     if (toolNames.includes("hld-gen-new")) {
-      commands["hld-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer";
+      commands["hld-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer";
     }
     if (toolNames.includes("enrich-diff")) {
       commands["diff-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer";
@@ -102,7 +102,10 @@ async function installRootCommands() {
     }
     if (
       toolNames.includes("hld-gen-new") &&
-      packageJson.scripts?.["hld-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer"
+      (
+        packageJson.scripts?.["hld-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer" ||
+        packageJson.scripts?.["hld-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer"
+      )
     ) {
       packageJson.scripts["hld-visualizer"] = commands["hld-visualizer"];
       packageChanged = true;
@@ -220,11 +223,15 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     }
   }
   if (toolNames.includes("hld-gen-new")) {
-    for (const relativePath of ["eval/count-design-changes.mjs", "eval/count-variable-exposure.mjs", "eval/hld-variable-exposure.md", "eval/validate-impl-dataflow.mjs"]) {
+    for (const relativePath of ["eval/count-design-changes.mjs", "eval/count-variable-exposure.mjs", "eval/hld-variable-exposure.md", "eval/validate-impl-dataflow.mjs", "define/define-behavior-and-scope.md"]) {
       await rm(path.join(installedToolkitDirectory, "hld-gen-new", relativePath), { force: true });
     }
+    for (const directoryName of ["generate", "visualizer"]) {
+      await rm(path.join(installedToolkitDirectory, "hld-gen-new", directoryName), { recursive: true, force: true });
+    }
+    await rm(path.join(installedToolkitDirectory, "hld-gen-new", "hld-quality.md"), { force: true });
     await rm(path.join(installedToolkitDirectory, "common", "arch-diff"), { recursive: true, force: true });
-    await rm(path.join(installedToolkitDirectory, "hld-gen-new", "visualizer", "dist"), { recursive: true, force: true });
+    await rm(path.join(installedToolkitDirectory, "common", "hld", "visualizer", "dist"), { recursive: true, force: true });
   }
   if (toolNames.includes("enrich-diff")) {
     for (const relativePath of ["instructions/generate-system-dataflow.md", "scripts/validate-system-dataflow.mjs"]) {

@@ -64,7 +64,9 @@ Each target repository has its own files and output configuration and works inde
 
 Start `$hld-gen` at any point in a conversation about a feature. Before generating the design, the agent drafts requirements in the HLD, presents its understanding of the desired behavior, scope, and user journeys, asks the user to confirm or correct all three, and waits for explicit approval.
 
-`hld-gen-new/hld-quality.md` defines qualitative guidance for generating one design. The goal is to minimize end-state complexity, then minimize change complexity wherever doing so does not increase end-state complexity.
+`common/hld/hld-quality.md` defines qualitative guidance for generating one design. The goal is to minimize end-state complexity, then minimize change complexity wherever doing so does not increase end-state complexity.
+
+`hld-gen-new` defines and confirms requirements, including User Journeys, then calls `common/hld/generate/gen-hld.md` to complete the design. The shared HLD template, generation instructions, manifest writer, and visualizer live in `common/hld`. The behavior-change requirements template and definition instructions remain in `hld-gen-new/define`.
 
 Ask the agent:
 
@@ -78,7 +80,7 @@ The skill generates one design and validates its dataflow artifacts, without can
 
 The final artifacts are ready for human review; application implementation is a separate step.
 
-Independent validation and counting scripts remain available, but counting scripts are not part of design generation. Run `npm run hld-visualizer` to switch between its System Dataflow and Implementation Dataflow views. The visualizer loads the newest HLD manifest under the configured output directory, keeping both views on the same design. You can open or drag in another HLD manifest. The views refresh when the open repository manifest or either referenced dataflow changes; manifests chosen with a browser file handle refresh too.
+The shared dataflow validation scripts remain available independently. Run `npm run hld-visualizer` to switch between its System Dataflow and Implementation Dataflow views. The visualizer loads the newest HLD manifest under the configured output directory, keeping both views on the same design. You can open or drag in another HLD manifest. The views refresh when the open repository manifest or either referenced dataflow changes; manifests chosen with a browser file handle refresh too.
 
 ## Enrich the Current Diff
 
