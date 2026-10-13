@@ -7,7 +7,7 @@ Use the current code to understand existing behavior and constraints, not to cho
 
 ## Define High Level Requirements
 
-Replace `<high level requirements section>` under the HLD's `Requirements` section with the contents of `ai-coding-toolkit/hld-gen-new/define/high-level-requirements-template.md`, preserving the template's heading levels. Fill its `Desired Behavior`, `Scope and Assumptions`, and `User Journeys` subsections using the guidance below.
+Replace `<high level requirements section>` under the HLD's `Requirements` section with the contents of `ai-coding-toolkit/feature-design/define/high-level-requirements-template.md`, preserving the template's heading levels. Fill its `Desired Behavior`, `Scope and Assumptions`, and `User Journeys` subsections using the guidance below.
 
 ### Desired Behavior
 

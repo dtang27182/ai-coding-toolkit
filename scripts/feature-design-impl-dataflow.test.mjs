@@ -39,7 +39,7 @@ test("code-review graphs filter without variable exposure inventories", () => {
 });
 
 async function runValidator(t, input, ...argumentsList) {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "hld-gen-new validation "));
+  const directory = await mkdtemp(path.join(os.tmpdir(), "feature-design validation "));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const inputPath = path.join(directory, "input.impl-dataflow.json");
   await writeFile(inputPath, `${JSON.stringify(input, null, 2)}\n`);

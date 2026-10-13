@@ -1,5 +1,5 @@
 ---
-name: hld-gen
+name: feature-design
 description: Generate one high-level design for requested behavior, guided by qualitative design quality criteria.
 ---
 
@@ -15,8 +15,8 @@ Use `outputDirectory` from `ai-coding-toolkit/config.json`, resolved relative to
 
 Create `<outputDirectory>/<feature>/<feature>.hld.md` from `ai-coding-toolkit/common/hld/generate/hld-doc-template.md`, substituting `<feature>` in the title and paths.
 
-1. Follow `ai-coding-toolkit/common/hld/generate/define+confirm-design-guidlines.md` to fill `Design Guidelines`.
-2. Follow `ai-coding-toolkit/common/hld/generate/define+confirm-requirements.md` to fill and confirm `Requirements`, using `ai-coding-toolkit/hld-gen-new/define/define-requirements.md` as the requirements-definition instructions.
+1. Follow `ai-coding-toolkit/common/hld/define/define+confirm-design-guidlines.md` to fill `Design Guidelines`.
+2. Follow `ai-coding-toolkit/common/hld/define/define+confirm-requirements.md` to fill and confirm `Requirements`, using `ai-coding-toolkit/feature-design/define/define-requirements.md` as the requirements-definition instructions.
 3. Follow `ai-coding-toolkit/common/hld/generate/gen-design.md` to fill the HLD's `Design` section, generate and validate its System Dataflow and Implementation Dataflow artifacts, and write its manifest.
 
 If information required to define or generate the design is unavailable and cannot be resolved from the request, confirmed behavior, scope, and user journeys, current code, or repository guidance, record what is missing in the HLD's `Clarification Questions` if created, preserve existing artifacts, and stop with `needs-input`. If an execution failure prevents completion, report it and stop with `execution-error`.

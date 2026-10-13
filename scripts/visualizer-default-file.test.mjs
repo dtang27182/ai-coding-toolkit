@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { findNewestImplementationDataflow } from "../common/impl-dataflow/visualizer/default-impl-dataflow.mjs";
 
-test("finds implementation dataflow files for hld-gen-new", async (t) => {
+test("finds implementation dataflow files for feature-design", async (t) => {
   const repositoryDirectory = await mkdtemp(path.join(os.tmpdir(), "visualizer repository "));
   const toolkitDirectory = path.join(repositoryDirectory, "ai-coding-toolkit");
   t.after(() => rm(repositoryDirectory, { recursive: true, force: true }));

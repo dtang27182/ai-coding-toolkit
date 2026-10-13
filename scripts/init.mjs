@@ -47,7 +47,7 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
 }
 
 const supportedAgents = ["codex", "claude"];
-const supportedTools = ["hld-gen-new", "enrich-diff", "advanced-diff-viewer"];
+const supportedTools = ["feature-design", "enrich-diff", "advanced-diff-viewer"];
 const toolNames = selectedTool === undefined ? supportedTools : [selectedTool];
 const relativeOutputDirectory = path.normalize(outputDirectory);
 const outputIsRepoSubdirectory =
@@ -70,7 +70,7 @@ async function installRootCommands() {
 
   if (packageJson !== undefined) {
     const commands = {};
-    if (toolNames.includes("hld-gen-new")) {
+    if (toolNames.includes("feature-design")) {
       commands["hld-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer";
     }
     if (toolNames.includes("enrich-diff")) {
@@ -87,29 +87,6 @@ async function installRootCommands() {
       packageJson.scripts["diff-visualizer"] = commands["diff-visualizer"];
       packageChanged = true;
       console.log("Updated npm command: npm run diff-visualizer");
-    }
-    if (
-      toolNames.includes("hld-gen-new") &&
-      (
-        packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer" ||
-        packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/arch-diff/visualizer" ||
-        packageJson.scripts?.["hld-gen-new-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer"
-      )
-    ) {
-      delete packageJson.scripts["hld-gen-new-visualizer"];
-      packageChanged = true;
-      console.log("Removed retired npm command: npm run hld-gen-new-visualizer");
-    }
-    if (
-      toolNames.includes("hld-gen-new") &&
-      (
-        packageJson.scripts?.["hld-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer" ||
-        packageJson.scripts?.["hld-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer"
-      )
-    ) {
-      packageJson.scripts["hld-visualizer"] = commands["hld-visualizer"];
-      packageChanged = true;
-      console.log("Updated npm command: npm run hld-visualizer");
     }
     if (
       packageJson.scripts?.["advanced-diff-viewer:generate"] === "node ai-coding-toolkit/advanced-diff-viewer/generate-diff-index.mjs"
@@ -163,7 +140,7 @@ async function installRootCommands() {
 if (argumentError !== undefined || repoDirectory === undefined) {
   console.error(argumentError ?? "Target repository path is required.");
   console.error(
-    "Usage: node scripts/init.mjs <target-repo> [--agent <codex|claude|codex,claude>] [--tool <hld-gen-new|enrich-diff|advanced-diff-viewer>] [--output-dir <relative-directory>]"
+    "Usage: node scripts/init.mjs <target-repo> [--agent <codex|claude|codex,claude>] [--tool <feature-design|enrich-diff|advanced-diff-viewer>] [--output-dir <relative-directory>]"
   );
   process.exitCode = 1;
 } else if (agentNames.some((agentName) => !supportedAgents.includes(agentName))) {
@@ -193,7 +170,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   const outputPath = path.resolve(repoDirectory, relativeOutputDirectory);
   const installedDirectories = [
     ...toolNames,
-    ...(toolNames.includes("hld-gen-new") || toolNames.includes("enrich-diff") || toolNames.includes("advanced-diff-viewer") ? ["common"] : []),
+    ...(toolNames.includes("feature-design") || toolNames.includes("enrich-diff") || toolNames.includes("advanced-diff-viewer") ? ["common"] : []),
     "node_modules",
   ];
   for (const directoryName of installedDirectories) {
@@ -216,22 +193,13 @@ if (argumentError !== undefined || repoDirectory === undefined) {
       relativePaths
     );
   }
-  if (toolNames.includes("hld-gen-new") || toolNames.includes("enrich-diff")) {
+  if (toolNames.includes("feature-design") || toolNames.includes("enrich-diff")) {
     await rm(path.join(installedToolkitDirectory, "common", "system-dataflow"), { recursive: true, force: true });
     for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
       await rm(path.join(installedToolkitDirectory, "common", "sys-dataflow", "visualizer", relativePath), { recursive: true, force: true });
     }
   }
-  if (toolNames.includes("hld-gen-new")) {
-    for (const relativePath of ["eval/count-design-changes.mjs", "eval/count-variable-exposure.mjs", "eval/hld-variable-exposure.md", "eval/validate-impl-dataflow.mjs", "define/define-behavior-and-scope.md"]) {
-      await rm(path.join(installedToolkitDirectory, "hld-gen-new", relativePath), { force: true });
-    }
-    for (const directoryName of ["generate", "visualizer"]) {
-      await rm(path.join(installedToolkitDirectory, "hld-gen-new", directoryName), { recursive: true, force: true });
-    }
-    await rm(path.join(installedToolkitDirectory, "hld-gen-new", "hld-quality.md"), { force: true });
-    await rm(path.join(installedToolkitDirectory, "common", "hld", "generate", "gen-hld.md"), { force: true });
-    await rm(path.join(installedToolkitDirectory, "common", "arch-diff"), { recursive: true, force: true });
+  if (toolNames.includes("feature-design")) {
     await rm(path.join(installedToolkitDirectory, "common", "hld", "visualizer", "dist"), { recursive: true, force: true });
   }
   if (toolNames.includes("enrich-diff")) {
@@ -253,7 +221,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     await installClaudeSkills(repoDirectory, toolkitDirectory, skillToolNames);
   }
   await installRootCommands();
-  if (toolNames.includes("hld-gen-new") || toolNames.includes("enrich-diff")) {
+  if (toolNames.includes("feature-design") || toolNames.includes("enrich-diff")) {
     await mkdir(outputPath, { recursive: true });
     await writeFile(
       path.join(installedToolkitDirectory, "config.json"),

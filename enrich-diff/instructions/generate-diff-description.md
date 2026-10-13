@@ -1,6 +1,6 @@
 # Generate the Diff Description
 
-Use the final HLD selected by the `hld-gen` workflow.
+Use the final HLD selected by the `feature-design` workflow.
 
 ## Initialize the Document
 

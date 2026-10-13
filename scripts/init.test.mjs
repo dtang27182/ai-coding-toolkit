@@ -34,7 +34,7 @@ test("reports missing toolkit dependencies before modifying the target", async (
 
   for (const argumentsList of [
     [repoDirectory],
-    [repoDirectory, "--tool", "hld-gen-new"],
+    [repoDirectory, "--tool", "feature-design"],
     [repoDirectory, "--tool", "enrich-diff"],
     [repoDirectory, "--tool", "advanced-diff-viewer"],
   ]) {
@@ -50,7 +50,7 @@ test("reports missing toolkit dependencies before modifying the target", async (
 
 test("copies skills and scripts that work after the source checkout is removed", async (t) => {
   const sourceDirectory = await createRepository(t);
-  for (const directoryName of ["scripts", "adapters", "hld-gen-new", "enrich-diff", "advanced-diff-viewer", "common", "node_modules"]) {
+  for (const directoryName of ["scripts", "adapters", "feature-design", "enrich-diff", "advanced-diff-viewer", "common", "node_modules"]) {
     await cp(path.join(toolkitDirectory, directoryName), path.join(sourceDirectory, directoryName), {
       recursive: true,
       dereference: true,
@@ -65,17 +65,17 @@ test("copies skills and scripts that work after the source checkout is removed",
   }
   await rm(sourceDirectory, { recursive: true });
 
-  const skillPath = path.join(repoDirectory, ".agents", "skills", "hld-gen", "SKILL.md");
+  const skillPath = path.join(repoDirectory, ".agents", "skills", "feature-design", "SKILL.md");
   assert.equal((await lstat(path.dirname(skillPath))).isSymbolicLink(), false);
   assert.equal(
     await readFile(skillPath, "utf8"),
-    await readFile(path.join(toolkitDirectory, "hld-gen-new", "SKILL.md"), "utf8")
+    await readFile(path.join(toolkitDirectory, "feature-design", "SKILL.md"), "utf8")
   );
   assert.equal(
     await readFile(path.join(repoDirectory, ".agents", "skills", "enrich-diff", "SKILL.md"), "utf8"),
     await readFile(path.join(toolkitDirectory, "enrich-diff", "skills", "enrich-diff", "SKILL.md"), "utf8")
   );
-  for (const directoryName of ["hld-gen-new", "enrich-diff", "advanced-diff-viewer", "common", "node_modules"]) {
+  for (const directoryName of ["feature-design", "enrich-diff", "advanced-diff-viewer", "common", "node_modules"]) {
     assert.equal(
       (await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isSymbolicLink(),
       false
@@ -116,79 +116,30 @@ test("copies skills and scripts that work after the source checkout is removed",
   }
 });
 
-test("installs only hld-gen-new while exposing the hld-gen skill", async (t) => {
+test("installs only feature-design while exposing the feature-design skill", async (t) => {
   const repoDirectory = await createRepository(t);
-  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","hld-gen-new-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/arch-diff/visualizer"}}\n');
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing"}}\n');
 
-  const result = install([repoDirectory, "--tool", "hld-gen-new"]);
+  const result = install([repoDirectory, "--tool", "feature-design"]);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
     "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
   });
   assert.equal(
-    await readFile(path.join(repoDirectory, ".agents", "skills", "hld-gen", "SKILL.md"), "utf8"),
-    await readFile(path.join(toolkitDirectory, "hld-gen-new", "SKILL.md"), "utf8")
+    await readFile(path.join(repoDirectory, ".agents", "skills", "feature-design", "SKILL.md"), "utf8"),
+    await readFile(path.join(toolkitDirectory, "feature-design", "SKILL.md"), "utf8")
   );
-  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new"))).isDirectory(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "feature-design"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "impl-dataflow"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "node_modules"))).isDirectory(), true);
   const visualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "hld", "visualizer");
-  const retiredHldPaths = ["generate/gen-hld.md", "visualizer/src/main.ts", "hld-quality.md", "define/define-behavior-and-scope.md"].map(
-    (relativePath) => path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new", relativePath)
-  );
-  for (const retiredPath of retiredHldPaths) {
-    await assert.rejects(lstat(retiredPath), { code: "ENOENT" });
-    await mkdir(path.dirname(retiredPath), { recursive: true });
-    await writeFile(retiredPath, "previous HLD location");
-  }
-  const retiredEvaluationPaths = ["count-design-changes.mjs", "count-variable-exposure.mjs", "hld-variable-exposure.md", "validate-impl-dataflow.mjs"].map(
-    (fileName) => path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new", "eval", fileName)
-  );
-  for (const evaluationPath of retiredEvaluationPaths) {
-    await assert.rejects(lstat(evaluationPath), { code: "ENOENT" });
-    await mkdir(path.dirname(evaluationPath), { recursive: true });
-    await writeFile(evaluationPath, "retired evaluation file");
-  }
-  const retiredArchitectureDiffPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "arch-diff");
-  await mkdir(retiredArchitectureDiffPath, { recursive: true });
-  await writeFile(path.join(retiredArchitectureDiffPath, "obsolete.json"), "obsolete format");
-  const systemVisualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "sys-dataflow", "visualizer");
-  for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
-    await assert.rejects(lstat(path.join(systemVisualizerPath, relativePath)), { code: "ENOENT" });
-    await writeFile(path.join(systemVisualizerPath, relativePath), "retired standalone file");
-  }
-  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing","hld-gen-new-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer","hld-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/impl-dataflow/visualizer"}}\n');
-  const upgrade = install([repoDirectory, "--tool", "hld-gen-new"]);
-  assert.equal(upgrade.status, 0, upgrade.stderr);
-  for (const retiredPath of retiredHldPaths) {
-    await assert.rejects(lstat(retiredPath), { code: "ENOENT" });
-  }
-  for (const evaluationPath of retiredEvaluationPaths) {
-    await assert.rejects(lstat(evaluationPath), { code: "ENOENT" });
-  }
-  assert.equal((await lstat(path.join(visualizerPath, "index.html"))).isFile(), true);
   await assert.rejects(lstat(path.join(visualizerPath, "dist")), { code: "ENOENT" });
-  await assert.rejects(lstat(retiredArchitectureDiffPath), { code: "ENOENT" });
-  for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
-    await assert.rejects(lstat(path.join(systemVisualizerPath, relativePath)), { code: "ENOENT" });
-  }
-  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
-    test: "existing",
-    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
-  });
-  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-gen-new-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer","hld-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer"}}\n');
-  const relocatedCommands = install([repoDirectory, "--tool", "hld-gen-new"]);
-  assert.equal(relocatedCommands.status, 0, relocatedCommands.stderr);
-  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
-    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
-  });
-  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-gen-new-visualizer":"custom old viewer","hld-visualizer":"custom new viewer"}}\n');
-  const conflictingCommands = install([repoDirectory, "--tool", "hld-gen-new"]);
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-visualizer":"custom viewer"}}\n');
+  const conflictingCommands = install([repoDirectory, "--tool", "feature-design"]);
   assert.equal(conflictingCommands.status, 0, conflictingCommands.stderr);
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
-    "hld-gen-new-visualizer": "custom old viewer",
-    "hld-visualizer": "custom new viewer",
+    "hld-visualizer": "custom viewer",
   });
 
   const inputPath = "ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json";
@@ -230,7 +181,7 @@ test("installs enrich-diff with the shared dataflow files", async (t) => {
   for (const directoryName of ["enrich-diff", "common", "node_modules"]) {
     assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isDirectory(), true);
   }
-  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "hld-gen-new")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "feature-design")), { code: "ENOENT" });
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
     "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer",
@@ -312,11 +263,11 @@ test("installs Claude Code skills with Claude-only frontmatter", async (t) => {
   const repoDirectory = await createRepository(t);
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const result = install([repoDirectory, "--tool", "hld-gen-new", "--agent", "claude"]);
+    const result = install([repoDirectory, "--tool", "feature-design", "--agent", "claude"]);
     assert.equal(result.status, 0, result.stderr);
   }
-  const sourceSkill = await readFile(path.join(toolkitDirectory, "hld-gen-new", "SKILL.md"), "utf8");
-  const claudeSkill = await readFile(path.join(repoDirectory, ".claude", "skills", "hld-gen", "SKILL.md"), "utf8");
+  const sourceSkill = await readFile(path.join(toolkitDirectory, "feature-design", "SKILL.md"), "utf8");
+  const claudeSkill = await readFile(path.join(repoDirectory, ".claude", "skills", "feature-design", "SKILL.md"), "utf8");
   const sourceFrontmatterEnd = sourceSkill.indexOf("\n---\n");
   assert.ok(claudeSkill.startsWith(sourceSkill.slice(0, sourceFrontmatterEnd)));
   assert.ok(claudeSkill.endsWith(sourceSkill.slice(sourceFrontmatterEnd)));
@@ -339,17 +290,17 @@ test("installs Claude Code skills with Claude-only frontmatter", async (t) => {
   assert.match(claudeEnrichDiffSkill, /\ncontext: fork\n/);
   assert.ok(claudeEnrichDiffSkill.endsWith(sourceEnrichDiffSkill.slice(sourceEnrichDiffSkill.indexOf("\n---\n"))));
 
-  const conflictDirectory = path.join(repoDirectory, ".claude", "skills", "hld-gen");
+  const conflictDirectory = path.join(repoDirectory, ".claude", "skills", "feature-design");
   await rm(conflictDirectory, { recursive: true });
   await mkdir(conflictDirectory);
-  const emptyDirectoryInstall = install([repoDirectory, "--tool", "hld-gen-new", "--agent", "claude"]);
+  const emptyDirectoryInstall = install([repoDirectory, "--tool", "feature-design", "--agent", "claude"]);
   assert.equal(emptyDirectoryInstall.status, 0, emptyDirectoryInstall.stderr);
   assert.equal(await readFile(path.join(conflictDirectory, "SKILL.md"), "utf8"), claudeSkill);
 
   await rm(conflictDirectory, { recursive: true });
   await mkdir(conflictDirectory);
   await writeFile(path.join(conflictDirectory, "SKILL.md"), "existing skill");
-  const conflict = install([repoDirectory, "--tool", "hld-gen-new", "--agent", "claude"]);
+  const conflict = install([repoDirectory, "--tool", "feature-design", "--agent", "claude"]);
   assert.notEqual(conflict.status, 0);
   assert.match(conflict.stderr, /Refusing to replace existing path/);
   assert.equal(await readFile(path.join(conflictDirectory, "SKILL.md"), "utf8"), "existing skill");
@@ -410,7 +361,7 @@ test("refreshes installed copies on repeat installation", async (t) => {
   const firstInstall = install([repoDirectory]);
   assert.equal(firstInstall.status, 0, firstInstall.stderr);
   const relativePaths = [
-    ".agents/skills/hld-gen/SKILL.md",
+    ".agents/skills/feature-design/SKILL.md",
     "ai-coding-toolkit/common/hld/generate/gen-design.md",
     "ai-coding-toolkit/node_modules/ajv/package.json",
   ];
@@ -419,11 +370,8 @@ test("refreshes installed copies on repeat installation", async (t) => {
     installedContents.push(await readFile(path.join(repoDirectory, relativePath), "utf8"));
     await writeFile(path.join(repoDirectory, relativePath), "outdated copy");
   }
-  const retiredGeneratorPath = path.join(repoDirectory, "ai-coding-toolkit/common/hld/generate/gen-hld.md");
-  await writeFile(retiredGeneratorPath, "previous generator");
   const secondInstall = install([repoDirectory]);
   assert.equal(secondInstall.status, 0, secondInstall.stderr);
-  await assert.rejects(lstat(retiredGeneratorPath), { code: "ENOENT" });
   for (let index = 0; index < relativePaths.length; index += 1) {
     assert.equal(await readFile(path.join(repoDirectory, relativePaths[index]), "utf8"), installedContents[index]);
   }
@@ -479,7 +427,7 @@ test("rejects missing targets and invalid arguments", async (t) => {
 
 test("preserves conflicting skill paths and runtime links", async (t) => {
   const repoDirectory = await createRepository(t);
-  const skillDirectory = path.join(repoDirectory, ".agents", "skills", "hld-gen");
+  const skillDirectory = path.join(repoDirectory, ".agents", "skills", "feature-design");
   await mkdir(skillDirectory, { recursive: true });
   await writeFile(path.join(skillDirectory, "SKILL.md"), "existing skill");
   const skillConflict = install([repoDirectory]);
@@ -489,12 +437,12 @@ test("preserves conflicting skill paths and runtime links", async (t) => {
 
   const otherRepo = await createRepository(t);
   await mkdir(path.join(otherRepo, "ai-coding-toolkit"));
-  await symlink(repoDirectory, path.join(otherRepo, "ai-coding-toolkit", "hld-gen-new"), "dir");
+  await symlink(repoDirectory, path.join(otherRepo, "ai-coding-toolkit", "feature-design"), "dir");
   const linkConflict = install([otherRepo]);
   assert.notEqual(linkConflict.status, 0);
   assert.match(linkConflict.stderr, /Refusing to replace existing link/);
   assert.equal(
-    await realpath(path.join(otherRepo, "ai-coding-toolkit", "hld-gen-new")),
+    await realpath(path.join(otherRepo, "ai-coding-toolkit", "feature-design")),
     await realpath(repoDirectory)
   );
 });
@@ -504,8 +452,8 @@ test("replaces earlier toolkit links with independent copies", async (t) => {
   await mkdir(path.join(repoDirectory, "ai-coding-toolkit"));
   await mkdir(path.join(repoDirectory, ".agents", "skills"), { recursive: true });
   const directories = [
-    ["hld-gen-new", "ai-coding-toolkit/hld-gen-new"],
-    ["hld-gen-new", ".agents/skills/hld-gen"],
+    ["feature-design", "ai-coding-toolkit/feature-design"],
+    ["feature-design", ".agents/skills/feature-design"],
   ];
   for (const [sourcePath, destinationPath] of directories) {
     await symlink(

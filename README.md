@@ -14,10 +14,10 @@ npm run install:all -- /path/to/code-repo
 
 Run `npm install` in this toolkit checkout before using any installer command; the installer copies its `node_modules` into the target repository. If an earlier attempt stopped with a missing `node_modules` error, install the dependencies and rerun the same installer command to finish the installation.
 
-The default installer installs `hld-gen-new` and `enrich-diff` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the `$hld-gen` skill, run:
+The default installer installs `feature-design` and `enrich-diff` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the `$feature-design` skill, run:
 
 ```sh
-npm run install:hld-gen-new -- /path/to/code-repo
+npm run install:feature-design -- /path/to/code-repo
 ```
 
 To install only the `$enrich-diff` skill, run:
@@ -40,9 +40,9 @@ npm run adv-diff
 
 The viewer generates `adv-diff/enriched-patch.json` automatically from current staged, unstaged, deleted, and untracked changes against `HEAD`. It updates as files change and provides a Refresh button. The generated enriched patch and, in installed repositories, the copied `ai-coding-toolkit` runtime and the output directory configured in `ai-coding-toolkit/config.json` are excluded from the comparison and do not trigger refreshes. You can open or drag in another enriched patch from the viewer.
 
-The HLD generator exposes the skill as `$hld-gen`.
+The HLD generator exposes the skill as `$feature-design`.
 
-Skills install for Codex by default. To install them for Claude Code, where they are invoked as `/hld-gen` and `/enrich-diff`, pass `--agent claude`, or `--agent codex,claude` for both:
+Skills install for Codex by default. To install them for Claude Code, where they are invoked as `/feature-design` and `/enrich-diff`, pass `--agent claude`, or `--agent codex,claude` for both:
 
 ```sh
 npm run install:all -- /path/to/code-repo --agent claude
@@ -62,19 +62,19 @@ Each target repository has its own files and output configuration and works inde
 
 ## Generate a High-Level Design
 
-Start `$hld-gen` at any point in a conversation about a feature. Before generating the design, the agent drafts requirements in the HLD, presents its understanding of the desired behavior, scope, and user journeys, asks the user to confirm or correct all three, and waits for explicit approval.
+Start `$feature-design` at any point in a conversation about a feature. Before generating the design, the agent drafts requirements in the HLD, presents its understanding of the desired behavior, scope, and user journeys, asks the user to confirm or correct all three, and waits for explicit approval.
 
 `common/hld/hld-quality.md` defines qualitative guidance for generating one design. The goal is to minimize end-state complexity, then minimize change complexity wherever doing so does not increase end-state complexity.
 
-`hld-gen-new` defines and confirms requirements, including User Journeys, then calls `common/hld/generate/gen-design.md` to fill the HLD's Design section and generate its dataflow artifacts and manifest. The shared HLD template, generation instructions, manifest writer, and visualizer live in `common/hld`. The behavior-change requirements template and definition instructions remain in `hld-gen-new/define`.
+`feature-design` defines and confirms requirements, including User Journeys, then calls `common/hld/generate/gen-design.md` to fill the HLD's Design section and generate its dataflow artifacts and manifest. The shared HLD template, generation instructions, manifest writer, and visualizer live in `common/hld`. The behavior-change requirements template and definition instructions remain in `feature-design/define`.
 
 Ask the agent:
 
 ```text
-Use $hld-gen to develop a design from our workbook-import conversation so far.
+Use $feature-design to develop a design from our workbook-import conversation so far.
 ```
 
-`hld-gen-new` produces an HLD doc (`<feature>.hld.md`), a proposed System Dataflow (`<feature>.sys-dataflow.json`), and a structured JSON representation of its Implementation Dataflow narrative (`<feature>.impl-dataflow.json`), in that order. The System Dataflow is generated directly from User Journeys; the HLD has no separate User Flows section. Detailed Requirements are captured separately in `<feature>.detailed-requirements.md` for implementation after design handoff. The HLD links to that file and gets `<feature>.hld-manifest.json` with absolute paths to all four artifacts. `sys-dataflow` is shorthand for System Dataflow.
+`feature-design` produces an HLD doc (`<feature>.hld.md`), a proposed System Dataflow (`<feature>.sys-dataflow.json`), and a structured JSON representation of its Implementation Dataflow narrative (`<feature>.impl-dataflow.json`), in that order. The System Dataflow is generated directly from User Journeys; the HLD has no separate User Flows section. Detailed Requirements are captured separately in `<feature>.detailed-requirements.md` for implementation after design handoff. The HLD links to that file and gets `<feature>.hld-manifest.json` with absolute paths to all four artifacts. `sys-dataflow` is shorthand for System Dataflow.
 
 The skill generates one design and validates its dataflow artifacts, without candidate comparison, quantitative quality evaluation, or automatic improvement iterations. All artifacts are grouped directly in `<feature>/` under the configured output directory. Requirements and clarification questions live in the HLD; there is no separate iteration summary.
 
@@ -84,7 +84,7 @@ The shared dataflow validation scripts remain available independently. Run `npm 
 
 ## Enrich the Current Diff
 
-After `hld-gen-new` produces `<feature>.hld.md`, invoke `$enrich-diff`. You can ask it to compare the working tree with the latest commit, the latest commit with its parent, or any two commits; it uses the older commit as the base regardless of the order you name them. Without a selection, it uses the working tree when staged, unstaged, or untracked changes exist; otherwise it compares `HEAD^` with `HEAD`. The skill writes the selected diff to `<feature>.patch` and a graph to `<feature>.cr.sys-dataflow.json` beside the HLD. It also writes `<feature>.enriched-patch.json` as a self-contained input for the enriched patch viewer, embedding the selected patch alongside locations for changed files, classes, and methods. `<feature>.rich-diff.json` contains absolute paths to the enriched patch and both dataflow JSON artifacts for the combined visualizer. The generated System Dataflow focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
+After `feature-design` produces `<feature>.hld.md`, invoke `$enrich-diff`. You can ask it to compare the working tree with the latest commit, the latest commit with its parent, or any two commits; it uses the older commit as the base regardless of the order you name them. Without a selection, it uses the working tree when staged, unstaged, or untracked changes exist; otherwise it compares `HEAD^` with `HEAD`. The skill writes the selected diff to `<feature>.patch` and a graph to `<feature>.cr.sys-dataflow.json` beside the HLD. It also writes `<feature>.enriched-patch.json` as a self-contained input for the enriched patch viewer, embedding the selected patch alongside locations for changed files, classes, and methods. `<feature>.rich-diff.json` contains absolute paths to the enriched patch and both dataflow JSON artifacts for the combined visualizer. The generated System Dataflow focuses on user and system boundaries, state, external dependencies, and critical data processing in the implemented feature.
 
 The skill also generates `<feature>.cr.impl-dataflow.json` using three passes: identify changed entities and required endpoints throughout the diff, write direct relationships, and validate diff coverage and implementation accuracy. User flows provide context without limiting which changes appear in the graph. This artifact records classes and modules with their functions, state variables, components, and direct transfers, with relevant diff hunks attached to changed entries. Schema limitations and unresolved discrepancies are written to `<feature>.cr.impl-dataflow.discrepencies.md`. The skill reports both paths alongside the combined visualizer input.
 

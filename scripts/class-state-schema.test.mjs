@@ -4,7 +4,7 @@ import test from "node:test";
 import { computeLayout as computeNewLayout } from "../common/impl-dataflow/visualizer/src/layout.ts";
 import { isInternalStateRelationship, resolveEndpoint as resolveNewEndpoint } from "../common/impl-dataflow/visualizer/src/types.ts";
 
-test("hld-gen-new collapsed layout hides class internals", () => {
+test("feature-design collapsed layout hides class internals", () => {
   const nodes = [{
     name: "ChangeModel",
     changeType: "added",
@@ -17,7 +17,7 @@ test("hld-gen-new collapsed layout hides class internals", () => {
   assert.equal(layout.stateRects.size, 0);
 });
 
-test("hld-gen-new identifies only same-class state relationships as internal", () => {
+test("feature-design identifies only same-class state relationships as internal", () => {
   const relationship = (type, from, to) => ({
     relationship: { type },
     from: resolveNewEndpoint(from),
