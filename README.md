@@ -66,7 +66,7 @@ Start `$hld-gen` at any point in a conversation about a feature. Before generati
 
 `common/hld/hld-quality.md` defines qualitative guidance for generating one design. The goal is to minimize end-state complexity, then minimize change complexity wherever doing so does not increase end-state complexity.
 
-`hld-gen-new` defines and confirms requirements, including User Journeys, then calls `common/hld/generate/gen-hld.md` to complete the design. The shared HLD template, generation instructions, manifest writer, and visualizer live in `common/hld`. The behavior-change requirements template and definition instructions remain in `hld-gen-new/define`.
+`hld-gen-new` defines and confirms requirements, including User Journeys, then calls `common/hld/generate/gen-design.md` to fill the HLD's Design section and generate its dataflow artifacts and manifest. The shared HLD template, generation instructions, manifest writer, and visualizer live in `common/hld`. The behavior-change requirements template and definition instructions remain in `hld-gen-new/define`.
 
 Ask the agent:
 

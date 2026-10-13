@@ -411,7 +411,7 @@ test("refreshes installed copies on repeat installation", async (t) => {
   assert.equal(firstInstall.status, 0, firstInstall.stderr);
   const relativePaths = [
     ".agents/skills/hld-gen/SKILL.md",
-    "ai-coding-toolkit/common/hld/generate/gen-hld.md",
+    "ai-coding-toolkit/common/hld/generate/gen-design.md",
     "ai-coding-toolkit/node_modules/ajv/package.json",
   ];
   const installedContents = [];
@@ -419,8 +419,11 @@ test("refreshes installed copies on repeat installation", async (t) => {
     installedContents.push(await readFile(path.join(repoDirectory, relativePath), "utf8"));
     await writeFile(path.join(repoDirectory, relativePath), "outdated copy");
   }
+  const retiredGeneratorPath = path.join(repoDirectory, "ai-coding-toolkit/common/hld/generate/gen-hld.md");
+  await writeFile(retiredGeneratorPath, "previous generator");
   const secondInstall = install([repoDirectory]);
   assert.equal(secondInstall.status, 0, secondInstall.stderr);
+  await assert.rejects(lstat(retiredGeneratorPath), { code: "ENOENT" });
   for (let index = 0; index < relativePaths.length; index += 1) {
     assert.equal(await readFile(path.join(repoDirectory, relativePaths[index]), "utf8"), installedContents[index]);
   }

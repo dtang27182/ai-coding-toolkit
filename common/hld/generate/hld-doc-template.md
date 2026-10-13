@@ -5,9 +5,10 @@
 - <intended level of detail>
 - Exclude error handling paths.
 
+## Requirements
 <high level requirements section>
 
-## Detailed Requirements
+### Detailed Requirements
 
 [Detailed Requirements](<feature>.detailed-requirements.md)
 
@@ -15,21 +16,22 @@
 
 <clarification questions or None>
 
-## Design Context and Related Workflows
+## Design
+### Design Context and Related Workflows
 
 <design context and related workflows>
 
-## System Dataflow
+### System Dataflow
 
 [System Dataflow JSON](<feature>.sys-dataflow.json)
 
-## Implementation Dataflow
+### Implementation Dataflow
 
 [Implementation Dataflow JSON](<feature>.impl-dataflow.json)
 
 <implementation dataflow narrative>
 
-## Implementation Instructions
+### Implementation Instructions
 
 For the coding agent implementing this HLD after design handoff:
 

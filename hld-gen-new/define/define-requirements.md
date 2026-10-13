@@ -7,7 +7,7 @@ Use the current code to understand existing behavior and constraints, not to cho
 
 ## Define High Level Requirements
 
-Replace `<high level requirements section>` in the HLD with the contents of `ai-coding-toolkit/hld-gen-new/define/high-level-requirements-template.md`. Fill its `Desired Behavior`, `Scope and Assumptions`, and `User Journeys` subsections using the guidance below.
+Replace `<high level requirements section>` under the HLD's `Requirements` section with the contents of `ai-coding-toolkit/hld-gen-new/define/high-level-requirements-template.md`, preserving the template's heading levels. Fill its `Desired Behavior`, `Scope and Assumptions`, and `User Journeys` subsections using the guidance below.
 
 ### Desired Behavior
 
@@ -31,7 +31,7 @@ Replace `<high level requirements section>` in the HLD with the contents of `ai-
 
 ## Define Detailed Requirements
 
-Write `<outputDirectory>/<feature>/<feature>.detailed-requirements.md` and link to it from the HLD's `Detailed Requirements` section.
+Write `<outputDirectory>/<feature>/<feature>.detailed-requirements.md` and link to it from the `Detailed Requirements` subsection under `Requirements` in the HLD.
 
 - Title the separate file `# <feature> Detailed Requirements`.
 - Record explicit requirements for implementation after design handoff, such as UI controls, copy, formatting, validation rules, and error handling. Preserve requirements from the user request and supplied references even when `Design Guidelines` exclude those details from the HLD design.
@@ -40,4 +40,4 @@ Write `<outputDirectory>/<feature>/<feature>.detailed-requirements.md` and link 
 
 ## Record Clarification Questions
 
-- Record only unresolved questions about High Level Requirements in the HLD's `Clarification Questions` section, as a numbered list. Write `None` when no questions remain.
+- Record only unresolved questions about High Level Requirements in the HLD's top-level `Clarification Questions` section, as a numbered list. Write `None` when no questions remain.

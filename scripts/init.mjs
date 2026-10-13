@@ -230,6 +230,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
       await rm(path.join(installedToolkitDirectory, "hld-gen-new", directoryName), { recursive: true, force: true });
     }
     await rm(path.join(installedToolkitDirectory, "hld-gen-new", "hld-quality.md"), { force: true });
+    await rm(path.join(installedToolkitDirectory, "common", "hld", "generate", "gen-hld.md"), { force: true });
     await rm(path.join(installedToolkitDirectory, "common", "arch-diff"), { recursive: true, force: true });
     await rm(path.join(installedToolkitDirectory, "common", "hld", "visualizer", "dist"), { recursive: true, force: true });
   }
