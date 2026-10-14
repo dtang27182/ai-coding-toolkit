@@ -203,7 +203,7 @@
               "const": "system-output"
             },
             {
-              "description": "Persistent state read or updated by the dataflow, including but not limited to instance, static, or global variables and browser, file, database, or object storage. Dataflow relationships may enter and leave this node.",
+              "description": "Persistent state read or updated by the dataflow, including but not limited to instance, static, or global variables and browser, file, external database, or external object storage. Dataflow relationships may enter and leave this node.",
               "const": "system-state"
             },
             {

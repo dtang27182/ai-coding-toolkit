@@ -28,31 +28,33 @@ Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.schema.json` and `ai-co
 
 ### Decide What to Reuse, Modify, or Add
 
-For each journey, inspect the existing paths and determine how its inputs will produce its required outputs and system effects while satisfying the confirmed High Level Requirements. Make the high-level design decisions in the graph as you trace those paths:
+For each journey, trace paths in the current code base from inputs to required outputs and system effects, making high-level design decisions that satisfy the confirmed High Level Requirements:
 
-- Reuse existing nodes and dataflows as `unchanged` when their current responsibilities and transfers satisfy the journey and fit the confirmed High Level Requirements. Ground these entries in current code and include them only when needed to connect a trigger to a required effect.
-- Mark existing nodes and dataflows as `modified` when their responsibilities, behavior, or transferred data must change to satisfy the confirmed High Level Requirements while realizing the journey. Describe their proposed behavior in the graph.
-- Add nodes and dataflows as `added` when the journey requires responsibilities or transfers that do not exist in the current codebase.
-- Set `changeType` on every node and relationship relative to the current code. Classify each relationship by its own data transfer, independently of its endpoints' change types. Represent necessary removals as `deleted`.
+- Mark nodes and dataflows as `unchanged` when their current responsibilities and transfers satisfy the journey and confirmed High Level Requirements. Ground them in current code; include only those needed to connect a trigger to a required effect.
+- Mark nodes and dataflows as `modified` when responsibilities, behavior, or transferred data must change to realize the journey and satisfy the confirmed High Level Requirements. Describe their proposed behavior in the graph.
+- Add nodes and dataflows as `added` for required responsibilities or transfers absent from current code.
+- Mark existing nodes and dataflows as `deleted` when their responsibilities, behavior, or transfers must be removed to realize the journey and satisfy the confirmed High Level Requirements.
+- Set every node's and relationship's `changeType` relative to current code. Classify relationships by their own transfers, independently of endpoint change types.
 
-Write these decisions into the JSON as you go. Revisit existing entries when later inspection changes the design; continue until the subgraph explains how the journey is realized.
+Record decisions in the JSON as you go, revising entries when later inspection changes the design until each subgraph explains how its journey is realized.
 
 ### Represent the Nodes and Dataflows
 
-- Create nodes for the major system components that directly participate in producing the journey's required effects.
-- Within each subgraph, represent each system component once per semantic role. For a component used by multiple User Journeys, create distinct journey-specific nodes with the same `location` when appropriate.
-- Explicitly represent the journey's useful result and required effects as `user-output` nodes, `system-output` nodes, or `dataflow` relationships into `system-state` nodes.
-- Trace the `dataflow` paths that connect the journey's inputs to those outputs and state updates. Include the supporting `data-processing` nodes and requests to and responses from `external-dependency` nodes needed to realize them.
-- Find reads from `system-state` and `static-data` nodes required by the journey, processing, or external dependency requests, and connect each read to its consumer with a `dataflow` relationship even when the journey does not name the read.
-- Connect nodes according to the data transfers needed to realize the journey, not merely the order of its actions.
-- Use `dataflow` relationships for state updates and outputs into `system-state`, `user-output`, and `system-output` nodes, and for simple data forwarding and request construction between participating nodes.
-- Create a `data-processing` node only when at least one of these conditions applies:
-  - Conditional or loop logic that meaningfully changes the User Journey's high-level direction.
-  - Loop logic that expresses a meaningful pattern for processing a large data set.
-  - A non-trivial algorithm such as search, sorting, or tree or graph traversal.
-- Do not represent methods or functions that pass data through as `data-processing` nodes unless they meet at least one of the three conditions above. The vast majority of methods and functions should not become `data-processing` nodes.
-- When data flows between two sys-dataflow nodes through multiple methods or functions without passing through another sys-dataflow node, merge paths with the same start and end nodes into one `dataflow` relationship. Summarize the data carried across those paths.
-- Represent an algorithm performed by multiple cooperating methods as one `data-processing` node.
+- Create nodes for major system components directly contributing to the journey's required effects.
+- Represent each component once per semantic role in each subgraph. For components shared across journeys, use distinct journey-specific nodes with the same `location` when appropriate.
+- Capture the journey's useful result and required effects as `user-output` or `system-output` nodes, or `dataflow` relationships into `system-state` nodes.
+- Connect journey inputs to outputs and state updates with `dataflow` paths, including required `data-processing` nodes and requests to and responses from `external-dependency` nodes.
+- Connect every `system-state` and `static-data` read needed by the journey, processing, or external requests to its consumer via `dataflow`, even if the journey omits it.
+- Connect nodes by required data transfers, not merely action order.
+- Each incoming `dataflow` must carry a complete input for its destination's role, ready for non-processing nodes to use, display, store, or output as-is. Put required combinations and meaningful transformations in preceding `data-processing` nodes.
+- Insert a `data-processing` node for any of:
+  - Combining two or more data sources into one result.
+  - Meaningfully transforming data between nodes.
+  - Conditional or loop logic that meaningfully changes the journey's high-level direction.
+  - Loops expressing meaningful patterns for processing large data sets.
+  - Non-trivial algorithms such as search, sorting, or tree or graph traversal.
+- Use `dataflow` for simple forwarding, pass-through methods and functions, and request construction unless a processing criterion applies. The vast majority of methods and functions should not become `data-processing` nodes.
+- Represent one processing operation or algorithm spanning multiple cooperating methods as one `data-processing` node.
 
 ## 3. Validate and Refine the Working Graph
 
