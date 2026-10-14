@@ -8,25 +8,23 @@ Build and refine `<feature>.sys-dataflow.json` to satisfy the confirmed High Lev
 
 Use three primary inputs:
 
-- **Desired Behavior and Scope and Assumptions:** Read these sections of the HLD doc's High Level Requirements to establish the intended outcomes, behavior, scope, assumptions, and constraints. Use them to guide design decisions throughout the graph, including requirements not repeated in individual User Journeys.
-- **User Journeys:** Read the HLD doc's User Journeys to drive the concrete construction of each subgraph: identify its user actions, outputs, required system effects, and useful result. Design each journey within the Desired Behavior and Scope and Assumptions.
-- **Current codebase:** Read the relevant code and enough surrounding code to understand the existing dataflow, state, and external dependencies. Use Design Context and Related Workflows to locate relevant paths without expanding the design's scope.
+- **Desired Behavior and Scope and Assumptions:** Establish the intended end state the design must achieve, including requirements not repeated in User Journeys.
+- **User Journeys:** Drive the concrete construction of each subgraph.
+- **Current codebase:** Understand existing dataflow, state, and external dependencies. Use Design Context and Related Workflows to locate relevant code.
 
 Apply the level of abstraction in Design Guidelines.
 
-Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.schema.json` and `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.example.json` to understand the graph's node types, relationship format, and permitted directions.
-
-Initialize `<feature>.sys-dataflow.json` with `schemaVersion` set to `3`, `stage` set to `high-level-design`, the feature name, and an empty `subgraphs` array. Use this file as the working design artifact: write nodes and relationships as decisions are made, then revise them as code inspection and journey tracing reveal gaps or better choices.
+Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.schema.json` and `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.example.json`, then initialize `<feature>.sys-dataflow.json` for the `high-level-design` stage.
 
 ## 2. Design and Extend the Graph for Each User Journey
 
 ### Bound the Journey
 
-- Create one entry in `subgraphs` for each numbered User Journey, in journey order. Give it a unique `id`, a descriptive `name`, and its own `nodes` and `relationships` arrays. Membership is explicit through these arrays; do not infer it from node-name prefixes. Keep node names and relationship IDs unique across the document. Each subgraph must be internally connected, with no relationships connecting it to another journey's subgraph.
-- Start each subgraph with a `user-input` node for the journey's first user action. Include later `user-input` nodes for its other user actions and `system-input` nodes for externally supplied inputs needed by the journey.
-- Explicitly capture the journey's useful result and required effects as `user-output` nodes, `system-output` nodes, or `dataflow` relationships into `system-state` nodes. Stop tracing once these outputs and state updates are represented. Do not follow unchanged downstream behavior or related workflows outside the journey.
-- Never include one-time initialization, dependency setup, or object construction that occurs before the triggering `user-input` or `system-input`.
-- Do not expand the graph to cover related workflows described only as context.
+- Create one `subgraphs` entry per numbered User Journey, in journey order. Keep each subgraph connected.
+- Start with a `user-input` node for the journey's first user action. Add `user-input` nodes for later user actions and `system-input` nodes for required external inputs.
+- Capture the journey's useful result and required effects as `user-output` or `system-output` nodes, or `dataflow` relationships into `system-state` nodes. Stop once these outputs and state updates are represented; omit unchanged downstream behavior and related workflows outside the journey.
+- Exclude one-time initialization, dependency setup, and object construction before the triggering `user-input` or `system-input`.
+- Exclude related workflows described only as context.
 
 ### Decide What to Reuse, Modify, or Add
 
