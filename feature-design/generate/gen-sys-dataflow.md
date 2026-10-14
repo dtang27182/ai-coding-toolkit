@@ -2,14 +2,17 @@
 
 `sys-dataflow` is shorthand for system dataflow.
 
-Design how the system will realize each User Journey by building and refining `<feature>.sys-dataflow.json`. The System Dataflow provides the high-level specification of how to realize the User Journeys in the context of the current codebase.
+Build and refine `<feature>.sys-dataflow.json` to satisfy the confirmed High Level Requirements, using User Journeys to structure its subgraphs and current code to ground the design.
 
 ## 1. Read the Inputs and Initialize the Graph
 
-Use two primary inputs:
+Use three primary inputs:
 
-- **User Journeys:** Read the HLD doc's User Journeys to identify the user actions, outputs, required system effects, and useful results the design must realize. Apply the goals, scope, and constraints in High Level Requirements and Design Guidelines.
+- **Desired Behavior and Scope and Assumptions:** Read these sections of the HLD doc's High Level Requirements to establish the intended outcomes, behavior, scope, assumptions, and constraints. Use them to guide design decisions throughout the graph, including requirements not repeated in individual User Journeys.
+- **User Journeys:** Read the HLD doc's User Journeys to drive the concrete construction of each subgraph: identify its user actions, outputs, required system effects, and useful result. Design each journey within the Desired Behavior and Scope and Assumptions.
 - **Current codebase:** Read the relevant code and enough surrounding code to understand the existing dataflow, state, and external dependencies. Use Design Context and Related Workflows to locate relevant paths without expanding the design's scope.
+
+Apply the level of abstraction in Design Guidelines.
 
 Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.schema.json` and `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.example.json` to understand the graph's node types, relationship format, and permitted directions.
 
@@ -55,7 +58,7 @@ Write these decisions into the JSON as you go. Revisit existing entries when lat
 
 ## 3. Validate and Refine the Working Graph
 
-- Review the in-progress JSON against the User Journeys and current code. Verify that each journey's user actions, outputs, required system effects, and useful result are represented, with the supporting dataflows needed to connect them.
+- Review the in-progress JSON against all confirmed High Level Requirements and current code. Verify that the design satisfies Desired Behavior and Scope and Assumptions, and that each journey's user actions, outputs, required system effects, and useful result are represented, with the supporting dataflows needed to connect them.
 - Trace each subgraph from its trigger to its required effects. Check that it is connected, that each relationship supplies data its consumer needs, and that every node and relationship is within the journey's scope.
 - Verify that every `changeType` reflects what the design reuses, modifies, adds, or removes relative to the current code.
 - Resolve gaps by inspecting more code and updating the JSON. Remove unnecessary nodes and relationships as the design is refined.

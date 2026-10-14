@@ -86,7 +86,7 @@ test("copies skills and scripts that work after the source checkout is removed",
   }
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/feature-design/visualizer",
     "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer",
     "adv-diff": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer",
   });
@@ -98,7 +98,7 @@ test("copies skills and scripts that work after the source checkout is removed",
   assert.equal(validation.status, 0, validation.stderr);
 
   for (const [toolName, title] of [
-    ["common/hld", "HLD Dataflow Visualizer"],
+    ["feature-design", "HLD Dataflow Visualizer"],
     ["enrich-diff", "Enriched Diff Visualizer"],
     ["advanced-diff-viewer", "Advanced Diff Viewer"],
   ]) {
@@ -127,7 +127,7 @@ test("installs only feature-design while exposing the feature-design skill", asy
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/feature-design/visualizer",
   });
   assert.equal(
     await readFile(path.join(repoDirectory, ".agents", "skills", "feature-design", "SKILL.md"), "utf8"),
@@ -136,8 +136,15 @@ test("installs only feature-design while exposing the feature-design skill", asy
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "feature-design"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "impl-dataflow"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "node_modules"))).isDirectory(), true);
-  const visualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "hld", "visualizer");
+  const visualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "feature-design", "visualizer");
   await assert.rejects(lstat(path.join(visualizerPath, "dist")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "hld")), { code: "ENOENT" });
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer"}}\n');
+  const migratedCommands = install([repoDirectory, "--tool", "feature-design"]);
+  assert.equal(migratedCommands.status, 0, migratedCommands.stderr);
+  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/feature-design/visualizer",
+  });
   await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-visualizer":"custom viewer"}}\n');
   const conflictingCommands = install([repoDirectory, "--tool", "feature-design"]);
   assert.equal(conflictingCommands.status, 0, conflictingCommands.stderr);
@@ -160,7 +167,7 @@ test("installs only feature-design while exposing the feature-design skill", asy
   const visualizerBuild = spawnSync(process.execPath, [
     "ai-coding-toolkit/node_modules/vite/bin/vite.js",
     "build",
-    "ai-coding-toolkit/common/hld/visualizer",
+    "ai-coding-toolkit/feature-design/visualizer",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
   for (const htmlFile of ["index.html", "system.html", "implementation.html"]) {
@@ -186,9 +193,6 @@ test("installs refactor-design independently for Codex and Claude", async (t) =>
   for (const relativePath of [
     "refactor-design/define/define-requirements.md",
     "refactor-design/define/high-level-requirements-template.md",
-    "common/hld/define/define+confirm-design-guidlines.md",
-    "common/hld/define/define+confirm-requirements.md",
-    "common/hld/generate/gen-design.md",
   ]) {
     assert.equal(
       await readFile(path.join(repoDirectory, "ai-coding-toolkit", relativePath), "utf8"),
@@ -206,10 +210,6 @@ test("installs refactor-design independently for Codex and Claude", async (t) =>
   for (const toolName of ["feature-design", "enrich-diff", "advanced-diff-viewer"]) {
     await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", toolName)), { code: "ENOENT" });
   }
-  const visualizerBuild = spawnSync(process.execPath, [
-    "ai-coding-toolkit/node_modules/vite/bin/vite.js", "build", "ai-coding-toolkit/common/hld/visualizer",
-  ], { cwd: repoDirectory, encoding: "utf8" });
-  assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
 });
 
 test("installs enrich-diff with the shared dataflow files", async (t) => {
@@ -318,7 +318,7 @@ test("installs Claude Code skills with Claude-only frontmatter", async (t) => {
   const sourceFrontmatterEnd = sourceSkill.indexOf("\n---\n");
   assert.ok(claudeSkill.startsWith(sourceSkill.slice(0, sourceFrontmatterEnd)));
   assert.ok(claudeSkill.endsWith(sourceSkill.slice(sourceFrontmatterEnd)));
-  assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/hld\/generate\/\*\)\n/);
+  assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/feature-design\/generate\/\*\)\n/);
   assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/impl-dataflow\/\*\)\n/);
   assert.doesNotMatch(claudeSkill, /\ncontext: fork\n/);
   await assert.rejects(lstat(path.join(repoDirectory, ".agents")), { code: "ENOENT" });
@@ -409,7 +409,7 @@ test("refreshes installed copies on repeat installation", async (t) => {
   assert.equal(firstInstall.status, 0, firstInstall.stderr);
   const relativePaths = [
     ".agents/skills/feature-design/SKILL.md",
-    "ai-coding-toolkit/common/hld/generate/gen-design.md",
+    "ai-coding-toolkit/feature-design/generate/gen-design.md",
     "ai-coding-toolkit/node_modules/ajv/package.json",
   ];
   const installedContents = [];

@@ -10,7 +10,7 @@
     "install:enrich-diff": "node scripts/init.mjs --agent codex --tool enrich-diff",
     "install:adv-diff": "node scripts/init.mjs --agent codex --tool advanced-diff-viewer",
     "adv-diff": "vite advanced-diff-viewer/visualizer",
-    "hld-visualizer": "vite common/hld/visualizer",
+    "hld-visualizer": "vite feature-design/visualizer",
     "diff-visualizer": "vite enrich-diff/visualizer"
   },
   "dependencies": {

@@ -70,7 +70,9 @@ async function installRootCommands() {
 
   if (packageJson !== undefined) {
     const commands = {};
-    if (toolNames.includes("feature-design") || toolNames.includes("refactor-design")) {
+    if (toolNames.includes("feature-design")) {
+      commands["hld-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/feature-design/visualizer";
+    } else if (toolNames.includes("refactor-design")) {
       commands["hld-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer";
     }
     if (toolNames.includes("enrich-diff")) {
@@ -80,6 +82,14 @@ async function installRootCommands() {
       commands["adv-diff"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer";
     }
     let packageChanged = false;
+    if (
+      toolNames.includes("feature-design") &&
+      packageJson.scripts?.["hld-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer"
+    ) {
+      packageJson.scripts["hld-visualizer"] = commands["hld-visualizer"];
+      packageChanged = true;
+      console.log("Updated npm command: npm run hld-visualizer");
+    }
     if (
       toolNames.includes("enrich-diff") &&
       packageJson.scripts?.["diff-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/diff-viewer/visualizer"
@@ -201,6 +211,9 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   }
   if (toolNames.includes("feature-design") || toolNames.includes("refactor-design")) {
     await rm(path.join(installedToolkitDirectory, "common", "hld", "visualizer", "dist"), { recursive: true, force: true });
+  }
+  if (toolNames.includes("feature-design")) {
+    await rm(path.join(installedToolkitDirectory, "feature-design", "visualizer", "dist"), { recursive: true, force: true });
   }
   if (toolNames.includes("enrich-diff")) {
     for (const relativePath of ["instructions/generate-system-dataflow.md", "scripts/validate-system-dataflow.mjs"]) {

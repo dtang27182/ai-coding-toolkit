@@ -70,9 +70,9 @@ Each target repository has its own files and output configuration and works inde
 
 Start `$feature-design` at any point in a conversation about a feature. Before generating the design, the agent drafts requirements in the HLD, presents its understanding of the desired behavior, scope, and user journeys, asks the user to confirm or correct all three, and waits for explicit approval.
 
-`common/hld/hld-quality.md` defines qualitative guidance for generating one design. The goal is to minimize end-state complexity, then minimize change complexity wherever doing so does not increase end-state complexity.
+`feature-design/hld-quality.md` defines qualitative guidance for generating one design. The goal is to minimize end-state complexity, then minimize change complexity wherever doing so does not increase end-state complexity.
 
-`feature-design` defines and confirms requirements, including User Journeys, then calls `common/hld/generate/gen-design.md` to fill the HLD's Design section and generate its dataflow artifacts and manifest. The shared HLD template, generation instructions, manifest writer, and visualizer live in `common/hld`. The behavior-change requirements template and definition instructions remain in `feature-design/define`.
+`feature-design` defines and confirms requirements, including User Journeys, then calls `feature-design/generate/gen-design.md` to fill the HLD's Design section and generate its dataflow artifacts and manifest. The HLD template, generation instructions, manifest writer, and visualizer live in `feature-design`. The behavior-change requirements template and definition instructions remain in `feature-design/define`.
 
 Ask the agent:
 

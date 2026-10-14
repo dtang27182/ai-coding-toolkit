@@ -2,8 +2,8 @@
 
 ## Design Guidelines
 
-- <intended level of detail>
-- Exclude error handling paths.
+- <what belongs in High Level Requirements versus Detailed Requirements>
+- <general level of abstraction for the design>
 
 ## Requirements
 <high level requirements section>

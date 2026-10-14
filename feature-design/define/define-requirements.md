@@ -1,6 +1,6 @@
 # Define Requirements
 
-1. Read `Design Guidelines` in `<outputDirectory>/<feature>/<feature>.hld.md` to understand the intended level of detail and exclusions.
+1. Read `Design Guidelines` in `<outputDirectory>/<feature>/<feature>.hld.md` to understand the intended level of abstraction for requirements and design.
 2. Read the feature context from chat, relevant code, and repository guidance. Use `Design Guidelines` to decide which relevant information belongs in `High Level Requirements` and which belongs in `Detailed Requirements`.
 
 Use the current code to understand existing behavior and constraints, not to choose an implementation. Preserve explicit requirements and decisions without adding design choices that the request does not require. The confirmed high-level requirements are the source of truth for the design; detailed requirements guide implementation after design handoff.

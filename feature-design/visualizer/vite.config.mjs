@@ -7,7 +7,7 @@ import { hldManifestPlugin } from "./hld-manifest-plugin.mjs";
 import { watchDataflowFiles } from "./watch-dataflow-files.mjs";
 
 const visualizerDirectory = path.dirname(fileURLToPath(import.meta.url));
-const toolkitDirectory = path.resolve(visualizerDirectory, "../../..");
+const toolkitDirectory = path.resolve(visualizerDirectory, "../..");
 const repositoryDirectory = process.cwd();
 
 export default defineConfig({
