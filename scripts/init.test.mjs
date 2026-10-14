@@ -35,6 +35,7 @@ test("reports missing toolkit dependencies before modifying the target", async (
   for (const argumentsList of [
     [repoDirectory],
     [repoDirectory, "--tool", "feature-design"],
+    [repoDirectory, "--tool", "refactor-design"],
     [repoDirectory, "--tool", "enrich-diff"],
     [repoDirectory, "--tool", "advanced-diff-viewer"],
   ]) {
@@ -50,7 +51,7 @@ test("reports missing toolkit dependencies before modifying the target", async (
 
 test("copies skills and scripts that work after the source checkout is removed", async (t) => {
   const sourceDirectory = await createRepository(t);
-  for (const directoryName of ["scripts", "adapters", "feature-design", "enrich-diff", "advanced-diff-viewer", "common", "node_modules"]) {
+  for (const directoryName of ["scripts", "adapters", "feature-design", "refactor-design", "enrich-diff", "advanced-diff-viewer", "common", "node_modules"]) {
     await cp(path.join(toolkitDirectory, directoryName), path.join(sourceDirectory, directoryName), {
       recursive: true,
       dereference: true,
@@ -65,17 +66,19 @@ test("copies skills and scripts that work after the source checkout is removed",
   }
   await rm(sourceDirectory, { recursive: true });
 
-  const skillPath = path.join(repoDirectory, ".agents", "skills", "feature-design", "SKILL.md");
-  assert.equal((await lstat(path.dirname(skillPath))).isSymbolicLink(), false);
-  assert.equal(
-    await readFile(skillPath, "utf8"),
-    await readFile(path.join(toolkitDirectory, "feature-design", "SKILL.md"), "utf8")
-  );
+  for (const toolName of ["feature-design", "refactor-design"]) {
+    const skillPath = path.join(repoDirectory, ".agents", "skills", toolName, "SKILL.md");
+    assert.equal((await lstat(path.dirname(skillPath))).isSymbolicLink(), false);
+    assert.equal(
+      await readFile(skillPath, "utf8"),
+      await readFile(path.join(toolkitDirectory, toolName, "SKILL.md"), "utf8")
+    );
+  }
   assert.equal(
     await readFile(path.join(repoDirectory, ".agents", "skills", "enrich-diff", "SKILL.md"), "utf8"),
     await readFile(path.join(toolkitDirectory, "enrich-diff", "skills", "enrich-diff", "SKILL.md"), "utf8")
   );
-  for (const directoryName of ["feature-design", "enrich-diff", "advanced-diff-viewer", "common", "node_modules"]) {
+  for (const directoryName of ["feature-design", "refactor-design", "enrich-diff", "advanced-diff-viewer", "common", "node_modules"]) {
     assert.equal(
       (await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isSymbolicLink(),
       false
@@ -163,6 +166,50 @@ test("installs only feature-design while exposing the feature-design skill", asy
   for (const htmlFile of ["index.html", "system.html", "implementation.html"]) {
     assert.equal((await lstat(path.join(visualizerPath, "dist", htmlFile))).isFile(), true);
   }
+});
+
+test("installs refactor-design independently for Codex and Claude", async (t) => {
+  const repoDirectory = await createRepository(t);
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing"}}\n');
+  const result = install([repoDirectory, "--tool", "refactor-design", "--agent", "codex,claude", "--output-dir", "docs/plans/refactors"]);
+  assert.equal(result.status, 0, result.stderr);
+
+  const sourceSkill = await readFile(path.join(toolkitDirectory, "refactor-design/SKILL.md"), "utf8");
+  assert.equal(await readFile(path.join(repoDirectory, ".agents/skills/refactor-design/SKILL.md"), "utf8"), sourceSkill);
+  const claudeSkill = await readFile(path.join(repoDirectory, ".claude/skills/refactor-design/SKILL.md"), "utf8");
+  const frontmatterEnd = sourceSkill.indexOf("\n---\n");
+  assert.ok(claudeSkill.startsWith(sourceSkill.slice(0, frontmatterEnd)));
+  assert.ok(claudeSkill.endsWith(sourceSkill.slice(frontmatterEnd)));
+  assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/hld\/generate\/\*\)\n/);
+  assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/impl-dataflow\/\*\)\n/);
+  assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/sys-dataflow\/\*\)\n/);
+  for (const relativePath of [
+    "refactor-design/define/define-requirements.md",
+    "refactor-design/define/high-level-requirements-template.md",
+    "common/hld/define/define+confirm-design-guidlines.md",
+    "common/hld/define/define+confirm-requirements.md",
+    "common/hld/generate/gen-design.md",
+  ]) {
+    assert.equal(
+      await readFile(path.join(repoDirectory, "ai-coding-toolkit", relativePath), "utf8"),
+      await readFile(path.join(toolkitDirectory, relativePath), "utf8")
+    );
+  }
+  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "ai-coding-toolkit/config.json"), "utf8")), {
+    outputDirectory: "docs/plans/refactors",
+  });
+  assert.equal((await lstat(path.join(repoDirectory, "docs/plans/refactors"))).isDirectory(), true);
+  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
+    test: "existing",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
+  });
+  for (const toolName of ["feature-design", "enrich-diff", "advanced-diff-viewer"]) {
+    await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", toolName)), { code: "ENOENT" });
+  }
+  const visualizerBuild = spawnSync(process.execPath, [
+    "ai-coding-toolkit/node_modules/vite/bin/vite.js", "build", "ai-coding-toolkit/common/hld/visualizer",
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
 });
 
 test("installs enrich-diff with the shared dataflow files", async (t) => {

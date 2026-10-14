@@ -27,10 +27,10 @@ Initialize `<feature>.sys-dataflow.json` with `schemaVersion` set to `3`, `stage
 
 ### Decide What to Reuse, Modify, or Add
 
-For each journey, inspect the existing paths and determine how its inputs will produce its required outputs and system effects. Make the high-level design decisions in the graph as you trace those paths:
+For each journey, inspect the existing paths and determine how its inputs will produce its required outputs and system effects while satisfying the confirmed High Level Requirements. Make the high-level design decisions in the graph as you trace those paths:
 
-- Reuse existing nodes and dataflows as `unchanged` when their current responsibilities and transfers already satisfy the journey. Ground these entries in current code and include them only when needed to connect a trigger to a required effect.
-- Mark existing nodes and dataflows as `modified` when their responsibilities, behavior, or transferred data must change to realize the journey. Describe their proposed behavior in the graph.
+- Reuse existing nodes and dataflows as `unchanged` when their current responsibilities and transfers satisfy the journey and fit the confirmed High Level Requirements. Ground these entries in current code and include them only when needed to connect a trigger to a required effect.
+- Mark existing nodes and dataflows as `modified` when their responsibilities, behavior, or transferred data must change to satisfy the confirmed High Level Requirements while realizing the journey. Describe their proposed behavior in the graph.
 - Add nodes and dataflows as `added` when the journey requires responsibilities or transfers that do not exist in the current codebase.
 - Set `changeType` on every node and relationship relative to the current code. Classify each relationship by its own data transfer, independently of its endpoints' change types. Represent necessary removals as `deleted`.
 

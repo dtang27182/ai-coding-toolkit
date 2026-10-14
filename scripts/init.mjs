@@ -47,7 +47,7 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
 }
 
 const supportedAgents = ["codex", "claude"];
-const supportedTools = ["feature-design", "enrich-diff", "advanced-diff-viewer"];
+const supportedTools = ["feature-design", "refactor-design", "enrich-diff", "advanced-diff-viewer"];
 const toolNames = selectedTool === undefined ? supportedTools : [selectedTool];
 const relativeOutputDirectory = path.normalize(outputDirectory);
 const outputIsRepoSubdirectory =
@@ -70,7 +70,7 @@ async function installRootCommands() {
 
   if (packageJson !== undefined) {
     const commands = {};
-    if (toolNames.includes("feature-design")) {
+    if (toolNames.includes("feature-design") || toolNames.includes("refactor-design")) {
       commands["hld-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer";
     }
     if (toolNames.includes("enrich-diff")) {
@@ -140,7 +140,7 @@ async function installRootCommands() {
 if (argumentError !== undefined || repoDirectory === undefined) {
   console.error(argumentError ?? "Target repository path is required.");
   console.error(
-    "Usage: node scripts/init.mjs <target-repo> [--agent <codex|claude|codex,claude>] [--tool <feature-design|enrich-diff|advanced-diff-viewer>] [--output-dir <relative-directory>]"
+    "Usage: node scripts/init.mjs <target-repo> [--agent <codex|claude|codex,claude>] [--tool <feature-design|refactor-design|enrich-diff|advanced-diff-viewer>] [--output-dir <relative-directory>]"
   );
   process.exitCode = 1;
 } else if (agentNames.some((agentName) => !supportedAgents.includes(agentName))) {
@@ -170,7 +170,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   const outputPath = path.resolve(repoDirectory, relativeOutputDirectory);
   const installedDirectories = [
     ...toolNames,
-    ...(toolNames.includes("feature-design") || toolNames.includes("enrich-diff") || toolNames.includes("advanced-diff-viewer") ? ["common"] : []),
+    ...(toolNames.includes("feature-design") || toolNames.includes("refactor-design") || toolNames.includes("enrich-diff") || toolNames.includes("advanced-diff-viewer") ? ["common"] : []),
     "node_modules",
   ];
   for (const directoryName of installedDirectories) {
@@ -193,13 +193,13 @@ if (argumentError !== undefined || repoDirectory === undefined) {
       relativePaths
     );
   }
-  if (toolNames.includes("feature-design") || toolNames.includes("enrich-diff")) {
+  if (toolNames.includes("feature-design") || toolNames.includes("refactor-design") || toolNames.includes("enrich-diff")) {
     await rm(path.join(installedToolkitDirectory, "common", "system-dataflow"), { recursive: true, force: true });
     for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
       await rm(path.join(installedToolkitDirectory, "common", "sys-dataflow", "visualizer", relativePath), { recursive: true, force: true });
     }
   }
-  if (toolNames.includes("feature-design")) {
+  if (toolNames.includes("feature-design") || toolNames.includes("refactor-design")) {
     await rm(path.join(installedToolkitDirectory, "common", "hld", "visualizer", "dist"), { recursive: true, force: true });
   }
   if (toolNames.includes("enrich-diff")) {
@@ -221,7 +221,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     await installClaudeSkills(repoDirectory, toolkitDirectory, skillToolNames);
   }
   await installRootCommands();
-  if (toolNames.includes("feature-design") || toolNames.includes("enrich-diff")) {
+  if (toolNames.includes("feature-design") || toolNames.includes("refactor-design") || toolNames.includes("enrich-diff")) {
     await mkdir(outputPath, { recursive: true });
     await writeFile(
       path.join(installedToolkitDirectory, "config.json"),

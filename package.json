@@ -6,6 +6,7 @@
   "scripts": {
     "install:all": "node scripts/init.mjs",
     "install:feature-design": "node scripts/init.mjs --agent codex --tool feature-design",
+    "install:refactor-design": "node scripts/init.mjs --agent codex --tool refactor-design",
     "install:enrich-diff": "node scripts/init.mjs --agent codex --tool enrich-diff",
     "install:adv-diff": "node scripts/init.mjs --agent codex --tool advanced-diff-viewer",
     "adv-diff": "vite advanced-diff-viewer/visualizer",

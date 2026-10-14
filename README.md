@@ -14,10 +14,16 @@ npm run install:all -- /path/to/code-repo
 
 Run `npm install` in this toolkit checkout before using any installer command; the installer copies its `node_modules` into the target repository. If an earlier attempt stopped with a missing `node_modules` error, install the dependencies and rerun the same installer command to finish the installation.
 
-The default installer installs `feature-design` and `enrich-diff` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the `$feature-design` skill, run:
+The default installer installs `feature-design`, `refactor-design`, and `enrich-diff` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the `$feature-design` skill, run:
 
 ```sh
 npm run install:feature-design -- /path/to/code-repo
+```
+
+To install only the `$refactor-design` skill, run:
+
+```sh
+npm run install:refactor-design -- /path/to/code-repo
 ```
 
 To install only the `$enrich-diff` skill, run:
@@ -40,9 +46,9 @@ npm run adv-diff
 
 The viewer generates `adv-diff/enriched-patch.json` automatically from current staged, unstaged, deleted, and untracked changes against `HEAD`. It updates as files change and provides a Refresh button. The generated enriched patch and, in installed repositories, the copied `ai-coding-toolkit` runtime and the output directory configured in `ai-coding-toolkit/config.json` are excluded from the comparison and do not trigger refreshes. You can open or drag in another enriched patch from the viewer.
 
-The HLD generator exposes the skill as `$feature-design`.
+The design skills are invoked as `$feature-design` and `$refactor-design`.
 
-Skills install for Codex by default. To install them for Claude Code, where they are invoked as `/feature-design` and `/enrich-diff`, pass `--agent claude`, or `--agent codex,claude` for both:
+Skills install for Codex by default. To install them for Claude Code, where they are invoked as `/feature-design`, `/refactor-design`, and `/enrich-diff`, pass `--agent claude`, or `--agent codex,claude` for both:
 
 ```sh
 npm run install:all -- /path/to/code-repo --agent claude
@@ -81,6 +87,16 @@ The skill generates one design and validates its dataflow artifacts, without can
 The final artifacts are ready for human review; application implementation is a separate step.
 
 The shared dataflow validation scripts remain available independently. Run `npm run hld-visualizer` to switch between its System Dataflow and Implementation Dataflow views. The visualizer loads the newest HLD manifest under the configured output directory, keeping both views on the same design. You can open or drag in another HLD manifest. The views refresh when the open repository manifest or either referenced dataflow changes; manifests chosen with a browser file handle refresh too.
+
+## Design a Refactoring
+
+Use `$refactor-design` to plan structural changes to existing code, preserving externally observable behavior except for explicitly permitted changes. Its High Level Requirements are organized into Desired Code Structure, Scope, and User Journeys. Refactoring Goal sits under Desired Code Structure; behavior preservation, permitted changes, and explicit exclusions sit under Scope. The skill asks for approval of the high-level and detailed requirements before generating the design.
+
+```text
+Use $refactor-design to separate parsing from storage in the import workflow while preserving its behavior.
+```
+
+The skill uses the shared HLD template, definition and confirmation workflow, generator, and visualizer. It produces the same HLD, Detailed Requirements, dataflows, and manifest as `feature-design`, under a slug chosen for the refactoring. Design generation may leave the System Dataflow unchanged when the refactoring affects only implementation structure. Application implementation follows human design review.
 
 ## Enrich the Current Diff
 

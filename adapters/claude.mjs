@@ -4,13 +4,15 @@ import path from "node:path";
 import { copyDirectory } from "../scripts/copy-directory.mjs";
 
 // Claude Code-only frontmatter added to installed copies so the shared SKILL.md files stay agent-agnostic.
+const designFrontmatter = [
+  "allowed-tools:",
+  "  - Bash(node ai-coding-toolkit/common/hld/generate/*)",
+  "  - Bash(node ai-coding-toolkit/common/impl-dataflow/*)",
+  "  - Bash(node ai-coding-toolkit/common/sys-dataflow/*)",
+];
 const claudeFrontmatter = {
-  "feature-design": [
-    "allowed-tools:",
-    "  - Bash(node ai-coding-toolkit/common/hld/generate/*)",
-    "  - Bash(node ai-coding-toolkit/common/impl-dataflow/*)",
-    "  - Bash(node ai-coding-toolkit/common/sys-dataflow/*)",
-  ],
+  "feature-design": designFrontmatter,
+  "refactor-design": designFrontmatter,
   "enrich-diff": [
     "context: fork",
     "allowed-tools:",
@@ -23,7 +25,7 @@ const claudeFrontmatter = {
 export async function installClaudeSkills(repoDirectory, toolkitDirectory, toolNames) {
   for (const toolName of toolNames) {
     const sourceSkillDirectory =
-      toolName === "feature-design"
+      toolName === "feature-design" || toolName === "refactor-design"
         ? path.join(toolkitDirectory, toolName)
         : path.join(toolkitDirectory, toolName, "skills", toolName);
     const installedSkillDirectory = path.join(repoDirectory, ".claude", "skills", toolName);

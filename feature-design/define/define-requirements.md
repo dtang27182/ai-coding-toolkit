@@ -5,13 +5,15 @@
 
 Use the current code to understand existing behavior and constraints, not to choose an implementation. Preserve explicit requirements and decisions without adding design choices that the request does not require. The confirmed high-level requirements are the source of truth for the design; detailed requirements guide implementation after design handoff.
 
+Use concise bullets for intended outcomes, behavior, scope, and constraints across all sections. Keep numbered journeys and clarification questions equally concise.
+
 ## Define High Level Requirements
 
 Replace `<high level requirements section>` under the HLD's `Requirements` section with the contents of `ai-coding-toolkit/feature-design/define/high-level-requirements-template.md`, preserving the template's heading levels. Fill its `Desired Behavior`, `Scope and Assumptions`, and `User Journeys` subsections using the guidance below.
 
 ### Desired Behavior
 
-- Use concise bullets for intended outcomes, core use cases, and externally observable behavior.
+- Describe intended outcomes, core use cases, and externally observable behavior.
 - Do not mention existing behavior that should stay unchanged. Existing behavior not mentioned here is implicitly assumed to remain as is.
 
 ### Scope and Assumptions
@@ -35,7 +37,7 @@ Write `<outputDirectory>/<feature>/<feature>.detailed-requirements.md` and link 
 
 - Title the separate file `# <feature> Detailed Requirements`.
 - Record explicit requirements for implementation after design handoff, such as UI controls, copy, formatting, validation rules, and error handling. Preserve requirements from the user request and supplied references even when `Design Guidelines` exclude those details from the HLD design.
-- Use concise bullets, grouping related requirements as needed. Preserve required details without repeating the higher-level sections or adding unspecified behavior or implementation choices.
+- Group related requirements as needed. Preserve required details without repeating the higher-level sections or adding unspecified behavior or implementation choices.
 - Write `None` when no detailed requirements are specified.
 
 ## Record Clarification Questions
