@@ -42,6 +42,7 @@ Record decisions in the JSON as you go, revising entries when later inspection c
 
 - Create nodes for major system components directly contributing to the journey's required effects.
 - Represent each component once per semantic role in each subgraph. For components shared across journeys, use distinct journey-specific nodes with the same `location` when appropriate.
+- Use the same `location` for `user-input` and `user-output` nodes referring to the same UI surface, and for `system-state-read` and `system-state-write` nodes referring to the same state.
 - Capture the journey's useful result and required effects as `user-output` or `system-output` nodes, or `dataflow` relationships into `system-state-write` nodes.
 - Connect journey inputs to outputs and state updates with `dataflow` paths, including required `data-processing` nodes and requests to and responses from `external-dependency` nodes.
 - Connect every `system-state-read` and `static-data` node needed by the journey, processing, or external requests to its consumer via `dataflow`, even if the journey omits the read.
