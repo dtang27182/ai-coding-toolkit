@@ -11,40 +11,49 @@ Use both design inputs:
 
 Read and follow the representation contract, `ai-coding-toolkit/common/impl-dataflow/impl-dataflow.schema.json`, using `ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json` as an HLD example.
 
-- Initialize `<feature>.impl-dataflow.json` beside the HLD doc with `schemaVersion` set to `13`, `stage` set to `high-level-design`, and empty `classes`, `modules`, `components`, `staticData`, and `relationships` arrays.
+- Initialize `<feature>.impl-dataflow.json` with `schemaVersion` set to `13`, `stage` set to `high-level-design`, and empty `classes`, `modules`, `components`, `staticData`, and `relationships` arrays.
 - Set each class's `variableExposure` to `null` as it is added to the graph. Omit derived counts; this workflow calculates no quantitative quality metrics.
 
-## Design the Implementation Paths
+## Create the Implementation-Level Design
 
-- Work in the JSON.
-  - Add and revise entities, relationships, and changes as you inspect code and make design decisions.
-- Trace each User Journey.
-  - Follow its sys-dataflow path from the first `user-input` through later user inputs to required outputs and system effects.
-  - Read relevant classes, function bodies, supporting code, callers, and consumers to understand current behavior and changes needed to satisfy confirmed High Level Requirements.
-- Design each high-level `dataflow` relationship.
+Design the additions and changes to current code needed to satisfy High Level Requirements. Use `<feature>.impl-dataflow.json` to capture a comprehensive, working implementation-level design through concrete dataflows and state accesses between named methods, functions, class instance state, static data, and components.
+
+### Map sys-dataflow into impl-dataflow Entities
+
+- Create impl-dataflow entities corresponding to sys-dataflow nodes:
+  - `user-input` and `user-output`: `ui-component` components.
+  - `system-input` and `system-output`: components of the matching type.
+  - `system-state-read` and `system-state-write`: state variables under their owning classes, or `external-dependency` components for external state.
+  - `static-data`: static data entries.
+  - `external-dependency`: external dependency components.
+- Inspect current code and sys-dataflow to find each entity's identity and concrete identifiers, such as URLs, file paths, storage keys, or source symbols. Include available identifiers in component descriptions.
+- Defer mapping `dataflow` relationships and `data-processing` nodes to "Design Changes to Satisfy High Level Requirements".
+
+### Consolidate Mapped Entities Before Designing Changes
+
+- In the working `<feature>.impl-dataflow.json`, merge entities representing the same real implementation entity across User Journeys, including:
+  - State variable entries for reads and writes of the same state.
+  - UI component entries for the same surface, such as a selector panel's input and display sides.
+- Represent all User Journeys in one shared graph, with one entry per real implementation entity and no separate subgraphs for individual journeys.
+
+### Design Changes to Satisfy High Level Requirements
+
+- Use current code to ground design decisions. Inspect relevant implementations, callers, consumers, and ownership to decide what to reuse, modify, or add.
+- Map each sys-dataflow `dataflow` relationship into implementation functions and relationships:
   - Identify sending, intermediate, and receiving functions, their required data, and how the consumer uses it.
   - Determine behavior or contract changes. Reuse or modify existing classes and functions; design new ones as needed.
-- Design each `data-processing` node's algorithm implementation.
+- Map each `data-processing` node's algorithm into implementation functions:
   - Decide how to change or extend processing, or allocate it across new classes and functions.
   - Prefer as few implementation functions as possible.
   - Define each function's inputs, transformations, decisions, and results. Capture its role in journey completion in relationship descriptions and purposes.
-- Identify required data, state, and external work.
-  - Trace every required value's source; design state retention, reads, and updates.
-  - Locate each `system-state-read` or `system-state-write` node's state and identify its reading or updating functions.
-  - Identify `static-data` nodes' fixed data and readers.
-  - Identify existing or new external dependencies and functions that send requests and consume results.
-  - Include work absent from sys-dataflow but needed to satisfy High Level Requirements or complete a User Journey.
-- Map UI and system boundaries.
-  - Identify `user-input` and `user-output` nodes' UI components and handling or rendering functions.
-  - Identify system inputs and outputs and the functions that receive or send their data.
-- Resolve ownership, identity, and scope.
-  - Find existing class ownership in current code and decide ownership for new classes.
-  - Merge sys-dataflow nodes referring to the same implementation entity, including:
-    - Reads and writes of the same state.
-    - Shared UI components, such as a selector panel's input and display sides.
-  - Preserve each journey's path; unrelated paths may remain disconnected.
-  - Include only entities and interactions needed to satisfy High Level Requirements or complete User Journeys, including unchanged intermediaries and consumers of the feature's output or state.
-  - Leave surrounding workflows in Design Context and Related Workflows.
+- Trace every required value's source; design state retention, reads, and updates.
+- Find existing class ownership in current code and decide ownership for new classes.
+
+### Check Requirement Coverage in the Working impl-dataflow
+
+- Review each confirmed High Level Requirement directly, independently of sys-dataflow, and trace the implementation paths needed to satisfy it.
+- Add missing classes, modules, functions, state variables, components, static data, and relationships, including those omitted by sys-dataflow.
+- Resolve all coverage gaps before composing the narrative.
 
 ## Compose the Narrative
 
