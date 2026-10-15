@@ -56,8 +56,8 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
     "external-dependency": { label: "External dependency", badge: "EXTERNAL", shape: "dashed", color: "oklch(0.75 0.085 278)" },
     "system-input": { label: "System input", badge: "SYSTEM →", shape: "stadium-left", color: "oklch(0.80 0.085 205)" },
     "system-output": { label: "System output", badge: "→ SYSTEM", shape: "stadium-right", color: "oklch(0.76 0.095 325)" },
-    "system-state-read": { label: "System state read", badge: "STATE READ", shape: "cylinder", color: "oklch(0.80 0.075 185)" },
-    "system-state-write": { label: "System state write", badge: "STATE WRITE", shape: "cylinder", color: "oklch(0.80 0.095 145)" },
+    "system-state-read": { label: "System state read", badge: "STATE →", shape: "rect", color: "oklch(0.80 0.075 185)" },
+    "system-state-write": { label: "System state write", badge: "→ STATE", shape: "rect", color: "oklch(0.80 0.095 145)" },
     "static-data": { label: "Static data", badge: "STATIC", shape: "dogear", color: "oklch(0.71 0.03 250)" },
     "data-processing": { label: "Data processing", badge: "PROCESSING", shape: "hexagon", color: "oklch(0.85 0.09 255)" },
   };
