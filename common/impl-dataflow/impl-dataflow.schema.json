@@ -31,14 +31,6 @@
         "$ref": "#/$defs/diffHunk"
       }
     },
-    "userFlows": {
-      "description": "Optional user flows that give context for the implementation dataflow.",
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "$ref": "#/$defs/userFlowSet"
-      }
-    },
     "variableExposureCount": {
       "description": "Derived total; null when any inventory is unknown.",
       "type": [
@@ -197,53 +189,6 @@
         "unchanged"
       ]
     },
-    "userFlow": {
-      "description": "Whether this entry lies on a documented user-journey or user-flow path from its trigger to a required system effect or output. Setup and ownership alone do not qualify.",
-      "type": "boolean"
-    },
-    "userFlowSet": {
-      "description": "One user flow with its numbered steps.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "name",
-        "steps"
-      ],
-      "properties": {
-        "name": {
-          "description": "Names this user flow; unique across user flows.",
-          "type": "string",
-          "minLength": 1
-        },
-        "steps": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/$defs/userFlowStep"
-          }
-        }
-      }
-    },
-    "userFlowStep": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "text"
-      ],
-      "properties": {
-        "id": {
-          "description": "The step's position within its user flow, starting at 1.",
-          "type": "integer",
-          "minimum": 1
-        },
-        "text": {
-          "description": "The user-flow step. Conditional branches and loops stay in this text.",
-          "type": "string",
-          "minLength": 1
-        }
-      }
-    },
     "component": {
       "description": "A UI surface, system input or output, or external dependency. Represent implementation handlers and adapters as class or module functions instead.",
       "type": "object",
@@ -257,9 +202,6 @@
       "properties": {
         "diffHunkIds": {
           "$ref": "#/$defs/diffHunkIds"
-        },
-        "userFlow": {
-          "$ref": "#/$defs/userFlow"
         },
         "name": {
           "description": "Unique across classes, modules, components, and static data; referenced by relationship endpoints.",
@@ -314,9 +256,6 @@
         },
         "changeType": {
           "$ref": "#/$defs/changeType"
-        },
-        "userFlow": {
-          "$ref": "#/$defs/userFlow"
         }
       }
     },
@@ -485,9 +424,6 @@
         "diffHunkIds": {
           "$ref": "#/$defs/diffHunkIds"
         },
-        "userFlow": {
-          "$ref": "#/$defs/userFlow"
-        },
         "name": {
           "type": "string",
           "minLength": 1
@@ -515,9 +451,6 @@
         },
         "changeType": {
           "$ref": "#/$defs/changeType"
-        },
-        "userFlow": {
-          "$ref": "#/$defs/userFlow"
         }
       }
     },
@@ -747,9 +680,6 @@
         "diffHunkIds": {
           "$ref": "#/$defs/diffHunkIds"
         },
-        "userFlow": {
-          "$ref": "#/$defs/userFlow"
-        },
         "from": {
           "description": "Explicit source reference, constrained by relationship type.",
           "type": "object"
@@ -767,7 +697,7 @@
           "minLength": 1
         },
         "purpose": {
-          "description": "Why this relationship is needed. On a user-flow relationship, its role in the flow, naming a step where one depends on it; otherwise why the relationship exists at all.",
+          "description": "Why this relationship is needed.",
           "type": "string",
           "minLength": 1
         },
@@ -870,11 +800,6 @@
           "then": {
             "not": {
               "anyOf": [
-                {
-                  "required": [
-                    "userFlow"
-                  ]
-                },
                 {
                   "required": [
                     "dataDescription"

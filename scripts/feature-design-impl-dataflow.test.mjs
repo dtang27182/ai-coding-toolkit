@@ -32,7 +32,7 @@ function codeReview() {
 }
 
 test("code-review graphs filter without variable exposure inventories", () => {
-  const graph = filterGraph(codeReview(), true, false);
+  const graph = filterGraph(codeReview(), true);
   assert.equal(graph.variableExposureCount, null);
   assert.equal(graph.classes.length, 1);
   assert.equal(graph.classes[0].variableExposureCount, null);
@@ -54,7 +54,7 @@ test("code-review implementation dataflows omit HLD-only fields", async (t) => {
   const { result } = await runValidator(t, input);
   assert.equal(result.status, 0, result.stderr);
 
-  const graph = filterGraph(input, true, false);
+  const graph = filterGraph(input, true);
   assert.equal(graph.classes[0].variableExposure, null);
   assert.equal(graph.variableExposureCount, null);
 });
@@ -77,28 +77,15 @@ test("high-level-design validation requires HLD fields", async (t) => {
   const { result } = await runValidator(t, input);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /requires variableExposure/);
-  assert.match(result.stderr, /function requires userFlow/);
-  assert.match(result.stderr, /state variable requires userFlow/);
-  assert.match(result.stderr, /component requires userFlow/);
-  assert.match(result.stderr, /relationship requires userFlow/);
 });
 
-test("high-level-design validation accepts omitted flows and validates optional legacy steps", async (t) => {
+test("high-level-design validation accepts the implementation example", async (t) => {
   const input = JSON.parse(await readFile(
     path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"),
     "utf8"
   ));
-  const withoutFlows = await runValidator(t, input);
-  assert.equal(withoutFlows.result.status, 0, withoutFlows.result.stderr);
-
-  input.userFlows = [{ name: "Request a change set", steps: [{ id: 1, text: "The user requests a change set." }] }];
-  const withFlows = await runValidator(t, input);
-  assert.equal(withFlows.result.status, 0, withFlows.result.stderr);
-
-  input.userFlows[0].steps[0].id = 2;
-  const invalidSteps = await runValidator(t, input);
-  assert.equal(invalidSteps.result.status, 1);
-  assert.match(invalidSteps.result.stderr, /must be numbered 1\.\.n/);
+  const { result } = await runValidator(t, input);
+  assert.equal(result.status, 0, result.stderr);
 });
 
 test("generic validation rejects invalid architecture references and changes", async (t) => {
@@ -164,7 +151,7 @@ test("component roles enforce system input and output directions", async (t) => 
   const valid = await runValidator(t, input);
   assert.equal(valid.result.status, 0, valid.result.stderr);
   assert.equal(semanticError(input), undefined);
-  const graph = filterGraph(input, true, false);
+  const graph = filterGraph(input, true);
   assert.deepEqual(graph.components.map((component) => component.type), ["ui-component", "system-input", "system-output", "external-dependency"]);
   assert.equal(graph.relationships.length, 6);
 
@@ -203,12 +190,12 @@ test("static data is a read-only source for functions", async (t) => {
   const valid = await runValidator(t, input);
   assert.equal(valid.result.status, 0, valid.result.stderr);
   assert.equal(semanticError(input), undefined);
-  const graph = filterGraph(input, true, false);
+  const graph = filterGraph(input, true);
   assert.equal(graph.staticData.length, 1);
   assert.ok(graph.nodes.some((node) => node.name === "Lookup Rules"));
   assert.equal(graph.relationships[0].from.staticData, true);
   assert.equal(mergeClassDataflows(graph.relationships)[0].from.staticData, true);
-  assert.equal(filterGraph(input, false, false).relationships.length, 0);
+  assert.equal(filterGraph(input, false).relationships.length, 0);
   const layout = computeLayout(graph.nodes, graph.relationships, false, () => 80, () => 80, () => 100, new Set());
   assert.ok(layout.boxes.get("Lookup Rules").y < layout.boxes.get("Service").y);
 
@@ -222,9 +209,9 @@ test("static data is a read-only source for functions", async (t) => {
   assert.equal((await runValidator(t, componentTarget)).result.status, 1);
 });
 
-test("static data names and user-flow classification are validated", async (t) => {
+test("static data names are validated", async (t) => {
   const input = codeReview();
-  input.staticData.push({ name: "Lookup Rules", changeType: "unchanged", userFlow: false });
+  input.staticData.push({ name: "Lookup Rules", changeType: "unchanged" });
   input.relationships.push({
     from: { staticData: "Lookup Rules" },
     to: { class: "Service", function: "inspect" },
@@ -232,13 +219,7 @@ test("static data names and user-flow classification are validated", async (t) =
     changeType: "unchanged",
     dataDescription: "Fixed lookup rules",
     purpose: "Guide inspection",
-    userFlow: true,
   });
-  const supporting = await runValidator(t, input);
-  assert.equal(supporting.result.status, 1);
-  assert.match(supporting.result.stderr, /supporting static data/);
-  assert.match(semanticError(input), /supporting static data/);
-
   const missing = structuredClone(input);
   missing.relationships[0].from.staticData = "Missing";
   assert.match((await runValidator(t, missing)).result.stderr, /Unknown relationship static data/);
@@ -246,30 +227,24 @@ test("static data names and user-flow classification are validated", async (t) =
   const duplicate = structuredClone(input);
   duplicate.staticData[0].name = "Service";
   assert.match((await runValidator(t, duplicate)).result.stderr, /Duplicate static data name/);
-
-  const hld = structuredClone(input);
-  hld.stage = "high-level-design";
-  delete hld.diffHunks;
-  hld.staticData[0].userFlow = undefined;
-  assert.match((await runValidator(t, hld)).result.stderr, /static data requires userFlow/);
 });
 
-test("user-flow filtering keeps static data read by a participating function", async () => {
+test("filtering keeps static data and its reader", async () => {
   const example = JSON.parse(await readFile(
     path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"),
     "utf8"
   ));
-  const graph = filterGraph(example, true, true);
+  const graph = filterGraph(example, true);
   assert.ok(graph.staticData.some((entry) => entry.name === "Diff Format Rules"));
   assert.ok(graph.relationships.some((relationship) => relationship.from.staticData && relationship.to.functionName === "buildChangeSet"));
 });
 
-test("two user journeys share implementation state and static data", async (t) => {
+test("functions share implementation state and static data", async (t) => {
   const input = JSON.parse(await readFile(
     path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"),
     "utf8"
   ));
-  input.classes[0].functions.push({ name: "previewChanges", changeType: "added", userFlow: true });
+  input.classes[0].functions.push({ name: "previewChanges", changeType: "added" });
   input.relationships.push({
     from: { staticData: "Diff Format Rules" },
     to: { class: "ChangeService", function: "previewChanges" },
@@ -277,7 +252,6 @@ test("two user journeys share implementation state and static data", async (t) =
     changeType: "added",
     dataDescription: "Fixed hunk formatting rules",
     purpose: "Format the preview.",
-    userFlow: true,
   }, {
     from: { class: "ChangeModel", stateVariable: "changes" },
     to: { class: "ChangeService", function: "previewChanges" },
@@ -285,7 +259,6 @@ test("two user journeys share implementation state and static data", async (t) =
     changeType: "added",
     dataDescription: "The retained change set",
     purpose: "Supply the preview input.",
-    userFlow: true,
   }, {
     from: { class: "ChangeService", function: "previewChanges" },
     to: { component: "Change Panel" },
@@ -293,11 +266,10 @@ test("two user journeys share implementation state and static data", async (t) =
     changeType: "added",
     dataDescription: "The formatted preview",
     purpose: "Display the preview.",
-    userFlow: true,
   });
   const { result } = await runValidator(t, input);
   assert.equal(result.status, 0, result.stderr);
-  const graph = filterGraph(input, true, true);
+  const graph = filterGraph(input, true);
   assert.equal(graph.staticData.filter((entry) => entry.name === "Diff Format Rules").length, 1);
   assert.equal(graph.relationships.filter((relationship) => relationship.from.staticData).length, 2);
   assert.ok(graph.relationships.some((relationship) => relationship.relationship.type === "state-read" && relationship.to.functionName === "previewChanges"));

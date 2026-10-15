@@ -8,8 +8,8 @@ test("feature-design collapsed layout hides class internals", () => {
   const nodes = [{
     name: "ChangeModel",
     changeType: "added",
-    functions: [{ name: "applyChanges", changeType: "added", userFlow: true }],
-    stateVariables: [{ name: "changes", changeType: "added", userFlow: true }],
+    functions: [{ name: "applyChanges", changeType: "added" }],
+    stateVariables: [{ name: "changes", changeType: "added" }],
   }];
   const layout = computeNewLayout(nodes, [], true, () => 80, () => 90, () => 160, new Set());
 

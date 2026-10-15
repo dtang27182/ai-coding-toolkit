@@ -10,17 +10,9 @@ export interface VisibleGraph {
   variableExposureCount: number | null;
 }
 
-export function filterGraph(implementationDataflow: ImplementationDataflow, showUnchanged: boolean, userFlowOnly: boolean): VisibleGraph {
-  const visible = (entry: { changeType: ChangeType; userFlow?: boolean }) =>
-    (showUnchanged || entry.changeType !== "unchanged") && (!userFlowOnly || entry.userFlow === true);
-  const classes: GraphContainerDiff[] = implementationDataflow.classes.filter((classDiff) =>
-    (showUnchanged || classDiff.changeType !== "unchanged") &&
-    (!userFlowOnly || classDiff.stateVariables.some((stateVariable) => stateVariable.userFlow === true) || classDiff.functions.some((functionDiff) => functionDiff.userFlow === true) || implementationDataflow.relationships.some(
-      (relationship) => relationship.type === "dataflow" && relationship.userFlow === true &&
-        (("class" in relationship.from && relationship.from.class === classDiff.name) ||
-          ("class" in relationship.to && relationship.to.class === classDiff.name)),
-    )),
-  ).map((classDiff) => {
+export function filterGraph(implementationDataflow: ImplementationDataflow, showUnchanged: boolean): VisibleGraph {
+  const visible = (entry: { changeType: ChangeType }) => showUnchanged || entry.changeType !== "unchanged";
+  const classes: GraphContainerDiff[] = implementationDataflow.classes.filter(visible).map((classDiff) => {
     const functions = classDiff.functions.filter(visible);
     const variableExposure = classDiff.variableExposure === undefined || classDiff.variableExposure === null ? null : classDiff.variableExposure.filter(
       (variable) => variable.kind === "instance" || functions.some((functionDiff) => functionDiff.name === variable.function),
@@ -32,10 +24,7 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
       variableExposureCount: variableExposure === null ? null : variableExposure.length,
     };
   });
-  classes.push(...(implementationDataflow.modules ?? []).filter((moduleDiff) =>
-    (showUnchanged || moduleDiff.changeType !== "unchanged") &&
-    (!userFlowOnly || moduleDiff.functions.some((functionDiff) => functionDiff.userFlow === true)),
-  ).map((moduleDiff) => ({
+  classes.push(...(implementationDataflow.modules ?? []).filter(visible).map((moduleDiff) => ({
     ...moduleDiff,
     functions: moduleDiff.functions.filter(visible),
     stateVariables: [],

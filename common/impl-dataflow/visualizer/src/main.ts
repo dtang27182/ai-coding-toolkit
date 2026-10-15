@@ -49,7 +49,6 @@ const COMPONENT_GLYPHS: Record<ComponentType, string> = {
 let implementationDataflow = exampleImplementationDataflow as ImplementationDataflow;
 let fileName = "impl-dataflow.example.json";
 let showUnchanged = false;
-let userFlowOnly = false;
 let functionsHidden = false;
 let zoom = 1;
 let panX = 0;
@@ -223,7 +222,7 @@ function relationshipAttributes(relationship: ResolvedRelationship): string {
 }
 
 function visibleGraph(): VisibleGraph {
-  return filterGraph(implementationDataflow, showUnchanged, userFlowOnly);
+  return filterGraph(implementationDataflow, showUnchanged);
 }
 
 function graphRect(
@@ -565,9 +564,9 @@ function renderInspector(graph: VisibleGraph): string {
     const first = edges[0];
     const entries = edges
       .map((item) => {
-        const { dataDescription, purpose, changeType, userFlow } = item.relationship;
+        const { dataDescription, purpose, changeType } = item.relationship;
         return `<div class="relationship-entry" style="border-color:${changeColor(changeType)}">
-          ${merged ? `<button class="entry-endpoints" data-jump="${escapeHtml(JSON.stringify(selectionForEndpoint(item.to)))}">${escapeHtml(endpointLabel(item.from))} ${arrow(item)} ${escapeHtml(endpointLabel(item.to))}</button><div class="entry-chips"><span class="change-chip" style="${chipStyle(changeType)}">${changeType}</span>${userFlow === undefined ? "" : `<span class="change-chip neutral">${userFlow ? "user flow" : "supporting"}</span>`}</div>` : ""}
+          ${merged ? `<button class="entry-endpoints" data-jump="${escapeHtml(JSON.stringify(selectionForEndpoint(item.to)))}">${escapeHtml(endpointLabel(item.from))} ${arrow(item)} ${escapeHtml(endpointLabel(item.to))}</button><div class="entry-chips"><span class="change-chip" style="${chipStyle(changeType)}">${changeType}</span></div>` : ""}
           <div class="entry-heading">Data</div>
           <p class="entry-copy">${escapeHtml(dataDescription ?? "Not described.")}</p>
           <div class="entry-heading">Purpose</div>
@@ -584,7 +583,7 @@ function renderInspector(graph: VisibleGraph): string {
     } else if (first.relationship.type === "state-read") {
       eyebrow = "State read";
     }
-    const detail = merged ? `${edges.length} relationships` : first.relationship.userFlow === undefined ? undefined : first.relationship.userFlow ? "user flow" : "supporting";
+    const detail = merged ? `${edges.length} relationships` : undefined;
     return `${inspectorHeader(eyebrow, title, first.relationship.changeType, detail)}${diffEvidence([...new Set(edges.flatMap((edge) => edge.relationship.diffHunkIds ?? []))])}${section("Description", entries, merged ? edges.length : undefined)}`;
   } else {
     const classSelection = inspected;
@@ -612,7 +611,6 @@ function render(): void {
         <div class="control-group">
           <button class="control-button open-button" data-open>Open JSON</button>
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
-          ${implementationDataflow.stage === "code-review" ? "" : `<button class="control-button${userFlowOnly ? " active" : ""}" data-toggle-user-flow aria-pressed="${userFlowOnly}">User flow only</button>`}
           <button class="control-button${functionsHidden ? " active" : ""}" data-toggle-functions>${functionsHidden ? "Show functions" : "Hide functions"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
@@ -784,18 +782,6 @@ function bindEvents(): void {
     userZoomed = false;
     render();
   });
-  const userFlowToggle = app.querySelector<HTMLElement>("[data-toggle-user-flow]");
-  if (userFlowToggle !== null) {
-    userFlowToggle.addEventListener("click", () => {
-      userFlowOnly = !userFlowOnly;
-      selection = undefined;
-      hovered = undefined;
-      panX = 0;
-      panY = 0;
-      userZoomed = false;
-      render();
-    });
-  }
   app.querySelector<HTMLElement>("[data-toggle-functions]")!.addEventListener("click", () => {
     functionsHidden = !functionsHidden;
     panX = 0;
@@ -933,7 +919,6 @@ function setImplementationDataflow(value: unknown, nextFileName: string): string
       return error;
     } else {
       implementationDataflow = nextImplementationDataflow;
-      if (implementationDataflow.stage === "code-review") userFlowOnly = false;
       fileName = nextFileName;
       selection = undefined;
       hovered = undefined;

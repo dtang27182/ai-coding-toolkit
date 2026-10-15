@@ -113,9 +113,6 @@ if (inputArgument === undefined) {
           semanticErrors.push(`High-level-design class requires variableExposure: ${classDiff.name}`);
         }
         for (const functionDiff of classDiff.functions) {
-          if (implementationDataflow.stage === "high-level-design" && !Object.hasOwn(functionDiff, "userFlow")) {
-            semanticErrors.push(`High-level-design function requires userFlow: ${classDiff.name}.${functionDiff.name}`);
-          }
           if (
             classDiff.changeType === "unchanged" &&
             (functionDiff.changeType === "added" || functionDiff.changeType === "modified" || functionDiff.changeType === "deleted")
@@ -132,9 +129,6 @@ if (inputArgument === undefined) {
         const stateVariableNames = new Map();
         classStateVariables.set(classDiff.name, stateVariableNames);
         for (const stateVariable of classDiff.stateVariables) {
-          if (implementationDataflow.stage === "high-level-design" && !Object.hasOwn(stateVariable, "userFlow")) {
-            semanticErrors.push(`High-level-design state variable requires userFlow: ${classDiff.name}.${stateVariable.name}`);
-          }
           if (
             classDiff.changeType === "unchanged" &&
             (stateVariable.changeType === "added" || stateVariable.changeType === "modified" || stateVariable.changeType === "deleted")
@@ -187,9 +181,6 @@ if (inputArgument === undefined) {
         const functionNames = new Map();
         moduleFunctions.set(moduleDiff.name, functionNames);
         for (const functionDiff of moduleDiff.functions) {
-          if (implementationDataflow.stage === "high-level-design" && !Object.hasOwn(functionDiff, "userFlow")) {
-            semanticErrors.push(`High-level-design function requires userFlow: ${moduleDiff.name}.${functionDiff.name}`);
-          }
           if (moduleDiff.changeType === "unchanged" && functionDiff.changeType !== "unchanged") {
             semanticErrors.push(`Unchanged module has changed function: ${moduleDiff.name}.${functionDiff.name}`);
           }
@@ -201,25 +192,7 @@ if (inputArgument === undefined) {
         }
       }
 
-      const flowNames = new Set();
-      for (const userFlow of implementationDataflow.userFlows ?? []) {
-        if (flowNames.has(userFlow.name)) {
-          semanticErrors.push(`Duplicate user flow name: ${userFlow.name}`);
-        }
-        flowNames.add(userFlow.name);
-        userFlow.steps.forEach((step, index) => {
-          if (step.id !== index + 1) {
-            semanticErrors.push(
-              `Steps in user flow "${userFlow.name}" must be numbered 1..n in order; found ${step.id} at position ${index + 1}`
-            );
-          }
-        });
-      }
-
       for (const component of implementationDataflow.components) {
-        if (implementationDataflow.stage === "high-level-design" && !Object.hasOwn(component, "userFlow")) {
-          semanticErrors.push(`High-level-design component requires userFlow: ${component.name}`);
-        }
         components.set(component.name, component);
         if (nodeNames.has(component.name)) {
           semanticErrors.push(`Duplicate component name: ${component.name}`);
@@ -229,9 +202,6 @@ if (inputArgument === undefined) {
       }
 
       for (const staticData of implementationDataflow.staticData) {
-        if (implementationDataflow.stage === "high-level-design" && !Object.hasOwn(staticData, "userFlow")) {
-          semanticErrors.push(`High-level-design static data requires userFlow: ${staticData.name}`);
-        }
         staticDataNames.add(staticData.name);
         if (nodeNames.has(staticData.name)) {
           semanticErrors.push(`Duplicate static data name: ${staticData.name}`);
@@ -241,13 +211,6 @@ if (inputArgument === undefined) {
       }
 
       for (const relationship of implementationDataflow.relationships) {
-        if (
-          implementationDataflow.stage === "high-level-design" &&
-          relationship.type !== "composition" &&
-          !Object.hasOwn(relationship, "userFlow")
-        ) {
-          semanticErrors.push(`High-level-design ${relationship.type} relationship requires userFlow`);
-        }
         for (const endpoint of [relationship.from, relationship.to]) {
           if (endpoint.component !== undefined) {
             if (!components.has(endpoint.component)) {
@@ -256,14 +219,10 @@ if (inputArgument === undefined) {
               semanticErrors.push(`System-output component cannot send data: ${endpoint.component}`);
             } else if (endpoint === relationship.to && components.get(endpoint.component).type === "system-input") {
               semanticErrors.push(`System-input component cannot receive data: ${endpoint.component}`);
-            } else if (relationship.userFlow && !components.get(endpoint.component).userFlow) {
-              semanticErrors.push(`User-flow relationship references a supporting component: ${endpoint.component}`);
             }
           } else if (endpoint.staticData !== undefined) {
             if (!staticDataNames.has(endpoint.staticData)) {
               semanticErrors.push(`Unknown relationship static data: ${endpoint.staticData}`);
-            } else if (relationship.userFlow && !nodeNames.get(endpoint.staticData).userFlow) {
-              semanticErrors.push(`User-flow relationship references supporting static data: ${endpoint.staticData}`);
             }
           } else if (endpoint.class !== undefined) {
             if (!classFunctions.has(endpoint.class)) {
@@ -272,18 +231,12 @@ if (inputArgument === undefined) {
               semanticErrors.push(`Unknown relationship function in ${endpoint.class}: ${endpoint.function}`);
             } else if (endpoint.stateVariable !== undefined && !classStateVariables.get(endpoint.class).has(endpoint.stateVariable)) {
               semanticErrors.push(`Unknown relationship state variable in ${endpoint.class}: ${endpoint.stateVariable}`);
-            } else if (relationship.userFlow && endpoint.function !== undefined && !classFunctions.get(endpoint.class).get(endpoint.function).userFlow) {
-              semanticErrors.push(`User-flow relationship references a supporting function: ${endpoint.class}.${endpoint.function}`);
-            } else if (relationship.userFlow && endpoint.stateVariable !== undefined && !classStateVariables.get(endpoint.class).get(endpoint.stateVariable).userFlow) {
-              semanticErrors.push(`User-flow relationship references a supporting state variable: ${endpoint.class}.${endpoint.stateVariable}`);
             }
           } else if (endpoint.module !== undefined) {
             if (!moduleFunctions.has(endpoint.module)) {
               semanticErrors.push(`Unknown relationship module: ${endpoint.module}`);
             } else if (!moduleFunctions.get(endpoint.module).has(endpoint.function)) {
               semanticErrors.push(`Unknown relationship function in ${endpoint.module}: ${endpoint.function}`);
-            } else if (relationship.userFlow && !moduleFunctions.get(endpoint.module).get(endpoint.function).userFlow) {
-              semanticErrors.push(`User-flow relationship references a supporting function: ${endpoint.module}.${endpoint.function}`);
             }
           }
         }

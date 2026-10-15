@@ -24,41 +24,40 @@ function codeReview() {
   return {
     schemaVersion: 13,
     stage: "code-review",
-    userFlows: [{ name: "Inspect results", steps: [{ id: 1, text: "Request results." }, { id: 2, text: "Display results." }] }],
     diffHunks: [{ id: "change", file: "src/Controller.ts", patch: "@@ -1 +1 @@\n-old implementation\n+new implementation" }],
     classes: [
       {
         name: "Controller", changeType: "modified", diffHunkIds: ["change"],
-        functions: [{ name: "inspect", changeType: "modified", userFlow: true, diffHunkIds: ["change"] }],
-        stateVariables: [{ name: "result", changeType: "added", userFlow: true, diffHunkIds: ["change"] }],
+        functions: [{ name: "inspect", changeType: "modified", diffHunkIds: ["change"] }],
+        stateVariables: [{ name: "result", changeType: "added", diffHunkIds: ["change"] }],
       },
       {
         name: "Repository", changeType: "unchanged",
-        functions: [{ name: "read", changeType: "unchanged", userFlow: true }], stateVariables: [],
+        functions: [{ name: "read", changeType: "unchanged" }], stateVariables: [],
       },
     ],
-    components: [{ name: "Panel", description: "Displays results.", type: "ui-component", changeType: "modified", userFlow: true, diffHunkIds: ["change"] }],
-    staticData: [{ name: "Rules", changeType: "modified", userFlow: true, diffHunkIds: ["change"] }],
+    components: [{ name: "Panel", description: "Displays results.", type: "ui-component", changeType: "modified", diffHunkIds: ["change"] }],
+    staticData: [{ name: "Rules", changeType: "modified", diffHunkIds: ["change"] }],
     relationships: [
       {
         from: { component: "Panel" }, to: { class: "Controller", function: "inspect" }, type: "dataflow",
-        changeType: "modified", userFlow: true, diffHunkIds: ["change"], dataDescription: "Request", purpose: "Starts step 1.",
+        changeType: "modified", diffHunkIds: ["change"], dataDescription: "Request", purpose: "Requests results.",
       },
       {
         from: { staticData: "Rules" }, to: { class: "Controller", function: "inspect" }, type: "dataflow",
-        changeType: "added", userFlow: true, diffHunkIds: ["change"], dataDescription: "Rules", purpose: "Interprets the results.",
+        changeType: "added", diffHunkIds: ["change"], dataDescription: "Rules", purpose: "Interprets the results.",
       },
       {
         from: { class: "Repository", function: "read" }, to: { class: "Controller", function: "inspect" }, type: "dataflow",
-        changeType: "unchanged", userFlow: true, dataDescription: "Source data", purpose: "Supplies the requested data.",
+        changeType: "unchanged", dataDescription: "Source data", purpose: "Supplies the requested data.",
       },
       {
         from: { class: "Controller", function: "inspect" }, to: { class: "Controller", stateVariable: "result" }, type: "state-update",
-        changeType: "added", userFlow: true, diffHunkIds: ["change"], dataDescription: "Processed result", purpose: "Retains the result.",
+        changeType: "added", diffHunkIds: ["change"], dataDescription: "Processed result", purpose: "Retains the result.",
       },
       {
         from: { class: "Controller", function: "inspect" }, to: { component: "Panel" }, type: "dataflow",
-        changeType: "modified", userFlow: true, diffHunkIds: ["change"], dataDescription: "Result", purpose: "Completes step 2.",
+        changeType: "modified", diffHunkIds: ["change"], dataDescription: "Result", purpose: "Displays results.",
       },
       { from: { class: "Controller" }, to: { class: "Repository" }, type: "composition", changeType: "added", diffHunkIds: ["change"] },
     ],
@@ -85,7 +84,7 @@ test("represents a module of free functions without requiring a class", async (t
   const result = await runValidator(t, value);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(semanticError(value), undefined);
-  const graph = filterGraph(value, true, false);
+  const graph = filterGraph(value, true);
   assert.equal(graph.classes[0].containerType, "module");
   assert.deepEqual(graph.classes[0].functions.map((entry) => entry.name), ["read", "save"]);
   assert.equal(graph.relationships.length, 3);

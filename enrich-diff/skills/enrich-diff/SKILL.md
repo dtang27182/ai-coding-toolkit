@@ -24,7 +24,7 @@ Read and follow these instructions in order:
 3. `ai-coding-toolkit/enrich-diff/instructions/gen-impl-dataflow.md`
 4. `ai-coding-toolkit/enrich-diff/instructions/generate-enriched-patch.md`
 
-Generate the Implementation Dataflow starting from all changes in the selected patch, tracing the implementation to explain them. Use the diff-description's user flows as context, not as the basis for selecting changes. Do not use the System Dataflow as an input to it.
+Generate the Implementation Dataflow starting from all changes in the selected patch, tracing the implementation to explain them. Use the diff-description as behavior context, not as the basis for selecting changes. Do not use the System Dataflow as an input to it.
 
 Write `<outputDirectory>/<feature>/<feature>.rich-diff.json` with exactly three absolute paths:
 

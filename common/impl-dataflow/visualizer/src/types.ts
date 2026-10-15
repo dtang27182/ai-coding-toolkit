@@ -5,7 +5,6 @@ export interface FunctionDiff {
   name: string;
   changeType: ChangeType;
   diffHunkIds?: string[];
-  userFlow?: boolean;
 }
 
 export interface DeclaredAt {
@@ -25,7 +24,6 @@ export interface StateVariableDiff {
   name: string;
   changeType: ChangeType;
   diffHunkIds?: string[];
-  userFlow?: boolean;
 }
 
 export interface ClassDiff {
@@ -53,14 +51,12 @@ export interface ComponentDiff {
   type: ComponentType;
   changeType: ChangeType;
   diffHunkIds?: string[];
-  userFlow?: boolean;
 }
 
 export interface StaticDataDiff {
   name: string;
   changeType: ChangeType;
   diffHunkIds?: string[];
-  userFlow?: boolean;
 }
 
 export interface ClassEndpoint {
@@ -100,25 +96,14 @@ interface RelationshipBase {
 }
 
 export type Relationship = RelationshipBase & (
-  | { type: "dataflow" | "state-read" | "state-update"; userFlow?: boolean; dataDescription: string; purpose: string }
-  | { type: "composition"; userFlow?: never; dataDescription?: never; purpose?: never }
+  | { type: "dataflow" | "state-read" | "state-update"; dataDescription: string; purpose: string }
+  | { type: "composition"; dataDescription?: never; purpose?: never }
 );
-
-export interface UserFlowStep {
-  id: number;
-  text: string;
-}
-
-export interface UserFlowSet {
-  name: string;
-  steps: UserFlowStep[];
-}
 
 export interface ImplementationDataflow {
   schemaVersion: 13;
   stage: "high-level-design" | "code-review";
   diffHunks?: { id: string; file: string; patch: string }[];
-  userFlows?: UserFlowSet[];
   classes: ClassDiff[];
   modules?: ModuleDiff[];
   components: ComponentDiff[];

@@ -2,7 +2,7 @@
 
 - Graph: `<feature>.cr.impl-dataflow.json`
 - Patch: `<feature>.patch`
-- User-flow context: `<feature>.diff-description.md`
+- Behavior context: `<feature>.diff-description.md`
 
 ## Changes the Schema Cannot Represent
 
@@ -22,7 +22,7 @@
 
 ### <Short description of the discrepancy>
 
-- Sources and locations: <relevant graph entity or relationship, patch file and hunk location, implementation file and lines with base/target identified, or diff-description flow and step>
+- Sources and locations: <relevant graph entity or relationship, patch file and hunk location, implementation file and lines with base/target identified, or diff-description passage>
 - Discrepancy: <what the sources disagree about>
 - Evidence: <what each relevant source shows>
 - Unresolved because: <why the discrepancy remains>

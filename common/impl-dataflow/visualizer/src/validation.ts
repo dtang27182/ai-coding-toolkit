@@ -29,8 +29,6 @@ export function semanticError(value: ImplementationDataflow): string | undefined
       if (resolved.staticData) {
         if (!staticData.has(resolved.nodeName)) {
           return `Relationship references unknown static data “${resolved.nodeName}”.`;
-        } else if (relationship.userFlow && !staticData.get(resolved.nodeName)!.userFlow) {
-          return `User-flow relationship references supporting static data: ${resolved.nodeName}`;
         }
       } else if (resolved.component && !components.has(resolved.nodeName)) {
         return `Relationship references unknown component “${resolved.nodeName}”.`;
@@ -48,14 +46,6 @@ export function semanticError(value: ImplementationDataflow): string | undefined
         return `Relationship references unknown function “${resolved.nodeName}.${resolved.functionName}”.`;
       } else if (!resolved.module && !resolved.component && resolved.stateVariableName !== undefined && !classes.get(resolved.nodeName)!.stateVariables.some((stateVariable) => stateVariable.name === resolved.stateVariableName)) {
         return `Relationship references unknown state variable “${resolved.nodeName}.${resolved.stateVariableName}”.`;
-      } else if (relationship.userFlow && resolved.component && !components.get(resolved.nodeName)!.userFlow) {
-        return `User-flow relationship references a supporting component: ${resolved.nodeName}`;
-      } else if (relationship.userFlow && resolved.module && !modules.get(resolved.nodeName)!.functions.find((functionDiff) => functionDiff.name === resolved.functionName)!.userFlow) {
-        return `User-flow relationship references a supporting function: ${resolved.nodeName}.${resolved.functionName}`;
-      } else if (relationship.userFlow && !resolved.module && !resolved.component && resolved.functionName !== undefined && !classes.get(resolved.nodeName)!.functions.find((functionDiff) => functionDiff.name === resolved.functionName)!.userFlow) {
-        return `User-flow relationship references a supporting function: ${resolved.nodeName}.${resolved.functionName}`;
-      } else if (relationship.userFlow && !resolved.module && !resolved.component && resolved.stateVariableName !== undefined && !classes.get(resolved.nodeName)!.stateVariables.find((stateVariable) => stateVariable.name === resolved.stateVariableName)!.userFlow) {
-        return `User-flow relationship references a supporting state variable: ${resolved.nodeName}.${resolved.stateVariableName}`;
       }
     }
   }
