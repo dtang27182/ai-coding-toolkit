@@ -40,17 +40,17 @@
           "changeType": "added"
         },
         {
-          "type": "system-state",
+          "type": "system-state-read",
           "name": "Shopping cart",
-          "description": "Stores the products and quantities that must be fulfilled together with the dimensions and weight needed for shipping.",
+          "description": "Reads the products and quantities that must be fulfilled together with the dimensions and weight needed for shipping.",
           "medium": "PostgreSQL",
           "location": "shopping_carts and cart_items tables",
           "changeType": "unchanged"
         },
         {
-          "type": "system-state",
+          "type": "system-state-read",
           "name": "Warehouse inventory",
-          "description": "Stores available-to-promise quantities by product and fulfillment center.",
+          "description": "Reads available-to-promise quantities by product and fulfillment center.",
           "medium": "PostgreSQL",
           "location": "warehouse_inventory table",
           "changeType": "unchanged"
@@ -98,9 +98,17 @@
           "pseudo-code": "for each plan with carrier quotes:\n  price = sum of quote prices\n  promisedDate = latest handling time plus transit time across shipments\n  discard plan if promisedDate is outside delivery window\nremove plans dominated by a cheaper and no slower plan\nscore remaining plans by price, split-shipment penalty, and delivery-risk buffer\nreturn cheapest, fastest, and best-scoring options, breaking ties by date and plan ID"
         },
         {
-          "type": "system-state",
-          "name": "Delivery quote session",
+          "type": "system-state-write",
+          "name": "Delivery quote session write",
           "description": "Retains the ranked options, their expiration time, and the customer's selected option for the active checkout.",
+          "medium": "Redis JSON document",
+          "location": "delivery-quotes:{cartId}",
+          "changeType": "added"
+        },
+        {
+          "type": "system-state-read",
+          "name": "Delivery quote session read",
+          "description": "Reads the active delivery options and the customer's selection for display and checkout.",
           "medium": "Redis JSON document",
           "location": "delivery-quotes:{cartId}",
           "changeType": "added"
@@ -191,7 +199,7 @@
         {
           "id": "relationship-10",
           "from": "Rank delivery options",
-          "to": "Delivery quote session",
+          "to": "Delivery quote session write",
           "type": "dataflow",
           "changeType": "added",
           "data": "The cheapest, fastest, and balanced delivery options with prices, promised dates, plan IDs, and expiration time.",
@@ -199,7 +207,7 @@
         },
         {
           "id": "relationship-11",
-          "from": "Delivery quote session",
+          "from": "Delivery quote session read",
           "to": "Delivery options display",
           "type": "dataflow",
           "changeType": "added",
@@ -209,7 +217,7 @@
         {
           "id": "relationship-12",
           "from": "Delivery options input",
-          "to": "Delivery quote session",
+          "to": "Delivery quote session write",
           "type": "dataflow",
           "changeType": "added",
           "data": "The option ID selected by the customer.",
@@ -226,7 +234,7 @@
         },
         {
           "id": "relationship-14",
-          "from": "Delivery quote session",
+          "from": "Delivery quote session read",
           "to": "Selected delivery promise",
           "type": "dataflow",
           "changeType": "added",

@@ -6,7 +6,8 @@ const NODE_DIRECTIONS: Record<NodeType, { incoming: boolean; outgoing: boolean }
   "external-dependency": { incoming: true, outgoing: true },
   "system-input": { incoming: false, outgoing: true },
   "system-output": { incoming: true, outgoing: false },
-  "system-state": { incoming: true, outgoing: true },
+  "system-state-read": { incoming: false, outgoing: true },
+  "system-state-write": { incoming: true, outgoing: false },
   "static-data": { incoming: false, outgoing: true },
   "data-processing": { incoming: true, outgoing: true },
 };

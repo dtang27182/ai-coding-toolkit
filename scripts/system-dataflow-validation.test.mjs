@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import { findNewestSystemDataflow } from "../common/sys-dataflow/visualizer/default-system-dataflow.mjs";
 import { semanticError } from "../common/sys-dataflow/visualizer/src/validation.ts";
@@ -18,7 +20,8 @@ const directions = {
   "external-dependency": { incoming: true, outgoing: true },
   "system-input": { incoming: false, outgoing: true },
   "system-output": { incoming: true, outgoing: false },
-  "system-state": { incoming: true, outgoing: true },
+  "system-state-read": { incoming: false, outgoing: true },
+  "system-state-write": { incoming: true, outgoing: false },
   "static-data": { incoming: false, outgoing: true },
   "data-processing": { incoming: true, outgoing: true },
 };
@@ -94,7 +97,7 @@ test("rejects duplicate subgraph IDs and document-wide node names and relationsh
 test("relationship endpoints must belong to their containing subgraph", () => {
   for (const endpoint of ["from", "to"]) {
     const value = dataflow("user-input", "outgoing");
-    value.subgraphs.push({ id: "another-flow", name: "Another flow", nodes: [node("system-state", "Other state")], relationships: [] });
+    value.subgraphs.push({ id: "another-flow", name: "Another flow", nodes: [node("system-state-read", "Other state")], relationships: [] });
     assert.equal(semanticError(value), undefined);
     value.subgraphs[0].relationships[0][endpoint] = "Other state";
     assert.equal(validate(value), true, JSON.stringify(validate.errors));
@@ -113,7 +116,7 @@ test("high-level-design nodes and relationships cannot reference diff hunks insi
 test("lays out explicit subgraphs separately in document order", () => {
   const subgraphs = [
     { id: "first", name: "First flow", nodes: [node("user-input", "Start"), node("user-output", "Finish")], relationships: [{ id: "transfer", from: "Start", to: "Finish" }] },
-    { id: "second", name: "Second flow", nodes: [node("system-state", "Independent state")], relationships: [] },
+    { id: "second", name: "Second flow", nodes: [node("system-state-read", "Independent state")], relationships: [] },
     { id: "third", name: "Third flow", nodes: [node("user-input", "Other input")], relationships: [] },
   ];
   const layout = computeLayout(subgraphs);
@@ -157,16 +160,27 @@ test("processing nodes require pseudo-code and reject the old algorithm field", 
   assert.equal(validate(value), false);
 });
 
-test("every node type permits only its legal relationship directions", () => {
+test("every node type permits only its legal relationship directions", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "system-dataflow-directions-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const inputPath = path.join(directory, "dataflow.json");
   for (const [type, allowed] of Object.entries(directions)) {
     for (const direction of ["incoming", "outgoing"]) {
       const value = dataflow(type, direction);
       assert.equal(validate(value), true, JSON.stringify(validate.errors));
       const error = semanticError(value);
+      await writeFile(inputPath, JSON.stringify(value));
+      const result = spawnSync(process.execPath, [
+        fileURLToPath(new URL("../common/sys-dataflow/validate-sys-dataflow.mjs", import.meta.url)),
+        inputPath,
+      ], { encoding: "utf8" });
       if (allowed[direction]) {
         assert.equal(error, undefined, `${type} should allow ${direction} dataflow`);
+        assert.equal(result.status, 0, result.stderr);
       } else {
         assert.match(error, new RegExp(`cannot ${direction === "incoming" ? "enter" : "leave"} ${type} node`));
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, new RegExp(`cannot ${direction === "incoming" ? "enter" : "leave"} ${type} node`));
       }
     }
   }

@@ -22,7 +22,7 @@ Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.schema.json` and `ai-co
 
 - Create one `subgraphs` entry per numbered User Journey, in journey order. Keep each subgraph connected.
 - Start with a `user-input` node for the journey's first user action. Add `user-input` nodes for later user actions and `system-input` nodes for required external inputs.
-- Capture the journey's useful result and required effects as `user-output` or `system-output` nodes, or `dataflow` relationships into `system-state` nodes. Stop once these outputs and state updates are represented; omit unchanged downstream behavior and related workflows outside the journey.
+- Capture the journey's useful result and required effects as `user-output` or `system-output` nodes, or `dataflow` relationships into `system-state-write` nodes. Stop once these outputs and state updates are represented; omit unchanged downstream behavior and related workflows outside the journey.
 - Exclude one-time initialization, dependency setup, and object construction before the triggering `user-input` or `system-input`.
 - Exclude related workflows described only as context.
 
@@ -42,9 +42,9 @@ Record decisions in the JSON as you go, revising entries when later inspection c
 
 - Create nodes for major system components directly contributing to the journey's required effects.
 - Represent each component once per semantic role in each subgraph. For components shared across journeys, use distinct journey-specific nodes with the same `location` when appropriate.
-- Capture the journey's useful result and required effects as `user-output` or `system-output` nodes, or `dataflow` relationships into `system-state` nodes.
+- Capture the journey's useful result and required effects as `user-output` or `system-output` nodes, or `dataflow` relationships into `system-state-write` nodes.
 - Connect journey inputs to outputs and state updates with `dataflow` paths, including required `data-processing` nodes and requests to and responses from `external-dependency` nodes.
-- Connect every `system-state` and `static-data` read needed by the journey, processing, or external requests to its consumer via `dataflow`, even if the journey omits it.
+- Connect every `system-state-read` and `static-data` node needed by the journey, processing, or external requests to its consumer via `dataflow`, even if the journey omits the read.
 - Connect nodes by required data transfers, not merely action order.
 - Each incoming `dataflow` must carry a complete input for its destination's role, ready for non-processing nodes to use, display, store, or output as-is. Put required combinations and meaningful transformations in preceding `data-processing` nodes.
 - Insert a `data-processing` node for any of:

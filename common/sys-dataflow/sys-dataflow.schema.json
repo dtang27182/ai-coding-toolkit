@@ -203,8 +203,12 @@
               "const": "system-output"
             },
             {
-              "description": "Persistent state read or updated by the dataflow, including but not limited to instance, static, or global variables and browser, file, external database, or external object storage. Dataflow relationships may enter and leave this node.",
-              "const": "system-state"
+              "description": "Persistent state read by the dataflow, including instance, static, or global variables and browser, file, external database, or external object storage. Dataflow relationships may leave this node but may not enter it. Represent reads and writes of the same state as separate nodes with the same location.",
+              "const": "system-state-read"
+            },
+            {
+              "description": "Persistent state updated by the dataflow, including instance, static, or global variables and browser, file, external database, or external object storage. Dataflow relationships may enter this node but may not leave it. Represent reads and writes of the same state as separate nodes with the same location.",
+              "const": "system-state-write"
             },
             {
               "description": "Fixed data used by the system that is not changed by the represented dataflow, such as configuration, constants, schemas, or static lookup data. Dataflow relationships may leave this node but may not enter it.",

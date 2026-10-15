@@ -5,7 +5,8 @@ export type NodeType =
   | "external-dependency"
   | "system-input"
   | "system-output"
-  | "system-state"
+  | "system-state-read"
+  | "system-state-write"
   | "static-data"
   | "data-processing";
 
