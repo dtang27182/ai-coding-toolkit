@@ -18,34 +18,33 @@ Read and follow the representation contract, `ai-coding-toolkit/common/impl-data
 
 - Work in the JSON.
   - Add and revise entities, relationships, and changes as you inspect code and make design decisions.
-  - Represent every required entity and interaction, filling in dataflows, state accesses, and other implementation details from current code.
 - Trace each User Journey.
   - Follow its sys-dataflow path from the first `user-input` through later user inputs to required outputs and system effects.
-  - Read relevant existing classes, functions, callers, and consumers to understand current behavior and changes needed to satisfy confirmed High Level Requirements.
+  - Read relevant classes, function bodies, supporting code, callers, and consumers to understand current behavior and changes needed to satisfy confirmed High Level Requirements.
 - Design each high-level `dataflow` relationship.
   - Identify sending, intermediate, and receiving functions, their required data, and how the consumer uses it.
   - Determine behavior or contract changes. Reuse or modify existing classes and functions; design new ones as needed.
 - Design each `data-processing` node's algorithm implementation.
-  - Read function bodies and supporting code; decide how to change or extend processing, or allocate it across new classes and functions.
+  - Decide how to change or extend processing, or allocate it across new classes and functions.
   - Prefer as few implementation functions as possible.
   - Define each function's inputs, transformations, decisions, and results. Capture its role in journey completion in relationship descriptions and purposes.
 - Identify required data, state, and external work.
-  - Trace every required value's source. Design retained state, state reads and updates, static-data reads, and interactions with existing or new external dependencies.
+  - Trace every required value's source; design state retention, reads, and updates.
+  - Locate each `system-state-read` or `system-state-write` node's state and identify its reading or updating functions.
+  - Identify `static-data` nodes' fixed data and readers.
+  - Identify existing or new external dependencies and functions that send requests and consume results.
   - Include work absent from sys-dataflow but needed to satisfy High Level Requirements or complete a User Journey.
-  - Locate each `system-state-read` or `system-state-write` node's state. Map reads and writes of the same state to one entity and identify its reading or updating functions.
-  - Identify `static-data` nodes' fixed data and readers, and functions that send external requests and consume results.
 - Map UI and system boundaries.
   - Identify `user-input` and `user-output` nodes' UI components and handling or rendering functions.
-  - Check whether separate nodes share a component, such as a selector panel's input and display sides.
   - Identify system inputs and outputs and the functions that receive or send their data.
 - Resolve ownership, identity, and scope.
   - Find existing class ownership in current code and decide ownership for new classes.
-  - Merge sys-dataflow nodes referring to the same implementation entity. Preserve each journey's path; unrelated paths may remain disconnected.
+  - Merge sys-dataflow nodes referring to the same implementation entity, including:
+    - Reads and writes of the same state.
+    - Shared UI components, such as a selector panel's input and display sides.
+  - Preserve each journey's path; unrelated paths may remain disconnected.
   - Include only entities and interactions needed to satisfy High Level Requirements or complete User Journeys, including unchanged intermediaries and consumers of the feature's output or state.
   - Leave surrounding workflows in Design Context and Related Workflows.
-- Walk through each User Journey's proposed implementation in the JSON.
-  - Verify that functions receive required inputs, perform required work, and produce the journey's useful result.
-  - Resolve gaps by inspecting more code and updating the graph.
 
 ## Compose the Narrative
 
@@ -61,7 +60,10 @@ Read and follow the representation contract, `ai-coding-toolkit/common/impl-data
 Check the JSON and narrative against each other, the High Level Requirements, User Journeys, and sys-dataflow. Resolve gaps by revisiting the design, inspecting more code as needed, and updating both artifacts.
 
 - Verify that the proposed implementation satisfies every confirmed High Level Requirement, including those not explicit in sys-dataflow or User Journeys.
-- Trace each User Journey's actions and required effects from first user input to useful result. Map each action and effect to named entities and stages. State every required input's source, state read or update, and external interaction, leaving no gaps in journey completion.
+- Trace each User Journey's actions and required effects through the JSON and narrative, from first user input to useful result.
+  - Map each action and effect to named entities and stages.
+  - Verify that functions receive required inputs, perform required work, and produce the journey's useful result.
+  - State every required input's source, state read or update, and external interaction, leaving no gaps in journey completion.
 - Confirm that the narrative explains the JSON's design decisions: added, modified, or unchanged entities, each state's location, and each new class's owning class. The JSON supplies implementation detail, not an exhaustive inventory to repeat in prose.
 - Audit mismatches between implementation paths and sys-dataflow: added, missing, or rerouted paths, changed outputs, or changed `system-state-write` updates. Compare paths, not individual entries: one node may map to several functions or vice versa. Detail below the sys-dataflow's abstraction level is not a mismatch.
 - Decide whether each mismatch is justified, such as when requirements or code inspection reveal a required step, state, or dependency missing from sys-dataflow. Update and re-validate sys-dataflow for justified mismatches; otherwise, correct the implementation JSON and narrative to match it.
