@@ -4,6 +4,7 @@ import example from "../../sys-dataflow.example.json";
 import { renderDiffSection } from "./diff.ts";
 import { escapeHtml, selectionKey } from "./html.ts";
 import { computeLayout } from "./layout.ts";
+import { findPairs, linkPath, partnersOf } from "./pairing.ts";
 import { routeEdge } from "./routing.ts";
 import type {
   ChangeType,
@@ -70,6 +71,7 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
   let panY = 0;
   let graphWidth = 320;
   let graphHeight = 240;
+  let graphLayout: ReturnType<typeof computeLayout>;
   let userZoomed = false;
   let inspectorWidth: number | undefined;
   let selection: Selection | undefined;
@@ -202,23 +204,11 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
   function renderGraph(): string {
     const graph = visibleDataflow();
     const layout = computeLayout(graph.subgraphs);
+    graphLayout = layout;
     graphWidth = layout.width;
     graphHeight = layout.height;
-    const focus = hovered ?? selection;
-    const relatedNodes = new Set<string>();
-    if (focus?.type === "node") {
-      relatedNodes.add(focus.name);
-    } else if (focus?.type === "relationship") {
-      const relationship = graph.relationships.find((item) => item.id === focus.id);
-      if (relationship !== undefined) {
-        relatedNodes.add(relationship.from);
-        relatedNodes.add(relationship.to);
-      }
-    }
-    for (const relationship of graph.relationships.filter((item) => related(item, focus))) {
-      relatedNodes.add(relationship.from);
-      relatedNodes.add(relationship.to);
-    }
+    const pairs = findPairs(graph.nodes);
+    const pairsByNode = new Map(pairs.flatMap((pair) => pair.members.map((node) => [node.name, pair] as const)));
 
     const outgoingIds = new Map<string, string[]>();
     const incomingIds = new Map<string, string[]>();
@@ -255,11 +245,10 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
         const route = routeEdge(from, to, startSpread, endSpread, obstacles);
         const visualChangeType = displayChangeType(relationship.changeType);
         const color = changeColor(relationship.changeType);
-        const dimmed = focus !== undefined && !related(relationship, focus);
         const selected = selectionKey(selection) === selectionKey({ type: "relationship", id: relationship.id });
         const attributes = `data-relationship="${escapeHtml(relationship.id)}" data-from="${escapeHtml(relationship.from)}" data-to="${escapeHtml(relationship.to)}"`;
-        return `<path class="edge${dimmed ? " dimmed" : ""}${selected ? " selected" : ""}" ${attributes} d="${route.path}" fill="none" stroke="${color}" stroke-width="1.8" stroke-dasharray="${relationship.changeType === "deleted" ? "7 5" : ""}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${visualChangeType})"></path>
-          <circle class="edge${dimmed ? " dimmed" : ""}" ${attributes} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${color}" stroke="oklch(0.198 0.024 255)" stroke-width="1.5"></circle>
+        return `<path class="edge${selected ? " selected" : ""}" ${attributes} d="${route.path}" fill="none" stroke="${color}" stroke-width="1.8" stroke-dasharray="${relationship.changeType === "deleted" ? "7 5" : ""}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${visualChangeType})"></path>
+          <circle class="edge" ${attributes} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${color}" stroke="oklch(0.198 0.024 255)" stroke-width="1.5"></circle>
           <path class="edge-hit" ${attributes} data-select="relationship" d="${route.path}" fill="none" stroke="transparent" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path>`;
       })
       .join("");
@@ -270,9 +259,10 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
         const type = NODE_TYPES[node.type];
         const form = silhouette(type.shape, box.width, box.height);
         const selected = selectionKey(selection) === selectionKey({ type: "node", name: node.name });
-        const dimmed = focus !== undefined && !relatedNodes.has(node.name);
+        const pair = pairsByNode.get(node.name);
+        const pairingLabel = pair === undefined ? "" : `, paired with ${pair.members.filter((member) => member !== node).map((member) => member.name).join(", ")}`;
         const details = form.details.map((detail) => `<path class="node-detail" d="${detail}"></path>`).join("");
-        return `<button class="graph-node${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}${node.changeType === "deleted" ? " deleted" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;--type-color:${type.color};--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(node.name)}" aria-label="Inspect ${escapeHtml(type.label)} ${escapeHtml(node.name)}">
+        return `<button class="graph-node${selected ? " selected" : ""}${node.changeType === "deleted" ? " deleted" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;--type-color:${type.color};--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(node.name)}" aria-label="Inspect ${escapeHtml(type.label)} ${escapeHtml(node.name + pairingLabel)}">
           <svg class="node-shape" width="${box.width}" height="${box.height}" viewBox="0 0 ${box.width} ${box.height}" aria-hidden="true">
             <path class="node-outline" d="${form.outline}"${form.dashed ? ' stroke-dasharray="7 5"' : ""}></path>${details}
           </svg>
@@ -281,6 +271,7 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
             <span class="node-name">${escapeHtml(node.name)}</span>
             <span class="node-medium">${escapeHtml(node.medium)}</span>
           </span>
+          ${pair === undefined ? "" : `<span class="pair-token" aria-hidden="true">${pair.label}</span>`}
         </button>`;
       })
       .join("");
@@ -295,6 +286,7 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
           return `<section class="subgraph" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px" aria-label="${escapeHtml(subgraph.name)}"><h2>${escapeHtml(subgraph.name)}</h2></section>`;
         }).join("")}
         ${nodes}
+        <svg class="pair-link-layer" width="${layout.width}" height="${layout.height}" aria-hidden="true"></svg>
       </div>
     </div>`;
   }
@@ -411,7 +403,13 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
 
   function renderLegend(): string {
     const changeTypes: DisplayChangeType[] = ["added", "modified", "deleted", "unchanged"];
-    return `<div class="legend">${changeTypes
+    const pairs = findPairs(visibleDataflow().nodes);
+    const roles = { "system-state-read": "read", "system-state-write": "write", "user-input": "input", "user-output": "output" };
+    const pairRow = pairs.length === 0 ? "" : `<div class="legend-pairs"><span class="legend-pairs-label">PAIRS</span>${pairs.map((pair) => {
+      const pairRoles = (Object.keys(roles) as (keyof typeof roles)[]).filter((type) => pair.members.some((node) => node.type === type)).map((type) => roles[type]).join(" + ");
+      return `<span><span class="pair-token" aria-hidden="true">${pair.label}</span><span class="legend-pair-name">${escapeHtml(pair.members[0].name)}</span><span class="legend-pair-roles">${pairRoles}</span></span>`;
+    }).join("")}</div>`;
+    return `<div class="legend">${pairRow}${changeTypes
       .map((changeType) => `<span><i style="background:${CHANGE_COLORS[changeType]}"></i>${changeType}</span>`)
       .join("")}</div>`;
   }
@@ -444,6 +442,7 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
       <input data-file-input type="file" accept="application/json,.json" hidden />
     </div>`;
     bindInteractions();
+    updateGraphFocus(hovered ?? selection);
   }
 
   function bindInspector(): void {
@@ -493,13 +492,30 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
       relatedNodes.add(relationship.from);
       relatedNodes.add(relationship.to);
     }
+    const focusedName = value?.type === "node" ? value.name : undefined;
+    const partners = focusedName === undefined ? [] : partnersOf(findPairs(graph.nodes), focusedName);
+    const partnerNames = new Set(partners.map((node) => node.name));
+    for (const partner of partners) relatedNodes.add(partner.name);
     for (const element of app.querySelectorAll<HTMLElement>(".graph-node[data-node]")) {
       element.classList.toggle("dimmed", value !== undefined && !relatedNodes.has(element.dataset.node!));
+      element.classList.toggle("pair-partner", partnerNames.has(element.dataset.node!));
+      element.querySelector(".pair-token")?.classList.toggle("active", partners.length > 0 && (element.dataset.node === focusedName || partnerNames.has(element.dataset.node!)));
     }
     for (const element of app.querySelectorAll<SVGElement>("[data-relationship]")) {
       const relationship = graph.relationships.find((item) => item.id === element.dataset.relationship)!;
-      element.classList.toggle("dimmed", value !== undefined && !related(relationship, value));
+      const connectsLitNodes = partners.length > 0 && relatedNodes.has(relationship.from) && relatedNodes.has(relationship.to);
+      element.classList.toggle("dimmed", value !== undefined && !related(relationship, value) && !connectsLitNodes);
     }
+    let links = "";
+    if (focusedName !== undefined) {
+      links = partners.map((partner) => {
+        const link = linkPath(graphLayout.boxes.get(focusedName)!, graphLayout.boxes.get(partner.name)!);
+        return `<path class="pair-link-halo" d="${link.d}"></path><path class="pair-link" d="${link.d}"></path>
+          <circle class="pair-link-end" cx="${link.start.x}" cy="${link.start.y}" r="5"></circle>
+          <circle class="pair-link-end" cx="${link.end.x}" cy="${link.end.y}" r="5"></circle>`;
+      }).join("");
+    }
+    app.querySelector<SVGElement>(".pair-link-layer")!.innerHTML = links;
   }
 
   function bindInteractions(): void {
