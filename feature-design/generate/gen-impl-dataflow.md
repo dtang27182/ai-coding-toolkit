@@ -16,19 +16,36 @@ Read and follow the representation contract, `ai-coding-toolkit/common/impl-data
 
 ## Design the Implementation Paths
 
-Use the JSON as the working design artifact. Write entities, relationships, and changes as you inspect code and make decisions; revise existing entries as the design develops. Represent every entity and interaction needed to realize the design, filling in dataflows, state accesses, and other implementation details from current code.
-
-- Trace each User Journey's sys-dataflow path from its first `user-input` through later user inputs to required outputs and system effects. Read relevant existing classes, functions, callers, and consumers to understand current behavior and the changes needed to satisfy the confirmed High Level Requirements.
-- For each high-level `dataflow` relationship, determine how data reaches and is used by its consumer. Identify sending, intermediate, and receiving functions, their required data, and behavior or contract changes. Choose existing classes and functions to reuse or modify, and design new ones as needed.
-- For each `data-processing` node, determine how its required algorithm fits the existing implementation. Read relevant function bodies and supporting code; decide how to change or extend their processing, or allocate new processing across new classes and functions. Prefer to confine these algorithms to as few implementation functions as possible. Design each function's inputs, transformations, decisions, and results, capturing its role in completing the User Journey in relationship descriptions and purposes.
-- Trace every required value's source. Identify state to retain or update and external work to perform. Design state reads and updates, static-data reads, and interactions with existing or new external dependencies, including work absent from sys-dataflow but needed to satisfy High Level Requirements or complete a User Journey.
-- Identify UI components and handling or rendering functions behind `user-input` and `user-output` nodes. Check whether separate nodes refer to the same component, such as a selector panel's input and display sides. Identify system inputs and outputs and the functions that receive or send their data.
-- Locate each `system-state-read` or `system-state-write` node's state. Map reads and writes of the same state to one implementation entity and identify its reading or updating functions. For external dependencies, identify functions that send requests and consume results.
-- Identify `static-data` nodes' fixed data and the functions that read it.
-- Find existing class ownership in current code and decide ownership for new classes.
-- Merge sys-dataflow nodes referring to the same implementation entity. Preserve each journey's path; unrelated paths may remain disconnected.
-- Include only entities and interactions needed to satisfy High Level Requirements or complete User Journeys, including unchanged intermediaries and consumers of the feature's output or state. Leave surrounding workflows in Design Context and Related Workflows.
-- Walk through each User Journey's proposed implementation in the JSON: verify that functions receive required inputs, perform required work, and produce the journey's useful result. Resolve gaps by inspecting more code and updating the graph.
+- Work in the JSON.
+  - Add and revise entities, relationships, and changes as you inspect code and make design decisions.
+  - Represent every required entity and interaction, filling in dataflows, state accesses, and other implementation details from current code.
+- Trace each User Journey.
+  - Follow its sys-dataflow path from the first `user-input` through later user inputs to required outputs and system effects.
+  - Read relevant existing classes, functions, callers, and consumers to understand current behavior and changes needed to satisfy confirmed High Level Requirements.
+- Design each high-level `dataflow` relationship.
+  - Identify sending, intermediate, and receiving functions, their required data, and how the consumer uses it.
+  - Determine behavior or contract changes. Reuse or modify existing classes and functions; design new ones as needed.
+- Design each `data-processing` node's algorithm implementation.
+  - Read function bodies and supporting code; decide how to change or extend processing, or allocate it across new classes and functions.
+  - Prefer as few implementation functions as possible.
+  - Define each function's inputs, transformations, decisions, and results. Capture its role in journey completion in relationship descriptions and purposes.
+- Identify required data, state, and external work.
+  - Trace every required value's source. Design retained state, state reads and updates, static-data reads, and interactions with existing or new external dependencies.
+  - Include work absent from sys-dataflow but needed to satisfy High Level Requirements or complete a User Journey.
+  - Locate each `system-state-read` or `system-state-write` node's state. Map reads and writes of the same state to one entity and identify its reading or updating functions.
+  - Identify `static-data` nodes' fixed data and readers, and functions that send external requests and consume results.
+- Map UI and system boundaries.
+  - Identify `user-input` and `user-output` nodes' UI components and handling or rendering functions.
+  - Check whether separate nodes share a component, such as a selector panel's input and display sides.
+  - Identify system inputs and outputs and the functions that receive or send their data.
+- Resolve ownership, identity, and scope.
+  - Find existing class ownership in current code and decide ownership for new classes.
+  - Merge sys-dataflow nodes referring to the same implementation entity. Preserve each journey's path; unrelated paths may remain disconnected.
+  - Include only entities and interactions needed to satisfy High Level Requirements or complete User Journeys, including unchanged intermediaries and consumers of the feature's output or state.
+  - Leave surrounding workflows in Design Context and Related Workflows.
+- Walk through each User Journey's proposed implementation in the JSON.
+  - Verify that functions receive required inputs, perform required work, and produce the journey's useful result.
+  - Resolve gaps by inspecting more code and updating the graph.
 
 ## Compose the Narrative
 
