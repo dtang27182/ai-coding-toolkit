@@ -6,11 +6,12 @@ Build and refine `<feature>.sys-dataflow.json` to satisfy the confirmed High Lev
 
 ## 1. Read the Inputs and Initialize the Graph
 
-Use three primary inputs:
+Use four primary inputs:
 
 - **Desired Behavior and Scope and Assumptions:** Establish the intended end state the design must achieve, including requirements not repeated in User Journeys.
 - **User Journeys:** Drive the concrete construction of each subgraph.
 - **Current codebase:** Understand existing dataflow, state, and external dependencies. Use Design Context and Related Workflows to locate relevant code.
+- **HLD Design Quality:** Read `ai-coding-toolkit/feature-design/hld-quality.md` and apply its design principles to minimize end-state complexity, and minimize change complexity wherever doing so does not increase end-state complexity.
 
 Apply the level of abstraction in Design Guidelines.
 
