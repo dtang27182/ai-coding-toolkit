@@ -48,7 +48,7 @@ const COMPONENT_GLYPHS: Record<ComponentType, string> = {
 
 let implementationDataflow = exampleImplementationDataflow as ImplementationDataflow;
 let fileName = "impl-dataflow.example.json";
-let showUnchanged = true;
+let showUnchanged = false;
 let userFlowOnly = false;
 let functionsHidden = false;
 let zoom = 1;
