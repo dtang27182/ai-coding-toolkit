@@ -134,6 +134,10 @@ test("installs only feature-design while exposing the feature-design skill", asy
     await readFile(path.join(toolkitDirectory, "feature-design", "SKILL.md"), "utf8")
   );
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "feature-design"))).isDirectory(), true);
+  assert.equal(
+    await readFile(path.join(repoDirectory, ".agents/skills/feature-redesign/SKILL.md"), "utf8"),
+    await readFile(path.join(toolkitDirectory, "feature-design/skills/feature-redesign/SKILL.md"), "utf8")
+  );
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "impl-dataflow"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "node_modules"))).isDirectory(), true);
   const visualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "feature-design", "visualizer");
@@ -321,6 +325,12 @@ test("installs Claude Code skills with Claude-only frontmatter", async (t) => {
   assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/feature-design\/generate\/\*\)\n/);
   assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/impl-dataflow\/\*\)\n/);
   assert.doesNotMatch(claudeSkill, /\ncontext: fork\n/);
+  const sourceRedesignSkill = await readFile(path.join(toolkitDirectory, "feature-design/skills/feature-redesign/SKILL.md"), "utf8");
+  const claudeRedesignSkill = await readFile(path.join(repoDirectory, ".claude/skills/feature-redesign/SKILL.md"), "utf8");
+  assert.ok(claudeRedesignSkill.endsWith(sourceRedesignSkill.slice(sourceRedesignSkill.indexOf("\n---\n"))));
+  assert.match(claudeRedesignSkill, /\n {2}- Bash\(node ai-coding-toolkit\/feature-design\/generate\/\*\)\n/);
+  assert.match(claudeRedesignSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/impl-dataflow\/\*\)\n/);
+  assert.match(claudeRedesignSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/sys-dataflow\/\*\)\n/);
   await assert.rejects(lstat(path.join(repoDirectory, ".agents")), { code: "ENOENT" });
 
   const bothAgents = install([repoDirectory, "--tool", "enrich-diff", "--agent", "codex,claude"]);
@@ -409,6 +419,7 @@ test("refreshes installed copies on repeat installation", async (t) => {
   assert.equal(firstInstall.status, 0, firstInstall.stderr);
   const relativePaths = [
     ".agents/skills/feature-design/SKILL.md",
+    ".agents/skills/feature-redesign/SKILL.md",
     "ai-coding-toolkit/feature-design/generate/gen-design.md",
     "ai-coding-toolkit/node_modules/ajv/package.json",
   ];

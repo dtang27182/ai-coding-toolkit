@@ -13,7 +13,7 @@ export async function installCodexSkills(repoDirectory, toolkitDirectory, toolNa
       );
     } else {
       await copyDirectory(
-        path.join(toolkitDirectory, toolName, "skills", toolName),
+        path.join(toolkitDirectory, toolName === "feature-redesign" ? "feature-design" : toolName, "skills", toolName),
         installedSkillDirectory
       );
     }

@@ -14,7 +14,7 @@ npm run install:all -- /path/to/code-repo
 
 Run `npm install` in this toolkit checkout before using any installer command; the installer copies its `node_modules` into the target repository. If an earlier attempt stopped with a missing `node_modules` error, install the dependencies and rerun the same installer command to finish the installation.
 
-The default installer installs `feature-design`, `refactor-design`, and `enrich-diff` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the `$feature-design` skill, run:
+The default installer installs `feature-design` (including `feature-redesign`), `refactor-design`, and `enrich-diff` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the feature design skills, run:
 
 ```sh
 npm run install:feature-design -- /path/to/code-repo
@@ -85,6 +85,8 @@ Use $feature-design to develop a design from our workbook-import conversation so
 The skill generates one design and validates its dataflow artifacts, without candidate comparison, quantitative quality evaluation, or automatic improvement iterations. All artifacts are grouped directly in `<feature>/` under the configured output directory. Requirements and clarification questions live in the HLD; there is no separate iteration summary.
 
 The final artifacts are ready for human review; application implementation is a separate step.
+
+Use `$feature-redesign` with an existing HLD whose Design Guidelines and Requirements are filled out to start directly at design generation. It regenerates the Design section, both dataflows, and manifest, overwriting existing design output while preserving the guidelines and requirements. It installs alongside `feature-design` for Codex and Claude Code, where it is invoked as `/feature-redesign`.
 
 The shared dataflow validation scripts remain available independently. Run `npm run hld-visualizer` to switch between its System Dataflow and Implementation Dataflow views. The visualizer loads the newest HLD manifest under the configured output directory, keeping both views on the same design. You can open or drag in another HLD manifest. The views refresh when the open repository manifest or either referenced dataflow changes; manifests chosen with a browser file handle refresh too.
 

@@ -32,7 +32,7 @@ export async function installClaudeSkills(repoDirectory, toolkitDirectory, toolN
     const sourceSkillDirectory =
       toolName === "feature-design" || toolName === "refactor-design"
         ? path.join(toolkitDirectory, toolName)
-        : path.join(toolkitDirectory, toolName, "skills", toolName);
+        : path.join(toolkitDirectory, toolName === "feature-redesign" ? "feature-design" : toolName, "skills", toolName);
     const installedSkillDirectory = path.join(repoDirectory, ".claude", "skills", toolName);
     await copyDirectory(sourceSkillDirectory, installedSkillDirectory, ["SKILL.md"]);
 
@@ -44,7 +44,7 @@ export async function installClaudeSkills(repoDirectory, toolkitDirectory, toolN
     }
     await writeFile(
       skillPath,
-      `${skill.slice(0, frontmatterEnd)}\n${claudeFrontmatter[toolName].join("\n")}${skill.slice(frontmatterEnd)}`
+      `${skill.slice(0, frontmatterEnd)}\n${claudeFrontmatter[toolName === "feature-redesign" ? "feature-design" : toolName].join("\n")}${skill.slice(frontmatterEnd)}`
     );
   }
 }

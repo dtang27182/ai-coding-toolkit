@@ -227,6 +227,9 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     }
   }
   const skillToolNames = toolNames.filter((name) => name !== "advanced-diff-viewer");
+  if (toolNames.includes("feature-design")) {
+    skillToolNames.push("feature-redesign");
+  }
   if (agentNames.includes("codex")) {
     await installCodexSkills(repoDirectory, toolkitDirectory, skillToolNames);
   }
