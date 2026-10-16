@@ -111,19 +111,18 @@ test("generic validation rejects invalid architecture references and changes", a
   const memberResult = await runValidator(t, changedMember);
   assert.equal(memberResult.result.status, 1);
 
-  const malformedStateRead = codeReview();
-  malformedStateRead.classes[0].changeType = "modified";
-  malformedStateRead.classes[0].stateVariables.push({ name: "value", changeType: "modified" });
-  malformedStateRead.relationships.push({
-    from: { class: "Service", function: "inspect" },
+  const invalidStateAccess = codeReview();
+  invalidStateAccess.classes[0].stateVariables.push({ name: "value", changeType: "unchanged" });
+  invalidStateAccess.relationships.push({
+    from: { class: "Service", stateVariable: "value" },
     to: { class: "Service", stateVariable: "value" },
-    type: "state-read",
-    changeType: "modified",
+    type: "dataflow",
+    changeType: "unchanged",
     dataDescription: "value",
     purpose: "Read the value",
   });
-  const stateReadResult = await runValidator(t, malformedStateRead);
-  assert.equal(stateReadResult.result.status, 1);
+  const stateAccessResult = await runValidator(t, invalidStateAccess);
+  assert.equal(stateAccessResult.result.status, 1);
 });
 
 test("component roles enforce system input and output directions", async (t) => {
@@ -253,7 +252,7 @@ test("functions share implementation state and static data", async (t) => {
   }, {
     from: { class: "ChangeModel", stateVariable: "changes" },
     to: { class: "ChangeService", function: "previewChanges" },
-    type: "state-read",
+    type: "dataflow",
     changeType: "added",
     dataDescription: "The retained change set",
     purpose: "Supply the preview input.",
@@ -270,7 +269,7 @@ test("functions share implementation state and static data", async (t) => {
   const graph = filterGraph(input, true);
   assert.equal(graph.staticData.filter((entry) => entry.name === "Diff Format Rules").length, 1);
   assert.equal(graph.relationships.filter((relationship) => relationship.from.staticData).length, 2);
-  assert.ok(graph.relationships.some((relationship) => relationship.relationship.type === "state-read" && relationship.to.functionName === "previewChanges"));
+  assert.ok(graph.relationships.some((relationship) => relationship.from.stateVariableName === "changes" && relationship.to.functionName === "previewChanges"));
   assert.ok(graph.components.some((component) => component.name === "Source Files on Disk"));
 });
 
@@ -286,8 +285,7 @@ test("evaluated validation requires complete HLD metrics", async (t) => {
   example.changedClassCount = 3;
   example.changedFunctionCount = 4;
   example.changedComponentCount = 1;
-  example.changedDataflowRelationshipCount = 6;
-  example.changedStateUpdateRelationshipCount = 1;
+  example.changedDataflowRelationshipCount = 8;
   const evaluated = await runValidator(t, example, "--evaluated");
   assert.equal(evaluated.result.status, 0, evaluated.result.stderr);
 });

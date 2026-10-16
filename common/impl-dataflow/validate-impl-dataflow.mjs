@@ -250,7 +250,6 @@ if (inputArgument === undefined) {
           "changedFunctionCount",
           "changedComponentCount",
           "changedDataflowRelationshipCount",
-          "changedStateUpdateRelationshipCount",
         ];
         for (const countName of countNames) {
           if (!Number.isInteger(implementationDataflow[countName])) {

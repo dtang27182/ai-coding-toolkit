@@ -269,7 +269,7 @@ function renderMarkers(): string {
 function renderGraph(graph: VisibleGraph): string {
   const stateWriters = new Set(
     graph.relationships
-      .filter((relationship) => relationship.relationship.type === "state-update" && relationship.from.functionName !== undefined)
+      .filter((relationship) => relationship.to.stateVariableName !== undefined && relationship.from.functionName !== undefined)
       .map((relationship) => functionKey(relationship.from.nodeName, relationship.from.functionName!)),
   );
   const layout = computeLayout(graph.nodes, graph.relationships, functionsHidden, functionWidth, stateVariableWidth, componentWidth, stateWriters);
@@ -347,8 +347,8 @@ function renderGraph(graph: VisibleGraph): string {
       const { relationship, from, to } = edge;
       const route = routeEdge(from, to, edgeSpreads[index], obstaclesFor(relationship));
       const changeType = relationship.relationship.changeType;
-      const stateUpdate = relationship.relationship.type === "state-update";
-      const stateRead = relationship.relationship.type === "state-read";
+      const stateUpdate = relationship.to.stateVariableName !== undefined;
+      const stateRead = relationship.from.stateVariableName !== undefined;
       const dimmed = focus !== undefined && !relationshipMatches(relationship, focus);
       const dash = stateUpdate || stateRead ? "7 4" : changeType === "deleted" ? "7 5" : "";
       const selected = selectionKey(selection) === selectionKey({ type: "relationship", edge: edgeKey(relationship, functionsHidden) });
@@ -503,7 +503,7 @@ function exposureSummary(classDiff: GraphContainerDiff, functionName?: string): 
 function renderInspector(graph: VisibleGraph): string {
   const inspected = hovered ?? selection;
   if (inspected === undefined) {
-    const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update");
+    const stateUpdates = graph.relationships.filter((relationship) => relationship.to.stateVariableName !== undefined);
     const exposureClasses = graph.classes.filter((classDiff) => classDiff.containerType !== "module");
     const exposureCount = exposureClasses.some((classDiff) => classDiff.variableExposure === undefined || classDiff.variableExposure === null) ? null : new Set(
       exposureClasses.flatMap((classDiff) => classDiff.variableExposure!.map((variable) =>
@@ -535,8 +535,8 @@ function renderInspector(graph: VisibleGraph): string {
     const classDiff = graph.classes.find((item) => item.name === functionSelection.className)!;
     const functionDiff = classDiff.functions.find((item) => item.name === functionSelection.functionName)!;
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, functionSelection));
-    const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, functionSelection));
-    const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update" && endpointMatches(relationship.from, functionSelection));
+    const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && relationship.to.stateVariableName === undefined && endpointMatches(relationship.from, functionSelection));
+    const stateUpdates = graph.relationships.filter((relationship) => relationship.to.stateVariableName !== undefined && endpointMatches(relationship.from, functionSelection));
     const inventory = classDiff.variableExposure;
     const exposureCount = inventory === undefined || inventory === null ? undefined : inventory.filter((variable) => variable.kind === "instance" || variable.function === functionSelection.functionName).length;
     return `${inspectorHeader(classDiff.name, functionDiff.name, functionDiff.changeType)}${diffEvidence(functionDiff.diffHunkIds)}${implementationDataflow.stage === "code-review" || classDiff.containerType === "module" ? "" : section("Exposure in this scope", exposureSummary(classDiff, functionDiff.name), exposureCount)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${section("State written", flowRows(stateUpdates, "to", true), stateUpdates.length)}`;
@@ -555,9 +555,9 @@ function renderInspector(graph: VisibleGraph): string {
       return `${inspectorHeader("Relationship", "Not visible", "unchanged")}<p class="empty-copy">The current filters hide this relationship.</p>`;
     }
     const arrow = (item: ResolvedRelationship) => {
-      if (item.relationship.type === "state-update") {
+      if (item.to.stateVariableName !== undefined) {
         return "↝";
-      } else if (item.relationship.type === "state-read") {
+      } else if (item.from.stateVariableName !== undefined) {
         return "⇢";
       } else {
         return "→";
@@ -581,9 +581,9 @@ function renderInspector(graph: VisibleGraph): string {
     let eyebrow = "Dataflow";
     if (merged) {
       eyebrow = "Merged relationships";
-    } else if (first.relationship.type === "state-update") {
+    } else if (first.to.stateVariableName !== undefined) {
       eyebrow = "State update";
-    } else if (first.relationship.type === "state-read") {
+    } else if (first.from.stateVariableName !== undefined) {
       eyebrow = "State read";
     }
     const detail = merged ? `${edges.length} relationships` : undefined;
@@ -591,7 +591,7 @@ function renderInspector(graph: VisibleGraph): string {
   } else {
     const classSelection = inspected;
     const classDiff = graph.classes.find((item) => item.name === classSelection.className)!;
-    const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update" && relationship.to.nodeName === classDiff.name);
+    const stateUpdates = graph.relationships.filter((relationship) => relationship.to.stateVariableName !== undefined && relationship.to.nodeName === classDiff.name);
     const functions = classDiff.functions
       .map((functionDiff) => `<button class="function-row" style="border-color:${changeColor(functionDiff.changeType)}" data-jump="${escapeHtml(JSON.stringify({ type: "function", className: classDiff.name, functionName: functionDiff.name }))}"><div class="flow-endpoint">${escapeHtml(functionDiff.name)}</div><div class="flow-label">${functionDiff.changeType}</div></button>`)
       .join("");

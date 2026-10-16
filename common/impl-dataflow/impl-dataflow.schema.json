@@ -47,12 +47,7 @@
       "minimum": 0
     },
     "changedDataflowRelationshipCount": {
-      "description": "Derived number of added, modified, or deleted dataflow relationships.",
-      "type": "integer",
-      "minimum": 0
-    },
-    "changedStateUpdateRelationshipCount": {
-      "description": "Derived number of added, modified, or deleted state-update relationships.",
+      "description": "Derived number of added, modified, or deleted dataflow relationships, including state reads and writes.",
       "type": "integer",
       "minimum": 0
     },
@@ -85,7 +80,7 @@
       }
     },
     "relationships": {
-      "description": "Direct relationships between represented entities. Preserve intermediate participants. Use state relationships for class-owned state reads and writes, and dataflow relationships for external storage access. Relationships express dependencies and data movement, not execution order.",
+      "description": "Direct relationships between represented entities. Preserve intermediate participants. Use dataflow relationships for data transfers, class-owned state reads and writes, and external storage access. Relationships express dependencies and data movement, not execution order.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/relationship"
@@ -280,7 +275,7 @@
           }
         },
         "stateVariables": {
-          "description": "Mutable instance fields whose declaration or architectural meaning is added, modified, or deleted, plus unchanged mutable fields referenced by a state-read or state-update relationship. Excludes static or class variables, local variables, unrelated fields, explicitly read-only fields, fields initialized at declaration or construction but never written afterward, and fields used only as references to owned child objects. Constructor assignment is initialization rather than a state update. Runtime writes do not by themselves make an existing field modified. State-variable names must be unique within the class.",
+          "description": "Mutable instance fields whose declaration or architectural meaning is added, modified, or deleted, plus unchanged mutable fields referenced by a dataflow relationship. Excludes static or class variables, local variables, unrelated fields, explicitly read-only fields, fields initialized at declaration or construction but never written afterward, and fields used only as references to owned child objects. Constructor assignment is initialization rather than a state update. Runtime writes do not by themselves make an existing field modified. State-variable names must be unique within the class.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/stateVariable"
@@ -418,7 +413,7 @@
       }
     },
     "stateVariable": {
-      "description": "A mutable instance field represented for its class. State relationships reference the exact state-variable entry.",
+      "description": "A mutable instance field represented for its class. Dataflow relationships reference the exact state-variable entry.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -634,15 +629,7 @@
       "oneOf": [
         {
           "const": "dataflow",
-          "description": "A direct data transfer between function or component endpoints, or a read from static data by a function. System-input components may only be sources and system-output components may only be targets. Record request and response paths as separate relationships."
-        },
-        {
-          "const": "state-read",
-          "description": "A function reads a value from mutable instance state; the state variable is the source and the function is the target."
-        },
-        {
-          "const": "state-update",
-          "description": "A function writes mutable instance state; the function is the source and the state variable is the target."
+          "description": "A direct data transfer between function or component endpoints, a read from static data by a function, or a mutable instance state access. A state variable as the source means a read by the target function; a state variable as the target means a write by the source function. System-input components may only be sources and system-output components may only be targets. Record request and response paths as separate relationships."
         },
         {
           "const": "composition",
@@ -694,29 +681,6 @@
           "if": {
             "properties": {
               "type": {
-                "const": "state-read"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "dataDescription",
-              "purpose"
-            ],
-            "properties": {
-              "from": {
-                "$ref": "#/$defs/stateVariableEndpoint"
-              },
-              "to": {
-                "$ref": "#/$defs/functionEndpoint"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "type": {
                 "const": "dataflow"
               }
             }
@@ -746,31 +710,28 @@
                     "$ref": "#/$defs/functionEndpoint"
                   }
                 }
+              },
+              {
+                "properties": {
+                  "from": {
+                    "$ref": "#/$defs/stateVariableEndpoint"
+                  },
+                  "to": {
+                    "$ref": "#/$defs/functionEndpoint"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "from": {
+                    "$ref": "#/$defs/functionEndpoint"
+                  },
+                  "to": {
+                    "$ref": "#/$defs/stateVariableEndpoint"
+                  }
+                }
               }
             ]
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "state-update"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "dataDescription",
-              "purpose"
-            ],
-            "properties": {
-              "from": {
-                "$ref": "#/$defs/functionEndpoint"
-              },
-              "to": {
-                "$ref": "#/$defs/stateVariableEndpoint"
-              }
-            }
           }
         },
         {

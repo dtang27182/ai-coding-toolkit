@@ -52,7 +52,7 @@ function codeReview() {
         changeType: "unchanged", dataDescription: "Source data", purpose: "Supplies the requested data.",
       },
       {
-        from: { class: "Controller", function: "inspect" }, to: { class: "Controller", stateVariable: "result" }, type: "state-update",
+        from: { class: "Controller", function: "inspect" }, to: { class: "Controller", stateVariable: "result" }, type: "dataflow",
         changeType: "added", diffHunkIds: ["change"], dataDescription: "Processed result", purpose: "Retains the result.",
       },
       {
@@ -110,11 +110,31 @@ test("free functions can read and update class state", async (t) => {
     { name: "process", changeType: "modified", diffHunkIds: ["change"] },
   ] }];
   value.relationships.push(
-    { from: { class: "Controller", stateVariable: "result" }, to: { module: "src/operations", function: "process" }, type: "state-read", changeType: "added", diffHunkIds: ["change"], dataDescription: "Current result", purpose: "Reads the result." },
-    { from: { module: "src/operations", function: "process" }, to: { class: "Controller", stateVariable: "result" }, type: "state-update", changeType: "added", diffHunkIds: ["change"], dataDescription: "Updated result", purpose: "Stores the processed result." },
+    { from: { class: "Controller", stateVariable: "result" }, to: { module: "src/operations", function: "process" }, type: "dataflow", changeType: "added", diffHunkIds: ["change"], dataDescription: "Current result", purpose: "Reads the result." },
+    { from: { module: "src/operations", function: "process" }, to: { class: "Controller", stateVariable: "result" }, type: "dataflow", changeType: "added", diffHunkIds: ["change"], dataDescription: "Updated result", purpose: "Stores the processed result." },
   );
   const result = await runValidator(t, value);
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("state dataflows require a function at the other endpoint", async (t) => {
+  const state = { class: "Controller", stateVariable: "result" };
+  for (const other of [{ component: "Panel" }, { staticData: "Rules" }, state]) {
+    for (const [from, to] of [[state, other], [other, state]]) {
+      const value = codeReview();
+      value.relationships.push({ from, to, type: "dataflow", changeType: "added", diffHunkIds: ["change"], dataDescription: "Result", purpose: "Accesses state." });
+      assert.equal((await runValidator(t, value)).status, 1);
+    }
+  }
+});
+
+test("state dataflows reject unknown state variables", async (t) => {
+  const value = codeReview();
+  value.relationships[3].to.stateVariable = "missing";
+  const result = await runValidator(t, value);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Unknown relationship state variable in Controller: missing/);
+  assert.match(semanticError(value), /unknown state variable/);
 });
 
 test("requires relevant hunks for changed implementation entries", async (t) => {

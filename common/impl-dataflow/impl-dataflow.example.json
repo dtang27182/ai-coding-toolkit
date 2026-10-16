@@ -198,7 +198,7 @@
     {
       "from": { "class": "ChangeService", "function": "buildChangeSet" },
       "to": { "class": "ChangeModel", "stateVariable": "changes" },
-      "type": "state-update",
+      "type": "dataflow",
       "dataDescription": "Writes the finished change set into `changes`, replacing any set retained from an earlier request.",
       "purpose": "Retains the result across the request so it can be redisplayed without recomputing the diff or re-reading the files.",
       "changeType": "added"
@@ -206,7 +206,7 @@
     {
       "from": { "class": "ChangeModel", "stateVariable": "changes" },
       "to": { "class": "ChangeModel", "function": "currentChanges" },
-      "type": "state-read",
+      "type": "dataflow",
       "dataDescription": "Reads the retained change set, including its file entries and summary counts.",
       "purpose": "Supplies the displayed result without recomputing the diff or re-reading the files.",
       "changeType": "added"

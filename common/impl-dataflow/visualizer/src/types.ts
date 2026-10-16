@@ -95,7 +95,7 @@ interface RelationshipBase {
 }
 
 export type Relationship = RelationshipBase & (
-  | { type: "dataflow" | "state-read" | "state-update"; dataDescription: string; purpose: string }
+  | { type: "dataflow"; dataDescription: string; purpose: string }
   | { type: "composition"; dataDescription?: never; purpose?: never }
 );
 
@@ -124,12 +124,12 @@ export type Selection =
 
 /**
  * Identifies a drawn edge. Collapsing functions merges dataflows between the same
- * classes into one line, so the key drops function names in that mode and a single
+ * classes into one line, so the key drops member names in that mode and a single
  * key then stands for every relationship merged into it.
  */
 export function edgeKey(relationship: ResolvedRelationship, collapsed: boolean): string {
   const side = (endpoint: ResolvedEndpoint) => {
-    if (endpoint.stateVariableName !== undefined) {
+    if (endpoint.stateVariableName !== undefined && !collapsed) {
       return `${endpoint.nodeName}.${endpoint.stateVariableName}`;
     } else if (collapsed || endpoint.functionName === undefined) {
       return endpoint.nodeName;
@@ -171,7 +171,7 @@ export interface ResolvedRelationship {
 }
 
 export function isInternalStateRelationship(relationship: ResolvedRelationship): boolean {
-  return (relationship.relationship.type === "state-read" || relationship.relationship.type === "state-update")
+  return (relationship.from.stateVariableName !== undefined || relationship.to.stateVariableName !== undefined)
     && relationship.from.nodeName === relationship.to.nodeName;
 }
 

@@ -33,7 +33,7 @@ Design the additions and changes to current code needed to satisfy High Level Re
 - Based on the actual codebase, expand the sys-dataflow's dataflow relationships and data-processing nodes into concrete functions, methods, and dataflows in impl-dataflow to create a comprehensive implementation-level design that satisfies the requirements.
 - Review the High Level Requirements. Based on the existing codebase, add any impl-dataflow entities needed to fullfill the High Level Requirement that could not be derived from mapping and expanding out the sys-dataflow.
 - Trim unchanged entities from the impl-dataflow graph.
-    - Remove all functions, state variables, components, staticData (which will be referred to as core entities) that are unchanged, or connected to atleast one changed core entitie via a dataflow, state-update, or state-read relationship.
+    - Remove all functions, state variables, components, staticData (which will be referred to as core entities) that are unchanged, or connected to atleast one changed core entitie via a dataflow relationship.
     - Remove all relationships who's `from` or `to` field now refer to a removed entitiy.
     - Remove all classes and modules that either contain only unchanged entities or no longer contain any child entities.
 
