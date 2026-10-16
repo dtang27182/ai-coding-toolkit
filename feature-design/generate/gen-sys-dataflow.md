@@ -60,7 +60,7 @@ Record decisions in the JSON as you go, revising entries when later inspection c
 
 ## 3. Validate and Refine the Working Graph
 
-- Review the in-progress JSON against all confirmed High Level Requirements and current code. Verify that the design satisfies Desired Behavior and Scope and Assumptions, and that each journey's user actions, outputs, required system effects, and useful result are represented, with the supporting dataflows needed to connect them.
+- Verify that dataflows connect each User Journey's actions, outputs, required system effects, and useful result, grounded in current code and applicable High Level Requirements. Stay within Design Guidelines' scope and abstraction level; exclude requirements outside the User Journeys or design scope.
 - Trace each subgraph from its trigger to its required effects. Check that it is connected, that each relationship supplies data its consumer needs, and that every node and relationship is within the journey's scope.
 - Verify that every `changeType` reflects what the design reuses, modifies, adds, or removes relative to the current code.
 - Resolve gaps by inspecting more code and updating the JSON. Remove unnecessary nodes and relationships as the design is refined.
