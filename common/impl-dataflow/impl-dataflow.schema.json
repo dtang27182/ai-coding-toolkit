@@ -1,21 +1,21 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "AI Coding Toolkit Implementation Dataflow",
-  "description": "impl-dataflow is shorthand for implementation dataflow. This JSON models how a feature or system's behavior is realized by implementation entities: classes and modules with their functions, mutable instance state, interface and external components, static data, and direct data transfers, state accesses, and ownership relationships. It represents proposed designs or implemented behavior, with diff hunks providing evidence during code review.",
+  "title": "AI Coding Toolkit Implementation Dataflow — Nodes and Containers",
+  "description": "impl-dataflow is shorthand for implementation dataflow. This JSON models proposed designs or implemented behavior using a flat array of typed dataflow nodes and class/module containers. Functions and mutable state belong to containers; static data may optionally belong to a container. Membership is distinct from class composition. Dataflow relationships connect nodes, and composition relationships connect class containers. Diff hunks provide code-review evidence.",
+  "$comment": "Schema version 14. Semantic validation must check that node and container IDs are unique across both arrays, container names are unique, owned node names are unique within each owner and subtype, and unowned node names are unique among unowned nodes. Resolve every containerId and endpoint ID explicitly, and verify that endpoint types match referenced entities. Diff-hunk IDs must be unique, every reference must resolve, and every diff hunk must be referenced by a node, container, or relationship. Validate derived counts against nodes and relationships. These cross-entry checks cannot be enforced by this static JSON Schema alone.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schemaVersion",
     "stage",
-    "classes",
-    "components",
-    "staticData",
+    "nodes",
+    "containers",
     "relationships"
   ],
   "properties": {
     "schemaVersion": {
       "description": "Version of the Implementation Dataflow schema used by this document.",
-      "const": 13
+      "const": 14
     },
     "stage": {
       "description": "The development stage represented by this dataflow: proposed implementation during high-level design or implemented behavior during code review.",
@@ -25,19 +25,19 @@
       ]
     },
     "diffHunks": {
-      "description": "Exact unified diff hunks referenced by implementation entities and relationships during code review.",
+      "description": "Exact unified diff hunks referenced by nodes, containers, and relationships during code review. Every hunk must be referenced at least once.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/diffHunk"
       }
     },
     "changedClassCount": {
-      "description": "Derived number of added, modified, or deleted classes.",
+      "description": "Derived number of class containers owning at least one function, state-variable, or static-data node whose changeType is added, modified, or deleted. Container status is derived solely from owned nodes, not from composition relationships or diff-hunk references.",
       "type": "integer",
       "minimum": 0
     },
     "changedFunctionCount": {
-      "description": "Derived number of added, modified, or deleted functions in changed classes and modules.",
+      "description": "Derived number of function nodes whose changeType is added, modified, or deleted, across class and module containers.",
       "type": "integer",
       "minimum": 0
     },
@@ -51,36 +51,23 @@
       "type": "integer",
       "minimum": 0
     },
-    "classes": {
-      "description": "Implementation classes represented by the document. Use an empty array when none are represented. Class, module, component, and static-data names must be unique across the document.",
+    "nodes": {
+      "description": "One entry per represented dataflow entity. Node IDs are unique across nodes and containers. Owned node names are unique within their owner and subtype, so names may repeat across owners. Names of unowned nodes are unique among unowned nodes. Use explicit IDs for references; never infer identity from a name.",
       "type": "array",
       "items": {
-        "$ref": "#/$defs/class"
+        "$ref": "#/$defs/node"
       }
     },
-    "modules": {
-      "description": "Named implementation units containing functions that are not owned by classes. A unit may be a language-level module, namespace, package, or source file. Use an empty array when none are represented. Names must be unique across classes, modules, components, and static data.",
+    "containers": {
+      "description": "Class and module containers for function, state-variable, and optionally owned static-data nodes. Membership is recorded only by each owned node's containerId. Container names are unique among containers; IDs are unique across nodes and containers. A container is changed when any owned node is added, modified, or deleted, and unchanged otherwise. Do not store an independent changeType. Optional diff-hunk references provide evidence for the container independently of its derived status.",
       "type": "array",
+      "minItems": 1,
       "items": {
-        "$ref": "#/$defs/module"
-      }
-    },
-    "components": {
-      "description": "UI surfaces, system inputs and outputs, and external dependencies at the implementation boundary. Use an empty array when none are represented.",
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/component"
-      }
-    },
-    "staticData": {
-      "description": "Fixed data read by represented functions, such as constants or static lookup data. Use an empty array when none are represented. External files and storage remain external-dependency components.",
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/staticData"
+        "$ref": "#/$defs/container"
       }
     },
     "relationships": {
-      "description": "Direct relationships between represented entities. Preserve intermediate participants. Use dataflow relationships for data transfers, class-owned state reads and writes, and external storage access. Relationships express dependencies and data movement, not execution order.",
+      "description": "Direct data transfers, state accesses, and class composition. Preserve intermediate participants. Dataflows express dependencies and data movement, not execution order. Container membership is not a relationship.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/relationship"
@@ -88,27 +75,6 @@
     }
   },
   "allOf": [
-    {
-      "anyOf": [
-        {
-          "properties": {
-            "classes": {
-              "minItems": 1
-            }
-          }
-        },
-        {
-          "required": [
-            "modules"
-          ],
-          "properties": {
-            "modules": {
-              "minItems": 1
-            }
-          }
-        }
-      ]
-    },
     {
       "if": {
         "properties": {
@@ -120,13 +86,52 @@
       "then": {
         "required": [
           "diffHunks"
-        ]
+        ],
+        "properties": {
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/codeReviewEvidence"
+            }
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/codeReviewEvidence"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "high-level-design"
+          }
+        }
       },
-      "else": {
-        "not": {
-          "required": [
-            "diffHunks"
-          ]
+      "then": {
+        "properties": {
+          "diffHunks": false,
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/noDiffHunkReferences"
+            }
+          },
+          "containers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/noDiffHunkReferences"
+            }
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/noDiffHunkReferences"
+            }
+          }
         }
       }
     }
@@ -158,7 +163,7 @@
       }
     },
     "diffHunkIds": {
-      "description": "References to relevant diff hunks supporting this changed entry. Omit for unchanged entries and high-level designs.",
+      "description": "References to relevant diff hunks, permitted only during code review. Required for changed nodes and relationships; omitted for unchanged nodes and relationships. Containers may reference relevant hunks for their declarations or ownership independently of their derived member status.",
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
@@ -176,469 +181,479 @@
         "unchanged"
       ]
     },
-    "component": {
-      "description": "A UI surface, system input or output, or external dependency. Represent implementation handlers and adapters as class or module functions instead.",
+    "codeReviewEvidence": {
+      "description": "Changed nodes and relationships require supporting diff hunks; unchanged entries must omit diffHunkIds. Containers retain optional evidence and do not use this change-status rule.",
       "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "name",
-        "description",
-        "type",
-        "changeType"
-      ],
-      "properties": {
-        "diffHunkIds": {
-          "$ref": "#/$defs/diffHunkIds"
-        },
-        "name": {
-          "description": "Unique across classes, modules, components, and static data; referenced by relationship endpoints.",
-          "type": "string",
-          "minLength": 1
-        },
-        "description": {
-          "description": "What the component is or represents, including a URL, file path, storage key, or other concrete identifier when available.",
-          "type": "string",
-          "minLength": 1
-        },
-        "type": {
-          "oneOf": [
-            {
-              "const": "ui-component",
-              "description": "A UI surface that receives user input or presents output."
-            },
-            {
-              "const": "system-input",
-              "description": "Data supplied to this system by another system or workflow. May only be the source of a dataflow."
-            },
-            {
-              "const": "system-output",
-              "description": "A final result sent to another system or workflow. May only be the target of a dataflow."
-            },
-            {
-              "const": "external-dependency",
-              "description": "An external service, file, datastore, or other I/O endpoint used by the implementation."
-            }
-          ]
-        },
-        "changeType": {
-          "$ref": "#/$defs/changeType"
-        }
-      }
-    },
-    "staticData": {
-      "description": "Fixed data that a represented function reads without updating. Its name is unique across classes, modules, components, and static data.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "name",
-        "changeType"
-      ],
-      "properties": {
-        "diffHunkIds": {
-          "$ref": "#/$defs/diffHunkIds"
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "changeType": {
-          "$ref": "#/$defs/changeType"
-        }
-      }
-    },
-    "class": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "An implementation class represented by the document.",
-      "required": [
-        "name",
-        "changeType",
-        "functions",
-        "stateVariables"
-      ],
-      "properties": {
-        "diffHunkIds": {
-          "$ref": "#/$defs/diffHunkIds"
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "changeType": {
-          "$ref": "#/$defs/changeType"
-        },
-        "functions": {
-          "description": "Functions represented for this class. Function names must be unique within the class.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/function"
-          }
-        },
-        "stateVariables": {
-          "description": "Mutable instance fields whose declaration or architectural meaning is added, modified, or deleted, plus unchanged mutable fields referenced by a dataflow relationship. Excludes static or class variables, local variables, unrelated fields, explicitly read-only fields, fields initialized at declaration or construction but never written afterward, and fields used only as references to owned child objects. Constructor assignment is initialization rather than a state update. Runtime writes do not by themselves make an existing field modified. State-variable names must be unique within the class.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/stateVariable"
-          }
-        },
-        "variableExposure": {
-          "description": "Existing declarations exposed to this class's changes; null when the inventory is required but not yet known.",
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "$ref": "#/$defs/exposedVariable"
-          }
-        }
-      },
       "allOf": [
         {
           "if": {
-            "properties": {
-              "changeType": {
-                "const": "unchanged"
-              }
-            },
             "required": [
               "changeType"
-            ]
-          },
-          "then": {
-            "properties": {
-              "functions": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "changeType": {
-                      "const": "unchanged"
-                    }
-                  }
-                }
-              },
-              "stateVariables": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "changeType": {
-                      "const": "unchanged"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    "module": {
-      "description": "A named implementation unit that groups functions without a class owner, regardless of the source language's term for that unit.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "name",
-        "changeType",
-        "functions"
-      ],
-      "properties": {
-        "diffHunkIds": {
-          "$ref": "#/$defs/diffHunkIds"
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "changeType": {
-          "$ref": "#/$defs/changeType"
-        },
-        "functions": {
-          "description": "Functions represented for this unit that are not owned by a class. Function names must be unique within the unit.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/function"
-          }
-        }
-      },
-      "allOf": [
-        {
-          "if": {
+            ],
             "properties": {
               "changeType": {
-                "const": "unchanged"
-              }
-            },
-            "required": [
-              "changeType"
-            ]
-          },
-          "then": {
-            "properties": {
-              "functions": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "changeType": {
-                      "const": "unchanged"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    "function": {
-      "description": "An implementation function owned by a class or grouped in a module.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "name",
-        "changeType"
-      ],
-      "properties": {
-        "diffHunkIds": {
-          "$ref": "#/$defs/diffHunkIds"
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "changeType": {
-          "$ref": "#/$defs/changeType"
-        }
-      }
-    },
-    "stateVariable": {
-      "description": "A mutable instance field represented for its class. Dataflow relationships reference the exact state-variable entry.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "name",
-        "changeType"
-      ],
-      "properties": {
-        "diffHunkIds": {
-          "$ref": "#/$defs/diffHunkIds"
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "changeType": {
-          "$ref": "#/$defs/changeType"
-        }
-      }
-    },
-    "exposedVariable": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "name",
-        "kind",
-        "declaredAt"
-      ],
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "kind": {
-          "enum": [
-            "instance",
-            "parameter",
-            "local"
-          ]
-        },
-        "function": {
-          "description": "Existing function containing the parameter or local.",
-          "type": "string",
-          "minLength": 1
-        },
-        "declaredAt": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "file",
-            "line",
-            "column"
-          ],
-          "properties": {
-            "file": {
-              "description": "Canonical repository-relative path to the declaration in current code.",
-              "type": "string",
-              "minLength": 1
-            },
-            "line": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "column": {
-              "type": "integer",
-              "minimum": 1
-            }
-          }
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "kind": {
                 "enum": [
-                  "parameter",
-                  "local"
+                  "added",
+                  "modified",
+                  "deleted"
                 ]
               }
             }
           },
           "then": {
             "required": [
-              "function"
+              "diffHunkIds"
             ]
           }
         },
         {
           "if": {
+            "required": [
+              "changeType"
+            ],
             "properties": {
-              "kind": {
-                "const": "instance"
+              "changeType": {
+                "const": "unchanged"
               }
             }
           },
           "then": {
-            "not": {
-              "required": [
-                "function"
+            "properties": {
+              "diffHunkIds": false
+            }
+          }
+        }
+      ]
+    },
+    "noDiffHunkReferences": {
+      "type": "object",
+      "properties": {
+        "diffHunkIds": false
+      }
+    },
+    "nodeBase": {
+      "description": "Shared properties of every dataflow node. Subtypes define ownership and connection semantics.",
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "type",
+        "changeType"
+      ],
+      "properties": {
+        "id": {
+          "description": "Explicit entity ID, unique across nodes and containers. References use this ID rather than the name.",
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "description": "Human-readable name. Owned node names are unique within their owner and subtype; unowned node names are unique among unowned nodes.",
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "function",
+            "ui-component",
+            "system-input",
+            "system-output",
+            "external-dependency",
+            "static-data",
+            "state-variable"
+          ]
+        },
+        "description": {
+          "description": "What this node is or represents, including a concrete URL, file path, storage key, or other identifier when relevant.",
+          "type": "string",
+          "minLength": 1
+        },
+        "changeType": {
+          "$ref": "#/$defs/changeType"
+        },
+        "diffHunkIds": {
+          "$ref": "#/$defs/diffHunkIds"
+        }
+      }
+    },
+    "node": {
+      "description": "A function, boundary component, static-data source, or mutable state variable. Each subtype shares nodeBase properties and preserves its own connection rules.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/function"
+        },
+        {
+          "$ref": "#/$defs/uiComponent"
+        },
+        {
+          "$ref": "#/$defs/systemInput"
+        },
+        {
+          "$ref": "#/$defs/systemOutput"
+        },
+        {
+          "$ref": "#/$defs/externalDependency"
+        },
+        {
+          "$ref": "#/$defs/staticData"
+        },
+        {
+          "$ref": "#/$defs/stateVariable"
+        }
+      ]
+    },
+    "ownedNode": {
+      "description": "A node owned by exactly one class or module container. This containerId is the sole membership record; it does not express composition.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/nodeBase"
+        },
+        {
+          "type": "object",
+          "required": [
+            "containerId"
+          ],
+          "properties": {
+            "containerId": {
+              "description": "ID of the owning class or module container. The referenced container must exist.",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "function": {
+      "description": "An implementation function owned by a class or module. Functions can exchange data with other functions and boundary nodes, read static data, and read or write mutable state.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ownedNode"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "function"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "boundaryNode": {
+      "description": "A UI surface, system input or output, or external dependency. Represent implementation handlers and adapters as function nodes instead.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/nodeBase"
+        },
+        {
+          "type": "object",
+          "required": [
+            "description"
+          ]
+        }
+      ]
+    },
+    "uiComponent": {
+      "description": "A UI surface that receives user input or presents output. May send and receive data. Has no container owner.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/boundaryNode"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "ui-component"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "systemInput": {
+      "description": "Data supplied to this system by another system or workflow. May only be the source of a dataflow. Has no container owner.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/boundaryNode"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "system-input"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "systemOutput": {
+      "description": "A final result sent to another system or workflow. May only be the target of a dataflow. Has no container owner.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/boundaryNode"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "system-output"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "externalDependency": {
+      "description": "An external service, file, datastore, or other I/O endpoint used by the implementation. May send and receive data. Has no container owner.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/boundaryNode"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "external-dependency"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "staticData": {
+      "description": "Fixed data read without updating, such as constants or static lookup data. May only send data to functions. May optionally belong to a class or module through containerId; omit containerId for unowned static data. External files and storage are external-dependency nodes.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/nodeBase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "static-data"
+            },
+            "containerId": {
+              "description": "Optional ID of the owning class or module container. The referenced container must exist.",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "stateVariable": {
+      "description": "Mutable state owned by a class or module: mutable instance fields for classes, or mutable module-scoped variables for modules. Include changed declarations and unchanged state referenced by dataflows. Exclude local variables, explicitly read-only values, fields initialized at declaration or construction but never written afterward, and fields used only as references to owned child objects. Constructor assignment is initialization rather than a state update. Runtime writes alone do not make an existing variable modified. May only exchange data with functions: state-to-function means a read; function-to-state means a write.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ownedNode"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "state-variable"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "container": {
+      "description": "A class or module grouping function, state-variable, and optionally owned static-data nodes through their containerId. Both types may own any combination of these node types. Derive whether the container is changed from its owned nodes; do not store changeType. Container diffHunkIds remain optional during code review, including when owned nodes are unchanged. Class composition is separate from membership.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "description": "Explicit entity ID, unique across nodes and containers.",
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "description": "Container name, unique among containers.",
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "oneOf": [
+            {
+              "const": "class",
+              "description": "An implementation class containing member functions, mutable instance state, and static data."
+            },
+            {
+              "const": "module",
+              "description": "A named implementation unit containing functions, mutable module state, and static data. May be a language-level module, namespace, package, or source file."
+            }
+          ]
+        },
+        "diffHunkIds": {
+          "$ref": "#/$defs/diffHunkIds"
+        }
+      }
+    },
+    "nodeEndpoint": {
+      "description": "Typed reference to a node by explicit ID. Semantic validation must resolve nodeId and confirm that type matches the referenced node.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodeId",
+        "type"
+      ],
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "function",
+            "ui-component",
+            "system-input",
+            "system-output",
+            "external-dependency",
+            "static-data",
+            "state-variable"
+          ]
+        }
+      }
+    },
+    "transferSourceEndpoint": {
+      "description": "A function, UI component, system input, or external dependency sending data. System outputs cannot send data.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/nodeEndpoint"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "enum": [
+                "function",
+                "ui-component",
+                "system-input",
+                "external-dependency"
               ]
             }
           }
         }
       ]
     },
-    "classEndpoint": {
-      "description": "References a class by its document-unique name.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "class"
-      ],
-      "properties": {
-        "class": {
-          "type": "string",
-          "minLength": 1
+    "transferTargetEndpoint": {
+      "description": "A function, UI component, system output, or external dependency receiving data. System inputs cannot receive data.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/nodeEndpoint"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "enum": [
+                "function",
+                "ui-component",
+                "system-output",
+                "external-dependency"
+              ]
+            }
+          }
         }
-      }
+      ]
     },
     "functionEndpoint": {
-      "description": "References a function by name and its class or module owner.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "function"
-      ],
-      "properties": {
-        "class": {
-          "type": "string",
-          "minLength": 1
+      "description": "A reference to a function node.",
+      "allOf": [
+        {
+          "$ref": "#/$defs/nodeEndpoint"
         },
-        "module": {
-          "type": "string",
-          "minLength": 1
-        },
-        "function": {
-          "type": "string",
-          "minLength": 1
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "function"
+            }
+          }
         }
-      },
-      "oneOf": [
+      ]
+    },
+    "staticDataEndpoint": {
+      "description": "A reference to fixed data. Valid only as the source of a read by a function.",
+      "allOf": [
         {
-          "required": [
-            "class"
-          ]
+          "$ref": "#/$defs/nodeEndpoint"
         },
         {
-          "required": [
-            "module"
-          ]
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "static-data"
+            }
+          }
         }
       ]
     },
     "stateVariableEndpoint": {
-      "description": "References a state variable by its class name and class-local state-variable name.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "class",
-        "stateVariable"
-      ],
-      "properties": {
-        "class": {
-          "type": "string",
-          "minLength": 1
-        },
-        "stateVariable": {
-          "type": "string",
-          "minLength": 1
-        }
-      }
-    },
-    "componentEndpoint": {
-      "description": "References a component by its document-unique name.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "component"
-      ],
-      "properties": {
-        "component": {
-          "type": "string",
-          "minLength": 1
-        }
-      }
-    },
-    "staticDataEndpoint": {
-      "description": "References fixed data by its document-unique name.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "staticData"
-      ],
-      "properties": {
-        "staticData": {
-          "type": "string",
-          "minLength": 1
-        }
-      }
-    },
-    "dataflowEndpoint": {
-      "description": "A class or module function, or component that directly sends or receives data.",
-      "oneOf": [
+      "description": "A reference to mutable state. Valid only when the other endpoint is a function.",
+      "allOf": [
         {
-          "$ref": "#/$defs/functionEndpoint"
+          "$ref": "#/$defs/nodeEndpoint"
         },
         {
-          "$ref": "#/$defs/componentEndpoint"
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "state-variable"
+            }
+          }
         }
       ]
+    },
+    "classContainerEndpoint": {
+      "description": "Typed reference to a class container by explicit ID. Semantic validation must resolve containerId and confirm that the container is a class.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "containerId",
+        "type"
+      ],
+      "properties": {
+        "containerId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "const": "class"
+        }
+      }
     },
     "relationshipType": {
       "oneOf": [
         {
           "const": "dataflow",
-          "description": "A direct data transfer between function or component endpoints, a read from static data by a function, or a mutable instance state access. A state variable as the source means a read by the target function; a state variable as the target means a write by the source function. System-input components may only be sources and system-output components may only be targets. Record request and response paths as separate relationships."
+          "description": "A direct transfer between function or boundary endpoints, a static-data read by a function, or a mutable state read/write by a function. System inputs may only send and system outputs may only receive. Record request and response paths separately."
         },
         {
           "const": "composition",
-          "description": "A class owns a child class. A field used only for this ownership is represented by composition rather than as a state variable."
+          "description": "One class owns instances of another class. Connect class containers, not nodes. This is distinct from a function or state variable belonging to a container. A field used only to reference an owned child object is represented by composition rather than as a state-variable node."
         }
       ]
     },
     "relationship": {
-      "description": "A direct architectural relationship between two represented endpoints.",
+      "description": "A direct dataflow between typed node endpoints or a composition between typed class-container endpoints.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -652,11 +667,11 @@
           "$ref": "#/$defs/diffHunkIds"
         },
         "from": {
-          "description": "Explicit source reference, constrained by relationship type.",
+          "description": "Explicit typed source reference, constrained by relationship type.",
           "type": "object"
         },
         "to": {
-          "description": "Explicit target reference, constrained by relationship type.",
+          "description": "Explicit typed target reference, constrained by relationship type.",
           "type": "object"
         },
         "type": {
@@ -692,16 +707,18 @@
             ],
             "oneOf": [
               {
+                "description": "Direct data transfer between functions and boundary nodes, respecting system-input and system-output directionality.",
                 "properties": {
                   "from": {
-                    "$ref": "#/$defs/dataflowEndpoint"
+                    "$ref": "#/$defs/transferSourceEndpoint"
                   },
                   "to": {
-                    "$ref": "#/$defs/dataflowEndpoint"
+                    "$ref": "#/$defs/transferTargetEndpoint"
                   }
                 }
               },
               {
+                "description": "Static-data read: fixed data is the source and a function is the target. Static data cannot receive writes.",
                 "properties": {
                   "from": {
                     "$ref": "#/$defs/staticDataEndpoint"
@@ -712,6 +729,7 @@
                 }
               },
               {
+                "description": "State read: a state variable is the source and a function is the target.",
                 "properties": {
                   "from": {
                     "$ref": "#/$defs/stateVariableEndpoint"
@@ -722,6 +740,7 @@
                 }
               },
               {
+                "description": "State write: a function is the source and a state variable is the target.",
                 "properties": {
                   "from": {
                     "$ref": "#/$defs/functionEndpoint"
@@ -743,27 +762,15 @@
             }
           },
           "then": {
-            "not": {
-              "anyOf": [
-                {
-                  "required": [
-                    "dataDescription"
-                  ]
-                },
-                {
-                  "required": [
-                    "purpose"
-                  ]
-                }
-              ]
-            },
             "properties": {
               "from": {
-                "$ref": "#/$defs/classEndpoint"
+                "$ref": "#/$defs/classContainerEndpoint"
               },
               "to": {
-                "$ref": "#/$defs/classEndpoint"
-              }
+                "$ref": "#/$defs/classContainerEndpoint"
+              },
+              "dataDescription": false,
+              "purpose": false
             }
           }
         }
