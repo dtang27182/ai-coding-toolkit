@@ -2,14 +2,14 @@
 
 `sys-dataflow` is shorthand for system dataflow.
 
-Build and refine `<feature>.sys-dataflow.json` to satisfy the confirmed High Level Requirements, using User Journeys to structure its subgraphs and current code to ground the design.
+Build and refine `<feature>.sys-dataflow.json` within the boundaries defined by the confirmed User Journeys, using applicable High Level Requirements to constrain behavior within those boundaries and current code to ground the design.
 
 ## 1. Read the Inputs and Initialize the Graph
 
 Use four primary inputs:
 
-- **Desired Behavior and Scope and Assumptions:** Establish the intended end state the design must achieve, including requirements not repeated in User Journeys.
-- **User Journeys:** Drive the concrete construction of each subgraph.
+- **Desired Behavior and Scope and Assumptions:** Determine required behavior and effects within each journey's boundary. Do not use them to introduce additional user actions or alternative workflows.
+- **User Journeys:** Define each subgraph's user actions, useful result, and boundary.
 - **Current codebase:** Understand existing dataflow, state, and external dependencies. Use Design Context and Related Workflows to locate relevant code.
 - **HLD Design Quality:** Read `ai-coding-toolkit/feature-design/hld-quality.md` and apply its design principles to minimize end-state complexity, and minimize change complexity wherever doing so does not increase end-state complexity.
 
@@ -22,7 +22,7 @@ Read `ai-coding-toolkit/common/sys-dataflow/sys-dataflow.schema.json` and `ai-co
 ### Bound the Journey
 
 - Create one `subgraphs` entry per numbered User Journey, in journey order. Keep each subgraph connected.
-- Start with a `user-input` node for the journey's first user action. Add `user-input` nodes for later user actions and `system-input` nodes for required external inputs.
+- Start with a `user-input` node for the journey's first user action. Add a `user-input` node only for an action explicitly described in that journey, and `system-input` nodes for external inputs required within its boundary.
 - Capture the journey's useful result and required effects as `user-output` or `system-output` nodes, or `dataflow` relationships into `system-state-write` nodes. Stop once these outputs and state updates are represented; omit unchanged downstream behavior and related workflows outside the journey.
 - Exclude one-time initialization, dependency setup, and object construction before the triggering `user-input` or `system-input`.
 - Exclude related workflows described only as context.
@@ -61,8 +61,10 @@ Record decisions in the JSON as you go, revising entries when later inspection c
 ## 3. Validate and Refine the Working Graph
 
 - Verify that dataflows connect each User Journey's actions, outputs, required system effects, and useful result, grounded in current code and applicable High Level Requirements. Stay within Design Guidelines' scope and abstraction level; exclude requirements outside the User Journeys or design scope.
+- Match every `user-input` node to an action explicitly described in its corresponding User Journey. Remove unmatched inputs and the nodes, relationships, and processing branches needed only by those inputs.
+- Check that required behavior excluded from sys-dataflow because it falls outside the User Journeys remains part of the implementation design's required coverage. Excluding it from this graph does not remove the requirement.
 - Trace each subgraph from its trigger to its required effects. Check that it is connected, that each relationship supplies data its consumer needs, and that every node and relationship is within the journey's scope.
 - Verify that every `changeType` reflects what the design reuses, modifies, adds, or removes relative to the current code.
 - Resolve gaps by inspecting more code and updating the JSON. Remove unnecessary nodes and relationships as the design is refined.
-- Run `node ai-coding-toolkit/common/sys-dataflow/validate-sys-dataflow.mjs <output-path>` to check the schema, unique subgraph IDs, node names, and relationship IDs, and valid relationship endpoints within each subgraph and permitted directions. Correct errors and rerun validation after revisions.
+- Run `node ai-coding-toolkit/common/sys-dataflow/validate-sys-dataflow.mjs <output-path>` to check the schema, unique subgraph IDs, node names, and relationship IDs, and valid relationship endpoints within each subgraph and permitted directions. Correct errors and rerun validation after revisions. The semantic checks above are required in addition to JSON validation.
 - Complete journey coverage and correct every validation error before using the graph to generate the Implementation Dataflow.
