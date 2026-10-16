@@ -7,7 +7,6 @@ export interface VisibleGraph {
   staticData: StaticDataDiff[];
   nodes: GraphNode[];
   relationships: ResolvedRelationship[];
-  variableExposureCount: number | null;
 }
 
 export function filterGraph(implementationDataflow: ImplementationDataflow, showUnchanged: boolean): VisibleGraph {
@@ -21,7 +20,6 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
       ...classDiff,
       functions,
       variableExposure,
-      variableExposureCount: variableExposure === null ? null : variableExposure.length,
     };
   });
   classes.push(...(implementationDataflow.modules ?? []).filter(visible).map((moduleDiff) => ({
@@ -77,11 +75,5 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
     from: resolveEndpoint(relationship.from),
     to: resolveEndpoint(relationship.to),
   })).filter((relationship) => endpointVisible(relationship.from) && endpointVisible(relationship.to));
-  const exposureClasses = classes.filter((classDiff) => classDiff.containerType !== "module");
-  const variableExposureCount = exposureClasses.some((classDiff) => classDiff.variableExposure === undefined || classDiff.variableExposure === null) ? null : new Set(
-    exposureClasses.flatMap((classDiff) => classDiff.variableExposure!.map((variable) =>
-      JSON.stringify([variable.declaredAt.file, variable.declaredAt.line, variable.declaredAt.column]),
-    )),
-  ).size;
-  return { classes, components, staticData, nodes, relationships, variableExposureCount };
+  return { classes, components, staticData, nodes, relationships };
 }

@@ -251,7 +251,6 @@ if (inputArgument === undefined) {
           "changedComponentCount",
           "changedDataflowRelationshipCount",
           "changedStateUpdateRelationshipCount",
-          "variableExposureCount",
         ];
         for (const countName of countNames) {
           if (!Number.isInteger(implementationDataflow[countName])) {
@@ -261,9 +260,6 @@ if (inputArgument === undefined) {
         for (const classDiff of implementationDataflow.classes) {
           if (!Array.isArray(classDiff.variableExposure)) {
             semanticErrors.push(`Evaluated high-level-design class requires a populated variableExposure: ${classDiff.name}`);
-          }
-          if (!Number.isInteger(classDiff.variableExposureCount)) {
-            semanticErrors.push(`Evaluated high-level-design class requires non-null variableExposureCount: ${classDiff.name}`);
           }
         }
       }

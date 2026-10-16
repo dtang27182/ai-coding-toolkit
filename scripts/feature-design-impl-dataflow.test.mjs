@@ -33,9 +33,8 @@ function codeReview() {
 
 test("code-review graphs filter without variable exposure inventories", () => {
   const graph = filterGraph(codeReview(), true);
-  assert.equal(graph.variableExposureCount, null);
   assert.equal(graph.classes.length, 1);
-  assert.equal(graph.classes[0].variableExposureCount, null);
+  assert.equal(graph.classes[0].variableExposure, null);
 });
 
 async function runValidator(t, input, ...argumentsList) {
@@ -56,7 +55,6 @@ test("code-review implementation dataflows omit HLD-only fields", async (t) => {
 
   const graph = filterGraph(input, true);
   assert.equal(graph.classes[0].variableExposure, null);
-  assert.equal(graph.variableExposureCount, null);
 });
 
 test("high-level-design validation requires HLD fields", async (t) => {

@@ -33,7 +33,6 @@ export interface ClassDiff {
   functions: FunctionDiff[];
   stateVariables: StateVariableDiff[];
   variableExposure?: ExposedVariable[] | null;
-  variableExposureCount?: number | null;
 }
 
 export interface ModuleDiff {
@@ -109,7 +108,6 @@ export interface ImplementationDataflow {
   components: ComponentDiff[];
   staticData: StaticDataDiff[];
   relationships: Relationship[];
-  variableExposureCount?: number | null;
 }
 
 export interface FunctionRef {

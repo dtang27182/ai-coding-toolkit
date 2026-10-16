@@ -31,14 +31,6 @@
         "$ref": "#/$defs/diffHunk"
       }
     },
-    "variableExposureCount": {
-      "description": "Derived total; null when any inventory is unknown.",
-      "type": [
-        "integer",
-        "null"
-      ],
-      "minimum": 0
-    },
     "changedClassCount": {
       "description": "Derived number of added, modified, or deleted classes.",
       "type": "integer",
@@ -293,14 +285,6 @@
           "items": {
             "$ref": "#/$defs/stateVariable"
           }
-        },
-        "variableExposureCount": {
-          "description": "Derived class count; null when its inventory is unknown.",
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0
         },
         "variableExposure": {
           "description": "Existing declarations exposed to this class's changes; null when the inventory is required but not yet known.",

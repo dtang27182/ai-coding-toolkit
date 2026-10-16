@@ -113,9 +113,7 @@ function tabWidth(classDiff: GraphContainerDiff): number {
 }
 
 function classExposureCount(classDiff: GraphContainerDiff): number | null {
-  if (classDiff.variableExposureCount !== undefined) {
-    return classDiff.variableExposureCount;
-  } else if (classDiff.variableExposure === undefined || classDiff.variableExposure === null) {
+  if (classDiff.variableExposure === undefined || classDiff.variableExposure === null) {
     return null;
   } else {
     return classDiff.variableExposure.length;
@@ -507,6 +505,11 @@ function renderInspector(graph: VisibleGraph): string {
   if (inspected === undefined) {
     const stateUpdates = graph.relationships.filter((relationship) => relationship.relationship.type === "state-update");
     const exposureClasses = graph.classes.filter((classDiff) => classDiff.containerType !== "module");
+    const exposureCount = exposureClasses.some((classDiff) => classDiff.variableExposure === undefined || classDiff.variableExposure === null) ? null : new Set(
+      exposureClasses.flatMap((classDiff) => classDiff.variableExposure!.map((variable) =>
+        JSON.stringify([variable.declaredAt.file, variable.declaredAt.line, variable.declaredAt.column]),
+      )),
+    ).size;
     const maximumExposure = Math.max(1, ...exposureClasses.map((classDiff) => classExposureCount(classDiff) ?? 0));
     const classes = exposureClasses
       .slice()
@@ -526,7 +529,7 @@ function renderInspector(graph: VisibleGraph): string {
           const selected = selectionForEndpoint(relationship.from);
           return `<button class="flow-row state" style="border-color:${changeColor(relationship.relationship.changeType)}" data-jump="${escapeHtml(JSON.stringify(selected))}"><div class="flow-endpoint">${escapeHtml(endpointLabel(relationship.from))} ↝ ${escapeHtml(endpointLabel(relationship.to))}</div><div class="flow-label">${escapeHtml(relationship.relationship.dataDescription ?? "state update")}</div></button>`;
         }).join("")}</div>`;
-    return `<div class="overview-inspector">${implementationDataflow.stage === "code-review" ? "" : `<section class="overview-section"><div class="section-heading"><span>Variable exposure by class</span><span class="inspector-count">${graph.variableExposureCount ?? "?"}</span></div><div class="exposure-ranking">${classes}</div></section>`}<section class="overview-section"><div class="section-heading"><span>State updates</span><span class="inspector-count">${stateUpdates.length}</span></div>${stateRows}</section></div>`;
+    return `<div class="overview-inspector">${implementationDataflow.stage === "code-review" ? "" : `<section class="overview-section"><div class="section-heading"><span>Variable exposure by class</span><span class="inspector-count">${exposureCount ?? "?"}</span></div><div class="exposure-ranking">${classes}</div></section>`}<section class="overview-section"><div class="section-heading"><span>State updates</span><span class="inspector-count">${stateUpdates.length}</span></div>${stateRows}</section></div>`;
   } else if (inspected.type === "function") {
     const functionSelection = inspected;
     const classDiff = graph.classes.find((item) => item.name === functionSelection.className)!;

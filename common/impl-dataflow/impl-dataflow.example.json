@@ -16,8 +16,7 @@
         }
       ],
       "stateVariables": [],
-      "variableExposure": [],
-      "variableExposureCount": 0
+      "variableExposure": []
     },
     {
       "name": "ChangeModel",
@@ -34,8 +33,7 @@
           "changeType": "added"
         }
       ],
-      "variableExposure": [],
-      "variableExposureCount": 0
+      "variableExposure": []
     },
     {
       "name": "Repository",
@@ -47,8 +45,7 @@
         }
       ],
       "stateVariables": [],
-      "variableExposure": [],
-      "variableExposureCount": 0
+      "variableExposure": []
     },
     {
       "name": "LegacyChangeAdapter",
@@ -90,8 +87,7 @@
             "column": 11
           }
         }
-      ],
-      "variableExposureCount": 3
+      ]
     }
   ],
   "components": [
@@ -215,6 +211,5 @@
       "purpose": "Supplies the displayed result without recomputing the diff or re-reading the files.",
       "changeType": "added"
     }
-  ],
-  "variableExposureCount": 3
+  ]
 }
