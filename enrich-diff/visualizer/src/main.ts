@@ -34,29 +34,8 @@ app.innerHTML = `
           <span class="view-count" data-count="diff">files</span>
         </button>
       </nav>
-      <div class="header-spacer"></div>
       <div class="header-actions">
-        <div class="dataflow-controls" data-toolbar="dataflow">
-          <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
-          <button class="control-button" type="button" data-proxy="toggle-unchanged">Hide unchanged</button>
-          <div class="zoom-controls">
-            <button class="zoom-button" type="button" data-proxy="zoom-out" aria-label="Zoom out">−</button>
-            <button class="zoom-button" type="button" data-proxy="fit">Fit</button>
-            <button class="zoom-button" type="button" data-proxy="zoom-in" aria-label="Zoom in">+</button>
-          </div>
-        </div>
-        <div class="dataflow-controls" data-toolbar="implementation" hidden>
-          <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
-          <button class="control-button" type="button" data-proxy="toggle-unchanged">Hide unchanged</button>
-          <button class="control-button active" type="button" data-proxy="toggle-initialization" aria-pressed="true">Hide Initialization</button>
-          <button class="control-button" type="button" data-proxy="toggle-functions">Hide functions</button>
-          <div class="zoom-controls">
-            <button class="zoom-button" type="button" data-proxy="zoom-out" aria-label="Zoom out">−</button>
-            <button class="zoom-button" type="button" data-proxy="fit">Fit</button>
-            <button class="zoom-button" type="button" data-proxy="zoom-in" aria-label="Zoom in">+</button>
-          </div>
-        </div>
-        <div class="diff-legend" data-toolbar="diff" hidden aria-label="Change types">
+        <div class="diff-legend" aria-label="Change types">
           <span><i class="added-dot"></i>Added</span>
           <span><i class="modified-dot"></i>Modified</span>
           <span><i class="deleted-dot"></i>Deleted</span>
@@ -65,6 +44,26 @@ app.innerHTML = `
         <input id="rich-diff-input" type="file" accept="application/json,.json" hidden />
       </div>
     </header>
+    <div class="dataflow-controls" role="toolbar" aria-label="Graph controls" data-toolbar="dataflow">
+      <button class="control-button" type="button" data-proxy="toggle-unchanged">Hide unchanged</button>
+      <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
+      <div class="zoom-controls">
+        <button class="zoom-button" type="button" data-proxy="zoom-out" aria-label="Zoom out">−</button>
+        <button class="zoom-button" type="button" data-proxy="fit">Fit</button>
+        <button class="zoom-button" type="button" data-proxy="zoom-in" aria-label="Zoom in">+</button>
+      </div>
+    </div>
+    <div class="dataflow-controls" role="toolbar" aria-label="Graph controls" data-toolbar="implementation" hidden>
+      <button class="control-button" type="button" data-proxy="toggle-unchanged">Hide unchanged</button>
+      <button class="control-button active" type="button" data-proxy="toggle-initialization" aria-pressed="true">Hide Initialization</button>
+      <button class="control-button" type="button" data-proxy="toggle-functions">Hide functions</button>
+      <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
+      <div class="zoom-controls">
+        <button class="zoom-button" type="button" data-proxy="zoom-out" aria-label="Zoom out">−</button>
+        <button class="zoom-button" type="button" data-proxy="fit">Fit</button>
+        <button class="zoom-button" type="button" data-proxy="zoom-in" aria-label="Zoom in">+</button>
+      </div>
+    </div>
     <main class="view-panels">
       <section class="view-panel active" data-panel="dataflow" aria-label="System Dataflow"></section>
       <section class="view-panel" data-panel="implementation" aria-label="Implementation Dataflow" aria-hidden="true" inert>
