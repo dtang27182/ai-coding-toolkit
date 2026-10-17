@@ -236,7 +236,7 @@ function renderGraph(graph: VisibleGraph): string {
     to: graphRect(edge.forward.to, routingBounds, layout.memberRects)!,
   }));
   const edgeSpreads = edgePortSpreads(edgeLayouts.map((edge) => ({ fromKey: graphEndpointKey(edge.forward.from), toKey: graphEndpointKey(edge.forward.to), from: edge.from, to: edge.to })));
-  const returnRings: string[] = [];
+  const returnArrows: string[] = [];
   const edges = edgeLayouts.map((edge, index) => {
     const { forward: relationship, back, key, from, to } = edge;
     const route = routeEdge(from, to, edgeSpreads[index], obstaclesFor(relationship));
@@ -245,8 +245,10 @@ function renderGraph(graph: VisibleGraph): string {
     const stateRead = relationship.from.type === "state-variable";
     const dash = stateUpdate || stateRead ? "7 4" : changeType === "deleted" ? "7 5" : "";
     const selected = selectionKey(selection) === selectionKey({ type: "relationship", edge: key });
-    const tail = `<circle class="edge${back === undefined ? "" : " edge-return-ring"}${back !== undefined && selected ? " selected" : ""}" ${relationshipAttributes(relationship, key)} ${back === undefined ? "" : 'data-select="relationship"'} cx="${route.start.x}" cy="${route.start.y}" r="${back === undefined ? 3.5 : 4}" fill="${back === undefined ? changeColor(changeType) : "oklch(0.198 0.024 255)"}" stroke="${back === undefined ? "oklch(0.198 0.024 255)" : changeColor(back.relationship.changeType)}" stroke-width="${back === undefined ? 1.5 : 1.6}"></circle>`;
-    if (back !== undefined) returnRings.push(tail);
+    const tail = `<circle class="edge" ${relationshipAttributes(relationship, key)} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${changeColor(changeType)}" stroke="oklch(0.198 0.024 255)" stroke-width="1.5"></circle>`;
+    if (back !== undefined) {
+      returnArrows.push(`<path class="edge edge-return-arrow${selected ? " selected" : ""}" ${relationshipAttributes(relationship, key)} data-select="relationship" d="M -9.8 -4.2 L 0 0 L -9.8 4.2 z" transform="translate(${route.start.x} ${route.start.y}) rotate(${route.start.y === from.y ? 90 : -90})" fill="oklch(0.198 0.024 255)" stroke="${changeColor(back.relationship.changeType)}" stroke-width="1.6" stroke-linejoin="round"></path>`);
+    }
     return `<path class="edge${selected ? " selected" : ""}" ${relationshipAttributes(relationship, key)} d="${route.path}" fill="none" stroke="${changeColor(changeType)}" stroke-width="${stateUpdate ? 1.75 : 1.6}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${changeType})"></path>
       ${back === undefined ? tail : ""}
       <path class="edge-hit" ${relationshipAttributes(relationship, key)} data-select="relationship" d="${route.path}" fill="none" stroke="transparent" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"></path>`;
@@ -300,7 +302,7 @@ function renderGraph(graph: VisibleGraph): string {
     <div class="graph" style="left:calc(50% + ${panX}px);top:calc(50% + ${panY}px);width:${layout.width}px;height:${layout.height}px;transform:translate(-50%, -50%) scale(${zoom})">
       <svg class="graph-svg" width="${layout.width}" height="${layout.height}"><defs>${renderMarkers()}</defs>${classFrames}${compositionEdges}${edges}</svg>
       ${classTabs}${standaloneNodes}${members}${stateBoxes}${emptyNotes}
-      <svg class="graph-svg return-rings" width="${layout.width}" height="${layout.height}">${returnRings.join("")}</svg>
+      <svg class="graph-svg return-arrows" width="${layout.width}" height="${layout.height}">${returnArrows.join("")}</svg>
     </div>
   </div>`;
 }
