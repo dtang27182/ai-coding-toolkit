@@ -37,6 +37,11 @@ Design the additions and changes to current code needed to satisfy High Level Re
     - Retain the containers of all remaining owned nodes, including unchanged context nodes. Remove containers with no remaining owned nodes.
     - Remove relationships whose endpoints refer to removed nodes.
 
+### Evaluate and Correct Design Quality
+
+- Read `ai-coding-toolkit/feature-design/hld-quality.md` again and evaluate the implementation design against its goals and design principles. Identify deficiencies using the confirmed High Level Requirements and actual codebase as evidence.
+- Correct the deficiencies in `<feature>.impl-dataflow.json`.
+
 ### Verify Coverage and Validate the JSON
 
 - Review every confirmed High Level Requirement directly, including those not explicit in sys-dataflow. Verify that the impl-dataflow creates a design that satisfies it.
@@ -47,11 +52,12 @@ Design the additions and changes to current code needed to satisfy High Level Re
 
 ### Write the HLD Narrative from the Design
 
-Write the HLD's `Implementation Dataflow` subsection using the impl-dataflow design:
+Write the HLD's `Implementation Dataflow` subsection using the impl-dataflow design. 
 
-- Use concise bullet points throughout the narrative.
-- Give a succinct high-level overview of the design approach, class responsibilities, and changes and additions to existing code.
-- Walk through each User Journey using the design's named entities. Cover only significant inputs/outputs, state reads/writes, non-trivial data processing, and external component interactions.
-- Explain consequential design choices that cannot be understood from impl-dataflow alone.
-- Describe required work outside the impl-dataflow graph, such as asynchronous or batch processing, and how it supports the User Journeys.
-- Explain significant deviations from sys-dataflow and their justification in actual code and implementation-level constraints.
+- Write a narrative using the following the sections:
+    - High Level Overview: Succint narrative summary of the design approach.
+    - Major Design Choices: Explain consequential design choices.
+    - User Journeys: Write a succinct walk through of each User Journey using the design's named entities. Cover only significant inputs/outputs, state reads/writes, non-trivial data processing, and external component interactions.
+    - Supporting Implementation: Describe required work outside the impl-dataflow graph, such as asynchronous or batch processing, and how it supports the User Journeys.
+    - Sys-dataflow Discrepancies: Explain significant deviations from sys-dataflow and their justification in actual code and implementation-level constraints.
+- Make the narrative as concise and easy to understand as possible. Make fully use of markdown formatting, especially headers for hierarchy and bullet points for listing content that does not need connective prose.
