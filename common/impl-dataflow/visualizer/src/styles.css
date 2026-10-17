@@ -345,7 +345,7 @@ body.embedded .topbar {
   color: oklch(0.935 0.012 250);
 }
 
-.exposure-badge {
+.container-kind {
   font-family: "IBM Plex Mono", monospace;
   font-size: 9.5px;
   color: oklch(0.76 0.02 250);
@@ -431,11 +431,25 @@ body.embedded .topbar {
 }
 
 .state-variable-row {
+  position: relative;
   display: flex;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
   align-items: center;
   gap: 7px;
   height: 20px;
   padding: 0 9px;
+}
+
+.state-variable-row:hover,
+.state-variable-row.selected {
+  background: oklch(0.33 0.034 255);
+}
+
+.function-pill.static-data {
+  border-color: oklch(0.48 0.08 175);
 }
 
 .state-variable-accent {
@@ -597,63 +611,6 @@ body.embedded .topbar {
   border-top: 1px solid var(--subtle-border);
 }
 
-.exposure-ranking {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.exposure-rank {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-}
-
-.exposure-rank:hover {
-  opacity: 0.65;
-}
-
-.exposure-rank-heading {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.exposure-rank-name {
-  flex: 1 1 auto;
-  overflow-wrap: anywhere;
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 11.5px;
-}
-
-.exposure-rank-count {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 11px;
-  color: var(--accent);
-}
-
-.exposure-track,
-.exposure-fill {
-  height: 4px;
-  border-radius: 2px;
-}
-
-.exposure-track {
-  overflow: hidden;
-  background: oklch(0.252 0.03 255);
-}
-
-.exposure-fill {
-  background: var(--accent);
-  opacity: 0.7;
-}
-
 .inspector-eyebrow {
   margin-bottom: 5px;
   font-family: "IBM Plex Mono", monospace;
@@ -790,25 +747,6 @@ button.function-row:hover {
 .component-description,
 .empty-copy {
   margin: 0;
-}
-
-.exposure-grid {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 7px 12px;
-  align-items: baseline;
-}
-
-.exposure-grid span:nth-child(odd) {
-  font-size: 12px;
-  color: oklch(0.9 0.012 250);
-}
-
-.exposure-grid span:nth-child(even) {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--accent);
 }
 
 .status-banner {

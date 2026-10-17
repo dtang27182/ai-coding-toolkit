@@ -1,22 +1,14 @@
 import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
 import implementationDataflowSchema from "../../impl-dataflow.schema.json";
 import exampleImplementationDataflow from "../../impl-dataflow.example.json";
+import type { DataflowNode, NodeType } from "../../types";
 import { computeLayout } from "./layout";
 import { filterGraph, type VisibleGraph } from "./filter";
 import { edgePortSpreads, routeCompositionEdge, routeEdge } from "./routing";
 import { semanticError } from "./validation";
 import "./styles.css";
-import type {
-  ComponentType,
-  ChangeType,
-  GraphContainerDiff,
-  ImplementationDataflow,
-  Rect,
-  ResolvedEndpoint,
-  ResolvedRelationship,
-  Selection,
-} from "./types";
-import { edgeKey, isInternalStateRelationship, mergeClassDataflows, functionKey } from "./types";
+import type { ChangeType, ContainerStatus, GraphContainer, ImplementationDataflow, Rect, ResolvedEndpoint, ResolvedRelationship, Selection } from "./types";
+import { edgeKey, isInternalDataRelationship, mergeContainerDataflows } from "./types";
 import { droppedJsonFile, pickJsonFile, supportsJsonFileHandles, watchOpenedJson, type JsonFileHandle } from "../../../watch-opened-json.ts";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -32,18 +24,24 @@ const CHANGE_COLORS: Record<ChangeType, string> = {
   unchanged: "oklch(0.56 0.02 250)",
 };
 
-const COMPONENT_LABELS: Record<ComponentType, string> = {
+const NODE_LABELS: Record<NodeType, string> = {
+  function: "Function",
   "ui-component": "UI component",
   "system-input": "System input",
   "system-output": "System output",
   "external-dependency": "External dependency",
+  "static-data": "Static data",
+  "state-variable": "State variable",
 };
 
-const COMPONENT_GLYPHS: Record<ComponentType, string> = {
+const NODE_GLYPHS: Record<NodeType, string> = {
+  function: "ƒ",
   "ui-component": "▣",
   "system-input": "→",
   "system-output": "←",
   "external-dependency": "⇅",
+  "static-data": "◆",
+  "state-variable": "s",
 };
 
 let implementationDataflow = exampleImplementationDataflow as ImplementationDataflow;
@@ -72,11 +70,11 @@ function escapeHtml(value: string | number): string {
     .replaceAll("'", "&#039;");
 }
 
-function changeColor(changeType: ChangeType): string {
-  return CHANGE_COLORS[changeType];
+function changeColor(changeType: ChangeType | ContainerStatus): string {
+  return CHANGE_COLORS[changeType === "changed" ? "modified" : changeType];
 }
 
-function chipStyle(changeType: ChangeType): string {
+function chipStyle(changeType: ChangeType | ContainerStatus): string {
   return `color:${changeColor(changeType)};background:color-mix(in oklch, ${changeColor(changeType)} 15%, transparent)`;
 }
 
@@ -84,8 +82,8 @@ function diffEvidence(ids: string[] | undefined): string {
   if (ids === undefined || ids.length === 0) {
     return "";
   } else {
-    const hunks = ids.map((id) => implementationDataflow.diffHunks?.find((hunk) => hunk.id === id)).filter((hunk) => hunk !== undefined);
-    return hunks.length === 0 ? "" : section("Relevant diff", hunks.map((hunk) =>
+    const hunks = ids.map((id) => implementationDataflow.diffHunks!.find((hunk) => hunk.id === id)!);
+    return section("Relevant diff", hunks.map((hunk) =>
       `<details class="diff-evidence"><summary>${escapeHtml(hunk.file)} · ${escapeHtml(hunk.patch.split("\n")[0])}</summary><pre>${escapeHtml(hunk.patch)}</pre></details>`,
     ).join(""), hunks.length);
   }
@@ -106,149 +104,89 @@ function componentWidth(name: string): number {
   return Math.ceil(measureContext.measureText(name).width);
 }
 
-function tabWidth(classDiff: GraphContainerDiff): number {
+function tabWidth(container: GraphContainer): number {
   measureContext.font = "600 11.5px IBM Plex Mono, monospace";
-  const exposure = classExposureCount(classDiff);
-  return Math.ceil(measureContext.measureText(classDiff.name).width) + (classDiff.containerType === "module" ? 92 : implementationDataflow.stage === "code-review" ? 42 : String(exposure ?? "?").length * 6 + 56);
+  return Math.ceil(measureContext.measureText(container.name).width) + (container.type === "module" ? 92 : 42);
 }
 
-function classExposureCount(classDiff: GraphContainerDiff): number | null {
-  if (classDiff.variableExposure === undefined || classDiff.variableExposure === null) {
-    return null;
-  } else {
-    return classDiff.variableExposure.length;
-  }
+function endpointBoxLabel(endpoint: ResolvedEndpoint): string {
+  return endpoint.boxId === endpoint.nodeId
+    ? implementationDataflow.nodes.find((node) => node.id === endpoint.nodeId)!.name
+    : implementationDataflow.containers.find((container) => container.id === endpoint.boxId)!.name;
 }
 
 function endpointLabel(endpoint: ResolvedEndpoint): string {
-  if (endpoint.component) {
-    return endpoint.nodeName;
-  } else if (endpoint.functionName !== undefined) {
-    return `${endpoint.nodeName}.${endpoint.functionName}`;
-  } else if (endpoint.stateVariableName !== undefined) {
-    return `${endpoint.nodeName}.${endpoint.stateVariableName}`;
-  } else {
-    return endpoint.nodeName;
+  let label = endpointBoxLabel(endpoint);
+  if (endpoint.nodeId !== undefined && endpoint.nodeId !== endpoint.boxId) {
+    label += `.${implementationDataflow.nodes.find((node) => node.id === endpoint.nodeId)!.name}`;
   }
+  return label;
 }
 
 function selectionForEndpoint(endpoint: ResolvedEndpoint): Selection {
-  if (endpoint.staticData) {
-    return { type: "static-data", staticDataName: endpoint.nodeName };
-  } else if (endpoint.component) {
-    return { type: "component", componentName: endpoint.nodeName };
-  } else if (endpoint.functionName !== undefined) {
-    return { type: "function", className: endpoint.nodeName, functionName: endpoint.functionName };
-  } else {
-    return { type: "class", className: endpoint.nodeName };
-  }
+  return endpoint.nodeId === undefined ? { type: "container", containerId: endpoint.boxId } : { type: "node", nodeId: endpoint.nodeId };
 }
 
 function selectionKey(value: Selection | undefined): string {
-  if (value === undefined) {
-    return "";
-  } else if (value.type === "static-data") {
-    return `static-data:${value.staticDataName}`;
-  } else if (value.type === "component") {
-    return `component:${value.componentName}`;
-  } else if (value.type === "function") {
-    return `function:${value.className}:${value.functionName}`;
-  } else if (value.type === "relationship") {
-    return `relationship:${value.edge}`;
-  } else {
-    return `class:${value.className}`;
-  }
+  return value === undefined ? "" : JSON.stringify(value);
 }
 
 function endpointMatches(endpoint: ResolvedEndpoint, value: Selection): boolean {
-  if (value.type === "static-data") {
-    return endpoint.staticData === true && endpoint.nodeName === value.staticDataName;
-  } else if (value.type === "component") {
-    return endpoint.component && endpoint.nodeName === value.componentName;
-  } else if (value.type === "function") {
-    return !endpoint.component && endpoint.nodeName === value.className && endpoint.functionName === value.functionName;
-  } else if (value.type === "relationship") {
-    return false;
-  } else {
-    return !endpoint.component && endpoint.nodeName === value.className;
+  let matches = false;
+  if (value.type === "node") {
+    matches = endpoint.nodeId === value.nodeId;
+  } else if (value.type === "container") {
+    matches = endpoint.boxId === value.containerId;
   }
+  return matches;
 }
 
 function relationshipMatches(relationship: ResolvedRelationship, value: Selection | undefined): boolean {
-  if (value === undefined) {
-    return false;
-  } else if (value.type === "relationship") {
-    return edgeKey(relationship, functionsHidden) === value.edge;
-  } else {
-    return endpointMatches(relationship.from, value) || endpointMatches(relationship.to, value);
+  let matches = false;
+  if (value?.type === "relationship") {
+    matches = edgeKey(relationship, functionsHidden) === value.edge;
+  } else if (value !== undefined) {
+    matches = endpointMatches(relationship.from, value) || endpointMatches(relationship.to, value);
   }
+  return matches;
 }
 
-/** Every relationship drawn as the given edge; more than one when collapsing functions merged them. */
+/** Every relationship drawn as the given edge, including collapsed member flows. */
 function relationshipsForEdge(graph: VisibleGraph, edge: string): ResolvedRelationship[] {
-  return graph.relationships.filter(
-    (relationship) => relationship.relationship.type !== "composition" && edgeKey(relationship, functionsHidden) === edge,
-  );
+  return graph.relationships.filter((relationship) => edgeKey(relationship, functionsHidden) === edge);
 }
 
 function graphFocus(value: Selection | undefined): Selection | undefined {
-  if (functionsHidden && value?.type === "function") {
-    return { type: "class", className: value.className };
-  } else {
-    return value;
+  let focus = value;
+  if (functionsHidden && value?.type === "node") {
+    const node = implementationDataflow.nodes.find((node) => node.id === value.nodeId)!;
+    if ("containerId" in node && node.containerId !== undefined) {
+      focus = { type: "container", containerId: node.containerId };
+    }
   }
-}
-
-function nodeMatches(nodeName: string, functionName: string | undefined, value: Selection | undefined): boolean {
-  if (value === undefined) {
-    return true;
-  } else if (value.type === "static-data") {
-    return nodeName === value.staticDataName;
-  } else if (value.type === "component") {
-    return nodeName === value.componentName;
-  } else if (value.type === "function") {
-    return nodeName === value.className && (functionName === undefined || functionName === value.functionName);
-  } else if (value.type === "relationship") {
-    return false;
-  } else {
-    return nodeName === value.className;
-  }
+  return focus;
 }
 
 function relationshipAttributes(relationship: ResolvedRelationship): string {
-  return `data-relation data-edge="${escapeHtml(edgeKey(relationship, functionsHidden))}" data-from-node="${escapeHtml(relationship.from.nodeName)}" data-from-function="${escapeHtml(relationship.from.functionName ?? "")}" data-from-component="${relationship.from.component}" data-from-static-data="${relationship.from.staticData === true}" data-to-node="${escapeHtml(relationship.to.nodeName)}" data-to-function="${escapeHtml(relationship.to.functionName ?? "")}" data-to-component="${relationship.to.component}" data-to-static-data="${relationship.to.staticData === true}"`;
+  return `data-relation data-edge="${escapeHtml(edgeKey(relationship, functionsHidden))}" data-from-box="${escapeHtml(relationship.from.boxId)}" data-from-node-id="${escapeHtml(relationship.from.nodeId ?? "")}" data-from-type="${relationship.from.type}" data-to-box="${escapeHtml(relationship.to.boxId)}" data-to-node-id="${escapeHtml(relationship.to.nodeId ?? "")}" data-to-type="${relationship.to.type}"`;
 }
 
 function visibleGraph(): VisibleGraph {
   return filterGraph(implementationDataflow, showUnchanged);
 }
 
-function graphRect(
-  endpoint: ResolvedEndpoint,
-  boxes: Map<string, Rect>,
-  functionRects: Map<string, Rect>,
-  stateRects: Map<string, Rect>,
-): Rect | undefined {
-  if (endpoint.stateVariableName !== undefined && !functionsHidden) {
-    return stateRects.get(endpoint.nodeName);
-  } else if (endpoint.functionName !== undefined && !functionsHidden) {
-    return functionRects.get(functionKey(endpoint.nodeName, endpoint.functionName));
-  }
-  return boxes.get(endpoint.nodeName);
+function graphRect(endpoint: ResolvedEndpoint, boxes: Map<string, Rect>, memberRects: Map<string, Rect>): Rect | undefined {
+  return !functionsHidden && endpoint.nodeId !== undefined && endpoint.nodeId !== endpoint.boxId
+    ? memberRects.get(endpoint.nodeId)
+    : boxes.get(endpoint.boxId);
 }
 
 function graphEndpointKey(endpoint: ResolvedEndpoint): string {
-  if (endpoint.stateVariableName !== undefined && !functionsHidden) {
-    return `state:${endpoint.nodeName}`;
-  } else if (endpoint.functionName !== undefined && !functionsHidden) {
-    return `function:${endpoint.nodeName}:${endpoint.functionName}`;
-  } else {
-    return `node:${endpoint.nodeName}`;
-  }
+  return functionsHidden ? endpoint.boxId : endpoint.nodeId ?? endpoint.boxId;
 }
 
-function classTargetRect(classDiff: GraphContainerDiff, box: Rect): Rect {
-  return { x: box.x + 10, y: box.y - 12, width: tabWidth(classDiff), height: 24 };
+function classTargetRect(container: GraphContainer, box: Rect): Rect {
+  return { x: box.x + 10, y: box.y - 12, width: tabWidth(container), height: 24 };
 }
 
 function renderMarkers(): string {
@@ -267,199 +205,104 @@ function renderMarkers(): string {
 }
 
 function renderGraph(graph: VisibleGraph): string {
-  const stateWriters = new Set(
-    graph.relationships
-      .filter((relationship) => relationship.to.stateVariableName !== undefined && relationship.from.functionName !== undefined)
-      .map((relationship) => functionKey(relationship.from.nodeName, relationship.from.functionName!)),
-  );
+  const stateWriters = new Set(graph.relationships.filter((relationship) => relationship.to.type === "state-variable" && relationship.from.type === "function").map((relationship) => relationship.from.nodeId!));
   const layout = computeLayout(graph.nodes, graph.relationships, functionsHidden, functionWidth, stateVariableWidth, componentWidth, stateWriters);
   currentGraphWidth = layout.width;
-  const classByName = new Map(graph.classes.map((classDiff) => [classDiff.name, classDiff]));
+  const containers = new Map(graph.containers.map((container) => [container.id, container]));
   const routingBounds = new Map(graph.nodes.map((node): [string, Rect] => {
-    const box = layout.boxes.get(node.name)!;
-    if (node.nodeType !== undefined) {
-      return [node.name, box];
-    } else {
-      const tab = classTargetRect(classByName.get(node.name)!, box);
-      return functionsHidden
-        ? [node.name, tab]
-        : [node.name, { x: box.x, y: tab.y, width: Math.max(box.width, tab.x + tab.width - box.x), height: box.y + box.height - tab.y }];
+    const box = layout.boxes.get(node.id)!;
+    let bounds = box;
+    if (node.nodeType === undefined) {
+      const tab = classTargetRect(containers.get(node.id)!, box);
+      bounds = functionsHidden ? tab : { x: box.x, y: tab.y, width: Math.max(box.width, tab.x + tab.width - box.x), height: box.y + box.height - tab.y };
     }
+    return [node.id, bounds];
   }));
   function obstaclesFor(relationship: ResolvedRelationship): Rect[] {
-    return [...routingBounds].filter(([name]) => name !== relationship.from.nodeName && name !== relationship.to.nodeName).map(([, box]) => box);
-  }
-  const focus = graphFocus(hovered ?? selection);
-
-  const relatedNodes = new Set<string>();
-  if (focus !== undefined) {
-    if (focus.type === "static-data") {
-      relatedNodes.add(focus.staticDataName);
-    } else if (focus.type === "component") {
-      relatedNodes.add(focus.componentName);
-    } else if (focus.type !== "relationship") {
-      relatedNodes.add(focus.className);
-    }
-    for (const relationship of graph.relationships.filter((item) => relationshipMatches(item, focus))) {
-      relatedNodes.add(relationship.from.nodeName);
-      relatedNodes.add(relationship.to.nodeName);
-    }
+    return [...routingBounds].filter(([id]) => id !== relationship.from.boxId && id !== relationship.to.boxId).map(([, box]) => box);
   }
 
-  const classFrames = functionsHidden
-    ? ""
-    : graph.classes
-        .map((classDiff) => {
-          const box = layout.boxes.get(classDiff.name)!;
-          const dimmed = focus !== undefined && !relatedNodes.has(classDiff.name);
-          return `<rect class="class-frame${dimmed ? " dimmed" : ""}" data-node="${escapeHtml(classDiff.name)}" x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="11" fill="oklch(0.212 0.024 255 / 0.72)" stroke="oklch(0.4 0.032 255)" stroke-width="1.25" stroke-dasharray="6 5"></rect>`;
-        })
-        .join("");
+  const classFrames = functionsHidden ? "" : graph.containers.map((container) => {
+    const box = layout.boxes.get(container.id)!;
+    return `<rect class="class-frame" data-node="${escapeHtml(container.id)}" x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="11" fill="oklch(0.212 0.024 255 / 0.72)" stroke="oklch(0.4 0.032 255)" stroke-width="1.25" stroke-dasharray="6 5"></rect>`;
+  }).join("");
 
-  const compositionEdges = layout.compositionRelationships
-    .map((relationship) => {
-      const from = routingBounds.get(relationship.from.nodeName)!;
-      const to = routingBounds.get(relationship.to.nodeName)!;
-      const path = routeCompositionEdge(from, to, obstaclesFor(relationship));
-      const dimmed = focus !== undefined && !relationshipMatches(relationship, focus);
-      return `<path class="edge${dimmed ? " dimmed" : ""}" ${relationshipAttributes(relationship)} d="${path}" fill="none" stroke="oklch(0.305 0.032 255)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#composition-arrow)"></path>`;
-    })
-    .join("");
+  const compositionEdges = layout.compositionRelationships.map((relationship) => {
+    const path = routeCompositionEdge(routingBounds.get(relationship.from.boxId)!, routingBounds.get(relationship.to.boxId)!, obstaclesFor(relationship));
+    return `<path class="edge" ${relationshipAttributes(relationship)} d="${path}" fill="none" stroke="oklch(0.305 0.032 255)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#composition-arrow)"></path>
+      <path class="edge-hit" ${relationshipAttributes(relationship)} data-select="relationship" d="${path}" fill="none" stroke="transparent" stroke-width="12"></path>`;
+  }).join("");
 
-  const drawableRelationships = graph.relationships.filter(
-    (relationship) => relationship.relationship.type !== "composition" && (!functionsHidden || !isInternalStateRelationship(relationship)),
-  );
-  const edgeLayouts = (functionsHidden ? mergeClassDataflows(drawableRelationships) : drawableRelationships)
-    .map((relationship) => ({
-      relationship,
-      from: graphRect(relationship.from, routingBounds, layout.functionRects, layout.stateRects),
-      to: graphRect(relationship.to, routingBounds, layout.functionRects, layout.stateRects),
-    }))
-    .filter((edge): edge is { relationship: ResolvedRelationship; from: Rect; to: Rect } => edge.from !== undefined && edge.to !== undefined);
-  const edgeSpreads = edgePortSpreads(edgeLayouts.map((edge) => ({
-    fromKey: graphEndpointKey(edge.relationship.from),
-    toKey: graphEndpointKey(edge.relationship.to),
-    from: edge.from,
-    to: edge.to,
-  })));
-  const edges = edgeLayouts
-    .map((edge, index) => {
-      const { relationship, from, to } = edge;
-      const route = routeEdge(from, to, edgeSpreads[index], obstaclesFor(relationship));
-      const changeType = relationship.relationship.changeType;
-      const stateUpdate = relationship.to.stateVariableName !== undefined;
-      const stateRead = relationship.from.stateVariableName !== undefined;
-      const dimmed = focus !== undefined && !relationshipMatches(relationship, focus);
-      const dash = stateUpdate || stateRead ? "7 4" : changeType === "deleted" ? "7 5" : "";
-      const selected = selectionKey(selection) === selectionKey({ type: "relationship", edge: edgeKey(relationship, functionsHidden) });
-      return `
-        <path class="edge${dimmed ? " dimmed" : ""}${selected ? " selected" : ""}" ${relationshipAttributes(relationship)} d="${route.path}" fill="none" stroke="${changeColor(changeType)}" stroke-width="${stateUpdate ? 1.75 : 1.6}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${changeType})"></path>
-        <circle class="edge${dimmed ? " dimmed" : ""}" ${relationshipAttributes(relationship)} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${changeColor(changeType)}" stroke="oklch(0.198 0.024 255)" stroke-width="1.5"></circle>
-        <path class="edge-hit" ${relationshipAttributes(relationship)} data-select="relationship" d="${route.path}" fill="none" stroke="transparent" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"></path>`;
-    })
-    .join("");
+  const drawableRelationships = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && (!functionsHidden || !isInternalDataRelationship(relationship)));
+  const edgeLayouts = (functionsHidden ? mergeContainerDataflows(drawableRelationships) : drawableRelationships).map((relationship) => ({
+    relationship,
+    from: graphRect(relationship.from, routingBounds, layout.memberRects)!,
+    to: graphRect(relationship.to, routingBounds, layout.memberRects)!,
+  }));
+  const edgeSpreads = edgePortSpreads(edgeLayouts.map((edge) => ({ fromKey: graphEndpointKey(edge.relationship.from), toKey: graphEndpointKey(edge.relationship.to), from: edge.from, to: edge.to })));
+  const edges = edgeLayouts.map((edge, index) => {
+    const { relationship, from, to } = edge;
+    const route = routeEdge(from, to, edgeSpreads[index], obstaclesFor(relationship));
+    const changeType = relationship.relationship.changeType;
+    const stateUpdate = relationship.to.type === "state-variable";
+    const stateRead = relationship.from.type === "state-variable";
+    const dash = stateUpdate || stateRead ? "7 4" : changeType === "deleted" ? "7 5" : "";
+    const selected = selectionKey(selection) === selectionKey({ type: "relationship", edge: edgeKey(relationship, functionsHidden) });
+    return `<path class="edge${selected ? " selected" : ""}" ${relationshipAttributes(relationship)} d="${route.path}" fill="none" stroke="${changeColor(changeType)}" stroke-width="${stateUpdate ? 1.75 : 1.6}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${changeType})"></path>
+      <circle class="edge" ${relationshipAttributes(relationship)} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${changeColor(changeType)}" stroke="oklch(0.198 0.024 255)" stroke-width="1.5"></circle>
+      <path class="edge-hit" ${relationshipAttributes(relationship)} data-select="relationship" d="${route.path}" fill="none" stroke="transparent" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"></path>`;
+  }).join("");
 
-  const classTabs = graph.classes
-    .map((classDiff) => {
-      const box = layout.boxes.get(classDiff.name)!;
-      const exposure = classExposureCount(classDiff);
-      const selected = selectionKey(selection) === selectionKey({ type: "class", className: classDiff.name });
-      const dimmed = focus !== undefined && !relatedNodes.has(classDiff.name);
-      return `<button class="graph-node class-tab${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}" style="left:${box.x + 10}px;top:${box.y - 12}px" data-select="class" data-node="${escapeHtml(classDiff.name)}" data-class="${escapeHtml(classDiff.name)}" aria-label="Inspect ${classDiff.containerType === "module" ? "module" : "class"} ${escapeHtml(classDiff.name)}">
-        <span class="class-dot" style="background:${changeColor(classDiff.changeType)}"></span>
-        <span class="class-name">${escapeHtml(classDiff.name)}</span>
-        ${classDiff.containerType === "module" ? '<span class="exposure-badge">module</span>' : implementationDataflow.stage === "code-review" ? "" : `<span class="exposure-badge">${exposure === null ? "?" : exposure} exp</span>`}
+  const classTabs = graph.containers.map((container) => {
+    const box = layout.boxes.get(container.id)!;
+    const selected = selectionKey(selection) === selectionKey({ type: "container", containerId: container.id });
+    return `<button class="graph-node class-tab${selected ? " selected" : ""}" style="left:${box.x + 10}px;top:${box.y - 12}px" data-select="container" data-node="${escapeHtml(container.id)}" data-container="${escapeHtml(container.id)}" aria-label="Inspect ${container.type} ${escapeHtml(container.name)}">
+      <span class="class-dot" style="background:${changeColor(container.changeType)}"></span><span class="class-name">${escapeHtml(container.name)}</span>
+      ${container.type === "module" ? '<span class="container-kind">module</span>' : ""}
+    </button>`;
+  }).join("");
+
+  const members = functionsHidden ? "" : graph.containers.flatMap((container) => [...container.functions, ...container.staticData].map((node) => {
+    const rect = layout.memberRects.get(node.id)!;
+    const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
+    return `<button class="graph-node function-pill${node.type === "static-data" ? " static-data" : ""}${selected ? " selected" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(container.name)}.${escapeHtml(node.name)}">
+      <span class="function-accent" style="background:${changeColor(node.changeType)}"></span><span class="function-glyph" style="color:${changeColor(node.changeType)}">${NODE_GLYPHS[node.type]}</span><span class="function-name">${escapeHtml(node.name)}</span>
+      ${stateWriters.has(node.id) ? '<span class="state-glyph" title="Writes state">◈</span>' : ""}
+    </button>`;
+  })).join("");
+
+  const stateBoxes = graph.containers.filter((container) => !functionsHidden && container.stateVariables.length > 0).map((container) => {
+    const rect = layout.stateRects.get(container.id)!;
+    const variables = container.stateVariables.map((node) => {
+      const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
+      return `<button class="graph-node state-variable-row${selected ? " selected" : ""}" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect state variable ${escapeHtml(container.name)}.${escapeHtml(node.name)}">
+        <span class="state-variable-accent" style="background:${changeColor(node.changeType)}"></span><span class="state-variable-name">${escapeHtml(node.name)}</span>
       </button>`;
-    })
-    .join("");
+    }).join("");
+    return `<div class="graph-node class-state-box" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;height:${rect.height}px" data-node="${escapeHtml(container.id)}"><span class="state-box-glyph" title="State variables">s</span><div class="state-variable-list">${variables}</div></div>`;
+  }).join("");
 
-  const functions = graph.classes
-    .flatMap((classDiff) =>
-      functionsHidden
-        ? []
-        : classDiff.functions.map((functionDiff) => {
-            const rect = layout.functionRects.get(functionKey(classDiff.name, functionDiff.name))!;
-            const writer = stateWriters.has(functionKey(classDiff.name, functionDiff.name));
-            const selected = selectionKey(selection) === selectionKey({ type: "function", className: classDiff.name, functionName: functionDiff.name });
-            const dimmed = focus !== undefined && !nodeMatches(classDiff.name, functionDiff.name, focus) && !relatedNodes.has(classDiff.name);
-            return `<button class="graph-node function-pill${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px" data-select="function" data-node="${escapeHtml(classDiff.name)}" data-class="${escapeHtml(classDiff.name)}" data-function="${escapeHtml(functionDiff.name)}" aria-label="Inspect function ${escapeHtml(classDiff.name)}.${escapeHtml(functionDiff.name)}">
-              <span class="function-accent" style="background:${changeColor(functionDiff.changeType)}"></span>
-              <span class="function-glyph" style="color:${changeColor(functionDiff.changeType)}">ƒ</span>
-              <span class="function-name">${escapeHtml(functionDiff.name)}</span>
-              ${writer ? '<span class="state-glyph" title="Writes state">◈</span>' : ""}
-            </button>`;
-          }),
-    )
-    .join("");
+  const standaloneNodes = [...graph.components, ...graph.staticData].map((node) => {
+    const box = layout.boxes.get(node.id)!;
+    const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
+    return `<button class="graph-node component-node ${node.type}${selected ? " selected" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px" data-select="node" data-node="${escapeHtml(node.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(node.name)}">
+      <span class="component-glyph">${NODE_GLYPHS[node.type]}</span><span class="component-copy"><span class="component-name">${escapeHtml(node.name)}</span><span class="node-kind">${NODE_LABELS[node.type]}</span></span>
+    </button>`;
+  }).join("");
 
-  const stateBoxes = graph.classes
-    .filter((classDiff) => !functionsHidden && classDiff.stateVariables.length > 0)
-    .map((classDiff) => {
-      const rect = layout.stateRects.get(classDiff.name)!;
-      const dimmed = focus !== undefined && !relatedNodes.has(classDiff.name);
-      const variables = classDiff.stateVariables
-        .map((stateVariable) => `<div class="state-variable-row">
-          <span class="state-variable-accent" style="background:${changeColor(stateVariable.changeType)}"></span>
-          <span class="state-variable-name">${escapeHtml(stateVariable.name)}</span>
-        </div>`)
-        .join("");
-      return `<div class="graph-node class-state-box${dimmed ? " dimmed" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;height:${rect.height}px" data-node="${escapeHtml(classDiff.name)}">
-        <span class="state-box-glyph" title="State variables">s</span>
-        <div class="state-variable-list">${variables}</div>
-      </div>`;
-    })
-    .join("");
-
-  const components = graph.components
-    .map((component) => {
-      const box = layout.boxes.get(component.name)!;
-      const selected = selectionKey(selection) === selectionKey({ type: "component", componentName: component.name });
-      const dimmed = focus !== undefined && !relatedNodes.has(component.name);
-      return `<button class="graph-node component-node ${component.type}${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px" data-select="component" data-node="${escapeHtml(component.name)}" data-component="${escapeHtml(component.name)}" aria-label="Inspect ${COMPONENT_LABELS[component.type]} ${escapeHtml(component.name)}">
-        <span class="component-glyph">${COMPONENT_GLYPHS[component.type]}</span>
-        <span class="component-copy">
-          <span class="component-name">${escapeHtml(component.name)}</span>
-          <span class="node-kind">${COMPONENT_LABELS[component.type]}</span>
-        </span>
-      </button>`;
-    })
-    .join("");
-
-  const staticDataNodes = graph.staticData
-    .map((entry) => {
-      const box = layout.boxes.get(entry.name)!;
-      const selected = selectionKey(selection) === selectionKey({ type: "static-data", staticDataName: entry.name });
-      const dimmed = focus !== undefined && !relatedNodes.has(entry.name);
-      return `<button class="graph-node component-node static-data${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px" data-select="static-data" data-node="${escapeHtml(entry.name)}" data-static-data="${escapeHtml(entry.name)}" aria-label="Inspect static data ${escapeHtml(entry.name)}">
-        <span class="component-glyph">◆</span>
-        <span class="component-copy">
-          <span class="component-name">${escapeHtml(entry.name)}</span>
-          <span class="node-kind">Static data</span>
-        </span>
-      </button>`;
-    })
-    .join("");
-
-  const emptyNotes = graph.classes
-    .filter((classDiff) => !functionsHidden && classDiff.functions.length === 0 && classDiff.stateVariables.length === 0)
-    .map((classDiff) => {
-      const box = layout.boxes.get(classDiff.name)!;
-      return `<span class="graph-node empty-class" style="left:${box.x + 15}px;top:${box.y + 30}px">No visible functions</span>`;
-    })
-    .join("");
+  const emptyNotes = graph.containers.filter((container) => !functionsHidden && container.functions.length + container.stateVariables.length + container.staticData.length === 0).map((container) => {
+    const box = layout.boxes.get(container.id)!;
+    return `<span class="graph-node empty-class" data-node="${escapeHtml(container.id)}" style="left:${box.x + 15}px;top:${box.y + 30}px">No visible members</span>`;
+  }).join("");
 
   queueMicrotask(() => fitGraph(layout.width));
-  return `
-    <div class="graph-space">
-      ${graph.nodes.length === 0 ? '<div class="empty-graph">No nodes match the current filters</div>' : ""}
-      <div class="graph" style="left:calc(50% + ${panX}px);top:calc(50% + ${panY}px);width:${layout.width}px;height:${layout.height}px;transform:translate(-50%, -50%) scale(${zoom})">
-        <svg class="graph-svg" width="${layout.width}" height="${layout.height}">
-          <defs>${renderMarkers()}</defs>
-          ${classFrames}${compositionEdges}${edges}
-        </svg>
-        ${classTabs}${components}${staticDataNodes}${functions}${stateBoxes}${emptyNotes}
-      </div>
-    </div>`;
+  return `<div class="graph-space">
+    ${graph.nodes.length === 0 ? '<div class="empty-graph">No nodes match the current filters</div>' : ""}
+    <div class="graph" style="left:calc(50% + ${panX}px);top:calc(50% + ${panY}px);width:${layout.width}px;height:${layout.height}px;transform:translate(-50%, -50%) scale(${zoom})">
+      <svg class="graph-svg" width="${layout.width}" height="${layout.height}"><defs>${renderMarkers()}</defs>${classFrames}${compositionEdges}${edges}</svg>
+      ${classTabs}${standaloneNodes}${members}${stateBoxes}${emptyNotes}
+    </div>
+  </div>`;
 }
 
 function flowRows(relationships: ResolvedRelationship[], endpoint: "from" | "to", state = false): string {
@@ -482,7 +325,7 @@ function section(title: string, content: string, count?: number): string {
   return `<section class="inspector-section"><div class="section-heading"><span>${escapeHtml(title)}</span>${count === undefined ? "" : `<span class="inspector-count">${count}</span>`}</div>${content}</section>`;
 }
 
-function inspectorHeader(eyebrow: string, title: string, changeType: ChangeType, detail?: string): string {
+function inspectorHeader(eyebrow: string, title: string, changeType: ChangeType | ContainerStatus, detail?: string): string {
   return `<header class="inspector-header">
     <div class="inspector-eyebrow">${escapeHtml(eyebrow)}</div>
     <div class="inspector-title-row"><div class="inspector-title">${escapeHtml(title)}</div><button class="close-button" data-close aria-label="Clear selection">✕</button></div>
@@ -490,115 +333,56 @@ function inspectorHeader(eyebrow: string, title: string, changeType: ChangeType,
   </header>`;
 }
 
-function exposureSummary(classDiff: GraphContainerDiff, functionName?: string): string {
-  const variables = classDiff.variableExposure;
-  if (variables === undefined || variables === null) return '<p class="empty-copy">Exposure inventory is unknown.</p>';
-  const instance = variables.filter((variable) => variable.kind === "instance").length;
-  if (functionName === undefined) {
-    return `<div class="exposure-grid"><span>Instance variables</span><span>${instance}</span><span>Local variables</span><span>${variables.filter((variable) => variable.kind !== "instance").length}</span></div>`;
-  }
-  return `<div class="exposure-grid"><span>Class instance variables</span><span>${instance}</span><span>Local variables</span><span>${variables.filter((variable) => variable.kind !== "instance" && variable.function === functionName).length}</span></div>`;
+function nodeRows(nodes: DataflowNode[]): string {
+  return nodes.length === 0 ? '<p class="empty-copy">None</p>' : `<div class="function-list">${nodes.map((node) => `<button class="function-row" style="border-color:${changeColor(node.changeType)}" data-jump="${escapeHtml(JSON.stringify({ type: "node", nodeId: node.id }))}"><div class="flow-endpoint">${escapeHtml(node.name)}</div><div class="flow-label">${node.changeType}</div></button>`).join("")}</div>`;
 }
 
 function renderInspector(graph: VisibleGraph): string {
   const inspected = hovered ?? selection;
+  let content = "";
   if (inspected === undefined) {
-    const stateUpdates = graph.relationships.filter((relationship) => relationship.to.stateVariableName !== undefined);
-    const exposureClasses = graph.classes.filter((classDiff) => classDiff.containerType !== "module");
-    const exposureCount = exposureClasses.some((classDiff) => classDiff.variableExposure === undefined || classDiff.variableExposure === null) ? null : new Set(
-      exposureClasses.flatMap((classDiff) => classDiff.variableExposure!.map((variable) =>
-        JSON.stringify([variable.declaredAt.file, variable.declaredAt.line, variable.declaredAt.column]),
-      )),
-    ).size;
-    const maximumExposure = Math.max(1, ...exposureClasses.map((classDiff) => classExposureCount(classDiff) ?? 0));
-    const classes = exposureClasses
-      .slice()
-      .sort((left, right) => (classExposureCount(right) ?? -1) - (classExposureCount(left) ?? -1))
-      .map((classDiff) => {
-        const count = classExposureCount(classDiff);
-        const width = count === null ? 0 : (count / maximumExposure) * 100;
-        return `<button class="exposure-rank" data-jump="${escapeHtml(JSON.stringify({ type: "class", className: classDiff.name }))}">
-          <span class="exposure-rank-heading"><span class="exposure-rank-name">${escapeHtml(classDiff.name)}</span><span class="exposure-rank-count">${count === null ? "?" : count}</span></span>
-          <span class="exposure-track"><span class="exposure-fill" style="display:block;width:${width}%"></span></span>
-        </button>`;
-      })
-      .join("");
-    const stateRows = stateUpdates.length === 0
-      ? '<p class="empty-copy">None</p>'
-      : `<div class="flow-list">${stateUpdates.map((relationship) => {
-          const selected = selectionForEndpoint(relationship.from);
-          return `<button class="flow-row state" style="border-color:${changeColor(relationship.relationship.changeType)}" data-jump="${escapeHtml(JSON.stringify(selected))}"><div class="flow-endpoint">${escapeHtml(endpointLabel(relationship.from))} ↝ ${escapeHtml(endpointLabel(relationship.to))}</div><div class="flow-label">${escapeHtml(relationship.relationship.dataDescription ?? "state update")}</div></button>`;
-        }).join("")}</div>`;
-    return `<div class="overview-inspector">${implementationDataflow.stage === "code-review" ? "" : `<section class="overview-section"><div class="section-heading"><span>Variable exposure by class</span><span class="inspector-count">${exposureCount ?? "?"}</span></div><div class="exposure-ranking">${classes}</div></section>`}<section class="overview-section"><div class="section-heading"><span>State updates</span><span class="inspector-count">${stateUpdates.length}</span></div>${stateRows}</section></div>`;
-  } else if (inspected.type === "function") {
-    const functionSelection = inspected;
-    const classDiff = graph.classes.find((item) => item.name === functionSelection.className)!;
-    const functionDiff = classDiff.functions.find((item) => item.name === functionSelection.functionName)!;
-    const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, functionSelection));
-    const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && relationship.to.stateVariableName === undefined && endpointMatches(relationship.from, functionSelection));
-    const stateUpdates = graph.relationships.filter((relationship) => relationship.to.stateVariableName !== undefined && endpointMatches(relationship.from, functionSelection));
-    const inventory = classDiff.variableExposure;
-    const exposureCount = inventory === undefined || inventory === null ? undefined : inventory.filter((variable) => variable.kind === "instance" || variable.function === functionSelection.functionName).length;
-    return `${inspectorHeader(classDiff.name, functionDiff.name, functionDiff.changeType)}${diffEvidence(functionDiff.diffHunkIds)}${implementationDataflow.stage === "code-review" || classDiff.containerType === "module" ? "" : section("Exposure in this scope", exposureSummary(classDiff, functionDiff.name), exposureCount)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}${section("State written", flowRows(stateUpdates, "to", true), stateUpdates.length)}`;
-  } else if (inspected.type === "component") {
-    const component = graph.components.find((item) => item.name === inspected.componentName)!;
+    const stateUpdates = graph.relationships.filter((relationship) => relationship.to.type === "state-variable");
+    const containers = graph.containers.map((container) => `<button class="function-row" data-jump="${escapeHtml(JSON.stringify({ type: "container", containerId: container.id }))}"><div class="flow-endpoint">${escapeHtml(container.name)}</div><div class="flow-label">${container.functions.length} functions · ${container.stateVariables.length} state variables · ${container.staticData.length} static data</div></button>`).join("");
+    content = `${section("Containers", containers || '<p class="empty-copy">None</p>', graph.containers.length)}${section("State updates", flowRows(stateUpdates, "from", true), stateUpdates.length)}`;
+  } else if (inspected.type === "node") {
+    const node = implementationDataflow.nodes.find((node) => node.id === inspected.nodeId)!;
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, inspected));
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
-    return `${inspectorHeader(COMPONENT_LABELS[component.type], component.name, component.changeType)}${diffEvidence(component.diffHunkIds)}${section("Description", `<p class="component-description">${escapeHtml(component.description)}</p>`)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
-  } else if (inspected.type === "static-data") {
-    const entry = graph.staticData.find((item) => item.name === inspected.staticDataName)!;
-    const readers = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
-    return `${inspectorHeader("Static data", entry.name, entry.changeType)}${diffEvidence(entry.diffHunkIds)}${section("Read by", flowRows(readers, "to"), readers.length)}`;
+    content = `${inspectorHeader(NODE_LABELS[node.type], node.name, node.changeType)}${diffEvidence(node.diffHunkIds)}${node.description === undefined ? "" : section("Description", `<p class="component-description">${escapeHtml(node.description)}</p>`)}`;
+    if ("containerId" in node && node.containerId !== undefined) {
+      const owner = implementationDataflow.containers.find((container) => container.id === node.containerId)!;
+      content += section("Container", `<button class="function-row" data-jump="${escapeHtml(JSON.stringify({ type: "container", containerId: owner.id }))}"><div class="flow-endpoint">${escapeHtml(owner.name)}</div><div class="flow-label">${owner.type}</div></button>`);
+    }
+    if (node.type === "function") {
+      const writes = outputs.filter((relationship) => relationship.to.type === "state-variable");
+      const transfers = outputs.filter((relationship) => relationship.to.type !== "state-variable");
+      content += `${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(transfers, "to"), transfers.length)}${section("State written", flowRows(writes, "to", true), writes.length)}`;
+    } else if (node.type === "state-variable") {
+      content += `${section("Read by", flowRows(outputs, "to"), outputs.length)}${section("Written by", flowRows(inputs, "from", true), inputs.length)}`;
+    } else if (node.type === "static-data") {
+      content += section("Read by", flowRows(outputs, "to"), outputs.length);
+    } else if (["ui-component", "system-input", "system-output", "external-dependency"].includes(node.type)) {
+      content += `${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
+    }
+  } else if (inspected.type === "container") {
+    const container = graph.containers.find((container) => container.id === inspected.containerId)!;
+    const writes = graph.relationships.filter((relationship) => relationship.to.type === "state-variable" && relationship.to.boxId === container.id);
+    content = `${inspectorHeader(container.type === "class" ? "Class" : "Module", container.name, container.changeType, "Derived from owned nodes")}${diffEvidence(container.diffHunkIds)}${section("Functions", nodeRows(container.functions), container.functions.length)}${section("State variables", nodeRows(container.stateVariables), container.stateVariables.length)}${section("Static data", nodeRows(container.staticData), container.staticData.length)}${section("State written by", flowRows(writes, "from", true), writes.length)}`;
   } else if (inspected.type === "relationship") {
     const edges = relationshipsForEdge(graph, inspected.edge);
     if (edges.length === 0) {
-      return `${inspectorHeader("Relationship", "Not visible", "unchanged")}<p class="empty-copy">The current filters hide this relationship.</p>`;
+      content = `${inspectorHeader("Relationship", "Not visible", "unchanged")}<p class="empty-copy">The current filters hide this relationship.</p>`;
+    } else {
+      const first = edges[0];
+      const merged = edges.length > 1;
+      const arrow = first.relationship.type === "composition" ? "owns" : first.to.type === "state-variable" ? "↝" : first.from.type === "state-variable" ? "⇢" : "→";
+      const title = merged ? `${endpointBoxLabel(first.from)} → ${endpointBoxLabel(first.to)}` : `${endpointLabel(first.from)} ${arrow} ${endpointLabel(first.to)}`;
+      const eyebrow = merged ? "Merged relationships" : first.relationship.type === "composition" ? "Composition" : first.to.type === "state-variable" ? "State update" : first.from.type === "state-variable" ? "State read" : "Dataflow";
+      const entries = edges.map((item) => `<div class="relationship-entry" style="border-color:${changeColor(item.relationship.changeType)}">${merged ? `<button class="entry-endpoints" data-jump="${escapeHtml(JSON.stringify(selectionForEndpoint(item.to)))}">${escapeHtml(endpointLabel(item.from))} → ${escapeHtml(endpointLabel(item.to))}</button><div class="entry-chips"><span class="change-chip" style="${chipStyle(item.relationship.changeType)}">${item.relationship.changeType}</span></div>` : ""}${item.relationship.type === "dataflow" ? `<div class="entry-heading">Data</div><p class="entry-copy">${escapeHtml(item.relationship.dataDescription)}</p><div class="entry-heading">Purpose</div><p class="entry-copy">${escapeHtml(item.relationship.purpose)}</p>` : `<p class="entry-copy">${escapeHtml(endpointLabel(item.from))} owns instances of ${escapeHtml(endpointLabel(item.to))}.</p>`}</div>`).join("");
+      content = `${inspectorHeader(eyebrow, title, first.relationship.changeType, merged ? `${edges.length} relationships` : undefined)}${diffEvidence([...new Set(edges.flatMap((edge) => edge.relationship.diffHunkIds ?? []))])}${section("Description", entries, merged ? edges.length : undefined)}`;
     }
-    const arrow = (item: ResolvedRelationship) => {
-      if (item.to.stateVariableName !== undefined) {
-        return "↝";
-      } else if (item.from.stateVariableName !== undefined) {
-        return "⇢";
-      } else {
-        return "→";
-      }
-    };
-    const merged = edges.length > 1;
-    const first = edges[0];
-    const entries = edges
-      .map((item) => {
-        const { dataDescription, purpose, changeType } = item.relationship;
-        return `<div class="relationship-entry" style="border-color:${changeColor(changeType)}">
-          ${merged ? `<button class="entry-endpoints" data-jump="${escapeHtml(JSON.stringify(selectionForEndpoint(item.to)))}">${escapeHtml(endpointLabel(item.from))} ${arrow(item)} ${escapeHtml(endpointLabel(item.to))}</button><div class="entry-chips"><span class="change-chip" style="${chipStyle(changeType)}">${changeType}</span></div>` : ""}
-          <div class="entry-heading">Data</div>
-          <p class="entry-copy">${escapeHtml(dataDescription ?? "Not described.")}</p>
-          <div class="entry-heading">Purpose</div>
-          <p class="entry-copy">${escapeHtml(purpose ?? "Not described.")}</p>
-        </div>`;
-      })
-      .join("");
-    const title = merged ? `${first.from.nodeName} → ${first.to.nodeName}` : `${endpointLabel(first.from)} ${arrow(first)} ${endpointLabel(first.to)}`;
-    let eyebrow = "Dataflow";
-    if (merged) {
-      eyebrow = "Merged relationships";
-    } else if (first.to.stateVariableName !== undefined) {
-      eyebrow = "State update";
-    } else if (first.from.stateVariableName !== undefined) {
-      eyebrow = "State read";
-    }
-    const detail = merged ? `${edges.length} relationships` : undefined;
-    return `${inspectorHeader(eyebrow, title, first.relationship.changeType, detail)}${diffEvidence([...new Set(edges.flatMap((edge) => edge.relationship.diffHunkIds ?? []))])}${section("Description", entries, merged ? edges.length : undefined)}`;
-  } else {
-    const classSelection = inspected;
-    const classDiff = graph.classes.find((item) => item.name === classSelection.className)!;
-    const stateUpdates = graph.relationships.filter((relationship) => relationship.to.stateVariableName !== undefined && relationship.to.nodeName === classDiff.name);
-    const functions = classDiff.functions
-      .map((functionDiff) => `<button class="function-row" style="border-color:${changeColor(functionDiff.changeType)}" data-jump="${escapeHtml(JSON.stringify({ type: "function", className: classDiff.name, functionName: functionDiff.name }))}"><div class="flow-endpoint">${escapeHtml(functionDiff.name)}</div><div class="flow-label">${functionDiff.changeType}</div></button>`)
-      .join("");
-    const exposureCount = classExposureCount(classDiff);
-    const stateVariables = classDiff.stateVariables.map((variable) => `<div class="function-row" style="border-color:${changeColor(variable.changeType)}"><div class="flow-endpoint">${escapeHtml(variable.name)}</div><div class="flow-label">${variable.changeType}</div></div>${diffEvidence(variable.diffHunkIds)}`).join("");
-    return `${inspectorHeader(classDiff.containerType === "module" ? "Module" : "Class", classDiff.name, classDiff.changeType, implementationDataflow.stage === "code-review" || classDiff.containerType === "module" ? undefined : `${exposureCount === null ? "?" : exposureCount} exposed vars`)}${diffEvidence(classDiff.diffHunkIds)}${implementationDataflow.stage === "code-review" || classDiff.containerType === "module" ? "" : section("Variable exposure", exposureSummary(classDiff), exposureCount ?? undefined)}${section("Functions", functions.length === 0 ? '<p class="empty-copy">No visible functions</p>' : `<div class="function-list">${functions}</div>`, classDiff.functions.length)}${classDiff.containerType === "module" ? "" : section("State variables", stateVariables || '<p class="empty-copy">None</p>', classDiff.stateVariables.length)}${classDiff.containerType === "module" ? "" : section("Instance state written by", flowRows(stateUpdates, "from", true), stateUpdates.length)}`;
   }
+  return content;
 }
 
 function updateInspector(): void {
@@ -614,7 +398,7 @@ function render(): void {
         <div class="control-group">
           <button class="control-button open-button" data-open>Open JSON</button>
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
-          <button class="control-button${functionsHidden ? " active" : ""}" data-toggle-functions>${functionsHidden ? "Show functions" : "Hide functions"}</button>
+          <button class="control-button${functionsHidden ? " active" : ""}" data-toggle-functions>${functionsHidden ? "Expand containers" : "Collapse containers"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
       </div>
@@ -738,17 +522,15 @@ function bindEvents(): void {
   });
   for (const element of app.querySelectorAll<HTMLElement>("[data-select]")) {
     const target = (): Selection => {
-      if (element.dataset.select === "static-data") {
-        return { type: "static-data", staticDataName: element.dataset.staticData! };
-      } else if (element.dataset.select === "component") {
-        return { type: "component", componentName: element.dataset.component! };
-      } else if (element.dataset.select === "function") {
-        return { type: "function", className: element.dataset.class!, functionName: element.dataset.function! };
+      let targetSelection: Selection;
+      if (element.dataset.select === "node") {
+        targetSelection = { type: "node", nodeId: element.dataset.nodeId! };
+      } else if (element.dataset.select === "container") {
+        targetSelection = { type: "container", containerId: element.dataset.container! };
       } else if (element.dataset.select === "relationship") {
-        return { type: "relationship", edge: element.dataset.edge! };
-      } else {
-        return { type: "class", className: element.dataset.class! };
+        targetSelection = { type: "relationship", edge: element.dataset.edge! };
       }
+      return targetSelection!;
     };
     element.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -843,43 +625,36 @@ function updateGraphTransform(): void {
 }
 
 function endpointDatasetMatches(element: HTMLElement | SVGElement, prefix: "from" | "to", value: Selection): boolean {
-  const nodeName = element.getAttribute(`data-${prefix}-node`)!;
-  const functionName = element.getAttribute(`data-${prefix}-function`) || undefined;
-  const component = element.getAttribute(`data-${prefix}-component`) === "true";
-  const staticData = element.getAttribute(`data-${prefix}-static-data`) === "true";
-  return endpointMatches({ nodeName, functionName, component, staticData }, value);
+  return endpointMatches({
+    boxId: element.getAttribute(`data-${prefix}-box`)!,
+    nodeId: element.getAttribute(`data-${prefix}-node-id`) || undefined,
+    type: element.getAttribute(`data-${prefix}-type`)! as ResolvedEndpoint["type"],
+  }, value);
 }
 
 function updateGraphFocus(value: Selection | undefined): void {
   value = graphFocus(value);
-  const relationships = visibleGraph().relationships;
+  const relatedBoxes = new Set<string>();
   const relatedNodes = new Set<string>();
-  const relatedFunctions = new Set<string>();
-  if (value !== undefined) {
-    if (value.type === "static-data") {
-      relatedNodes.add(value.staticDataName);
-    } else if (value.type === "component") {
-      relatedNodes.add(value.componentName);
-    } else if (value.type === "function") {
-      relatedNodes.add(value.className);
-      relatedFunctions.add(functionKey(value.className, value.functionName));
-    } else if (value.type === "class") {
-      relatedNodes.add(value.className);
-    }
-    for (const relationship of relationships.filter((item) => relationshipMatches(item, value))) {
-      relatedNodes.add(relationship.from.nodeName);
-      relatedNodes.add(relationship.to.nodeName);
-      if (relationship.from.functionName !== undefined) relatedFunctions.add(functionKey(relationship.from.nodeName, relationship.from.functionName));
-      if (relationship.to.functionName !== undefined) relatedFunctions.add(functionKey(relationship.to.nodeName, relationship.to.functionName));
+  if (value?.type === "container") {
+    relatedBoxes.add(value.containerId);
+  } else if (value?.type === "node") {
+    const node = implementationDataflow.nodes.find((node) => node.id === value.nodeId)!;
+    relatedNodes.add(node.id);
+    relatedBoxes.add("containerId" in node && node.containerId !== undefined ? node.containerId : node.id);
+  }
+  for (const relationship of visibleGraph().relationships.filter((item) => relationshipMatches(item, value))) {
+    for (const endpoint of [relationship.from, relationship.to]) {
+      relatedBoxes.add(endpoint.boxId);
+      if (endpoint.nodeId !== undefined) relatedNodes.add(endpoint.nodeId);
     }
   }
   for (const element of app.querySelectorAll<HTMLElement>(".graph-node[data-node]")) {
-    const exactFunction = element.dataset.function === undefined || relatedFunctions.has(functionKey(element.dataset.node!, element.dataset.function));
-    const selectedClass = value?.type === "class" && value.className === element.dataset.node;
-    element.classList.toggle("dimmed", value !== undefined && (!relatedNodes.has(element.dataset.node!) || (!exactFunction && !selectedClass)));
+    const memberVisible = element.dataset.nodeId === undefined || relatedNodes.has(element.dataset.nodeId) || (value?.type === "container" && value.containerId === element.dataset.node);
+    element.classList.toggle("dimmed", value !== undefined && (!relatedBoxes.has(element.dataset.node!) || !memberVisible));
   }
   for (const element of app.querySelectorAll<SVGElement>(".class-frame[data-node]")) {
-    element.classList.toggle("dimmed", value !== undefined && !relatedNodes.has(element.dataset.node!));
+    element.classList.toggle("dimmed", value !== undefined && !relatedBoxes.has(element.dataset.node!));
   }
   for (const element of app.querySelectorAll<SVGElement>("[data-relation]")) {
     const relevant = value !== undefined && (value.type === "relationship"

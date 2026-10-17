@@ -1,49 +1,61 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { computeLayout as computeNewLayout } from "../common/impl-dataflow/visualizer/src/layout.ts";
-import { edgeKey, isInternalStateRelationship, mergeClassDataflows, resolveEndpoint as resolveNewEndpoint } from "../common/impl-dataflow/visualizer/src/types.ts";
+import { computeLayout } from "../common/impl-dataflow/visualizer/src/layout.ts";
+import { filterGraph } from "../common/impl-dataflow/visualizer/src/filter.ts";
+import { edgeKey, isInternalDataRelationship, mergeContainerDataflows } from "../common/impl-dataflow/visualizer/src/types.ts";
 
-test("feature-design collapsed layout hides class internals", () => {
-  const nodes = [{
-    name: "ChangeModel",
-    changeType: "added",
-    functions: [{ name: "applyChanges", changeType: "added" }],
-    stateVariables: [{ name: "changes", changeType: "added" }],
-  }];
-  const layout = computeNewLayout(nodes, [], true, () => 80, () => 90, () => 160, new Set());
+function implementation(relationships = []) {
+  return {
+    schemaVersion: 14,
+    stage: "high-level-design",
+    containers: [{ id: "model", name: "Model", type: "class" }, { id: "controller", name: "Controller", type: "module" }],
+    nodes: [
+      { id: "write", name: "update", type: "function", containerId: "model", changeType: "added" },
+      { id: "read", name: "read", type: "function", containerId: "model", changeType: "added" },
+      { id: "handle", name: "update", type: "function", containerId: "controller", changeType: "added" },
+      { id: "value", name: "value", type: "state-variable", containerId: "model", changeType: "added" },
+      { id: "rules", name: "Rules", type: "static-data", containerId: "model", changeType: "added" },
+    ],
+    relationships,
+  };
+}
 
-  assert.equal(layout.functionRects.size, 0);
-  assert.equal(layout.stateRects.size, 0);
+function dataflow(fromId, fromType, toId, toType) {
+  return { from: { nodeId: fromId, type: fromType }, to: { nodeId: toId, type: toType }, type: "dataflow", changeType: "added", dataDescription: "Value", purpose: "Process value" };
+}
+
+test("collapsed layout hides functions, state, and owned static data", () => {
+  const graph = filterGraph(implementation(), true);
+  const collapsed = computeLayout(graph.nodes, graph.relationships, true, () => 80, () => 90, () => 160, new Set());
+  assert.equal(collapsed.memberRects.size, 0);
+  assert.equal(collapsed.stateRects.size, 0);
+  const expanded = computeLayout(graph.nodes, graph.relationships, false, () => 80, () => 90, () => 160, new Set());
+  assert.equal(expanded.memberRects.size, 5);
+  assert.ok(expanded.memberRects.has("rules"));
+  assert.ok(expanded.memberRects.has("value"));
 });
 
-test("feature-design identifies only same-class state relationships as internal", () => {
-  const relationship = (type, from, to) => ({
-    relationship: { type },
-    from: resolveNewEndpoint(from),
-    to: resolveNewEndpoint(to),
-  });
-
-  assert.equal(isInternalStateRelationship(relationship("dataflow", { class: "Model", function: "write" }, { class: "Model", stateVariable: "value" })), true);
-  assert.equal(isInternalStateRelationship(relationship("dataflow", { class: "Model", stateVariable: "value" }, { class: "Model", function: "read" })), true);
-  assert.equal(isInternalStateRelationship(relationship("dataflow", { class: "Controller", function: "write" }, { class: "Model", stateVariable: "value" })), false);
-  assert.equal(isInternalStateRelationship(relationship("dataflow", { class: "Model", function: "first" }, { class: "Model", function: "second" })), false);
+test("only same-container state and static-data accesses are internal", () => {
+  const graph = filterGraph(implementation([
+    dataflow("write", "function", "value", "state-variable"),
+    dataflow("value", "state-variable", "read", "function"),
+    dataflow("handle", "function", "value", "state-variable"),
+    dataflow("write", "function", "read", "function"),
+    dataflow("rules", "static-data", "read", "function"),
+  ]), true);
+  assert.deepEqual(graph.relationships.map(isInternalDataRelationship), [true, true, false, false, true]);
 });
 
-test("collapsed dataflows merge state accesses and retain their inspector references", () => {
-  const relationships = [
-    { from: { class: "Controller", function: "handle" }, to: { class: "Model", function: "refresh" } },
-    { from: { class: "Controller", function: "handle" }, to: { class: "Model", stateVariable: "value" } },
-    { from: { class: "Model", stateVariable: "value" }, to: { class: "Controller", function: "handle" } },
-  ].map(({ from, to }) => ({
-    relationship: { type: "dataflow", changeType: "added" },
-    from: resolveNewEndpoint(from),
-    to: resolveNewEndpoint(to),
-  }));
-  const merged = mergeClassDataflows(relationships);
-
+test("collapsed dataflows merge by container IDs and retain all inspector references", () => {
+  const graph = filterGraph(implementation([
+    dataflow("handle", "function", "read", "function"),
+    dataflow("handle", "function", "value", "state-variable"),
+    dataflow("value", "state-variable", "handle", "function"),
+  ]), true);
+  const merged = mergeContainerDataflows(graph.relationships);
   assert.equal(merged.length, 2);
-  assert.deepEqual(relationships.filter((relationship) => edgeKey(relationship, true) === edgeKey(merged[0], true)), relationships.slice(0, 2));
-  assert.deepEqual(relationships.filter((relationship) => edgeKey(relationship, true) === edgeKey(merged[1], true)), relationships.slice(2));
-  assert.notEqual(edgeKey(relationships[0], false), edgeKey(relationships[1], false));
+  assert.deepEqual(graph.relationships.filter((relationship) => edgeKey(relationship, true) === edgeKey(merged[0], true)), graph.relationships.slice(0, 2));
+  assert.deepEqual(graph.relationships.filter((relationship) => edgeKey(relationship, true) === edgeKey(merged[1], true)), graph.relationships.slice(2));
+  assert.notEqual(edgeKey(graph.relationships[0], false), edgeKey(graph.relationships[1], false));
 });

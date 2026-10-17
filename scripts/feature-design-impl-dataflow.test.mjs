@@ -10,7 +10,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 
 import { filterGraph } from "../common/impl-dataflow/visualizer/src/filter.ts";
 import { computeLayout } from "../common/impl-dataflow/visualizer/src/layout.ts";
-import { mergeClassDataflows } from "../common/impl-dataflow/visualizer/src/types.ts";
+import { edgeKey, mergeContainerDataflows } from "../common/impl-dataflow/visualizer/src/types.ts";
 import { semanticError } from "../common/impl-dataflow/visualizer/src/validation.ts";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -283,58 +283,103 @@ test("changed relationships do not independently mark containers changed", async
   assert.match((await runValidator(t, input)).stderr, /changedComponentCount must equal the derived count: 1/);
 });
 
-// The visualizer remains on version 13 until its separate migration.
-function legacyCodeReview() {
-  return {
-    schemaVersion: 13,
-    stage: "code-review",
-    diffHunks: [],
-    classes: [{ name: "Service", changeType: "unchanged", functions: [{ name: "inspect", changeType: "unchanged" }], stateVariables: [] }],
-    components: [],
-    staticData: [],
-    relationships: [],
-  };
-}
-
-test("code-review graphs filter without variable exposure inventories", () => {
-  const graph = filterGraph(legacyCodeReview(), true);
-  assert.equal(graph.classes.length, 1);
-  assert.equal(graph.classes[0].variableExposure, null);
-});
-
-test("legacy visualizer keeps static data, shared readers, and state accesses", () => {
-  const input = legacyCodeReview();
-  input.classes[0].functions.push({ name: "preview", changeType: "unchanged" });
-  input.classes[0].stateVariables.push({ name: "value", changeType: "unchanged" });
-  input.staticData.push({ name: "Lookup Rules", changeType: "unchanged" });
-  for (const functionName of ["inspect", "preview"]) {
-    input.relationships.push({ from: { staticData: "Lookup Rules" }, to: { class: "Service", function: functionName }, type: "dataflow", changeType: "added", dataDescription: "Rules", purpose: "Guide inspection" });
-  }
-  input.relationships.push({ from: { class: "Service", stateVariable: "value" }, to: { class: "Service", function: "preview" }, type: "dataflow", changeType: "added", dataDescription: "Value", purpose: "Preview value" });
+test("visualizer loads version 14 examples with owned static data", async () => {
+  const input = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"), "utf8"));
   assert.equal(semanticError(input), undefined);
   const graph = filterGraph(input, true);
-  assert.equal(graph.staticData.length, 1);
-  assert.equal(graph.relationships.filter((entry) => entry.from.staticData).length, 2);
-  assert.ok(graph.relationships.some((entry) => entry.from.stateVariableName === "value"));
-  assert.equal(mergeClassDataflows(graph.relationships)[0].from.staticData, true);
-  assert.equal(filterGraph(input, false).relationships.length, 0);
+  assert.equal(graph.containers.length, input.containers.length);
+  const service = graph.containers.find((container) => container.name === "ChangeService");
+  assert.equal(service.changeType, "changed");
+  assert.deepEqual(service.staticData.map((node) => node.name), ["Diff Format Rules"]);
+  assert.equal(graph.staticData.length, 0);
   const layout = computeLayout(graph.nodes, graph.relationships, false, () => 80, () => 80, () => 100, new Set());
-  assert.ok(layout.boxes.get("Lookup Rules").y < layout.boxes.get("Service").y);
+  for (const node of input.nodes) {
+    assert.ok(layout.memberRects.has(node.id) || layout.boxes.has(node.id));
+  }
 });
 
-test("legacy visualizer retains module grouping and component direction checks", () => {
-  const input = legacyCodeReview();
-  input.classes = [];
-  input.modules = [{ name: "operations", changeType: "modified", functions: [{ name: "read", changeType: "modified" }] }];
-  input.components.push({ name: "Output", description: "Final result", type: "system-output", changeType: "unchanged" });
-  input.relationships.push({ from: { module: "operations", function: "read" }, to: { component: "Output" }, type: "dataflow", changeType: "modified", dataDescription: "Result", purpose: "Publish result" });
+test("visualizer keeps repeated member names and container/node names distinct by ID", () => {
+  const input = highLevelDesign();
+  input.nodes.push(
+    { id: "module-inspect", name: "inspect", type: "function", containerId: "operations", changeType: "unchanged" },
+    { id: "module-rules", name: "Rules", type: "static-data", containerId: "operations", changeType: "unchanged" },
+    { id: "service-panel", name: "Service", type: "ui-component", description: "Service panel", changeType: "unchanged" },
+  );
+  for (const nodeId of ["inspect", "module-inspect"]) {
+    input.relationships.push({ from: { nodeId: "service-panel", type: "ui-component" }, to: { nodeId, type: "function" }, type: "dataflow", changeType: "added", dataDescription: "Request", purpose: "Inspect" });
+  }
   assert.equal(semanticError(input), undefined);
   const graph = filterGraph(input, true);
-  assert.equal(graph.classes[0].containerType, "module");
-  assert.deepEqual(graph.classes[0].functions.map((entry) => entry.name), ["read"]);
-  [input.relationships[0].from, input.relationships[0].to] = [input.relationships[0].to, input.relationships[0].from];
-  assert.match(semanticError(input), /System-output component cannot send data/);
-  input.components[0].type = "system-input";
-  [input.relationships[0].from, input.relationships[0].to] = [input.relationships[0].to, input.relationships[0].from];
-  assert.match(semanticError(input), /System-input component cannot receive data/);
+  const layout = computeLayout(graph.nodes, graph.relationships, false, () => 80, () => 80, () => 100, new Set());
+  assert.notDeepEqual(layout.memberRects.get("inspect"), layout.memberRects.get("module-inspect"));
+  assert.notDeepEqual(layout.memberRects.get("rules"), layout.memberRects.get("module-rules"));
+  assert.notDeepEqual(layout.boxes.get("service"), layout.boxes.get("service-panel"));
+  assert.notEqual(edgeKey(graph.relationships[0], false), edgeKey(graph.relationships[1], false));
+  assert.equal(mergeContainerDataflows(graph.relationships).length, 2);
+});
+
+test("visualizer filters all member types and derives status from changed owned nodes", () => {
+  const input = highLevelDesign();
+  assert.equal(filterGraph(input, false).nodes.length, 0);
+  input.nodes[1].changeType = "modified";
+  input.nodes[2].changeType = "added";
+  const graph = filterGraph(input, false);
+  assert.equal(graph.containers.length, 2);
+  assert.ok(graph.containers.every((container) => container.changeType === "changed"));
+  assert.equal(graph.containers[0].functions.length, 0);
+  assert.equal(graph.containers[0].staticData.length, 1);
+  assert.equal(graph.containers[1].stateVariables.length, 1);
+
+  const unchanged = filterGraph(highLevelDesign(), true);
+  assert.ok(unchanged.containers.every((container) => container.changeType === "unchanged"));
+});
+
+test("composition-only changes retain unchanged containers without implying member changes", () => {
+  const input = highLevelDesign();
+  input.nodes = [];
+  input.containers[1].type = "class";
+  input.relationships.push({ from: { containerId: "service", type: "class" }, to: { containerId: "operations", type: "class" }, type: "composition", changeType: "added" });
+  const graph = filterGraph(input, false);
+  assert.equal(graph.containers.length, 2);
+  assert.ok(graph.containers.every((container) => container.changeType === "unchanged"));
+  const layout = computeLayout(graph.nodes, graph.relationships, true, () => 80, () => 80, () => 100, new Set());
+  assert.equal(layout.compositionRelationships.length, 1);
+});
+
+test("visualizer supports boundary-only graphs and an empty graph", () => {
+  const input = highLevelDesign();
+  input.containers = [];
+  input.nodes = [
+    { id: "input", name: "Input", type: "system-input", description: "Incoming request", changeType: "added" },
+    { id: "output", name: "Output", type: "system-output", description: "Published result", changeType: "added" },
+    { id: "rules", name: "Rules", type: "static-data", changeType: "added" },
+  ];
+  input.relationships.push({ from: { nodeId: "input", type: "system-input" }, to: { nodeId: "output", type: "system-output" }, type: "dataflow", changeType: "added", dataDescription: "Result", purpose: "Publish" });
+  assert.equal(semanticError(input), undefined);
+  const graph = filterGraph(input, false);
+  const layout = computeLayout(graph.nodes, graph.relationships, false, () => 80, () => 80, () => 100, new Set());
+  assert.equal(graph.containers.length, 0);
+  assert.equal(layout.boxes.size, 3);
+  assert.ok(layout.boxes.get("input").y < layout.boxes.get("output").y);
+  input.nodes = [];
+  input.relationships = [];
+  const empty = filterGraph(input, true);
+  assert.equal(computeLayout(empty.nodes, empty.relationships, false, () => 80, () => 80, () => 100, new Set()).boxes.size, 0);
+});
+
+test("visualizer and CLI share semantic validation for ownership, endpoints, and hunk references", async (t) => {
+  const missingOwner = highLevelDesign();
+  missingOwner.nodes[0].containerId = "missing";
+  const mismatchedEndpoint = highLevelDesign();
+  mismatchedEndpoint.relationships.push({ from: { nodeId: "rules", type: "function" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow", changeType: "unchanged", dataDescription: "Rules", purpose: "Inspect" });
+  const invalidEvidence = highLevelDesign();
+  invalidEvidence.stage = "code-review";
+  invalidEvidence.diffHunks = [];
+  invalidEvidence.containers[0].diffHunkIds = ["missing"];
+  for (const input of [missingOwner, mismatchedEndpoint, invalidEvidence]) {
+    const error = semanticError(input);
+    const result = await runValidator(t, input);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes(error));
+  }
 });

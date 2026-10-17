@@ -1,5 +1,4 @@
 import type { GraphLayout, GraphNode, Rect, ResolvedRelationship } from "./types.ts";
-import { functionKey } from "./types.ts";
 
 export const FUNCTION_HEIGHT = 32;
 export const STATE_VARIABLE_HEIGHT = 20;
@@ -14,7 +13,7 @@ const COMPONENT_HEIGHT = 46;
 
 function acyclicEdges(nodes: GraphNode[], edges: ResolvedRelationship[]): ResolvedRelationship[] {
   const kept: ResolvedRelationship[] = [];
-  const adjacency = new Map(nodes.map((node) => [node.name, [] as string[]]));
+  const adjacency = new Map(nodes.map((node) => [node.id, [] as string[]]));
 
   function createsCycle(from: string, to: string): boolean {
     const visited = new Set<string>();
@@ -31,8 +30,8 @@ function acyclicEdges(nodes: GraphNode[], edges: ResolvedRelationship[]): Resolv
   }
 
   for (const edge of edges) {
-    const from = edge.from.nodeName;
-    const to = edge.to.nodeName;
+    const from = edge.from.boxId;
+    const to = edge.to.boxId;
     if (adjacency.has(from) && adjacency.has(to) && from !== to && !createsCycle(from, to)) {
       adjacency.get(from)!.push(to);
       kept.push(edge);
@@ -51,29 +50,29 @@ export function computeLayout(
   stateWriters: Set<string>,
 ): GraphLayout {
   if (nodes.length === 0) {
-    return { boxes: new Map(), functionRects: new Map(), stateRects: new Map(), compositionRelationships: [], width: 320, height: 240 };
+    return { boxes: new Map(), memberRects: new Map(), stateRects: new Map(), compositionRelationships: [], width: 320, height: 240 };
   }
 
-  const names = nodes.map((node) => node.name);
-  const index = new Map(names.map((name, position) => [name, position]));
-  const byName = new Map(nodes.map((node) => [node.name, node]));
-  const rank = new Map(names.map((name) => [name, 0]));
+  const ids = nodes.map((node) => node.id);
+  const index = new Map(ids.map((id, position) => [id, position]));
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const rank = new Map(ids.map((id) => [id, 0]));
   const composition = acyclicEdges(nodes, relationships.filter((item) => item.relationship.type === "composition"));
   const ownerOf = new Map<string, string>();
-  const childrenOf = new Map(names.map((name) => [name, [] as string[]]));
+  const childrenOf = new Map(ids.map((id) => [id, [] as string[]]));
 
   for (const edge of composition) {
-    if (!ownerOf.has(edge.to.nodeName)) ownerOf.set(edge.to.nodeName, edge.from.nodeName);
-    childrenOf.get(edge.from.nodeName)!.push(edge.to.nodeName);
+    if (!ownerOf.has(edge.to.boxId)) ownerOf.set(edge.to.boxId, edge.from.boxId);
+    childrenOf.get(edge.from.boxId)!.push(edge.to.boxId);
   }
 
   function relaxComposition(): void {
     for (let pass = 0; pass <= nodes.length; pass += 1) {
       let moved = false;
       for (const edge of composition) {
-        const nextRank = rank.get(edge.from.nodeName)! + 1;
-        if (rank.get(edge.to.nodeName) !== nextRank) {
-          rank.set(edge.to.nodeName, nextRank);
+        const nextRank = rank.get(edge.from.boxId)! + 1;
+        if (rank.get(edge.to.boxId) !== nextRank) {
+          rank.set(edge.to.boxId, nextRank);
           moved = true;
         }
       }
@@ -83,16 +82,16 @@ export function computeLayout(
 
   relaxComposition();
   const dataflows = relationships.filter((item) => item.relationship.type === "dataflow");
-  const classFlows = dataflows.filter((edge) => !edge.from.component && !edge.from.staticData && !edge.to.component && !edge.to.staticData);
-  const freeFlows = acyclicEdges(nodes, classFlows).filter(
-    (edge) => !ownerOf.has(edge.to.nodeName) && !ownerOf.has(edge.from.nodeName),
+  const containerFlows = dataflows.filter((edge) => edge.from.nodeId !== edge.from.boxId && edge.to.nodeId !== edge.to.boxId);
+  const freeFlows = acyclicEdges(nodes, containerFlows).filter(
+    (edge) => !ownerOf.has(edge.to.boxId) && !ownerOf.has(edge.from.boxId),
   );
   for (let pass = 0; pass <= nodes.length; pass += 1) {
     let moved = false;
     for (const edge of freeFlows) {
-      const nextRank = rank.get(edge.from.nodeName)! + 1;
-      if (rank.get(edge.to.nodeName)! < nextRank) {
-        rank.set(edge.to.nodeName, nextRank);
+      const nextRank = rank.get(edge.from.boxId)! + 1;
+      if (rank.get(edge.to.boxId)! < nextRank) {
+        rank.set(edge.to.boxId, nextRank);
         moved = true;
       }
     }
@@ -102,23 +101,23 @@ export function computeLayout(
 
   for (const node of nodes.filter((item) => item.nodeType !== undefined)) {
     const outgoing = dataflows
-      .filter((edge) => edge.from.nodeName === node.name && edge.to.nodeName !== node.name)
-      .map((edge) => rank.get(edge.to.nodeName)!);
+      .filter((edge) => edge.from.boxId === node.id && edge.to.boxId !== node.id)
+      .map((edge) => rank.get(edge.to.boxId)!);
     const incoming = dataflows
-      .filter((edge) => edge.to.nodeName === node.name && edge.from.nodeName !== node.name)
-      .map((edge) => rank.get(edge.from.nodeName)!);
+      .filter((edge) => edge.to.boxId === node.id && edge.from.boxId !== node.id)
+      .map((edge) => rank.get(edge.from.boxId)!);
     if (outgoing.length > 0) {
-      rank.set(node.name, Math.min(...outgoing) - 1);
+      rank.set(node.id, Math.min(...outgoing) - 1);
     } else if (incoming.length > 0) {
-      rank.set(node.name, Math.max(...incoming) + 1);
+      rank.set(node.id, Math.max(...incoming) + 1);
     }
   }
 
-  const minimumRank = Math.min(...names.map((name) => rank.get(name)!));
-  for (const name of names) rank.set(name, rank.get(name)! - minimumRank);
+  const minimumRank = Math.min(...ids.map((id) => rank.get(id)!));
+  for (const id of ids) rank.set(id, rank.get(id)! - minimumRank);
 
-  function visibleFunctions(node: GraphNode) {
-    return collapsed || node.nodeType !== undefined ? [] : node.functions;
+  function visibleMembers(node: GraphNode) {
+    return collapsed || node.nodeType !== undefined ? [] : [...node.functions, ...node.staticData];
   }
 
   function visibleStateVariables(node: GraphNode) {
@@ -141,20 +140,20 @@ export function computeLayout(
 
   function widthOf(node: GraphNode): number {
     if (node.nodeType !== undefined) return Math.max(164, measureComponent(node.name) + 62);
-    const functions = visibleFunctions(node);
-    const functionWidth = functions.reduce(
-      (total, functionDiff) => total + measureFunction(functionDiff.name, stateWriters.has(functionKey(node.name, functionDiff.name))) + FUNCTION_GAP,
+    const members = visibleMembers(node);
+    const memberWidth = members.reduce(
+      (total, member) => total + measureFunction(member.name, stateWriters.has(member.id)) + FUNCTION_GAP,
       -FUNCTION_GAP,
     );
     const stateBoxWidth = stateWidth(node);
-    const contentWidth = stateBoxWidth + (stateBoxWidth > 0 && functionWidth > 0 ? FUNCTION_GAP : 0) + Math.max(0, functionWidth);
+    const contentWidth = stateBoxWidth + (stateBoxWidth > 0 && memberWidth > 0 ? FUNCTION_GAP : 0) + Math.max(0, memberWidth);
     return Math.max(contentWidth + BOX_PADDING * 2, node.name.length * 7.4 + 120, 216);
   }
 
   function heightOf(node: GraphNode): number {
     if (node.nodeType !== undefined) return COMPONENT_HEIGHT;
-    const functionHeight = visibleFunctions(node).length > 0 ? FUNCTION_HEIGHT : 0;
-    const contentHeight = Math.max(functionHeight, stateHeight(node));
+    const memberHeight = visibleMembers(node).length > 0 ? FUNCTION_HEIGHT : 0;
+    const contentHeight = Math.max(memberHeight, stateHeight(node));
     if (contentHeight === 0) {
       return TAB_HEIGHT + BOX_PADDING * 2 + 4;
     } else {
@@ -162,105 +161,113 @@ export function computeLayout(
     }
   }
 
-  const maximumRank = Math.max(...names.map((name) => rank.get(name)!));
+  const maximumRank = Math.max(...ids.map((id) => rank.get(id)!));
   const rowTops: number[] = [];
   let y = 0;
   for (let row = 0; row <= maximumRank; row += 1) {
     rowTops.push(y);
-    const rowNodes = nodes.filter((node) => rank.get(node.name) === row);
+    const rowNodes = nodes.filter((node) => rank.get(node.id) === row);
     y += (rowNodes.length > 0 ? Math.max(...rowNodes.map(heightOf)) : 0) + GAP_Y;
   }
 
   const x = new Map<string, number>();
   let cursor = 0;
-  function place(name: string): number {
-    if (x.has(name)) return x.get(name)!;
-    const children = childrenOf.get(name)!.slice().sort((a, b) => index.get(a)! - index.get(b)!);
+  function place(id: string): number {
+    if (x.has(id)) return x.get(id)!;
+    const children = childrenOf.get(id)!.slice().sort((a, b) => index.get(a)! - index.get(b)!);
     if (children.length === 0) {
-      x.set(name, cursor);
-      cursor += widthOf(byName.get(name)!) + GAP_X;
+      x.set(id, cursor);
+      cursor += widthOf(byId.get(id)!) + GAP_X;
     } else {
       const spans = children.map((child) => {
         const childX = place(child);
-        return [childX, childX + widthOf(byName.get(child)!)] as const;
+        return [childX, childX + widthOf(byId.get(child)!)] as const;
       });
       const middle = (Math.min(...spans.map((span) => span[0])) + Math.max(...spans.map((span) => span[1]))) / 2;
-      x.set(name, middle - widthOf(byName.get(name)!) / 2);
+      x.set(id, middle - widthOf(byId.get(id)!) / 2);
     }
-    return x.get(name)!;
+    return x.get(id)!;
   }
 
-  const roots = names
-    .filter((name) => !ownerOf.has(name))
+  const roots = ids
+    .filter((id) => !ownerOf.has(id))
     .sort((a, b) => rank.get(a)! - rank.get(b)! || index.get(a)! - index.get(b)!);
   for (const root of roots) place(root);
-  for (const name of names) place(name);
+  for (const id of ids) place(id);
 
-  for (const edge of freeFlows.concat(dataflows.filter((flow) => flow.from.component || flow.from.staticData))) {
-    if (ownerOf.has(edge.from.nodeName) || childrenOf.get(edge.from.nodeName)!.length > 0) continue;
-    if (rank.get(edge.from.nodeName)! >= rank.get(edge.to.nodeName)!) continue;
+  for (const edge of freeFlows.concat(dataflows.filter((flow) => flow.from.nodeId === flow.from.boxId))) {
+    if (ownerOf.has(edge.from.boxId) || childrenOf.get(edge.from.boxId)!.length > 0) continue;
+    if (rank.get(edge.from.boxId)! >= rank.get(edge.to.boxId)!) continue;
     x.set(
-      edge.from.nodeName,
-      x.get(edge.to.nodeName)! + (widthOf(byName.get(edge.to.nodeName)!) - widthOf(byName.get(edge.from.nodeName)!)) / 2,
+      edge.from.boxId,
+      x.get(edge.to.boxId)! + (widthOf(byId.get(edge.to.boxId)!) - widthOf(byId.get(edge.from.boxId)!)) / 2,
     );
   }
 
   const rows = Array.from({ length: maximumRank + 1 }, (_, row) =>
-    names.filter((name) => rank.get(name) === row).sort((a, b) => x.get(a)! - x.get(b)!),
+    ids.filter((id) => rank.get(id) === row).sort((a, b) => x.get(a)! - x.get(b)!),
   );
   const rowWidths = rows.map(
-    (rowNames) => rowNames.reduce((total, name) => total + widthOf(byName.get(name)!), 0) + Math.max(0, rowNames.length - 1) * GAP_X,
+    (rowIds) => rowIds.reduce((total, id) => total + widthOf(byId.get(id)!), 0) + Math.max(0, rowIds.length - 1) * GAP_X,
   );
   const maximumRowWidth = Math.max(...rowWidths);
-  for (const [row, rowNames] of rows.entries()) {
+  for (const [row, rowIds] of rows.entries()) {
     let edge = (maximumRowWidth - rowWidths[row]) / 2;
-    for (const name of rowNames) {
-      x.set(name, edge);
-      edge += widthOf(byName.get(name)!) + GAP_X;
+    for (const id of rowIds) {
+      x.set(id, edge);
+      edge += widthOf(byId.get(id)!) + GAP_X;
     }
   }
 
-  const minimumX = Math.min(...names.map((name) => x.get(name)!));
+  const minimumX = Math.min(...ids.map((id) => x.get(id)!));
   const boxes = new Map<string, Rect>();
-  const functionRects = new Map<string, Rect>();
+  const memberRects = new Map<string, Rect>();
   const stateRects = new Map<string, Rect>();
   for (const node of nodes) {
     const box = {
-      x: x.get(node.name)! - minimumX,
-      y: rowTops[rank.get(node.name)!],
+      x: x.get(node.id)! - minimumX,
+      y: rowTops[rank.get(node.id)!],
       width: widthOf(node),
       height: heightOf(node),
     };
-    boxes.set(node.name, box);
-    let functionX = box.x + BOX_PADDING;
+    boxes.set(node.id, box);
+    let memberX = box.x + BOX_PADDING;
     if (visibleStateVariables(node).length > 0) {
       const width = stateWidth(node);
-      stateRects.set(node.name, {
-        x: functionX,
+      stateRects.set(node.id, {
+        x: memberX,
         y: box.y + TAB_HEIGHT,
         width,
         height: stateHeight(node),
       });
-      functionX += width + FUNCTION_GAP;
+      for (const [index, variable] of visibleStateVariables(node).entries()) {
+        memberRects.set(variable.id, {
+          x: memberX,
+          y: box.y + TAB_HEIGHT + 6 + index * STATE_VARIABLE_HEIGHT,
+          width,
+          height: STATE_VARIABLE_HEIGHT,
+        });
+      }
+      memberX += width + FUNCTION_GAP;
     }
-    for (const functionDiff of visibleFunctions(node)) {
-      const width = measureFunction(functionDiff.name, stateWriters.has(functionKey(node.name, functionDiff.name)));
-      functionRects.set(functionKey(node.name, functionDiff.name), {
-        x: functionX,
+    for (const member of visibleMembers(node)) {
+      const width = measureFunction(member.name, stateWriters.has(member.id));
+      memberRects.set(member.id, {
+        x: memberX,
         y: box.y + TAB_HEIGHT,
         width,
         height: FUNCTION_HEIGHT,
       });
-      functionX += width + FUNCTION_GAP;
+      memberX += width + FUNCTION_GAP;
     }
   }
 
   return {
     boxes,
-    functionRects,
+    memberRects,
     stateRects,
     compositionRelationships: composition,
-    width: Math.max(320, ...nodes.map((node) => boxes.get(node.name)!.x + boxes.get(node.name)!.width)),
+    width: Math.max(320, ...nodes.map((node) => boxes.get(node.id)!.x + boxes.get(node.id)!.width)),
     height: Math.max(240, y - GAP_Y),
   };
 }

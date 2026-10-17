@@ -1,79 +1,49 @@
-import type { ChangeType, ComponentDiff, GraphContainerDiff, GraphNode, ImplementationDataflow, ResolvedEndpoint, ResolvedRelationship, StaticDataDiff } from "./types.ts";
-import { functionKey, resolveEndpoint, stateVariableKey } from "./types.ts";
+import type { BoundaryNode, FunctionNode, StateVariableNode, StaticDataNode } from "../../types.ts";
+import type { DataflowNode, GraphContainer, GraphNode, ImplementationDataflow, ResolvedRelationship } from "./types.ts";
+import { resolveEndpoint } from "./types.ts";
 
 export interface VisibleGraph {
-  classes: GraphContainerDiff[];
-  components: ComponentDiff[];
-  staticData: StaticDataDiff[];
+  containers: GraphContainer[];
+  components: BoundaryNode[];
+  staticData: StaticDataNode[];
   nodes: GraphNode[];
   relationships: ResolvedRelationship[];
 }
 
 export function filterGraph(implementationDataflow: ImplementationDataflow, showUnchanged: boolean): VisibleGraph {
-  const visible = (entry: { changeType: ChangeType }) => showUnchanged || entry.changeType !== "unchanged";
-  const classes: GraphContainerDiff[] = implementationDataflow.classes.filter(visible).map((classDiff) => {
-    const functions = classDiff.functions.filter(visible);
-    const variableExposure = classDiff.variableExposure === undefined || classDiff.variableExposure === null ? null : classDiff.variableExposure.filter(
-      (variable) => variable.kind === "instance" || functions.some((functionDiff) => functionDiff.name === variable.function),
-    );
-    return {
-      ...classDiff,
-      functions,
-      variableExposure,
-    };
-  });
-  classes.push(...(implementationDataflow.modules ?? []).filter(visible).map((moduleDiff) => ({
-    ...moduleDiff,
-    functions: moduleDiff.functions.filter(visible),
-    stateVariables: [],
-    containerType: "module" as const,
-  })));
-  const components = implementationDataflow.components.filter(visible);
-  const staticData = implementationDataflow.staticData.filter(visible);
-  const nodes: GraphNode[] = [
-    ...classes.map((classDiff) => ({
-      name: classDiff.name,
-      changeType: classDiff.changeType,
-      functions: classDiff.functions,
-      stateVariables: classDiff.stateVariables,
-    })),
-    ...components.map((component) => ({
-      name: component.name,
-      changeType: component.changeType,
-      functions: [],
-      stateVariables: [],
-      nodeType: component.type,
-    })),
-    ...staticData.map((entry) => ({
-      name: entry.name,
-      changeType: entry.changeType,
-      functions: [],
-      stateVariables: [],
-      nodeType: "static-data" as const,
-    })),
-  ];
-  const classNames = new Set(classes.map((classDiff) => classDiff.name));
-  const componentNames = new Set(components.map((component) => component.name));
-  const staticDataNames = new Set(staticData.map((entry) => entry.name));
-  const functionNames = new Set(classes.flatMap((classDiff) => classDiff.functions.map((functionDiff) => functionKey(classDiff.name, functionDiff.name))));
-  const stateVariableNames = new Set(classes.flatMap((classDiff) => classDiff.stateVariables.map((stateVariable) => stateVariableKey(classDiff.name, stateVariable.name))));
-  const endpointVisible = (endpoint: ResolvedEndpoint) => {
-    if (endpoint.staticData) {
-      return staticDataNames.has(endpoint.nodeName);
-    } else if (endpoint.component) {
-      return componentNames.has(endpoint.nodeName);
-    } else if (endpoint.functionName !== undefined) {
-      return classNames.has(endpoint.nodeName) && functionNames.has(functionKey(endpoint.nodeName, endpoint.functionName));
-    } else if (endpoint.stateVariableName !== undefined) {
-      return classNames.has(endpoint.nodeName) && stateVariableNames.has(stateVariableKey(endpoint.nodeName, endpoint.stateVariableName));
-    } else {
-      return classNames.has(endpoint.nodeName);
+  const visibleNodes = implementationDataflow.nodes.filter((node) => showUnchanged || node.changeType !== "unchanged");
+  const nodeIds = new Set(visibleNodes.map((node) => node.id));
+  const changedContainerIds = new Set(implementationDataflow.nodes.flatMap((node) => node.changeType !== "unchanged" && "containerId" in node && node.containerId !== undefined ? [node.containerId] : []));
+  const containerIds = new Set(visibleNodes.flatMap((node) => "containerId" in node && node.containerId !== undefined ? [node.containerId] : []));
+  for (const relationship of implementationDataflow.relationships) {
+    if (relationship.type === "composition" && (showUnchanged || relationship.changeType !== "unchanged")) {
+      containerIds.add(relationship.from.containerId);
+      containerIds.add(relationship.to.containerId);
     }
-  };
-  const relationships = implementationDataflow.relationships.filter((relationship) => relationship.type === "composition" || visible(relationship)).map((relationship) => ({
-    relationship,
-    from: resolveEndpoint(relationship.from),
-    to: resolveEndpoint(relationship.to),
-  })).filter((relationship) => endpointVisible(relationship.from) && endpointVisible(relationship.to));
-  return { classes, components, staticData, nodes, relationships };
+  }
+  const containers: GraphContainer[] = implementationDataflow.containers.filter((container) => showUnchanged || containerIds.has(container.id)).map((container) => ({
+    ...container,
+    changeType: changedContainerIds.has(container.id) ? "changed" : "unchanged",
+    functions: visibleNodes.filter((node): node is FunctionNode => node.type === "function" && node.containerId === container.id),
+    stateVariables: visibleNodes.filter((node): node is StateVariableNode => node.type === "state-variable" && node.containerId === container.id),
+    staticData: visibleNodes.filter((node): node is StaticDataNode => node.type === "static-data" && node.containerId === container.id),
+  }));
+  const components = visibleNodes.filter((node): node is BoundaryNode => ["ui-component", "system-input", "system-output", "external-dependency"].includes(node.type));
+  const staticData = visibleNodes.filter((node): node is StaticDataNode => node.type === "static-data" && node.containerId === undefined);
+  const nodes: GraphNode[] = [
+    ...containers,
+    ...[...components, ...staticData].map((node) => ({ ...node, functions: [], stateVariables: [], staticData: [], nodeType: node.type })),
+  ];
+  const visibleContainerIds = new Set(containers.map((container) => container.id));
+  const allNodes = new Map(implementationDataflow.nodes.map((node): [string, DataflowNode] => [node.id, node]));
+  const relationships = implementationDataflow.relationships.filter((relationship) => {
+    let visible = false;
+    if (relationship.type === "dataflow") {
+      visible = (showUnchanged || relationship.changeType !== "unchanged") && nodeIds.has(relationship.from.nodeId) && nodeIds.has(relationship.to.nodeId);
+    } else if (relationship.type === "composition") {
+      visible = visibleContainerIds.has(relationship.from.containerId) && visibleContainerIds.has(relationship.to.containerId);
+    }
+    return visible;
+  }).map((relationship) => ({ relationship, from: resolveEndpoint(relationship.from, allNodes), to: resolveEndpoint(relationship.to, allNodes) }));
+  return { containers, components, staticData, nodes, relationships };
 }
