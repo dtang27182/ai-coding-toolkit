@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -323,7 +323,8 @@ test("the enrich-diff viewer loads all three files through the newest Rich Diff 
   const directory = await mkdtemp(path.join(os.tmpdir(), "enriched-patch-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const repositoryDirectory = path.join(directory, "repository");
-  const outputDirectory = path.join(repositoryDirectory, "docs", "plans", "feature");
+  const config = JSON.parse(await readFile(path.join(toolkitDirectory, "config.json"), "utf8"));
+  const outputDirectory = path.join(repositoryDirectory, config.outputDirectory, "feature");
   await mkdir(outputDirectory, { recursive: true });
   const older = path.join(outputDirectory, "older.rich-diff.json");
   const newer = path.join(outputDirectory, "newer.rich-diff.json");
@@ -345,7 +346,7 @@ test("the enrich-diff viewer loads all three files through the newest Rich Diff 
   const plugins = await richDiffPlugins(configPath, repositoryDirectory);
   const defaultResponse = await pluginResponse(plugins[0], "/__rich-diff/default");
   assert.equal(defaultResponse.statusCode, 200);
-  assert.equal(JSON.parse(defaultResponse.body).fileName, "docs/plans/feature/newer.rich-diff.json");
+  assert.equal(JSON.parse(defaultResponse.body).fileName, path.relative(repositoryDirectory, newer));
   assert.deepEqual(JSON.parse(JSON.parse(defaultResponse.body).contents), manifest);
   assert.equal((await pluginResponse(plugins[1], `/__rich-diff/reference?path=${encodeURIComponent(enrichedPatch)}`)).body, '{"patch":"example"}');
   assert.equal((await pluginResponse(plugins[1], `/__rich-diff/reference?path=${encodeURIComponent(sysDataflow)}`)).body, '{"feature":"example"}');

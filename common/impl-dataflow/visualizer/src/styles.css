@@ -807,6 +807,16 @@ button.function-row:hover {
   cursor: pointer;
 }
 
+.edge-return-ring {
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.return-rings {
+  z-index: 4;
+  pointer-events: none;
+}
+
 /* Relationship inspector */
 
 .flow-purpose {

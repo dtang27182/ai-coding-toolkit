@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI Coding Toolkit Implementation Dataflow — Nodes and Containers",
   "description": "impl-dataflow is shorthand for implementation dataflow. This JSON models proposed designs or implemented behavior using a flat array of typed dataflow nodes and class/module containers. Functions and mutable state belong to containers; static data may optionally belong to a container. Membership is distinct from class composition. Dataflow relationships connect nodes, and composition relationships connect class containers. Diff hunks provide code-review evidence.",
-  "$comment": "Schema version 14. Semantic validation must check that node and container IDs are unique across both arrays, container names are unique, owned node names are unique within each owner and subtype, and unowned node names are unique among unowned nodes. Resolve every containerId and endpoint ID explicitly, and verify that endpoint types match referenced entities. Diff-hunk IDs must be unique, every reference must resolve, and every diff hunk must be referenced by a node, container, or relationship. Validate derived counts against nodes and relationships. These cross-entry checks cannot be enforced by this static JSON Schema alone.",
+  "$comment": "Schema version 15. Semantic validation must check that node and container IDs are unique across both arrays, container names are unique, owned node names are unique within each owner and subtype, and unowned node names are unique among unowned nodes. Resolve every containerId and endpoint ID explicitly, and verify that endpoint types match referenced entities. Diff-hunk IDs must be unique, every reference must resolve, and every diff hunk must be referenced by a node, container, or relationship. Validate derived counts against nodes and relationships. These cross-entry checks cannot be enforced by this static JSON Schema alone.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -15,7 +15,7 @@
   "properties": {
     "schemaVersion": {
       "description": "Version of the Implementation Dataflow schema used by this document.",
-      "const": 14
+      "const": 15
     },
     "stage": {
       "description": "The development stage represented by this dataflow: proposed implementation during high-level design or implemented behavior during code review.",
@@ -676,6 +676,13 @@
         "type": {
           "$ref": "#/$defs/relationshipType"
         },
+        "transferType": {
+          "description": "Required only for function-to-function dataflows. arguments passes data from caller to callee through call arguments; return passes return data from callee to caller. Record the two directions separately, even when the visualizer draws them as one edge.",
+          "enum": [
+            "arguments",
+            "return"
+          ]
+        },
         "dataDescription": {
           "description": "What data this relationship transfers, reads, or modifies.",
           "type": "string",
@@ -691,6 +698,47 @@
         }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "dataflow"
+              },
+              "from": {
+                "type": "object",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "function"
+                  }
+                }
+              },
+              "to": {
+                "type": "object",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "function"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "transferType"
+            ]
+          },
+          "else": {
+            "properties": {
+              "transferType": false
+            }
+          }
+        },
         {
           "if": {
             "properties": {

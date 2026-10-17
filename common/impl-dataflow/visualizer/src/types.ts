@@ -74,20 +74,3 @@ export function resolveEndpoint(endpoint: RelationshipEndpoint, nodes: Map<strin
   }
   return resolved!;
 }
-
-export function mergeContainerDataflows(relationships: ResolvedRelationship[]): ResolvedRelationship[] {
-  const merged: ResolvedRelationship[] = [];
-  const seen = new Set<string>();
-  for (const item of relationships) {
-    if (item.relationship.type === "dataflow") {
-      const key = JSON.stringify([item.from.boxId, item.to.boxId, item.relationship.changeType]);
-      if (!seen.has(key)) {
-        seen.add(key);
-        merged.push(item);
-      }
-    } else if (item.relationship.type === "composition") {
-      merged.push(item);
-    }
-  }
-  return merged;
-}

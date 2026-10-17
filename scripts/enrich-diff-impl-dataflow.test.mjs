@@ -19,7 +19,7 @@ async function runValidator(t, dataflow, ...argumentsList) {
 
 function codeReview() {
   return {
-    schemaVersion: 14,
+    schemaVersion: 15,
     stage: "code-review",
     diffHunks: [{ id: "change", file: "src/Controller.ts", patch: "@@ -1 +1 @@\n-old implementation\n+new implementation" }],
     containers: [
@@ -44,6 +44,7 @@ function codeReview() {
       },
       {
         from: { nodeId: "read", type: "function" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow",
+        transferType: "return",
         changeType: "unchanged", dataDescription: "Source data", purpose: "Supplies the requested data.",
       },
       {

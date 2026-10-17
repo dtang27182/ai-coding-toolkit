@@ -3,11 +3,12 @@ import test from "node:test";
 
 import { computeLayout } from "../common/impl-dataflow/visualizer/src/layout.ts";
 import { filterGraph } from "../common/impl-dataflow/visualizer/src/filter.ts";
-import { edgeKey, isInternalDataRelationship, mergeContainerDataflows } from "../common/impl-dataflow/visualizer/src/types.ts";
+import { edgeKey, isInternalDataRelationship } from "../common/impl-dataflow/visualizer/src/types.ts";
+import { dataflowEdges, relationshipsForEdge } from "../common/impl-dataflow/visualizer/src/edges.ts";
 
 function implementation(relationships = []) {
   return {
-    schemaVersion: 14,
+    schemaVersion: 15,
     stage: "high-level-design",
     containers: [{ id: "model", name: "Model", type: "class" }, { id: "controller", name: "Controller", type: "module" }],
     nodes: [
@@ -22,7 +23,7 @@ function implementation(relationships = []) {
 }
 
 function dataflow(fromId, fromType, toId, toType) {
-  return { from: { nodeId: fromId, type: fromType }, to: { nodeId: toId, type: toType }, type: "dataflow", changeType: "added", dataDescription: "Value", purpose: "Process value" };
+  return { from: { nodeId: fromId, type: fromType }, to: { nodeId: toId, type: toType }, type: "dataflow", ...(fromType === "function" && toType === "function" ? { transferType: "arguments" } : {}), changeType: "added", dataDescription: "Value", purpose: "Process value" };
 }
 
 test("collapsed layout hides functions, state, and owned static data", () => {
@@ -47,15 +48,16 @@ test("only same-container state and static-data accesses are internal", () => {
   assert.deepEqual(graph.relationships.map(isInternalDataRelationship), [true, true, false, false, true]);
 });
 
-test("collapsed dataflows merge by container IDs and retain all inspector references", () => {
+test("collapsed dataflows retain inspector references without merging function calls with state accesses", () => {
   const graph = filterGraph(implementation([
     dataflow("handle", "function", "read", "function"),
     dataflow("handle", "function", "value", "state-variable"),
     dataflow("value", "state-variable", "handle", "function"),
   ]), true);
-  const merged = mergeContainerDataflows(graph.relationships);
-  assert.equal(merged.length, 2);
-  assert.deepEqual(graph.relationships.filter((relationship) => edgeKey(relationship, true) === edgeKey(merged[0], true)), graph.relationships.slice(0, 2));
-  assert.deepEqual(graph.relationships.filter((relationship) => edgeKey(relationship, true) === edgeKey(merged[1], true)), graph.relationships.slice(2));
+  const merged = dataflowEdges(graph.relationships, true);
+  assert.equal(merged.length, 3);
+  for (const [index, edge] of merged.entries()) {
+    assert.deepEqual(relationshipsForEdge(graph.relationships, edge.key, true), [graph.relationships[index]]);
+  }
   assert.notEqual(edgeKey(graph.relationships[0], false), edgeKey(graph.relationships[1], false));
 });

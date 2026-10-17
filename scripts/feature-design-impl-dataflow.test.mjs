@@ -10,7 +10,8 @@ import Ajv2020 from "ajv/dist/2020.js";
 
 import { filterGraph } from "../common/impl-dataflow/visualizer/src/filter.ts";
 import { computeLayout } from "../common/impl-dataflow/visualizer/src/layout.ts";
-import { edgeKey, mergeContainerDataflows } from "../common/impl-dataflow/visualizer/src/types.ts";
+import { edgeKey } from "../common/impl-dataflow/visualizer/src/types.ts";
+import { dataflowEdges } from "../common/impl-dataflow/visualizer/src/edges.ts";
 import { semanticError } from "../common/impl-dataflow/visualizer/src/validation.ts";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -18,7 +19,7 @@ const validatorPath = path.join(toolkitDirectory, "common/impl-dataflow/validate
 
 function highLevelDesign() {
   return {
-    schemaVersion: 14,
+    schemaVersion: 15,
     stage: "high-level-design",
     containers: [{ id: "service", name: "Service", type: "class" }, { id: "operations", name: "operations", type: "module" }],
     nodes: [
@@ -60,7 +61,7 @@ test("high-level-design validation accepts the implementation example", async (t
 
 test("container-free graphs are valid but functions still require an existing owner", async (t) => {
   for (const stage of ["high-level-design", "code-review"]) {
-    const input = { schemaVersion: 14, stage, containers: [], nodes: [], relationships: [] };
+    const input = { schemaVersion: 15, stage, containers: [], nodes: [], relationships: [] };
     if (stage === "code-review") {
       input.diffHunks = [];
     }
@@ -175,6 +176,7 @@ test("dataflow endpoints resolve exact node IDs and verify their declared types"
     const input = highLevelDesign();
     input.relationships.push({
       from: { nodeId, type: "function" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow",
+      transferType: "arguments",
       changeType: "unchanged", dataDescription: "Value", purpose: "Inspect value",
     });
     assert.match((await runValidator(t, input)).stderr, /Unknown relationship node/);
@@ -182,6 +184,7 @@ test("dataflow endpoints resolve exact node IDs and verify their declared types"
   const mismatched = highLevelDesign();
   mismatched.relationships.push({
     from: { nodeId: "rules", type: "function" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow",
+    transferType: "arguments",
     changeType: "unchanged", dataDescription: "Rules", purpose: "Inspect rules",
   });
   assert.match((await runValidator(t, mismatched)).stderr, /Relationship node type does not match rules/);
@@ -207,14 +210,31 @@ test("class composition is separate from membership and excludes module endpoint
   const nodeEndpoint = structuredClone(input);
   nodeEndpoint.relationships[0].to = { nodeId: "inspect", type: "function" };
   assert.equal((await runValidator(t, nodeEndpoint)).status, 1);
-  for (const field of ["dataDescription", "purpose"]) {
+  for (const field of ["dataDescription", "purpose", "transferType"]) {
     const metadata = structuredClone(input);
-    metadata.relationships[0][field] = "Not applicable";
+    metadata.relationships[0][field] = field === "transferType" ? "arguments" : "Not applicable";
     assert.equal((await runValidator(t, metadata)).status, 1);
   }
 });
 
-test("schema enforces all node-type connection combinations", async () => {
+test("function transfers require arguments or return in both development stages", async (t) => {
+  for (const stage of ["high-level-design", "code-review"]) {
+    for (const transferType of ["arguments", "return", undefined, "request"]) {
+      const input = highLevelDesign();
+      input.stage = stage;
+      if (stage === "code-review") input.diffHunks = [];
+      input.nodes.push({ id: "process", name: "process", type: "function", containerId: "operations", changeType: "unchanged" });
+      input.relationships.push({
+        from: { nodeId: "inspect", type: "function" }, to: { nodeId: "process", type: "function" }, type: "dataflow",
+        transferType, changeType: "unchanged", dataDescription: "Value", purpose: "Process value",
+      });
+      const result = await runValidator(t, input);
+      assert.equal(result.status, transferType === "arguments" || transferType === "return" ? 0 : 1, result.stderr);
+    }
+  }
+});
+
+test("schema enforces all node-type connection combinations and limits transferType to function pairs", async () => {
   const schema = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.schema.json"), "utf8"));
   const validate = new Ajv2020({ allErrors: true, strictTypes: true }).compile(schema);
   const permittedTargets = {
@@ -240,7 +260,16 @@ test("schema enforces all node-type connection combinations", async () => {
         from: { nodeId: from, type: from }, to: { nodeId: to, type: to }, type: "dataflow",
         changeType: "unchanged", dataDescription: "Value", purpose: "Transfer value",
       }];
+      if (from === "function" && to === "function") {
+        input.relationships[0].transferType = "arguments";
+      }
       assert.equal(validate(input), targets.includes(to), `${from} -> ${to}: ${JSON.stringify(validate.errors)}`);
+      if (targets.includes(to) && (from !== "function" || to !== "function")) {
+        for (const transferType of ["arguments", "return"]) {
+          input.relationships[0].transferType = transferType;
+          assert.equal(validate(input), false, `${from} -> ${to} must omit transferType`);
+        }
+      }
     }
   }
 });
@@ -283,7 +312,7 @@ test("changed relationships do not independently mark containers changed", async
   assert.match((await runValidator(t, input)).stderr, /changedComponentCount must equal the derived count: 1/);
 });
 
-test("visualizer loads version 14 examples with owned static data", async () => {
+test("visualizer loads version 15 examples with owned static data", async () => {
   const input = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"), "utf8"));
   assert.equal(semanticError(input), undefined);
   const graph = filterGraph(input, true);
@@ -315,7 +344,7 @@ test("visualizer keeps repeated member names and container/node names distinct b
   assert.notDeepEqual(layout.memberRects.get("rules"), layout.memberRects.get("module-rules"));
   assert.notDeepEqual(layout.boxes.get("service"), layout.boxes.get("service-panel"));
   assert.notEqual(edgeKey(graph.relationships[0], false), edgeKey(graph.relationships[1], false));
-  assert.equal(mergeContainerDataflows(graph.relationships).length, 2);
+  assert.equal(dataflowEdges(graph.relationships, true).length, 2);
 });
 
 test("visualizer filters all member types and derives status from changed owned nodes", () => {
@@ -371,7 +400,7 @@ test("visualizer and CLI share semantic validation for ownership, endpoints, and
   const missingOwner = highLevelDesign();
   missingOwner.nodes[0].containerId = "missing";
   const mismatchedEndpoint = highLevelDesign();
-  mismatchedEndpoint.relationships.push({ from: { nodeId: "rules", type: "function" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow", changeType: "unchanged", dataDescription: "Rules", purpose: "Inspect" });
+  mismatchedEndpoint.relationships.push({ from: { nodeId: "rules", type: "function" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow", transferType: "arguments", changeType: "unchanged", dataDescription: "Rules", purpose: "Inspect" });
   const invalidEvidence = highLevelDesign();
   invalidEvidence.stage = "code-review";
   invalidEvidence.diffHunks = [];

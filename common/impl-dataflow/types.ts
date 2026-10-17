@@ -25,9 +25,9 @@ export interface Container {
   diffHunkIds?: string[];
 }
 
-export interface NodeEndpoint {
+export interface NodeEndpoint<Type extends NodeType = NodeType> {
   nodeId: string;
-  type: NodeType;
+  type: Type;
 }
 
 export interface ClassContainerEndpoint {
@@ -43,12 +43,16 @@ interface RelationshipBase {
 }
 
 export type Relationship = RelationshipBase & (
-  | { type: "dataflow"; from: NodeEndpoint; to: NodeEndpoint; dataDescription: string; purpose: string }
+  | ({ type: "dataflow"; dataDescription: string; purpose: string } & (
+    | { from: NodeEndpoint<"function">; to: NodeEndpoint<"function">; transferType: "arguments" | "return" }
+    | { from: NodeEndpoint<Exclude<NodeType, "function">>; to: NodeEndpoint; transferType?: never }
+    | { from: NodeEndpoint; to: NodeEndpoint<Exclude<NodeType, "function">>; transferType?: never }
+  ))
   | { type: "composition"; from: ClassContainerEndpoint; to: ClassContainerEndpoint; dataDescription?: never; purpose?: never }
 );
 
 export interface ImplementationDataflow {
-  schemaVersion: 14;
+  schemaVersion: 15;
   stage: "high-level-design" | "code-review";
   diffHunks?: { id: string; file: string; patch: string }[];
   nodes: DataflowNode[];

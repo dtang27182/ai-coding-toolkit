@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 14,
+  "schemaVersion": 15,
   "stage": "high-level-design",
   "containers": [
     {
@@ -108,6 +108,7 @@
       "from": { "nodeId": "entity-8", "type": "function" },
       "to": { "nodeId": "entity-3", "type": "function" },
       "type": "dataflow",
+      "transferType": "return",
       "dataDescription": "The contents of each selected file, keyed by repository-relative path, together with the paths that could not be read.",
       "purpose": "Supplies the text buildChangeSet diffs against, so it can compute a change set without the service reaching the filesystem itself.",
       "changeType": "unchanged"
@@ -122,6 +123,7 @@
       "from": { "nodeId": "entity-8", "type": "function" },
       "to": { "nodeId": "entity-10", "type": "function" },
       "type": "dataflow",
+      "transferType": "return",
       "dataDescription": "The same file contents, in the shape the legacy adapter expected.",
       "purpose": "Fed the adapter that ChangeService replaces, and is removed with it; nothing in the flow reads its output after the change.",
       "changeType": "deleted"
@@ -146,6 +148,7 @@
       "from": { "nodeId": "entity-3", "type": "function" },
       "to": { "nodeId": "entity-8", "type": "function" },
       "type": "dataflow",
+      "transferType": "arguments",
       "dataDescription": "The validated list of paths to read.",
       "purpose": "Delegates file access to Repository, keeping the service independent of storage while gathering its input.",
       "changeType": "added"

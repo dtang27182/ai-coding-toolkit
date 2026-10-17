@@ -4,11 +4,12 @@ import exampleImplementationDataflow from "../../impl-dataflow.example.json";
 import type { DataflowNode, NodeType } from "../../types";
 import { computeLayout } from "./layout";
 import { filterGraph, type VisibleGraph } from "./filter";
+import { dataflowEdges, relationshipsForEdge } from "./edges";
 import { edgePortSpreads, routeCompositionEdge, routeEdge } from "./routing";
 import { semanticError } from "./validation";
 import "./styles.css";
 import type { ChangeType, ContainerStatus, GraphContainer, ImplementationDataflow, Rect, ResolvedEndpoint, ResolvedRelationship, Selection } from "./types";
-import { edgeKey, isInternalDataRelationship, mergeContainerDataflows } from "./types";
+import { edgeKey } from "./types";
 import { droppedJsonFile, pickJsonFile, supportsJsonFileHandles, watchOpenedJson, type JsonFileHandle } from "../../../watch-opened-json.ts";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -141,19 +142,14 @@ function endpointMatches(endpoint: ResolvedEndpoint, value: Selection): boolean 
   return matches;
 }
 
-function relationshipMatches(relationship: ResolvedRelationship, value: Selection | undefined): boolean {
+function relationshipMatches(relationship: ResolvedRelationship, value: Selection | undefined, selectedRelationships: ResolvedRelationship[]): boolean {
   let matches = false;
   if (value?.type === "relationship") {
-    matches = edgeKey(relationship, functionsHidden) === value.edge;
+    matches = selectedRelationships.includes(relationship);
   } else if (value !== undefined) {
     matches = endpointMatches(relationship.from, value) || endpointMatches(relationship.to, value);
   }
   return matches;
-}
-
-/** Every relationship drawn as the given edge, including collapsed member flows. */
-function relationshipsForEdge(graph: VisibleGraph, edge: string): ResolvedRelationship[] {
-  return graph.relationships.filter((relationship) => edgeKey(relationship, functionsHidden) === edge);
 }
 
 function graphFocus(value: Selection | undefined): Selection | undefined {
@@ -167,8 +163,8 @@ function graphFocus(value: Selection | undefined): Selection | undefined {
   return focus;
 }
 
-function relationshipAttributes(relationship: ResolvedRelationship): string {
-  return `data-relation data-edge="${escapeHtml(edgeKey(relationship, functionsHidden))}" data-from-box="${escapeHtml(relationship.from.boxId)}" data-from-node-id="${escapeHtml(relationship.from.nodeId ?? "")}" data-from-type="${relationship.from.type}" data-to-box="${escapeHtml(relationship.to.boxId)}" data-to-node-id="${escapeHtml(relationship.to.nodeId ?? "")}" data-to-type="${relationship.to.type}"`;
+function relationshipAttributes(relationship: ResolvedRelationship, key = edgeKey(relationship, functionsHidden)): string {
+  return `data-relation data-edge="${escapeHtml(key)}" data-from-box="${escapeHtml(relationship.from.boxId)}" data-from-node-id="${escapeHtml(relationship.from.nodeId ?? "")}" data-from-type="${relationship.from.type}" data-to-box="${escapeHtml(relationship.to.boxId)}" data-to-node-id="${escapeHtml(relationship.to.nodeId ?? "")}" data-to-type="${relationship.to.type}"`;
 }
 
 function visibleGraph(): VisibleGraph {
@@ -233,24 +229,26 @@ function renderGraph(graph: VisibleGraph): string {
       <path class="edge-hit" ${relationshipAttributes(relationship)} data-select="relationship" d="${path}" fill="none" stroke="transparent" stroke-width="12"></path>`;
   }).join("");
 
-  const drawableRelationships = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && (!functionsHidden || !isInternalDataRelationship(relationship)));
-  const edgeLayouts = (functionsHidden ? mergeContainerDataflows(drawableRelationships) : drawableRelationships).map((relationship) => ({
-    relationship,
-    from: graphRect(relationship.from, routingBounds, layout.memberRects)!,
-    to: graphRect(relationship.to, routingBounds, layout.memberRects)!,
+  const edgeLayouts = dataflowEdges(graph.relationships, functionsHidden).map((edge) => ({
+    ...edge,
+    from: graphRect(edge.forward.from, routingBounds, layout.memberRects)!,
+    to: graphRect(edge.forward.to, routingBounds, layout.memberRects)!,
   }));
-  const edgeSpreads = edgePortSpreads(edgeLayouts.map((edge) => ({ fromKey: graphEndpointKey(edge.relationship.from), toKey: graphEndpointKey(edge.relationship.to), from: edge.from, to: edge.to })));
+  const edgeSpreads = edgePortSpreads(edgeLayouts.map((edge) => ({ fromKey: graphEndpointKey(edge.forward.from), toKey: graphEndpointKey(edge.forward.to), from: edge.from, to: edge.to })));
+  const returnRings: string[] = [];
   const edges = edgeLayouts.map((edge, index) => {
-    const { relationship, from, to } = edge;
+    const { forward: relationship, back, key, from, to } = edge;
     const route = routeEdge(from, to, edgeSpreads[index], obstaclesFor(relationship));
     const changeType = relationship.relationship.changeType;
     const stateUpdate = relationship.to.type === "state-variable";
     const stateRead = relationship.from.type === "state-variable";
     const dash = stateUpdate || stateRead ? "7 4" : changeType === "deleted" ? "7 5" : "";
-    const selected = selectionKey(selection) === selectionKey({ type: "relationship", edge: edgeKey(relationship, functionsHidden) });
-    return `<path class="edge${selected ? " selected" : ""}" ${relationshipAttributes(relationship)} d="${route.path}" fill="none" stroke="${changeColor(changeType)}" stroke-width="${stateUpdate ? 1.75 : 1.6}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${changeType})"></path>
-      <circle class="edge" ${relationshipAttributes(relationship)} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${changeColor(changeType)}" stroke="oklch(0.198 0.024 255)" stroke-width="1.5"></circle>
-      <path class="edge-hit" ${relationshipAttributes(relationship)} data-select="relationship" d="${route.path}" fill="none" stroke="transparent" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"></path>`;
+    const selected = selectionKey(selection) === selectionKey({ type: "relationship", edge: key });
+    const tail = `<circle class="edge${back === undefined ? "" : " edge-return-ring"}${back !== undefined && selected ? " selected" : ""}" ${relationshipAttributes(relationship, key)} ${back === undefined ? "" : 'data-select="relationship"'} cx="${route.start.x}" cy="${route.start.y}" r="${back === undefined ? 3.5 : 4}" fill="${back === undefined ? changeColor(changeType) : "oklch(0.198 0.024 255)"}" stroke="${back === undefined ? "oklch(0.198 0.024 255)" : changeColor(back.relationship.changeType)}" stroke-width="${back === undefined ? 1.5 : 1.6}"></circle>`;
+    if (back !== undefined) returnRings.push(tail);
+    return `<path class="edge${selected ? " selected" : ""}" ${relationshipAttributes(relationship, key)} d="${route.path}" fill="none" stroke="${changeColor(changeType)}" stroke-width="${stateUpdate ? 1.75 : 1.6}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${changeType})"></path>
+      ${back === undefined ? tail : ""}
+      <path class="edge-hit" ${relationshipAttributes(relationship, key)} data-select="relationship" d="${route.path}" fill="none" stroke="transparent" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"></path>`;
   }).join("");
 
   const classTabs = graph.containers.map((container) => {
@@ -301,6 +299,7 @@ function renderGraph(graph: VisibleGraph): string {
     <div class="graph" style="left:calc(50% + ${panX}px);top:calc(50% + ${panY}px);width:${layout.width}px;height:${layout.height}px;transform:translate(-50%, -50%) scale(${zoom})">
       <svg class="graph-svg" width="${layout.width}" height="${layout.height}"><defs>${renderMarkers()}</defs>${classFrames}${compositionEdges}${edges}</svg>
       ${classTabs}${standaloneNodes}${members}${stateBoxes}${emptyNotes}
+      <svg class="graph-svg return-rings" width="${layout.width}" height="${layout.height}">${returnRings.join("")}</svg>
     </div>
   </div>`;
 }
@@ -369,17 +368,17 @@ function renderInspector(graph: VisibleGraph): string {
     const writes = graph.relationships.filter((relationship) => relationship.to.type === "state-variable" && relationship.to.boxId === container.id);
     content = `${inspectorHeader(container.type === "class" ? "Class" : "Module", container.name, container.changeType, "Derived from owned nodes")}${diffEvidence(container.diffHunkIds)}${section("Functions", nodeRows(container.functions), container.functions.length)}${section("State variables", nodeRows(container.stateVariables), container.stateVariables.length)}${section("Static data", nodeRows(container.staticData), container.staticData.length)}${section("State written by", flowRows(writes, "from", true), writes.length)}`;
   } else if (inspected.type === "relationship") {
-    const edges = relationshipsForEdge(graph, inspected.edge);
+    const edges = relationshipsForEdge(graph.relationships, inspected.edge, functionsHidden);
     if (edges.length === 0) {
       content = `${inspectorHeader("Relationship", "Not visible", "unchanged")}<p class="empty-copy">The current filters hide this relationship.</p>`;
     } else {
       const first = edges[0];
       const merged = edges.length > 1;
       const arrow = first.relationship.type === "composition" ? "owns" : first.to.type === "state-variable" ? "↝" : first.from.type === "state-variable" ? "⇢" : "→";
-      const title = merged ? `${endpointBoxLabel(first.from)} → ${endpointBoxLabel(first.to)}` : `${endpointLabel(first.from)} ${arrow} ${endpointLabel(first.to)}`;
+      const title = merged && functionsHidden ? `${endpointBoxLabel(first.from)} → ${endpointBoxLabel(first.to)}` : `${endpointLabel(first.from)} ${arrow} ${endpointLabel(first.to)}`;
       const eyebrow = merged ? "Merged relationships" : first.relationship.type === "composition" ? "Composition" : first.to.type === "state-variable" ? "State update" : first.from.type === "state-variable" ? "State read" : "Dataflow";
-      const entries = edges.map((item) => `<div class="relationship-entry" style="border-color:${changeColor(item.relationship.changeType)}">${merged ? `<button class="entry-endpoints" data-jump="${escapeHtml(JSON.stringify(selectionForEndpoint(item.to)))}">${escapeHtml(endpointLabel(item.from))} → ${escapeHtml(endpointLabel(item.to))}</button><div class="entry-chips"><span class="change-chip" style="${chipStyle(item.relationship.changeType)}">${item.relationship.changeType}</span></div>` : ""}${item.relationship.type === "dataflow" ? `<div class="entry-heading">Data</div><p class="entry-copy">${escapeHtml(item.relationship.dataDescription)}</p><div class="entry-heading">Purpose</div><p class="entry-copy">${escapeHtml(item.relationship.purpose)}</p>` : `<p class="entry-copy">${escapeHtml(endpointLabel(item.from))} owns instances of ${escapeHtml(endpointLabel(item.to))}.</p>`}</div>`).join("");
-      content = `${inspectorHeader(eyebrow, title, first.relationship.changeType, merged ? `${edges.length} relationships` : undefined)}${diffEvidence([...new Set(edges.flatMap((edge) => edge.relationship.diffHunkIds ?? []))])}${section("Description", entries, merged ? edges.length : undefined)}`;
+      const entries = edges.map((item) => `<div class="relationship-entry" style="border-color:${changeColor(item.relationship.changeType)}">${merged ? `<button class="entry-endpoints" data-jump="${escapeHtml(JSON.stringify(selectionForEndpoint(item.to)))}">${escapeHtml(endpointLabel(item.from))} → ${escapeHtml(endpointLabel(item.to))}</button><div class="entry-chips"><span class="change-chip" style="${chipStyle(item.relationship.changeType)}">${item.relationship.changeType}</span>${item.relationship.type === "dataflow" && item.relationship.transferType !== undefined ? `<span class="change-chip neutral">${item.relationship.transferType}</span>` : ""}</div>` : ""}${item.relationship.type === "dataflow" ? `<div class="entry-heading">Data</div><p class="entry-copy">${escapeHtml(item.relationship.dataDescription)}</p><div class="entry-heading">Purpose</div><p class="entry-copy">${escapeHtml(item.relationship.purpose)}</p>` : `<p class="entry-copy">${escapeHtml(endpointLabel(item.from))} owns instances of ${escapeHtml(endpointLabel(item.to))}.</p>`}</div>`).join("");
+      content = `${inspectorHeader(eyebrow, title, first.relationship.changeType, merged ? `${edges.length} relationships` : first.relationship.type === "dataflow" ? first.relationship.transferType : undefined)}${diffEvidence([...new Set(edges.flatMap((edge) => edge.relationship.diffHunkIds ?? []))])}${section("Description", entries, merged ? edges.length : undefined)}`;
     }
   }
   return content;
@@ -406,7 +405,7 @@ function render(): void {
     <div class="workspace">
       <div class="canvas-wrap">
         <main class="canvas" aria-label="Implementation dataflow graph">${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}${renderGraph(graph)}</main>
-        <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}</div>
+        <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}<div class="change-key"><span class="change-label">○ tail = data returns</span></div></div>
         ${dragDepth > 0 ? '<div class="drop-overlay">Drop an impl-dataflow.json file</div>' : ""}
       </div>
       <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuenow="${Math.round(inspectorWidth)}" tabindex="0"></div>
@@ -569,6 +568,8 @@ function bindEvents(): void {
   });
   app.querySelector<HTMLElement>("[data-toggle-functions]")!.addEventListener("click", () => {
     functionsHidden = !functionsHidden;
+    if (selection?.type === "relationship") selection = undefined;
+    hovered = undefined;
     panX = 0;
     panY = 0;
     userZoomed = false;
@@ -643,7 +644,9 @@ function updateGraphFocus(value: Selection | undefined): void {
     relatedNodes.add(node.id);
     relatedBoxes.add("containerId" in node && node.containerId !== undefined ? node.containerId : node.id);
   }
-  for (const relationship of visibleGraph().relationships.filter((item) => relationshipMatches(item, value))) {
+  const graph = visibleGraph();
+  const selectedRelationships = value?.type === "relationship" ? relationshipsForEdge(graph.relationships, value.edge, functionsHidden) : [];
+  for (const relationship of graph.relationships.filter((item) => relationshipMatches(item, value, selectedRelationships))) {
     for (const endpoint of [relationship.from, relationship.to]) {
       relatedBoxes.add(endpoint.boxId);
       if (endpoint.nodeId !== undefined) relatedNodes.add(endpoint.nodeId);
