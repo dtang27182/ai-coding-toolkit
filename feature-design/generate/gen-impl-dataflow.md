@@ -17,25 +17,25 @@ Design implementation changes that satisfy the confirmed High Level Requirements
 
 ## 3. Design the Implementation in impl-dataflow.json
 
-Design the additions and changes to current code needed to satisfy High Level Requirements. Capture a comprehensive, working implementation-level design in `<feature>.impl-dataflow.json` through concrete dataflows and state accesses between named methods, functions, class instance state, static data, and components.
+Design the additions and changes to current code needed to satisfy High Level Requirements. Capture a comprehensive, working implementation-level design in `<feature>.impl-dataflow.json` through concrete dataflows and state accesses between named methods, functions, class or module state, static data, and boundary nodes.
 
 ### Initialize impl-dataflow.json
 
 - Follow `ai-coding-toolkit/common/impl-dataflow/impl-dataflow.schema.json`, using `ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json` as an example.
-- Initialize `<feature>.impl-dataflow.json` beside the HLD with `schemaVersion: 13`, `stage: "high-level-design"`, and empty `classes`, `modules`, `components`, `staticData`, and `relationships` arrays.
-- Set each class's `variableExposure` to `null`. Omit derived counts; calculate no quantitative quality metrics.
+- Initialize `<feature>.impl-dataflow.json` beside the HLD with `schemaVersion: 14`, `stage: "high-level-design"`, and empty `nodes`, `containers`, and `relationships` arrays.
+- Omit diff-hunk references and derived counts; calculate no quantitative quality metrics.
 
 ### Design the Implementation
 
-- Build one shared graph for all User Journeys, with one entry per real implementation entity. Unlike the sys-dataflow, the impl-dataflow should not have duplicated entities.
+- Build one shared graph for all User Journeys, with one node per real implementation entity. Unlike the sys-dataflow, the impl-dataflow should not have duplicated nodes.
 - Map the nodes from the sys-dataflow to entities defined in the impl-dataflow schema.
     - Locate concrete entities in the code base corresponding to the sys-dataflow entities.
 - Based on the actual codebase, expand the sys-dataflow's dataflow relationships and data-processing nodes into concrete functions, methods, and dataflows in impl-dataflow to create a comprehensive implementation-level design that satisfies the requirements.
 - Review the High Level Requirements. Based on the existing codebase, add any impl-dataflow entities needed to fullfill the High Level Requirement that could not be derived from mapping and expanding out the sys-dataflow.
 - Trim unchanged entities from the impl-dataflow graph.
-    - Remove all functions, state variables, components, staticData (which will be referred to as core entities) that are unchanged, or connected to atleast one changed core entitie via a dataflow relationship.
-    - Remove all relationships who's `from` or `to` field now refer to a removed entitiy.
-    - Remove all classes and modules that either contain only unchanged entities or no longer contain any child entities.
+    - Remove unchanged nodes unless they are directly connected to at least one changed node by a dataflow relationship.
+    - Retain the containers of all remaining owned nodes, including unchanged context nodes. Remove containers with no remaining owned nodes.
+    - Remove relationships whose endpoints refer to removed nodes.
 
 ### Verify Coverage and Validate the JSON
 

@@ -45,20 +45,71 @@ if (inputArgument === undefined) {
       process.exitCode = 1;
     } else {
       const semanticErrors = [];
-      const nodeNames = new Map();
-      const classFunctions = new Map();
-      const classStateVariables = new Map();
-      const moduleFunctions = new Map();
-      const components = new Map();
-      const staticDataNames = new Set();
+      const entityIds = new Set();
+      const containers = new Map();
+      const containerNames = new Set();
+      const nodes = new Map();
+      const ownedNodeNames = new Set();
+      const unownedNodeNames = new Set();
 
-      const entries = [
-        ...implementationDataflow.classes.flatMap((entry) => [entry, ...entry.functions, ...entry.stateVariables]),
-        ...(implementationDataflow.modules ?? []).flatMap((entry) => [entry, ...entry.functions]),
-        ...implementationDataflow.components,
-        ...implementationDataflow.staticData,
-        ...implementationDataflow.relationships,
-      ];
+      for (const container of implementationDataflow.containers) {
+        if (entityIds.has(container.id)) {
+          semanticErrors.push(`Duplicate entity ID: ${container.id}`);
+        } else {
+          entityIds.add(container.id);
+          containers.set(container.id, container);
+        }
+        if (containerNames.has(container.name)) {
+          semanticErrors.push(`Duplicate container name: ${container.name}`);
+        } else {
+          containerNames.add(container.name);
+        }
+      }
+
+      for (const node of implementationDataflow.nodes) {
+        if (entityIds.has(node.id)) {
+          semanticErrors.push(`Duplicate entity ID: ${node.id}`);
+        } else {
+          entityIds.add(node.id);
+          nodes.set(node.id, node);
+        }
+        if (node.containerId !== undefined) {
+          if (!containers.has(node.containerId)) {
+            semanticErrors.push(`Unknown container for node ${node.id}: ${node.containerId}`);
+          }
+          const nameKey = JSON.stringify([node.containerId, node.type, node.name]);
+          if (ownedNodeNames.has(nameKey)) {
+            semanticErrors.push(`Duplicate ${node.type} name in container ${node.containerId}: ${node.name}`);
+          } else {
+            ownedNodeNames.add(nameKey);
+          }
+        } else if (node.containerId === undefined) {
+          if (unownedNodeNames.has(node.name)) {
+            semanticErrors.push(`Duplicate unowned node name: ${node.name}`);
+          } else {
+            unownedNodeNames.add(node.name);
+          }
+        }
+      }
+
+      for (const relationship of implementationDataflow.relationships) {
+        for (const endpoint of [relationship.from, relationship.to]) {
+          if (relationship.type === "dataflow") {
+            if (!nodes.has(endpoint.nodeId)) {
+              semanticErrors.push(`Unknown relationship node: ${endpoint.nodeId}`);
+            } else if (nodes.get(endpoint.nodeId).type !== endpoint.type) {
+              semanticErrors.push(`Relationship node type does not match ${endpoint.nodeId}: expected ${nodes.get(endpoint.nodeId).type}, received ${endpoint.type}`);
+            }
+          } else if (relationship.type === "composition") {
+            if (!containers.has(endpoint.containerId)) {
+              semanticErrors.push(`Unknown relationship container: ${endpoint.containerId}`);
+            } else if (containers.get(endpoint.containerId).type !== endpoint.type) {
+              semanticErrors.push(`Relationship container type does not match ${endpoint.containerId}: expected ${containers.get(endpoint.containerId).type}, received ${endpoint.type}`);
+            }
+          }
+        }
+      }
+
       if (implementationDataflow.stage === "code-review") {
         const diffHunkIds = new Set();
         const referencedDiffHunkIds = new Set();
@@ -69,16 +120,12 @@ if (inputArgument === undefined) {
             diffHunkIds.add(hunk.id);
           }
         }
+        const entries = [
+          ...implementationDataflow.containers,
+          ...implementationDataflow.nodes,
+          ...implementationDataflow.relationships,
+        ];
         for (const entry of entries) {
-          const label = entry.name ?? `${entry.type} ${JSON.stringify(entry.from)} -> ${JSON.stringify(entry.to)}`;
-          if (entry.changeType === "unchanged" && entry.diffHunkIds !== undefined) {
-            semanticErrors.push(`Unchanged entry must not reference diff hunks: ${label}`);
-          } else if (
-            (entry.changeType === "added" || entry.changeType === "modified" || entry.changeType === "deleted") &&
-            entry.diffHunkIds === undefined
-          ) {
-            semanticErrors.push(`Changed entry requires relevant diff hunks: ${label}`);
-          }
           for (const id of entry.diffHunkIds ?? []) {
             if (diffHunkIds.has(id)) {
               referencedDiffHunkIds.add(id);
@@ -92,175 +139,25 @@ if (inputArgument === undefined) {
             semanticErrors.push(`Diff hunk must be referenced: ${id}`);
           }
         }
-      } else if (implementationDataflow.stage === "high-level-design") {
-        for (const entry of entries) {
-          if (entry.diffHunkIds !== undefined) {
-            semanticErrors.push("High-level-design entries must not reference diff hunks");
-          }
-        }
       }
 
-      for (const classDiff of implementationDataflow.classes) {
-        if (nodeNames.has(classDiff.name)) {
-          semanticErrors.push(`Duplicate class name: ${classDiff.name}`);
-        } else {
-          nodeNames.set(classDiff.name, classDiff);
-        }
-
-        const functionNames = new Map();
-        classFunctions.set(classDiff.name, functionNames);
-        if (implementationDataflow.stage === "high-level-design" && !Object.hasOwn(classDiff, "variableExposure")) {
-          semanticErrors.push(`High-level-design class requires variableExposure: ${classDiff.name}`);
-        }
-        for (const functionDiff of classDiff.functions) {
-          if (
-            classDiff.changeType === "unchanged" &&
-            (functionDiff.changeType === "added" || functionDiff.changeType === "modified" || functionDiff.changeType === "deleted")
-          ) {
-            semanticErrors.push(`Unchanged class has changed function: ${classDiff.name}.${functionDiff.name}`);
-          }
-          if (functionNames.has(functionDiff.name)) {
-            semanticErrors.push(`Duplicate function name in ${classDiff.name}: ${functionDiff.name}`);
-          } else {
-            functionNames.set(functionDiff.name, functionDiff);
-          }
-        }
-
-        const stateVariableNames = new Map();
-        classStateVariables.set(classDiff.name, stateVariableNames);
-        for (const stateVariable of classDiff.stateVariables) {
-          if (
-            classDiff.changeType === "unchanged" &&
-            (stateVariable.changeType === "added" || stateVariable.changeType === "modified" || stateVariable.changeType === "deleted")
-          ) {
-            semanticErrors.push(`Unchanged class has changed state variable: ${classDiff.name}.${stateVariable.name}`);
-          }
-          if (stateVariableNames.has(stateVariable.name)) {
-            semanticErrors.push(`Duplicate state variable name in ${classDiff.name}: ${stateVariable.name}`);
-          } else {
-            stateVariableNames.set(stateVariable.name, stateVariable);
-          }
-        }
-
-        if (Array.isArray(classDiff.variableExposure)) {
-          const classExposedVariables = new Set();
-          if (classDiff.changeType === "unchanged" && classDiff.variableExposure.length > 0) {
-            semanticErrors.push(`Unchanged context class has variable exposure: ${classDiff.name}`);
-          }
-          for (const variable of classDiff.variableExposure) {
-            if (
-              path.posix.isAbsolute(variable.declaredAt.file) ||
-              path.win32.isAbsolute(variable.declaredAt.file) ||
-              variable.declaredAt.file.includes("\\") ||
-              path.posix.normalize(variable.declaredAt.file) !== variable.declaredAt.file ||
-              variable.declaredAt.file === "." ||
-              variable.declaredAt.file === ".." ||
-              variable.declaredAt.file.startsWith("../")
-            ) {
-              semanticErrors.push(`Variable declaration path must be canonical and repository-relative: ${variable.declaredAt.file}`);
-            }
-            const declarationId = JSON.stringify([
-              variable.declaredAt.file,
-              variable.declaredAt.line,
-              variable.declaredAt.column,
-            ]);
-            if (classExposedVariables.has(declarationId)) {
-              semanticErrors.push(`Duplicate exposed variable in ${classDiff.name}: ${variable.name}`);
-            }
-            classExposedVariables.add(declarationId);
-          }
+      const changedNodes = implementationDataflow.nodes.filter((node) => ["added", "modified", "deleted"].includes(node.changeType));
+      const changedContainerIds = new Set(changedNodes.filter((node) => node.containerId !== undefined).map((node) => node.containerId));
+      const counts = {
+        changedClassCount: implementationDataflow.containers.filter((container) => container.type === "class" && changedContainerIds.has(container.id)).length,
+        changedFunctionCount: changedNodes.filter((node) => node.type === "function").length,
+        changedComponentCount: changedNodes.filter((node) => ["ui-component", "system-input", "system-output", "external-dependency"].includes(node.type)).length,
+        changedDataflowRelationshipCount: implementationDataflow.relationships.filter((relationship) => relationship.type === "dataflow" && ["added", "modified", "deleted"].includes(relationship.changeType)).length,
+      };
+      for (const [name, count] of Object.entries(counts)) {
+        if (evaluated && implementationDataflow.stage === "high-level-design" && implementationDataflow[name] === undefined) {
+          semanticErrors.push(`Evaluated high-level-design implementation dataflow requires non-null ${name}`);
+        } else if (implementationDataflow[name] !== undefined && implementationDataflow[name] !== count) {
+          semanticErrors.push(`${name} must equal the derived count: ${count}`);
         }
       }
-
-      for (const moduleDiff of implementationDataflow.modules ?? []) {
-        if (nodeNames.has(moduleDiff.name)) {
-          semanticErrors.push(`Duplicate module name: ${moduleDiff.name}`);
-        } else {
-          nodeNames.set(moduleDiff.name, moduleDiff);
-        }
-        const functionNames = new Map();
-        moduleFunctions.set(moduleDiff.name, functionNames);
-        for (const functionDiff of moduleDiff.functions) {
-          if (moduleDiff.changeType === "unchanged" && functionDiff.changeType !== "unchanged") {
-            semanticErrors.push(`Unchanged module has changed function: ${moduleDiff.name}.${functionDiff.name}`);
-          }
-          if (functionNames.has(functionDiff.name)) {
-            semanticErrors.push(`Duplicate function name in ${moduleDiff.name}: ${functionDiff.name}`);
-          } else {
-            functionNames.set(functionDiff.name, functionDiff);
-          }
-        }
-      }
-
-      for (const component of implementationDataflow.components) {
-        components.set(component.name, component);
-        if (nodeNames.has(component.name)) {
-          semanticErrors.push(`Duplicate component name: ${component.name}`);
-        } else {
-          nodeNames.set(component.name, component);
-        }
-      }
-
-      for (const staticData of implementationDataflow.staticData) {
-        staticDataNames.add(staticData.name);
-        if (nodeNames.has(staticData.name)) {
-          semanticErrors.push(`Duplicate static data name: ${staticData.name}`);
-        } else {
-          nodeNames.set(staticData.name, staticData);
-        }
-      }
-
-      for (const relationship of implementationDataflow.relationships) {
-        for (const endpoint of [relationship.from, relationship.to]) {
-          if (endpoint.component !== undefined) {
-            if (!components.has(endpoint.component)) {
-              semanticErrors.push(`Unknown relationship component: ${endpoint.component}`);
-            } else if (endpoint === relationship.from && components.get(endpoint.component).type === "system-output") {
-              semanticErrors.push(`System-output component cannot send data: ${endpoint.component}`);
-            } else if (endpoint === relationship.to && components.get(endpoint.component).type === "system-input") {
-              semanticErrors.push(`System-input component cannot receive data: ${endpoint.component}`);
-            }
-          } else if (endpoint.staticData !== undefined) {
-            if (!staticDataNames.has(endpoint.staticData)) {
-              semanticErrors.push(`Unknown relationship static data: ${endpoint.staticData}`);
-            }
-          } else if (endpoint.class !== undefined) {
-            if (!classFunctions.has(endpoint.class)) {
-              semanticErrors.push(`Unknown relationship class: ${endpoint.class}`);
-            } else if (endpoint.function !== undefined && !classFunctions.get(endpoint.class).has(endpoint.function)) {
-              semanticErrors.push(`Unknown relationship function in ${endpoint.class}: ${endpoint.function}`);
-            } else if (endpoint.stateVariable !== undefined && !classStateVariables.get(endpoint.class).has(endpoint.stateVariable)) {
-              semanticErrors.push(`Unknown relationship state variable in ${endpoint.class}: ${endpoint.stateVariable}`);
-            }
-          } else if (endpoint.module !== undefined) {
-            if (!moduleFunctions.has(endpoint.module)) {
-              semanticErrors.push(`Unknown relationship module: ${endpoint.module}`);
-            } else if (!moduleFunctions.get(endpoint.module).has(endpoint.function)) {
-              semanticErrors.push(`Unknown relationship function in ${endpoint.module}: ${endpoint.function}`);
-            }
-          }
-        }
-      }
-
       if (evaluated && implementationDataflow.stage === "code-review") {
         semanticErrors.push("--evaluated applies only to high-level-design implementation dataflows");
-      } else if (evaluated && implementationDataflow.stage === "high-level-design") {
-        const countNames = [
-          "changedClassCount",
-          "changedFunctionCount",
-          "changedComponentCount",
-          "changedDataflowRelationshipCount",
-        ];
-        for (const countName of countNames) {
-          if (!Number.isInteger(implementationDataflow[countName])) {
-            semanticErrors.push(`Evaluated high-level-design implementation dataflow requires non-null ${countName}`);
-          }
-        }
-        for (const classDiff of implementationDataflow.classes) {
-          if (!Array.isArray(classDiff.variableExposure)) {
-            semanticErrors.push(`Evaluated high-level-design class requires a populated variableExposure: ${classDiff.name}`);
-          }
-        }
       }
 
       if (semanticErrors.length > 0) {

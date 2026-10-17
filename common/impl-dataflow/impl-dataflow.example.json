@@ -1,211 +1,190 @@
 {
-  "schemaVersion": 13,
+  "schemaVersion": 14,
   "stage": "high-level-design",
-  "classes": [
+  "containers": [
     {
+      "id": "entity-1",
       "name": "ChangeService",
-      "changeType": "added",
-      "functions": [
-        {
-          "name": "configure",
-          "changeType": "added"
-        },
-        {
-          "name": "buildChangeSet",
-          "changeType": "added"
-        }
-      ],
-      "stateVariables": [],
-      "variableExposure": []
+      "type": "class"
     },
     {
+      "id": "entity-4",
       "name": "ChangeModel",
-      "changeType": "added",
-      "functions": [
-        {
-          "name": "currentChanges",
-          "changeType": "added"
-        }
-      ],
-      "stateVariables": [
-        {
-          "name": "changes",
-          "changeType": "added"
-        }
-      ],
-      "variableExposure": []
+      "type": "class"
     },
     {
+      "id": "entity-7",
       "name": "Repository",
-      "changeType": "unchanged",
-      "functions": [
-        {
-          "name": "readSourceFiles",
-          "changeType": "unchanged"
-        }
-      ],
-      "stateVariables": [],
-      "variableExposure": []
+      "type": "class"
     },
     {
+      "id": "entity-9",
       "name": "LegacyChangeAdapter",
-      "changeType": "deleted",
-      "functions": [
-        {
-          "name": "adaptLegacyChange",
-          "changeType": "deleted"
-        }
-      ],
-      "stateVariables": [],
-      "variableExposure": [
-        {
-          "name": "repository",
-          "kind": "instance",
-          "declaredAt": {
-            "file": "src/LegacyChangeAdapter.js",
-            "line": 2,
-            "column": 3
-          }
-        },
-        {
-          "name": "sourceFiles",
-          "kind": "parameter",
-          "function": "adaptLegacyChange",
-          "declaredAt": {
-            "file": "src/LegacyChangeAdapter.js",
-            "line": 4,
-            "column": 21
-          }
-        },
-        {
-          "name": "changes",
-          "kind": "local",
-          "function": "adaptLegacyChange",
-          "declaredAt": {
-            "file": "src/LegacyChangeAdapter.js",
-            "line": 5,
-            "column": 11
-          }
-        }
-      ]
+      "type": "class"
     }
   ],
-  "components": [
+  "nodes": [
     {
+      "id": "entity-2",
+      "name": "configure",
+      "type": "function",
+      "containerId": "entity-1",
+      "changeType": "added"
+    },
+    {
+      "id": "entity-3",
+      "name": "buildChangeSet",
+      "type": "function",
+      "containerId": "entity-1",
+      "changeType": "added"
+    },
+    {
+      "id": "entity-5",
+      "name": "currentChanges",
+      "type": "function",
+      "containerId": "entity-4",
+      "changeType": "added"
+    },
+    {
+      "id": "entity-6",
+      "name": "changes",
+      "type": "state-variable",
+      "containerId": "entity-4",
+      "changeType": "added"
+    },
+    {
+      "id": "entity-8",
+      "name": "readSourceFiles",
+      "type": "function",
+      "containerId": "entity-7",
+      "changeType": "unchanged"
+    },
+    {
+      "id": "entity-10",
+      "name": "adaptLegacyChange",
+      "type": "function",
+      "containerId": "entity-9",
+      "changeType": "deleted"
+    },
+    {
+      "id": "entity-11",
       "name": "Change Panel",
       "description": "The application's change selection and results panel.",
       "type": "ui-component",
       "changeType": "added"
     },
     {
+      "id": "entity-12",
       "name": "Source Files on Disk",
       "description": "Repository source files at the selected repository-relative paths.",
       "type": "external-dependency",
       "changeType": "unchanged"
     },
     {
+      "id": "entity-13",
       "name": "Diff Settings File",
       "description": "The repository's diff settings file.",
       "type": "external-dependency",
       "changeType": "unchanged"
-    }
-  ],
-  "staticData": [
+    },
     {
+      "id": "entity-14",
+      "type": "static-data",
+      "containerId": "entity-1",
       "name": "Diff Format Rules",
       "changeType": "unchanged"
     }
   ],
   "relationships": [
     {
-      "from": { "staticData": "Diff Format Rules" },
-      "to": { "class": "ChangeService", "function": "buildChangeSet" },
+      "from": { "nodeId": "entity-14", "type": "static-data" },
+      "to": { "nodeId": "entity-3", "type": "function" },
       "type": "dataflow",
       "dataDescription": "Fixed hunk formatting and line-matching rules used for each change set.",
       "purpose": "Supplies the rules used to compute the change set.",
       "changeType": "added"
     },
     {
-      "from": { "class": "Repository", "function": "readSourceFiles" },
-      "to": { "class": "ChangeService", "function": "buildChangeSet" },
+      "from": { "nodeId": "entity-8", "type": "function" },
+      "to": { "nodeId": "entity-3", "type": "function" },
       "type": "dataflow",
       "dataDescription": "The contents of each selected file, keyed by repository-relative path, together with the paths that could not be read.",
       "purpose": "Supplies the text buildChangeSet diffs against, so it can compute a change set without the service reaching the filesystem itself.",
       "changeType": "unchanged"
     },
     {
-      "from": { "class": "ChangeService" },
-      "to": { "class": "ChangeModel" },
+      "from": { "containerId": "entity-1", "type": "class" },
+      "to": { "containerId": "entity-4", "type": "class" },
       "type": "composition",
       "changeType": "added"
     },
     {
-      "from": { "class": "Repository", "function": "readSourceFiles" },
-      "to": { "class": "LegacyChangeAdapter", "function": "adaptLegacyChange" },
+      "from": { "nodeId": "entity-8", "type": "function" },
+      "to": { "nodeId": "entity-10", "type": "function" },
       "type": "dataflow",
       "dataDescription": "The same file contents, in the shape the legacy adapter expected.",
       "purpose": "Fed the adapter that ChangeService replaces, and is removed with it; nothing in the flow reads its output after the change.",
       "changeType": "deleted"
     },
     {
-      "from": { "component": "Diff Settings File" },
-      "to": { "class": "ChangeService", "function": "configure" },
+      "from": { "nodeId": "entity-13", "type": "external-dependency" },
+      "to": { "nodeId": "entity-2", "type": "function" },
       "type": "dataflow",
       "dataDescription": "Stored diff options: context line count, whitespace handling, and the ignore globs.",
       "purpose": "Configures the service when it is constructed. No user action triggers it, but every change set is computed under these options.",
       "changeType": "added"
     },
     {
-      "from": { "component": "Change Panel" },
-      "to": { "class": "ChangeService", "function": "buildChangeSet" },
+      "from": { "nodeId": "entity-11", "type": "ui-component" },
+      "to": { "nodeId": "entity-3", "type": "function" },
       "type": "dataflow",
       "dataDescription": "The paths the user selected, with the comparison target they chose.",
       "purpose": "Carries the user's change-set request. Nothing downstream runs until this arrives, and the selection it carries scopes everything that follows.",
       "changeType": "added"
     },
     {
-      "from": { "class": "ChangeService", "function": "buildChangeSet" },
-      "to": { "class": "Repository", "function": "readSourceFiles" },
+      "from": { "nodeId": "entity-3", "type": "function" },
+      "to": { "nodeId": "entity-8", "type": "function" },
       "type": "dataflow",
       "dataDescription": "The validated list of paths to read.",
       "purpose": "Delegates file access to Repository, keeping the service independent of storage while gathering its input.",
       "changeType": "added"
     },
     {
-      "from": { "class": "Repository", "function": "readSourceFiles" },
-      "to": { "component": "Source Files on Disk" },
+      "from": { "nodeId": "entity-8", "type": "function" },
+      "to": { "nodeId": "entity-12", "type": "external-dependency" },
       "type": "dataflow",
       "dataDescription": "A read request for each selected path.",
       "purpose": "The only point at which this feature touches the filesystem, supplying real file state rather than cached state.",
       "changeType": "unchanged"
     },
     {
-      "from": { "component": "Source Files on Disk" },
-      "to": { "class": "Repository", "function": "readSourceFiles" },
+      "from": { "nodeId": "entity-12", "type": "external-dependency" },
+      "to": { "nodeId": "entity-8", "type": "function" },
       "type": "dataflow",
       "dataDescription": "The bytes of each readable file, and a not-found result for the rest.",
       "purpose": "Returns the only content the change set can be computed from; the not-found results are reported as skipped files.",
       "changeType": "unchanged"
     },
     {
-      "from": { "class": "ChangeModel", "function": "currentChanges" },
-      "to": { "component": "Change Panel" },
+      "from": { "nodeId": "entity-5", "type": "function" },
+      "to": { "nodeId": "entity-11", "type": "ui-component" },
       "type": "dataflow",
       "dataDescription": "The finished change set: one entry per file with its diff hunks, plus the counts of changed and skipped files.",
       "purpose": "Delivers the retained outcome the user asked for. Until it arrives the panel still shows the state from before the request.",
       "changeType": "added"
     },
     {
-      "from": { "class": "ChangeService", "function": "buildChangeSet" },
-      "to": { "class": "ChangeModel", "stateVariable": "changes" },
+      "from": { "nodeId": "entity-3", "type": "function" },
+      "to": { "nodeId": "entity-6", "type": "state-variable" },
       "type": "dataflow",
       "dataDescription": "Writes the finished change set into `changes`, replacing any set retained from an earlier request.",
       "purpose": "Retains the result across the request so it can be redisplayed without recomputing the diff or re-reading the files.",
       "changeType": "added"
     },
     {
-      "from": { "class": "ChangeModel", "stateVariable": "changes" },
-      "to": { "class": "ChangeModel", "function": "currentChanges" },
+      "from": { "nodeId": "entity-6", "type": "state-variable" },
+      "to": { "nodeId": "entity-5", "type": "function" },
       "type": "dataflow",
       "dataDescription": "Reads the retained change set, including its file entries and summary counts.",
       "purpose": "Supplies the displayed result without recomputing the diff or re-reading the files.",

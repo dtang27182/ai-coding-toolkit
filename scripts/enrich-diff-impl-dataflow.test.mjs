@@ -6,164 +6,142 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { filterGraph } from "../common/impl-dataflow/visualizer/src/filter.ts";
-import { semanticError } from "../common/impl-dataflow/visualizer/src/validation.ts";
-
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(toolkitDirectory, "enrich-diff/scripts/validate-impl-dataflow.mjs");
 
-async function runValidator(t, dataflow) {
+async function runValidator(t, dataflow, ...argumentsList) {
   const directory = await mkdtemp(path.join(os.tmpdir(), "enrich-impl-dataflow-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const inputPath = path.join(directory, "feature.cr.impl-dataflow.json");
   await writeFile(inputPath, JSON.stringify(dataflow));
-  return spawnSync(process.execPath, [validatorPath, inputPath], { encoding: "utf8" });
+  return spawnSync(process.execPath, [validatorPath, ...argumentsList, inputPath], { encoding: "utf8" });
 }
 
 function codeReview() {
   return {
-    schemaVersion: 13,
+    schemaVersion: 14,
     stage: "code-review",
     diffHunks: [{ id: "change", file: "src/Controller.ts", patch: "@@ -1 +1 @@\n-old implementation\n+new implementation" }],
-    classes: [
-      {
-        name: "Controller", changeType: "modified", diffHunkIds: ["change"],
-        functions: [{ name: "inspect", changeType: "modified", diffHunkIds: ["change"] }],
-        stateVariables: [{ name: "result", changeType: "added", diffHunkIds: ["change"] }],
-      },
-      {
-        name: "Repository", changeType: "unchanged",
-        functions: [{ name: "read", changeType: "unchanged" }], stateVariables: [],
-      },
+    containers: [
+      { id: "controller", name: "Controller", type: "class", diffHunkIds: ["change"] },
+      { id: "repository", name: "Repository", type: "class" },
     ],
-    components: [{ name: "Panel", description: "Displays results.", type: "ui-component", changeType: "modified", diffHunkIds: ["change"] }],
-    staticData: [{ name: "Rules", changeType: "modified", diffHunkIds: ["change"] }],
+    nodes: [
+      { id: "inspect", name: "inspect", type: "function", containerId: "controller", changeType: "modified", diffHunkIds: ["change"] },
+      { id: "result", name: "result", type: "state-variable", containerId: "controller", changeType: "added", diffHunkIds: ["change"] },
+      { id: "read", name: "read", type: "function", containerId: "repository", changeType: "unchanged" },
+      { id: "panel", name: "Panel", description: "Displays results.", type: "ui-component", changeType: "modified", diffHunkIds: ["change"] },
+      { id: "rules", name: "Rules", type: "static-data", containerId: "controller", changeType: "modified", diffHunkIds: ["change"] },
+    ],
     relationships: [
       {
-        from: { component: "Panel" }, to: { class: "Controller", function: "inspect" }, type: "dataflow",
+        from: { nodeId: "panel", type: "ui-component" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow",
         changeType: "modified", diffHunkIds: ["change"], dataDescription: "Request", purpose: "Requests results.",
       },
       {
-        from: { staticData: "Rules" }, to: { class: "Controller", function: "inspect" }, type: "dataflow",
+        from: { nodeId: "rules", type: "static-data" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow",
         changeType: "added", diffHunkIds: ["change"], dataDescription: "Rules", purpose: "Interprets the results.",
       },
       {
-        from: { class: "Repository", function: "read" }, to: { class: "Controller", function: "inspect" }, type: "dataflow",
+        from: { nodeId: "read", type: "function" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow",
         changeType: "unchanged", dataDescription: "Source data", purpose: "Supplies the requested data.",
       },
       {
-        from: { class: "Controller", function: "inspect" }, to: { class: "Controller", stateVariable: "result" }, type: "dataflow",
+        from: { nodeId: "inspect", type: "function" }, to: { nodeId: "result", type: "state-variable" }, type: "dataflow",
         changeType: "added", diffHunkIds: ["change"], dataDescription: "Processed result", purpose: "Retains the result.",
       },
       {
-        from: { class: "Controller", function: "inspect" }, to: { component: "Panel" }, type: "dataflow",
+        from: { nodeId: "inspect", type: "function" }, to: { nodeId: "panel", type: "ui-component" }, type: "dataflow",
         changeType: "modified", diffHunkIds: ["change"], dataDescription: "Result", purpose: "Displays results.",
       },
-      { from: { class: "Controller" }, to: { class: "Repository" }, type: "composition", changeType: "added", diffHunkIds: ["change"] },
+      { from: { containerId: "controller", type: "class" }, to: { containerId: "repository", type: "class" }, type: "composition", changeType: "added", diffHunkIds: ["change"] },
     ],
   };
 }
 
-test("validates implementation entities and direct transfers sharing diff hunks", async (t) => {
+test("validates flat implementation entities and direct transfers sharing diff hunks", async (t) => {
   const result = await runValidator(t, codeReview());
   assert.equal(result.status, 0, result.stderr);
 });
 
-test("represents a module of free functions without requiring a class", async (t) => {
+test("represents module-owned functions, state, and static data without requiring a class", async (t) => {
   const value = codeReview();
-  value.classes = [];
-  value.modules = [{ name: "src/operations", changeType: "modified", diffHunkIds: ["change"], functions: [
-    { name: "read", changeType: "modified", diffHunkIds: ["change"] },
-    { name: "save", changeType: "unchanged" },
-  ] }];
-  value.relationships = [
-    { from: { staticData: "Rules" }, to: { module: "src/operations", function: "read" }, type: "dataflow", changeType: "modified", diffHunkIds: ["change"], dataDescription: "Rules", purpose: "Controls the read." },
-    { from: { module: "src/operations", function: "read" }, to: { module: "src/operations", function: "save" }, type: "dataflow", changeType: "added", diffHunkIds: ["change"], dataDescription: "Result", purpose: "Saves the result." },
-    { from: { module: "src/operations", function: "save" }, to: { component: "Panel" }, type: "dataflow", changeType: "unchanged", dataDescription: "Result", purpose: "Displays the result." },
-  ];
+  value.containers = [{ id: "operations", name: "src/operations", type: "module" }];
+  value.nodes = value.nodes.filter((node) => node.id !== "read");
+  for (const node of value.nodes) {
+    if (node.containerId !== undefined) {
+      node.containerId = "operations";
+    }
+  }
+  value.relationships = value.relationships.filter((relationship) => relationship.type === "dataflow" && relationship.from.nodeId !== "read");
   const result = await runValidator(t, value);
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(semanticError(value), undefined);
-  const graph = filterGraph(value, true);
-  assert.equal(graph.classes[0].containerType, "module");
-  assert.deepEqual(graph.classes[0].functions.map((entry) => entry.name), ["read", "save"]);
-  assert.equal(graph.relationships.length, 3);
-});
-
-test("validates module names, function names, and relationship endpoints", async (t) => {
-  const value = codeReview();
-  value.modules = [{ name: "Controller", changeType: "unchanged", functions: [
-    { name: "read", changeType: "unchanged" },
-    { name: "read", changeType: "unchanged" },
-  ] }];
-  value.relationships.push({ from: { module: "Controller", function: "missing" }, to: { component: "Panel" }, type: "dataflow", changeType: "unchanged", dataDescription: "Result", purpose: "Displays the result." });
-  const result = await runValidator(t, value);
-  assert.equal(result.status, 1);
-  assert.match(result.stderr, /Duplicate module name: Controller/);
-  assert.match(result.stderr, /Duplicate function name in Controller: read/);
-  assert.match(result.stderr, /Unknown relationship function in Controller: missing/);
 });
 
 test("free functions can read and update class state", async (t) => {
   const value = codeReview();
-  value.modules = [{ name: "src/operations", changeType: "modified", diffHunkIds: ["change"], functions: [
-    { name: "process", changeType: "modified", diffHunkIds: ["change"] },
-  ] }];
+  value.containers.push({ id: "operations", name: "src/operations", type: "module" });
+  value.nodes.push({ id: "process", name: "process", type: "function", containerId: "operations", changeType: "modified", diffHunkIds: ["change"] });
   value.relationships.push(
-    { from: { class: "Controller", stateVariable: "result" }, to: { module: "src/operations", function: "process" }, type: "dataflow", changeType: "added", diffHunkIds: ["change"], dataDescription: "Current result", purpose: "Reads the result." },
-    { from: { module: "src/operations", function: "process" }, to: { class: "Controller", stateVariable: "result" }, type: "dataflow", changeType: "added", diffHunkIds: ["change"], dataDescription: "Updated result", purpose: "Stores the processed result." },
+    { from: { nodeId: "result", type: "state-variable" }, to: { nodeId: "process", type: "function" }, type: "dataflow", changeType: "added", diffHunkIds: ["change"], dataDescription: "Current result", purpose: "Reads the result." },
+    { from: { nodeId: "process", type: "function" }, to: { nodeId: "result", type: "state-variable" }, type: "dataflow", changeType: "added", diffHunkIds: ["change"], dataDescription: "Updated result", purpose: "Stores the processed result." },
   );
   const result = await runValidator(t, value);
   assert.equal(result.status, 0, result.stderr);
 });
 
-test("state dataflows require a function at the other endpoint", async (t) => {
-  const state = { class: "Controller", stateVariable: "result" };
-  for (const other of [{ component: "Panel" }, { staticData: "Rules" }, state]) {
-    for (const [from, to] of [[state, other], [other, state]]) {
-      const value = codeReview();
-      value.relationships.push({ from, to, type: "dataflow", changeType: "added", diffHunkIds: ["change"], dataDescription: "Result", purpose: "Accesses state." });
-      assert.equal((await runValidator(t, value)).status, 1);
-    }
+test("requires relevant hunks for every changed node subtype and relationship", async (t) => {
+  for (const index of [0, 1, 3, 4]) {
+    const value = codeReview();
+    delete value.nodes[index].diffHunkIds;
+    const result = await runValidator(t, value);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /required property 'diffHunkIds'/);
+  }
+  for (const index of [0, 5]) {
+    const value = codeReview();
+    delete value.relationships[index].diffHunkIds;
+    const result = await runValidator(t, value);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /required property 'diffHunkIds'/);
   }
 });
 
-test("state dataflows reject unknown state variables", async (t) => {
-  const value = codeReview();
-  value.relationships[3].to.stateVariable = "missing";
-  const result = await runValidator(t, value);
-  assert.equal(result.status, 1);
-  assert.match(result.stderr, /Unknown relationship state variable in Controller: missing/);
-  assert.match(semanticError(value), /unknown state variable/);
+test("container evidence is optional and independent of owned-node change status", async (t) => {
+  const optional = codeReview();
+  delete optional.containers[0].diffHunkIds;
+  assert.equal((await runValidator(t, optional)).status, 0);
+
+  const containerOnly = codeReview();
+  for (const entry of [...containerOnly.nodes, ...containerOnly.relationships]) {
+    entry.changeType = "unchanged";
+    delete entry.diffHunkIds;
+  }
+  const result = await runValidator(t, containerOnly);
+  assert.equal(result.status, 0, result.stderr);
 });
 
-test("requires relevant hunks for changed implementation entries", async (t) => {
+test("rejects unknown hunk references on containers, all node kinds, and relationships", async (t) => {
   const value = codeReview();
-  delete value.classes[0].functions[0].diffHunkIds;
-  delete value.classes[0].stateVariables[0].diffHunkIds;
-  delete value.relationships[0].diffHunkIds;
+  const entries = [value.containers[0], value.nodes[0], value.nodes[1], value.nodes[3], value.nodes[4], value.relationships[0]];
+  for (const [index, entry] of entries.entries()) {
+    entry.diffHunkIds = [`missing-${index}`];
+  }
   const result = await runValidator(t, value);
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /Changed entry requires relevant diff hunks: inspect/);
-  assert.match(result.stderr, /Changed entry requires relevant diff hunks: result/);
-  assert.match(result.stderr, /Changed entry requires relevant diff hunks: dataflow/);
+  for (const index of entries.keys()) {
+    assert.ok(result.stderr.includes(`Unknown diff hunk reference: missing-${index}`));
+  }
 });
 
-test("rejects unknown references on classes, functions, state, components, static data, and relationships", async (t) => {
-  const value = codeReview();
-  const entries = [value.classes[0], value.classes[0].functions[0], value.classes[0].stateVariables[0], value.components[0], value.staticData[0], value.relationships[0]];
-  for (const [index, entry] of entries.entries()) entry.diffHunkIds = [`missing-${index}`];
-  const result = await runValidator(t, value);
-  assert.equal(result.status, 1);
-  for (const index of entries.keys()) assert.ok(result.stderr.includes(`Unknown diff hunk reference: missing-${index}`));
-});
-
-test("rejects diff hunk references on unchanged entries", async (t) => {
-  const value = codeReview();
-  value.classes[1].functions[0].diffHunkIds = ["change"];
-  const result = await runValidator(t, value);
-  assert.equal(result.status, 1);
-  assert.match(result.stderr, /Unchanged entry must not reference diff hunks: read/);
+test("rejects diff hunk references on unchanged nodes and relationships", async (t) => {
+  for (const collection of ["nodes", "relationships"]) {
+    const value = codeReview();
+    value[collection][2].diffHunkIds = ["change"];
+    const result = await runValidator(t, value);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes(`/${collection}/2/diffHunkIds`));
+  }
 });
 
 test("rejects duplicate and unreferenced hunks", async (t) => {
@@ -184,21 +162,29 @@ test("requires a code-review hunk inventory and valid unified diff text", async 
   assert.equal((await runValidator(t, malformed)).status, 1);
 });
 
-test("rejects unresolved implementation endpoints", async (t) => {
-  const value = codeReview();
-  value.relationships[0].to.function = "missing";
-  const result = await runValidator(t, value);
-  assert.equal(result.status, 1);
-  assert.match(result.stderr, /Unknown relationship function in Controller: missing/);
+test("diff-hunk references must be nonempty and unique", async (t) => {
+  for (const diffHunkIds of [[], [""], ["change", "change"]]) {
+    const value = codeReview();
+    value.containers[0].diffHunkIds = diffHunkIds;
+    assert.equal((await runValidator(t, value)).status, 1);
+  }
 });
 
 test("keeps diff evidence out of high-level design artifacts", async (t) => {
   const value = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"), "utf8"));
-  value.classes[0].functions[0].diffHunkIds = ["change"];
-  const result = await runValidator(t, value);
-  assert.equal(result.status, 1);
-  assert.match(result.stderr, /High-level-design entries must not reference diff hunks/);
-  delete value.classes[0].functions[0].diffHunkIds;
+  for (const collection of ["nodes", "containers", "relationships"]) {
+    const input = structuredClone(value);
+    input[collection][0].diffHunkIds = ["change"];
+    const result = await runValidator(t, input);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes(`/${collection}/0/diffHunkIds`));
+  }
   value.diffHunks = [];
   assert.equal((await runValidator(t, value)).status, 1);
+});
+
+test("evaluated validation applies only to high-level designs", async (t) => {
+  const result = await runValidator(t, codeReview(), "--evaluated");
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /--evaluated applies only to high-level-design/);
 });
