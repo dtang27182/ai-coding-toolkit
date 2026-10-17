@@ -48,16 +48,14 @@ test("only same-container state and static-data accesses are internal", () => {
   assert.deepEqual(graph.relationships.map(isInternalDataRelationship), [true, true, false, false, true]);
 });
 
-test("collapsed dataflows retain inspector references without merging function calls with state accesses", () => {
+test("collapsed dataflows merge function calls and state accesses and retain inspector references", () => {
   const graph = filterGraph(implementation([
     dataflow("handle", "function", "read", "function"),
     dataflow("handle", "function", "value", "state-variable"),
     dataflow("value", "state-variable", "handle", "function"),
   ]), true);
   const merged = dataflowEdges(graph.relationships, true);
-  assert.equal(merged.length, 3);
-  for (const [index, edge] of merged.entries()) {
-    assert.deepEqual(relationshipsForEdge(graph.relationships, edge.key, true), [graph.relationships[index]]);
-  }
+  assert.equal(merged.length, 1);
+  assert.deepEqual(relationshipsForEdge(graph.relationships, merged[0].key, true), graph.relationships);
   assert.notEqual(edgeKey(graph.relationships[0], false), edgeKey(graph.relationships[1], false));
 });
