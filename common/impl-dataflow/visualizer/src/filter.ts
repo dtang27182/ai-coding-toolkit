@@ -10,18 +10,23 @@ export interface VisibleGraph {
   relationships: ResolvedRelationship[];
 }
 
-export function filterGraph(implementationDataflow: ImplementationDataflow, showUnchanged: boolean): VisibleGraph {
-  const visibleNodes = implementationDataflow.nodes.filter((node) => showUnchanged || node.changeType !== "unchanged");
+export function filterGraph(implementationDataflow: ImplementationDataflow, showUnchanged: boolean, hideInitialization = true): VisibleGraph {
+  const filteredNodes = implementationDataflow.nodes.filter((node) => !hideInitialization || !node.initialization);
+  const visibleNodes = filteredNodes.filter((node) => showUnchanged || node.changeType !== "unchanged");
   const nodeIds = new Set(visibleNodes.map((node) => node.id));
   const changedContainerIds = new Set(implementationDataflow.nodes.flatMap((node) => node.changeType !== "unchanged" && "containerId" in node && node.containerId !== undefined ? [node.containerId] : []));
-  const containerIds = new Set(visibleNodes.flatMap((node) => "containerId" in node && node.containerId !== undefined ? [node.containerId] : []));
+  const containersWithChildren = new Set(implementationDataflow.nodes.flatMap((node) => "containerId" in node && node.containerId !== undefined ? [node.containerId] : []));
+  const visibleMemberContainerIds = new Set(visibleNodes.flatMap((node) => "containerId" in node && node.containerId !== undefined ? [node.containerId] : []));
+  const containerIds = new Set(visibleMemberContainerIds);
   for (const relationship of implementationDataflow.relationships) {
     if (relationship.type === "composition" && (showUnchanged || relationship.changeType !== "unchanged")) {
       containerIds.add(relationship.from.containerId);
       containerIds.add(relationship.to.containerId);
     }
   }
-  const containers: GraphContainer[] = implementationDataflow.containers.filter((container) => showUnchanged || containerIds.has(container.id)).map((container) => ({
+  const containers: GraphContainer[] = implementationDataflow.containers.filter((container) =>
+    (!containersWithChildren.has(container.id) || visibleMemberContainerIds.has(container.id)) && (showUnchanged || containerIds.has(container.id)),
+  ).map((container) => ({
     ...container,
     changeType: changedContainerIds.has(container.id) ? "changed" : "unchanged",
     functions: visibleNodes.filter((node): node is FunctionNode => node.type === "function" && node.containerId === container.id),

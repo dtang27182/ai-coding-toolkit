@@ -9,6 +9,7 @@ interface NodeBase {
   type: NodeType;
   description?: string;
   changeType: ChangeType;
+  initialization: boolean;
   diffHunkIds?: string[];
 }
 
@@ -52,7 +53,7 @@ export type Relationship = RelationshipBase & (
 );
 
 export interface ImplementationDataflow {
-  schemaVersion: 15;
+  schemaVersion: 16;
   stage: "high-level-design" | "code-review";
   diffHunks?: { id: string; file: string; patch: string }[];
   nodes: DataflowNode[];

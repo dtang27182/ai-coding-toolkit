@@ -48,6 +48,7 @@ const NODE_GLYPHS: Record<NodeType, string> = {
 let implementationDataflow = exampleImplementationDataflow as ImplementationDataflow;
 let fileName = "impl-dataflow.example.json";
 let showUnchanged = false;
+let hideInitialization = true;
 let functionsHidden = false;
 let zoom = 1;
 let panX = 0;
@@ -168,7 +169,7 @@ function relationshipAttributes(relationship: ResolvedRelationship, key = edgeKe
 }
 
 function visibleGraph(): VisibleGraph {
-  return filterGraph(implementationDataflow, showUnchanged);
+  return filterGraph(implementationDataflow, showUnchanged, hideInitialization);
 }
 
 function graphRect(endpoint: ResolvedEndpoint, boxes: Map<string, Rect>, memberRects: Map<string, Rect>): Rect | undefined {
@@ -397,6 +398,7 @@ function render(): void {
         <div class="control-group">
           <button class="control-button open-button" data-open>Open JSON</button>
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
+          <button class="control-button${hideInitialization ? " active" : ""}" data-toggle-initialization aria-pressed="${hideInitialization}">Hide Initialization</button>
           <button class="control-button${functionsHidden ? " active" : ""}" data-toggle-functions>${functionsHidden ? "Expand containers" : "Collapse containers"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
@@ -559,6 +561,15 @@ function bindEvents(): void {
   });
   app.querySelector<HTMLElement>("[data-toggle-unchanged]")!.addEventListener("click", () => {
     showUnchanged = !showUnchanged;
+    selection = undefined;
+    hovered = undefined;
+    panX = 0;
+    panY = 0;
+    userZoomed = false;
+    render();
+  });
+  app.querySelector<HTMLElement>("[data-toggle-initialization]")!.addEventListener("click", () => {
+    hideInitialization = !hideInitialization;
     selection = undefined;
     hovered = undefined;
     panX = 0;

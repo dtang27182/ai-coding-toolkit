@@ -48,6 +48,7 @@ app.innerHTML = `
         <div class="dataflow-controls" data-toolbar="implementation" hidden>
           <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
           <button class="control-button" type="button" data-proxy="toggle-unchanged">Hide unchanged</button>
+          <button class="control-button active" type="button" data-proxy="toggle-initialization" aria-pressed="true">Hide Initialization</button>
           <button class="control-button" type="button" data-proxy="toggle-functions">Hide functions</button>
           <div class="zoom-controls">
             <button class="zoom-button" type="button" data-proxy="zoom-out" aria-label="Zoom out">−</button>

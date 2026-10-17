@@ -6,14 +6,14 @@ import { filterGraph } from "../common/impl-dataflow/visualizer/src/filter.ts";
 
 function implementation(relationships) {
   return {
-    schemaVersion: 15,
+    schemaVersion: 16,
     stage: "high-level-design",
     containers: [{ id: "client", name: "Client", type: "module" }, { id: "service", name: "Service", type: "class" }],
     nodes: [
-      ...["a", "a2"].map((id) => ({ id, name: id, type: "function", containerId: "client", changeType: "added" })),
-      ...["b", "b2"].map((id) => ({ id, name: id, type: "function", containerId: "service", changeType: "added" })),
-      { id: "state", name: "State", type: "state-variable", containerId: "service", changeType: "added" },
-      { id: "boundary", name: "Boundary", type: "external-dependency", description: "Storage", changeType: "added" },
+      ...["a", "a2"].map((id) => ({ id, name: id, type: "function", containerId: "client", changeType: "added", initialization: false })),
+      ...["b", "b2"].map((id) => ({ id, name: id, type: "function", containerId: "service", changeType: "added", initialization: false })),
+      { id: "state", name: "State", type: "state-variable", containerId: "service", changeType: "added", initialization: false },
+      { id: "boundary", name: "Boundary", type: "external-dependency", description: "Storage", changeType: "added", initialization: false },
     ],
     relationships,
   };
