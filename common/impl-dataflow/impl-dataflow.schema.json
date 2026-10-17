@@ -59,7 +59,7 @@
       }
     },
     "containers": {
-      "description": "Class and module containers for function, state-variable, and optionally owned static-data nodes. Membership is recorded only by each owned node's containerId. Container names are unique among containers; IDs are unique across nodes and containers. A container is changed when any owned node is added, modified, or deleted, and unchanged otherwise. Do not store an independent changeType. Optional diff-hunk references provide evidence for the container independently of its derived status.",
+      "description": "Class and module containers for function, state-variable, and optionally owned static-data nodes. Membership is recorded only by each owned node's containerId. Container names are unique among containers; IDs are unique across nodes and containers. Derive container status from all owned nodes, including hidden nodes: new when all are added, unchanged when all are unchanged or there are no owned nodes, deleted when all are deleted, and changed for mixed statuses or modified children. Do not store an independent changeType. Optional diff-hunk references provide evidence for the container independently of its derived status.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/container"
@@ -473,7 +473,7 @@
       "unevaluatedProperties": false
     },
     "container": {
-      "description": "A class or module grouping function, state-variable, and optionally owned static-data nodes through their containerId. Both types may own any combination of these node types. Derive whether the container is changed from its owned nodes; do not store changeType. Container diffHunkIds remain optional during code review, including when owned nodes are unchanged. Class composition is separate from membership.",
+      "description": "A class or module grouping function, state-variable, and optionally owned static-data nodes through their containerId. Both types may own any combination of these node types. Derive container status from all owned nodes, including hidden nodes: new when all are added, unchanged when all are unchanged or there are no owned nodes, deleted when all are deleted, and changed for mixed statuses or modified children. Do not store changeType. Container diffHunkIds remain optional during code review, including when owned nodes are unchanged. Class composition is separate from membership.",
       "type": "object",
       "additionalProperties": false,
       "required": [

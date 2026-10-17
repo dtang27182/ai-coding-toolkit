@@ -73,7 +73,7 @@ function escapeHtml(value: string | number): string {
 }
 
 function changeColor(changeType: ChangeType | ContainerStatus): string {
-  return CHANGE_COLORS[changeType === "changed" ? "modified" : changeType];
+  return CHANGE_COLORS[changeType === "new" ? "added" : changeType === "changed" ? "modified" : changeType];
 }
 
 function chipStyle(changeType: ChangeType | ContainerStatus): string {
@@ -367,7 +367,7 @@ function renderInspector(graph: VisibleGraph): string {
   } else if (inspected.type === "container") {
     const container = graph.containers.find((container) => container.id === inspected.containerId)!;
     const writes = graph.relationships.filter((relationship) => relationship.to.type === "state-variable" && relationship.to.boxId === container.id);
-    content = `${inspectorHeader(container.type === "class" ? "Class" : "Module", container.name, container.changeType, "Derived from owned nodes")}${diffEvidence(container.diffHunkIds)}${section("Functions", nodeRows(container.functions), container.functions.length)}${section("State variables", nodeRows(container.stateVariables), container.stateVariables.length)}${section("Static data", nodeRows(container.staticData), container.staticData.length)}${section("State written by", flowRows(writes, "from", true), writes.length)}`;
+    content = `${inspectorHeader(container.type === "class" ? "Class" : "Module", container.name, container.changeType)}${diffEvidence(container.diffHunkIds)}${section("Functions", nodeRows(container.functions), container.functions.length)}${section("State variables", nodeRows(container.stateVariables), container.stateVariables.length)}${section("Static data", nodeRows(container.staticData), container.staticData.length)}${section("State written by", flowRows(writes, "from", true), writes.length)}`;
   } else if (inspected.type === "relationship") {
     const edges = relationshipsForEdge(graph.relationships, inspected.edge, functionsHidden);
     if (edges.length === 0) {

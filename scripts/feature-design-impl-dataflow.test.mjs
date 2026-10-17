@@ -363,6 +363,8 @@ test("visualizer loads version 16 examples with owned static data", async () => 
   assert.equal(graph.containers.length, input.containers.length);
   const service = graph.containers.find((container) => container.name === "ChangeService");
   assert.equal(service.changeType, "changed");
+  assert.equal(graph.containers.find((container) => container.name === "ChangeModel").changeType, "new");
+  assert.equal(graph.containers.find((container) => container.name === "LegacyChangeAdapter").changeType, "deleted");
   assert.deepEqual(service.staticData.map((node) => node.name), ["Diff Format Rules"]);
   assert.equal(graph.staticData.length, 0);
   const layout = computeLayout(graph.nodes, graph.relationships, false, () => 80, () => 80, () => 100, new Set());
@@ -389,6 +391,47 @@ test("visualizer keeps repeated member names and container/node names distinct b
   assert.notDeepEqual(layout.boxes.get("service"), layout.boxes.get("service-panel"));
   assert.notEqual(edgeKey(graph.relationships[0], false), edgeKey(graph.relationships[1], false));
   assert.equal(dataflowEdges(graph.relationships, true).length, 2);
+});
+
+test("container status reflects uniform and mixed statuses across all child types", () => {
+  const cases = [
+    [["added", "added", "added"], "new"],
+    [["unchanged", "unchanged", "unchanged"], "unchanged"],
+    [["deleted", "deleted", "deleted"], "deleted"],
+    [["modified", "modified", "modified"], "changed"],
+    [["added", "unchanged", "unchanged"], "changed"],
+    [["added", "deleted", "added"], "changed"],
+    [["modified", "added", "added"], "changed"],
+    [["unchanged", "deleted", "unchanged"], "changed"],
+    [["unchanged", "modified", "unchanged"], "changed"],
+    [["deleted", "deleted", "modified"], "changed"],
+  ];
+  for (const type of ["class", "module"]) {
+    for (const [childStatuses, expected] of cases) {
+      const input = highLevelDesign();
+      input.containers = [{ id: "service", name: "Service", type }];
+      for (const [index, node] of input.nodes.entries()) {
+        node.containerId = "service";
+        node.changeType = childStatuses[index];
+      }
+      assert.equal(filterGraph(input, true).containers[0].changeType, expected, `${type}: ${childStatuses.join(", ")}`);
+    }
+  }
+});
+
+test("hidden initialization and unchanged children still contribute to container status", () => {
+  for (const hiddenStatus of ["unchanged", "modified", "deleted"]) {
+    const input = highLevelDesign();
+    input.nodes[0].changeType = hiddenStatus;
+    input.nodes[0].initialization = true;
+    input.nodes[2].changeType = "added";
+    for (const showUnchanged of [true, false]) {
+      for (const hideInitialization of [true, false]) {
+        const graph = filterGraph(input, showUnchanged, hideInitialization);
+        assert.equal(graph.containers.find((container) => container.id === "service").changeType, "changed");
+      }
+    }
+  }
 });
 
 test("visualizer filters all member types and derives status from changed owned nodes", () => {

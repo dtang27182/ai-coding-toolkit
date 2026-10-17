@@ -1,7 +1,7 @@
 import type { ChangeType, ComponentType, Container, ContainerType, DataflowNode, FunctionNode, NodeType, Relationship, RelationshipEndpoint, StateVariableNode, StaticDataNode } from "../../types.ts";
 export type { ChangeType, ComponentType, DataflowNode, ImplementationDataflow } from "../../types.ts";
 
-export type ContainerStatus = "changed" | "unchanged";
+export type ContainerStatus = "new" | "changed" | "unchanged" | "deleted";
 
 export interface GraphContainer extends Container {
   changeType: ContainerStatus;
