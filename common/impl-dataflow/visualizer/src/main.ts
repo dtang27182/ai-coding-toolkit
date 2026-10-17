@@ -209,9 +209,9 @@ function renderGraph(graph: VisibleGraph): string {
   const routingBounds = new Map(graph.nodes.map((node): [string, Rect] => {
     const box = layout.boxes.get(node.id)!;
     let bounds = box;
-    if (node.nodeType === undefined) {
+    if (!functionsHidden && node.nodeType === undefined) {
       const tab = classTargetRect(containers.get(node.id)!, box);
-      bounds = functionsHidden ? tab : { x: box.x, y: tab.y, width: Math.max(box.width, tab.x + tab.width - box.x), height: box.y + box.height - tab.y };
+      bounds = { x: box.x, y: tab.y, width: Math.max(box.width, tab.x + tab.width - box.x), height: box.y + box.height - tab.y };
     }
     return [node.id, bounds];
   }));
@@ -257,10 +257,16 @@ function renderGraph(graph: VisibleGraph): string {
   const classTabs = graph.containers.map((container) => {
     const box = layout.boxes.get(container.id)!;
     const selected = selectionKey(selection) === selectionKey({ type: "container", containerId: container.id });
-    return `<button class="graph-node class-tab${selected ? " selected" : ""}" style="left:${box.x + 10}px;top:${box.y - 12}px" data-select="container" data-node="${escapeHtml(container.id)}" data-container="${escapeHtml(container.id)}" aria-label="Inspect ${container.type} ${escapeHtml(container.name)}">
-      <span class="class-dot" style="background:${changeColor(container.changeType)}"></span><span class="class-name">${escapeHtml(container.name)}</span>
-      ${container.type === "module" ? '<span class="container-kind">module</span>' : ""}
-    </button>`;
+    if (functionsHidden) {
+      return `<button class="graph-node class-tab component-node${selected ? " selected" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px" data-select="container" data-node="${escapeHtml(container.id)}" data-container="${escapeHtml(container.id)}" aria-label="Inspect ${container.type} ${escapeHtml(container.name)}">
+        <span class="class-dot" style="background:${changeColor(container.changeType)}"></span><span class="component-copy"><span class="component-name">${escapeHtml(container.name)}</span><span class="node-kind">${container.type}</span></span>
+      </button>`;
+    } else {
+      return `<button class="graph-node class-tab${selected ? " selected" : ""}" style="left:${box.x + 10}px;top:${box.y - 12}px" data-select="container" data-node="${escapeHtml(container.id)}" data-container="${escapeHtml(container.id)}" aria-label="Inspect ${container.type} ${escapeHtml(container.name)}">
+        <span class="class-dot" style="background:${changeColor(container.changeType)}"></span><span class="class-name">${escapeHtml(container.name)}</span>
+        ${container.type === "module" ? '<span class="container-kind">module</span>' : ""}
+      </button>`;
+    }
   }).join("");
 
   const members = functionsHidden ? "" : graph.containers.flatMap((container) => [...container.functions, ...container.staticData].map((node) => {

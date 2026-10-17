@@ -139,25 +139,31 @@ export function computeLayout(
   }
 
   function widthOf(node: GraphNode): number {
-    if (node.nodeType !== undefined) return Math.max(164, measureComponent(node.name) + 62);
-    const members = visibleMembers(node);
-    const memberWidth = members.reduce(
-      (total, member) => total + measureFunction(member.name, stateWriters.has(member.id)) + FUNCTION_GAP,
-      -FUNCTION_GAP,
-    );
-    const stateBoxWidth = stateWidth(node);
-    const contentWidth = stateBoxWidth + (stateBoxWidth > 0 && memberWidth > 0 ? FUNCTION_GAP : 0) + Math.max(0, memberWidth);
-    return Math.max(contentWidth + BOX_PADDING * 2, node.name.length * 7.4 + 120, 216);
+    if (collapsed || node.nodeType !== undefined) {
+      return Math.max(164, measureComponent(node.name) + 62);
+    } else {
+      const members = visibleMembers(node);
+      const memberWidth = members.reduce(
+        (total, member) => total + measureFunction(member.name, stateWriters.has(member.id)) + FUNCTION_GAP,
+        -FUNCTION_GAP,
+      );
+      const stateBoxWidth = stateWidth(node);
+      const contentWidth = stateBoxWidth + (stateBoxWidth > 0 && memberWidth > 0 ? FUNCTION_GAP : 0) + Math.max(0, memberWidth);
+      return Math.max(contentWidth + BOX_PADDING * 2, node.name.length * 7.4 + 120, 216);
+    }
   }
 
   function heightOf(node: GraphNode): number {
-    if (node.nodeType !== undefined) return COMPONENT_HEIGHT;
-    const memberHeight = visibleMembers(node).length > 0 ? FUNCTION_HEIGHT : 0;
-    const contentHeight = Math.max(memberHeight, stateHeight(node));
-    if (contentHeight === 0) {
-      return TAB_HEIGHT + BOX_PADDING * 2 + 4;
+    if (collapsed || node.nodeType !== undefined) {
+      return COMPONENT_HEIGHT;
     } else {
-      return TAB_HEIGHT + contentHeight + BOX_PADDING;
+      const memberHeight = visibleMembers(node).length > 0 ? FUNCTION_HEIGHT : 0;
+      const contentHeight = Math.max(memberHeight, stateHeight(node));
+      if (contentHeight === 0) {
+        return TAB_HEIGHT + BOX_PADDING * 2 + 4;
+      } else {
+        return TAB_HEIGHT + contentHeight + BOX_PADDING;
+      }
     }
   }
 
