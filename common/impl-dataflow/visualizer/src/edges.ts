@@ -1,4 +1,4 @@
-import { edgeKey, isInternalDataRelationship, type ResolvedRelationship } from "./types.ts";
+import { edgeKey, type ResolvedRelationship } from "./types.ts";
 
 export interface DrawnEdge {
   key: string;
@@ -7,9 +7,9 @@ export interface DrawnEdge {
   relationships: ResolvedRelationship[];
 }
 
-/** Pair at function IDs before merging visible edges at container IDs. */
+/** Pair at function IDs, then collapse all flows between each visible pair. */
 export function dataflowEdges(relationships: ResolvedRelationship[], collapsed: boolean): DrawnEdge[] {
-  const drawable = relationships.filter((item) => item.relationship.type === "dataflow" && (!collapsed || !isInternalDataRelationship(item)));
+  const drawable = relationships.filter((item) => item.relationship.type === "dataflow" && (!collapsed || item.from.boxId !== item.to.boxId));
   const used = new Set<ResolvedRelationship>();
   const edges: DrawnEdge[] = [];
   const merged = new Map<string, DrawnEdge>();
@@ -35,7 +35,7 @@ export function dataflowEdges(relationships: ResolvedRelationship[], collapsed: 
       }
       const members = back === undefined ? [forward] : [forward, back];
       for (const member of members) used.add(member);
-      const key = JSON.stringify([edgeKey(forward, collapsed), forward.relationship.changeType,
+      const key = collapsed ? JSON.stringify(["dataflow", ...[from.boxId, to.boxId].sort()]) : JSON.stringify([edgeKey(forward, collapsed), forward.relationship.changeType,
         forward.relationship.type === "dataflow" ? forward.relationship.transferType : undefined, back?.relationship.changeType]);
       const existing = collapsed ? merged.get(key) : undefined;
       if (existing === undefined) {
@@ -44,6 +44,9 @@ export function dataflowEdges(relationships: ResolvedRelationship[], collapsed: 
         merged.set(key, edge);
       } else if (existing !== undefined) {
         existing.relationships.push(...members);
+        if (existing.back === undefined) {
+          existing.back = members.find((member) => member.from.boxId === existing.forward.to.boxId);
+        }
       }
     }
   }
