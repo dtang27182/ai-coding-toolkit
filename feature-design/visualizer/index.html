@@ -29,21 +29,27 @@
             <span class="view-count" data-count="implementation">units</span>
           </button>
         </nav>
-        <div class="header-spacer"></div>
         <div class="header-actions">
-          <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
-          <button class="control-button" type="button" data-proxy="toggle-unchanged" hidden>Hide unchanged</button>
-          <button class="control-button active" type="button" data-proxy="toggle-initialization" aria-pressed="true" hidden>Hide Initialization</button>
-          <button class="control-button" type="button" data-proxy="toggle-functions" hidden>Hide functions</button>
-          <div class="zoom-controls">
-            <button class="zoom-button" type="button" data-proxy="zoom-out" aria-label="Zoom out">−</button>
-            <button class="zoom-button" type="button" data-proxy="fit">Fit</button>
-            <button class="zoom-button" type="button" data-proxy="zoom-in" aria-label="Zoom in">+</button>
+          <div class="diff-legend" aria-label="Change types">
+            <span><i class="added-dot"></i>Added</span>
+            <span><i class="modified-dot"></i>Modified</span>
+            <span><i class="deleted-dot"></i>Deleted</span>
           </div>
           <button class="open-button" type="button" id="open-hld-manifest">Open HLD Manifest</button>
           <input id="hld-manifest-input" type="file" accept="application/json,.json" hidden>
         </div>
       </header>
+      <div class="dataflow-controls" role="toolbar" aria-label="Graph controls">
+        <button class="control-button" type="button" data-proxy="toggle-unchanged" hidden>Hide unchanged</button>
+        <button class="control-button active" type="button" data-proxy="toggle-initialization" aria-pressed="true" hidden>Hide Initialization</button>
+        <button class="control-button" type="button" data-proxy="toggle-functions" hidden>Hide functions</button>
+        <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
+        <div class="zoom-controls">
+          <button class="zoom-button" type="button" data-proxy="zoom-out" aria-label="Zoom out">−</button>
+          <button class="zoom-button" type="button" data-proxy="fit">Fit</button>
+          <button class="zoom-button" type="button" data-proxy="zoom-in" aria-label="Zoom in">+</button>
+        </div>
+      </div>
       <main class="view-panels">
         <section class="view-panel active" data-panel="system" aria-label="System Dataflow">
           <iframe src="./system.html" title="System Dataflow"></iframe>
