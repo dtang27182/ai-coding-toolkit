@@ -17,7 +17,7 @@ export type Selection =
 
 /** Collapsed edge identity uses the containers that own its endpoints. */
 export function edgeKey(relationship: ResolvedRelationship, collapsed: boolean): string {
-  const side = (endpoint: ResolvedEndpoint) => collapsed ? endpoint.boxId : endpoint.nodeId ?? endpoint.boxId;
+  const side = (endpoint: ResolvedEndpoint) => collapsed || endpoint.type === "ui-component" ? endpoint.boxId : endpoint.nodeId ?? endpoint.boxId;
   return JSON.stringify([relationship.relationship.type, side(relationship.from), side(relationship.to)]);
 }
 
@@ -36,6 +36,7 @@ export interface GraphNode {
   stateVariables: StateVariableNode[];
   staticData: StaticDataNode[];
   nodeType?: ComponentType | "static-data";
+  uiDirection?: "read" | "write";
 }
 
 export interface ResolvedEndpoint {
@@ -68,7 +69,7 @@ export function resolveEndpoint(endpoint: RelationshipEndpoint, nodes: Map<strin
   let resolved: ResolvedEndpoint;
   if ("nodeId" in endpoint) {
     const node = nodes.get(endpoint.nodeId)!;
-    resolved = { boxId: "containerId" in node && node.containerId !== undefined ? node.containerId : node.id, nodeId: node.id, type: node.type };
+    resolved = { boxId: node.type === "function" || node.type === "state-variable" ? node.containerId : node.id, nodeId: node.id, type: node.type };
   } else if ("containerId" in endpoint) {
     resolved = { boxId: endpoint.containerId, type: endpoint.type };
   }

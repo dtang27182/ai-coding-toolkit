@@ -82,7 +82,7 @@ export function computeLayout(
 
   relaxComposition();
   const dataflows = relationships.filter((item) => item.relationship.type === "dataflow");
-  const containerFlows = dataflows.filter((edge) => edge.from.nodeId !== edge.from.boxId && edge.to.nodeId !== edge.to.boxId);
+  const containerFlows = dataflows.filter((edge) => byId.get(edge.from.boxId)!.nodeType === undefined && byId.get(edge.to.boxId)!.nodeType === undefined);
   const freeFlows = acyclicEdges(nodes, containerFlows).filter(
     (edge) => !ownerOf.has(edge.to.boxId) && !ownerOf.has(edge.from.boxId),
   );
@@ -99,7 +99,7 @@ export function computeLayout(
   }
   relaxComposition();
 
-  for (const node of nodes.filter((item) => item.nodeType !== undefined)) {
+  for (const node of nodes.filter((item) => item.nodeType === "external-dependency")) {
     const outgoing = dataflows
       .filter((edge) => edge.from.boxId === node.id && edge.to.boxId !== node.id)
       .map((edge) => rank.get(edge.to.boxId)!);
@@ -113,11 +113,18 @@ export function computeLayout(
     }
   }
 
+  const sources = nodes.filter((node) => node.uiDirection === "read" || node.nodeType === "system-input" || node.nodeType === "static-data");
+  const outputs = nodes.filter((node) => node.uiDirection === "write" || node.nodeType === "system-output");
+  const sourceRank = Math.min(...rank.values()) - 1;
+  const outputRank = Math.max(...rank.values()) + 1;
+  for (const node of sources) rank.set(node.id, sourceRank);
+  for (const node of outputs) rank.set(node.id, outputRank);
+
   const minimumRank = Math.min(...ids.map((id) => rank.get(id)!));
   for (const id of ids) rank.set(id, rank.get(id)! - minimumRank);
 
   function visibleMembers(node: GraphNode) {
-    return collapsed || node.nodeType !== undefined ? [] : [...node.functions, ...node.staticData];
+    return collapsed || node.nodeType !== undefined ? [] : node.functions;
   }
 
   function visibleStateVariables(node: GraphNode) {

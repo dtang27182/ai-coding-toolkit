@@ -26,18 +26,19 @@ function dataflow(fromId, fromType, toId, toType) {
   return { from: { nodeId: fromId, type: fromType }, to: { nodeId: toId, type: toType }, type: "dataflow", ...(fromType === "function" && toType === "function" ? { transferType: "arguments" } : {}), changeType: "added", dataDescription: "Value", purpose: "Process value" };
 }
 
-test("collapsed layout hides functions, state, and owned static data", () => {
+test("collapsed layout hides functions and state while static data stays at the top", () => {
   const graph = filterGraph(implementation(), true);
   const collapsed = computeLayout(graph.nodes, graph.relationships, true, () => 80, () => 90, () => 160, new Set());
   assert.equal(collapsed.memberRects.size, 0);
   assert.equal(collapsed.stateRects.size, 0);
+  assert.ok(collapsed.boxes.get("rules").y < collapsed.boxes.get("model").y);
   const expanded = computeLayout(graph.nodes, graph.relationships, false, () => 80, () => 90, () => 160, new Set());
-  assert.equal(expanded.memberRects.size, 5);
-  assert.ok(expanded.memberRects.has("rules"));
+  assert.equal(expanded.memberRects.size, 4);
+  assert.ok(expanded.boxes.get("rules").y < expanded.boxes.get("model").y);
   assert.ok(expanded.memberRects.has("value"));
 });
 
-test("only same-container state and static-data accesses are internal", () => {
+test("same-container state accesses are internal while static data is a separate source", () => {
   const graph = filterGraph(implementation([
     dataflow("write", "function", "value", "state-variable"),
     dataflow("value", "state-variable", "read", "function"),
@@ -45,7 +46,7 @@ test("only same-container state and static-data accesses are internal", () => {
     dataflow("write", "function", "read", "function"),
     dataflow("rules", "static-data", "read", "function"),
   ]), true);
-  assert.deepEqual(graph.relationships.map(isInternalDataRelationship), [true, true, false, false, true]);
+  assert.deepEqual(graph.relationships.map(isInternalDataRelationship), [true, true, false, false, false]);
 });
 
 test("collapsed dataflows merge function calls and state accesses and retain inspector references", () => {

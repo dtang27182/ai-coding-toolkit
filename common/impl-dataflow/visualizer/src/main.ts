@@ -112,14 +112,14 @@ function tabWidth(container: GraphContainer): number {
 }
 
 function endpointBoxLabel(endpoint: ResolvedEndpoint): string {
-  return endpoint.boxId === endpoint.nodeId
+  return endpoint.boxId === endpoint.nodeId || endpoint.type === "ui-component"
     ? implementationDataflow.nodes.find((node) => node.id === endpoint.nodeId)!.name
     : implementationDataflow.containers.find((container) => container.id === endpoint.boxId)!.name;
 }
 
 function endpointLabel(endpoint: ResolvedEndpoint): string {
   let label = endpointBoxLabel(endpoint);
-  if (endpoint.nodeId !== undefined && endpoint.nodeId !== endpoint.boxId) {
+  if (endpoint.nodeId !== undefined && endpoint.nodeId !== endpoint.boxId && endpoint.type !== "ui-component") {
     label += `.${implementationDataflow.nodes.find((node) => node.id === endpoint.nodeId)!.name}`;
   }
   return label;
@@ -157,7 +157,7 @@ function graphFocus(value: Selection | undefined): Selection | undefined {
   let focus = value;
   if (functionsHidden && value?.type === "node") {
     const node = implementationDataflow.nodes.find((node) => node.id === value.nodeId)!;
-    if ("containerId" in node && node.containerId !== undefined) {
+    if (node.type === "function" || node.type === "state-variable") {
       focus = { type: "container", containerId: node.containerId };
     }
   }
@@ -173,13 +173,13 @@ function visibleGraph(): VisibleGraph {
 }
 
 function graphRect(endpoint: ResolvedEndpoint, boxes: Map<string, Rect>, memberRects: Map<string, Rect>): Rect | undefined {
-  return !functionsHidden && endpoint.nodeId !== undefined && endpoint.nodeId !== endpoint.boxId
+  return !functionsHidden && endpoint.nodeId !== undefined && endpoint.nodeId !== endpoint.boxId && endpoint.type !== "ui-component"
     ? memberRects.get(endpoint.nodeId)
     : boxes.get(endpoint.boxId);
 }
 
 function graphEndpointKey(endpoint: ResolvedEndpoint): string {
-  return functionsHidden ? endpoint.boxId : endpoint.nodeId ?? endpoint.boxId;
+  return functionsHidden || endpoint.type === "ui-component" ? endpoint.boxId : endpoint.nodeId ?? endpoint.boxId;
 }
 
 function classTargetRect(container: GraphContainer, box: Rect): Rect {
@@ -269,10 +269,10 @@ function renderGraph(graph: VisibleGraph): string {
     }
   }).join("");
 
-  const members = functionsHidden ? "" : graph.containers.flatMap((container) => [...container.functions, ...container.staticData].map((node) => {
+  const members = functionsHidden ? "" : graph.containers.flatMap((container) => container.functions.map((node) => {
     const rect = layout.memberRects.get(node.id)!;
     const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
-    return `<button class="graph-node function-pill${node.type === "static-data" ? " static-data" : ""}${selected ? " selected" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(container.name)}.${escapeHtml(node.name)}">
+    return `<button class="graph-node function-pill${selected ? " selected" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(container.name)}.${escapeHtml(node.name)}">
       <span class="function-accent" style="background:${changeColor(node.changeType)}"></span><span class="function-glyph" style="color:${changeColor(node.changeType)}">${NODE_GLYPHS[node.type]}</span><span class="function-name">${escapeHtml(node.name)}</span>
       ${stateWriters.has(node.id) ? '<span class="state-glyph" title="Writes state">◈</span>' : ""}
     </button>`;
@@ -291,13 +291,17 @@ function renderGraph(graph: VisibleGraph): string {
 
   const standaloneNodes = [...graph.components, ...graph.staticData].map((node) => {
     const box = layout.boxes.get(node.id)!;
-    const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
-    return `<button class="graph-node component-node ${node.type}${selected ? " selected" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px" data-select="node" data-node="${escapeHtml(node.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(node.name)}">
-      <span class="component-glyph">${NODE_GLYPHS[node.type]}</span><span class="component-copy"><span class="component-name">${escapeHtml(node.name)}</span><span class="node-kind">${NODE_LABELS[node.type]}</span></span>
+    const nodeId = "nodeId" in node ? node.nodeId : node.id;
+    const uiDirection = "uiDirection" in node ? node.uiDirection : undefined;
+    const label = uiDirection === undefined ? NODE_LABELS[node.type] : `UI ${uiDirection}`;
+    const glyph = uiDirection === "read" ? "↧" : uiDirection === "write" ? "↳" : NODE_GLYPHS[node.type];
+    const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId });
+    return `<button class="graph-node component-node ${node.type}${uiDirection === undefined ? "" : ` ui-${uiDirection}`}${selected ? " selected" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px" data-select="node" data-node="${escapeHtml(node.id)}" data-node-id="${escapeHtml(nodeId)}" aria-label="Inspect ${label} ${escapeHtml(node.name)}">
+      <span class="component-glyph">${glyph}</span><span class="component-copy"><span class="component-name">${escapeHtml(node.name)}</span><span class="node-kind">${label}</span></span>
     </button>`;
   }).join("");
 
-  const emptyNotes = graph.containers.filter((container) => !functionsHidden && container.functions.length + container.stateVariables.length + container.staticData.length === 0).map((container) => {
+  const emptyNotes = graph.containers.filter((container) => !functionsHidden && container.functions.length + container.stateVariables.length === 0).map((container) => {
     const box = layout.boxes.get(container.id)!;
     return `<span class="graph-node empty-class" data-node="${escapeHtml(container.id)}" style="left:${box.x + 15}px;top:${box.y + 30}px">No visible members</span>`;
   }).join("");
@@ -656,14 +660,15 @@ function updateGraphFocus(value: Selection | undefined): void {
   value = graphFocus(value);
   const relatedBoxes = new Set<string>();
   const relatedNodes = new Set<string>();
+  const graph = visibleGraph();
   if (value?.type === "container") {
     relatedBoxes.add(value.containerId);
   } else if (value?.type === "node") {
     const node = implementationDataflow.nodes.find((node) => node.id === value.nodeId)!;
     relatedNodes.add(node.id);
-    relatedBoxes.add("containerId" in node && node.containerId !== undefined ? node.containerId : node.id);
+    relatedBoxes.add(node.type === "function" || node.type === "state-variable" ? node.containerId : node.id);
+    for (const component of graph.components.filter((component) => component.nodeId === node.id)) relatedBoxes.add(component.id);
   }
-  const graph = visibleGraph();
   const selectedRelationships = value?.type === "relationship" ? relationshipsForEdge(graph.relationships, value.edge, functionsHidden) : [];
   for (const relationship of graph.relationships.filter((item) => relationshipMatches(item, value, selectedRelationships))) {
     for (const endpoint of [relationship.from, relationship.to]) {

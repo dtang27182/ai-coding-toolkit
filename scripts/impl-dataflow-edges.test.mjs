@@ -83,20 +83,22 @@ test("collapsed containers merge opposite flows between different functions", ()
   assert.deepEqual(relationshipsForEdge(graph.relationships, edges[0].key, true), graph.relationships);
 });
 
-test("collapsed flows with the same visible source and target are hidden", () => {
+test("collapsed flows hide internal members and retain static data sources", () => {
   const graph = filterGraph(implementation([
     flow("a", "a2", "arguments"), flow("a", "a", "arguments"),
     flow("b", "state"), flow("state", "b"), flow("static", "b"),
     flow("boundary", "boundary"),
   ]), true);
   assert.equal(dataflowEdges(graph.relationships, false).length, graph.relationships.length);
-  assert.deepEqual(dataflowEdges(graph.relationships, true), []);
+  const edges = dataflowEdges(graph.relationships, true);
+  assert.equal(edges.length, 1);
+  assert.equal(edges[0].forward.relationship, graph.relationships[4].relationship);
 });
 
 test("collapsed flows merge across transfer types and change types in either order", () => {
   const relationships = [
     flow("a", "b", "arguments"), flow("a2", "b2", "return", "modified"),
-    flow("a", "state", undefined, "deleted"), flow("a2", "static", undefined, "unchanged"),
+    flow("a", "state", undefined, "deleted"), flow("a2", "state", undefined, "unchanged"),
   ];
   for (const items of [relationships, [...relationships].reverse()]) {
     const graph = filterGraph(implementation(items), true);

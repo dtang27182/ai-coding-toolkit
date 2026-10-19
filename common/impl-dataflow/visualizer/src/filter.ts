@@ -2,9 +2,11 @@ import type { BoundaryNode, FunctionNode, StateVariableNode, StaticDataNode } fr
 import type { ContainerStatus, DataflowNode, GraphContainer, GraphNode, ImplementationDataflow, ResolvedRelationship } from "./types.ts";
 import { resolveEndpoint } from "./types.ts";
 
+export type GraphComponent = BoundaryNode & { nodeId: string; uiDirection?: "read" | "write" };
+
 export interface VisibleGraph {
   containers: GraphContainer[];
-  components: BoundaryNode[];
+  components: GraphComponent[];
   staticData: StaticDataNode[];
   nodes: GraphNode[];
   relationships: ResolvedRelationship[];
@@ -45,15 +47,8 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
       staticData: visibleNodes.filter((node): node is StaticDataNode => node.type === "static-data" && node.containerId === container.id),
     };
   });
-  const components = visibleNodes.filter((node): node is BoundaryNode => ["ui-component", "system-input", "system-output", "external-dependency"].includes(node.type));
-  const staticData = visibleNodes.filter((node): node is StaticDataNode => node.type === "static-data" && node.containerId === undefined);
-  const nodes: GraphNode[] = [
-    ...containers,
-    ...[...components, ...staticData].map((node) => ({ ...node, functions: [], stateVariables: [], staticData: [], nodeType: node.type })),
-  ];
   const visibleContainerIds = new Set(containers.map((container) => container.id));
-  const allNodes = new Map(implementationDataflow.nodes.map((node): [string, DataflowNode] => [node.id, node]));
-  const relationships = implementationDataflow.relationships.filter((relationship) => {
+  const visibleRelationships = implementationDataflow.relationships.filter((relationship) => {
     let visible = false;
     if (relationship.type === "dataflow") {
       visible = (showUnchanged || relationship.changeType !== "unchanged") && nodeIds.has(relationship.from.nodeId) && nodeIds.has(relationship.to.nodeId);
@@ -61,6 +56,41 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
       visible = visibleContainerIds.has(relationship.from.containerId) && visibleContainerIds.has(relationship.to.containerId);
     }
     return visible;
-  }).map((relationship) => ({ relationship, from: resolveEndpoint(relationship.from, allNodes), to: resolveEndpoint(relationship.to, allNodes) }));
+  });
+  const usedIds = new Set([...implementationDataflow.containers, ...implementationDataflow.nodes].map((item) => item.id));
+  let nextComponentId = 0;
+  const uiWriteIds = new Map<string, string>();
+  const components = visibleNodes.filter((node): node is BoundaryNode => ["ui-component", "system-input", "system-output", "external-dependency"].includes(node.type)).flatMap((node): GraphComponent[] => {
+    if (node.type === "ui-component") {
+      const icons: GraphComponent[] = [];
+      if (visibleRelationships.some((relationship) => relationship.type === "dataflow" && relationship.from.nodeId === node.id)) {
+        icons.push({ ...node, nodeId: node.id, uiDirection: "read" });
+      }
+      if (visibleRelationships.some((relationship) => relationship.type === "dataflow" && relationship.to.nodeId === node.id)) {
+        let writeId: string;
+        do {
+          writeId = `ui-write-${nextComponentId++}`;
+        } while (usedIds.has(writeId));
+        usedIds.add(writeId);
+        uiWriteIds.set(node.id, writeId);
+        icons.push({ ...node, id: writeId, nodeId: node.id, uiDirection: "write" });
+      }
+      return icons;
+    } else {
+      return [{ ...node, nodeId: node.id }];
+    }
+  });
+  const staticData = visibleNodes.filter((node): node is StaticDataNode => node.type === "static-data");
+  const nodes: GraphNode[] = [
+    ...containers,
+    ...[...components, ...staticData].map((node) => ({ ...node, functions: [], stateVariables: [], staticData: [], nodeType: node.type })),
+  ];
+  const allNodes = new Map(implementationDataflow.nodes.map((node): [string, DataflowNode] => [node.id, node]));
+  const relationships = visibleRelationships.map((relationship) => {
+    const from = resolveEndpoint(relationship.from, allNodes);
+    const to = resolveEndpoint(relationship.to, allNodes);
+    if (to.type === "ui-component") to.boxId = uiWriteIds.get(to.nodeId!)!;
+    return { relationship, from, to };
+  });
   return { containers, components, staticData, nodes, relationships };
 }

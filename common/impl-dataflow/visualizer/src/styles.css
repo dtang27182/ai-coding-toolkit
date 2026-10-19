@@ -486,6 +486,11 @@ body.embedded .topbar {
   border-radius: 5px;
 }
 
+.component-node.ui-write {
+  border-top-width: 1.5px;
+  border-bottom-width: 4px;
+}
+
 .component-node.system-input {
   border-left: 4px solid oklch(0.7 0.12 210);
   border-radius: 5px;

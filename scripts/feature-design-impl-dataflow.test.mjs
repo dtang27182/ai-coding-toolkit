@@ -366,7 +366,7 @@ test("visualizer loads version 16 examples with owned static data", async () => 
   assert.equal(graph.containers.find((container) => container.name === "ChangeModel").changeType, "new");
   assert.equal(graph.containers.find((container) => container.name === "LegacyChangeAdapter").changeType, "deleted");
   assert.deepEqual(service.staticData.map((node) => node.name), ["Diff Format Rules"]);
-  assert.equal(graph.staticData.length, 0);
+  assert.deepEqual(graph.staticData.map((node) => node.name), ["Diff Format Rules"]);
   const layout = computeLayout(graph.nodes, graph.relationships, false, () => 80, () => 80, () => 100, new Set());
   for (const node of input.nodes) {
     assert.ok(layout.memberRects.has(node.id) || layout.boxes.has(node.id));
@@ -387,7 +387,7 @@ test("visualizer keeps repeated member names and container/node names distinct b
   const graph = filterGraph(input, true);
   const layout = computeLayout(graph.nodes, graph.relationships, false, () => 80, () => 80, () => 100, new Set());
   assert.notDeepEqual(layout.memberRects.get("inspect"), layout.memberRects.get("module-inspect"));
-  assert.notDeepEqual(layout.memberRects.get("rules"), layout.memberRects.get("module-rules"));
+  assert.notDeepEqual(layout.boxes.get("rules"), layout.boxes.get("module-rules"));
   assert.notDeepEqual(layout.boxes.get("service"), layout.boxes.get("service-panel"));
   assert.notEqual(edgeKey(graph.relationships[0], false), edgeKey(graph.relationships[1], false));
   assert.equal(dataflowEdges(graph.relationships, true).length, 2);
@@ -456,6 +456,10 @@ test("initialization filtering hides every node subtype and restores it when dis
     input.nodes = [{ id: "setup", name: "Setup", type, description: "Initialization", changeType: "added", initialization: true }];
     if (type === "function" || type === "state-variable" || type === "static-data") {
       input.nodes[0].containerId = "service";
+    }
+    if (type === "ui-component") {
+      input.nodes.push({ id: "output", name: "Output", type: "system-output", description: "Setup result", changeType: "added", initialization: false });
+      input.relationships.push({ from: { nodeId: "setup", type }, to: { nodeId: "output", type: "system-output" }, type: "dataflow", changeType: "added", dataDescription: "Setup result", purpose: "Publish setup" });
     }
     for (const hideInitialization of [true, false]) {
       const graph = filterGraph(input, true, hideInitialization);
