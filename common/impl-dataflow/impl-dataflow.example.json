@@ -103,6 +103,30 @@
       "name": "Diff Format Rules",
       "changeType": "unchanged",
       "initialization": false
+    },
+    {
+      "id": "entity-15",
+      "name": "Push Webhook",
+      "description": "Repository push notifications that request a fresh change set for the pushed paths.",
+      "type": "system-input",
+      "changeType": "modified",
+      "initialization": false
+    },
+    {
+      "id": "entity-16",
+      "name": "Change Set Published Event",
+      "description": "Event emitted on the message bus after a change set is computed.",
+      "type": "system-output",
+      "changeType": "added",
+      "initialization": false
+    },
+    {
+      "id": "entity-17",
+      "name": "Legacy Change Log",
+      "description": "Append-only log the legacy adapter wrote each adapted change to.",
+      "type": "system-output",
+      "changeType": "deleted",
+      "initialization": false
     }
   ],
   "relationships": [
@@ -202,6 +226,30 @@
       "dataDescription": "Reads the retained change set, including its file entries and summary counts.",
       "purpose": "Supplies the displayed result without recomputing the diff or re-reading the files.",
       "changeType": "added"
+    },
+    {
+      "from": { "nodeId": "entity-15", "type": "system-input" },
+      "to": { "nodeId": "entity-3", "type": "function" },
+      "type": "dataflow",
+      "dataDescription": "The pushed paths and the commit they were pushed in.",
+      "purpose": "Lets automation request a change set without the panel; now routed to buildChangeSet instead of the legacy adapter.",
+      "changeType": "modified"
+    },
+    {
+      "from": { "nodeId": "entity-3", "type": "function" },
+      "to": { "nodeId": "entity-16", "type": "system-output" },
+      "type": "dataflow",
+      "dataDescription": "The change set summary: changed and skipped file counts, keyed by request.",
+      "purpose": "Notifies downstream consumers that a new change set is ready.",
+      "changeType": "added"
+    },
+    {
+      "from": { "nodeId": "entity-10", "type": "function" },
+      "to": { "nodeId": "entity-17", "type": "system-output" },
+      "type": "dataflow",
+      "dataDescription": "Each adapted change, one log line per file.",
+      "purpose": "Recorded legacy adaptations; removed along with the adapter.",
+      "changeType": "deleted"
     }
   ]
 }

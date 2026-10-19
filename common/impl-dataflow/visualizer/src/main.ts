@@ -45,6 +45,62 @@ const NODE_GLYPHS: Record<NodeType, string> = {
   "state-variable": "s",
 };
 
+type Silhouette = "rect" | "dashed" | "stadium-left" | "stadium-right" | "dogear" | "hexagon";
+type BoundaryKind = "user-input" | "user-output" | "external-dependency" | "system-input" | "system-output" | "static-data";
+
+/** Boundary node looks, matching the sys-dataflow visualizer: the type sets the silhouette, badge and tint; the change type sets the outline. */
+const BOUNDARY_TYPES: Record<BoundaryKind, { label: string; badge: string; shape: Silhouette; color: string }> = {
+  "user-input": { label: "UI read", badge: "USER →", shape: "rect", color: "oklch(0.80 0.095 232)" },
+  "user-output": { label: "UI write", badge: "→ USER", shape: "rect", color: "oklch(0.78 0.095 300)" },
+  "external-dependency": { label: "External dependency", badge: "EXTERNAL", shape: "dashed", color: "oklch(0.75 0.085 278)" },
+  "system-input": { label: "System input", badge: "SYSTEM →", shape: "stadium-left", color: "oklch(0.80 0.085 205)" },
+  "system-output": { label: "System output", badge: "→ SYSTEM", shape: "stadium-right", color: "oklch(0.76 0.095 325)" },
+  "static-data": { label: "Static data", badge: "STATIC", shape: "dogear", color: "oklch(0.71 0.03 250)" },
+};
+
+/** Containers take the sys-dataflow data-processing look: a hexagon in its type color. */
+const CONTAINER_TYPE = { badge: { class: "CLASS", module: "MODULE" }, shape: "hexagon" as Silhouette, color: "oklch(0.85 0.09 255)" };
+
+function boundaryKind(type: NodeType, uiDirection: "read" | "write" | undefined): BoundaryKind {
+  if (type === "ui-component") {
+    return uiDirection === "write" ? "user-output" : "user-input";
+  }
+  return type as BoundaryKind;
+}
+
+/** Outline and detail strokes for a boundary node, as in the sys-dataflow visualizer. */
+function silhouette(shape: Silhouette, width: number, height: number): { outline: string; details: string[]; dashed: boolean } {
+  const round = (value: number): number => Math.round(value * 100) / 100;
+  const half = round(height / 2);
+  const inset = round(height * 0.076);
+  const cut = round(height * 0.239);
+  function roundedRect(radius: number): string {
+    const r = round(radius);
+    return `M ${r} 0 L ${width - r} 0 A ${r} ${r} 0 0 1 ${width} ${r} L ${width} ${height - r} A ${r} ${r} 0 0 1 ${width - r} ${height} L ${r} ${height} A ${r} ${r} 0 0 1 0 ${height - r} L 0 ${r} A ${r} ${r} 0 0 1 ${r} 0 Z`;
+  }
+  const stadium = `M ${half} 0 L ${width - half} 0 A ${half} ${half} 0 0 1 ${width - half} ${height} L ${half} ${height} A ${half} ${half} 0 0 1 ${half} 0 Z`;
+  const innerCap = round(half - inset);
+  if (shape === "stadium-left") {
+    return { outline: stadium, details: [`M ${half} ${inset} A ${innerCap} ${innerCap} 0 0 0 ${half} ${height - inset}`], dashed: false };
+  } else if (shape === "stadium-right") {
+    return { outline: stadium, details: [`M ${width - half} ${inset} A ${innerCap} ${innerCap} 0 0 1 ${width - half} ${height - inset}`], dashed: false };
+  } else if (shape === "dogear") {
+    const r = round(height * 0.109);
+    return {
+      outline: `M ${r} 0 L ${width - cut} 0 L ${width} ${cut} L ${width} ${height - r} A ${r} ${r} 0 0 1 ${width - r} ${height} L ${r} ${height} A ${r} ${r} 0 0 1 0 ${height - r} L 0 ${r} A ${r} ${r} 0 0 1 ${r} 0 Z`,
+      details: [`M ${width - cut} 0 L ${width - cut} ${cut} L ${width} ${cut}`],
+      dashed: false,
+    };
+  } else if (shape === "hexagon") {
+    const chamfer = Math.min(round(width * 0.0806), half);
+    return { outline: `M ${chamfer} 0 L ${width - chamfer} 0 L ${width} ${half} L ${width - chamfer} ${height} L ${chamfer} ${height} L 0 ${half} Z`, details: [], dashed: false };
+  } else if (shape === "dashed") {
+    return { outline: roundedRect(height * 0.152), details: [], dashed: true };
+  } else {
+    return { outline: roundedRect(height * 0.13), details: [], dashed: false };
+  }
+}
+
 let implementationDataflow = exampleImplementationDataflow as ImplementationDataflow;
 let fileName = "impl-dataflow.example.json";
 let showUnchanged = false;
@@ -259,14 +315,19 @@ function renderGraph(graph: VisibleGraph): string {
   const classTabs = graph.containers.map((container) => {
     const box = layout.boxes.get(container.id)!;
     const selected = selectionKey(selection) === selectionKey({ type: "container", containerId: container.id });
+    const deleted = container.changeType === "deleted" ? " deleted" : "";
+    const attributes = `data-select="container" data-node="${escapeHtml(container.id)}" data-container="${escapeHtml(container.id)}" aria-label="Inspect ${container.type} ${escapeHtml(container.name)}"`;
+    const rect = functionsHidden ? { x: box.x, y: box.y, width: box.width, height: box.height } : classTargetRect(container, box);
+    const form = silhouette(CONTAINER_TYPE.shape, rect.width, rect.height);
+    const style = `left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;height:${rect.height}px;--type-color:${CONTAINER_TYPE.color};--change-color:${changeColor(container.changeType)}`;
+    const shape = `<svg class="node-shape" width="${rect.width}" height="${rect.height}" viewBox="0 0 ${rect.width} ${rect.height}" aria-hidden="true"><path class="node-outline" d="${form.outline}"></path></svg>`;
     if (functionsHidden) {
-      return `<button class="graph-node class-tab component-node${selected ? " selected" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px" data-select="container" data-node="${escapeHtml(container.id)}" data-container="${escapeHtml(container.id)}" aria-label="Inspect ${container.type} ${escapeHtml(container.name)}">
-        <span class="class-dot" style="background:${changeColor(container.changeType)}"></span><span class="component-copy"><span class="component-name">${escapeHtml(container.name)}</span><span class="node-kind">${container.type}</span></span>
+      return `<button class="graph-node boundary-node container-node${selected ? " selected" : ""}${deleted}" style="${style}" ${attributes}>
+        ${shape}<span class="boundary-body"><span class="node-badge">${CONTAINER_TYPE.badge[container.type]}</span><span class="component-name">${escapeHtml(container.name)}</span></span>
       </button>`;
     } else {
-      return `<button class="graph-node class-tab${selected ? " selected" : ""}" style="left:${box.x + 10}px;top:${box.y - 12}px" data-select="container" data-node="${escapeHtml(container.id)}" data-container="${escapeHtml(container.id)}" aria-label="Inspect ${container.type} ${escapeHtml(container.name)}">
-        <span class="class-dot" style="background:${changeColor(container.changeType)}"></span><span class="class-name">${escapeHtml(container.name)}</span>
-        ${container.type === "module" ? '<span class="container-kind">module</span>' : ""}
+      return `<button class="graph-node boundary-node class-tab${selected ? " selected" : ""}${deleted}" style="${style}" ${attributes}>
+        ${shape}<span class="boundary-body"><span class="class-name">${escapeHtml(container.name)}</span>${container.type === "module" ? '<span class="container-kind">module</span>' : ""}</span>
       </button>`;
     }
   }).join("");
@@ -274,8 +335,8 @@ function renderGraph(graph: VisibleGraph): string {
   const members = functionsHidden ? "" : graph.containers.flatMap((container) => container.functions.map((node) => {
     const rect = layout.memberRects.get(node.id)!;
     const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
-    return `<button class="graph-node function-pill${selected ? " selected" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(container.name)}.${escapeHtml(node.name)}">
-      <span class="function-accent" style="background:${changeColor(node.changeType)}"></span><span class="function-glyph" style="color:${changeColor(node.changeType)}">${NODE_GLYPHS[node.type]}</span><span class="function-name">${escapeHtml(node.name)}</span>
+    return `<button class="graph-node function-pill${selected ? " selected" : ""}${node.changeType === "deleted" ? " deleted" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(container.name)}.${escapeHtml(node.name)}">
+      <span class="function-glyph">${NODE_GLYPHS[node.type]}</span><span class="function-name">${escapeHtml(node.name)}</span>
       ${stateWriters.has(node.id) ? '<span class="state-glyph" title="Writes state">◈</span>' : ""}
     </button>`;
   })).join("");
@@ -284,8 +345,8 @@ function renderGraph(graph: VisibleGraph): string {
     const rect = layout.stateRects.get(container.id)!;
     const variables = container.stateVariables.map((node) => {
       const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
-      return `<button class="graph-node state-variable-row${selected ? " selected" : ""}" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect state variable ${escapeHtml(container.name)}.${escapeHtml(node.name)}">
-        <span class="state-variable-accent" style="background:${changeColor(node.changeType)}"></span><span class="state-variable-name">${escapeHtml(node.name)}</span>
+      return `<button class="graph-node state-variable-row${selected ? " selected" : ""}${node.changeType === "deleted" ? " deleted" : ""}" style="--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect state variable ${escapeHtml(container.name)}.${escapeHtml(node.name)}">
+        <span class="state-variable-name">${escapeHtml(node.name)}</span>
       </button>`;
     }).join("");
     return `<div class="graph-node class-state-box" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;height:${rect.height}px" data-node="${escapeHtml(container.id)}"><span class="state-box-glyph" title="State variables">s</span><div class="state-variable-list">${variables}</div></div>`;
@@ -295,11 +356,13 @@ function renderGraph(graph: VisibleGraph): string {
     const box = layout.boxes.get(node.id)!;
     const nodeId = "nodeId" in node ? node.nodeId : node.id;
     const uiDirection = "uiDirection" in node ? node.uiDirection : undefined;
-    const label = uiDirection === undefined ? NODE_LABELS[node.type] : `UI ${uiDirection}`;
-    const glyph = uiDirection === "read" ? "↧" : uiDirection === "write" ? "↳" : NODE_GLYPHS[node.type];
+    const kind = BOUNDARY_TYPES[boundaryKind(node.type, uiDirection)];
+    const form = silhouette(kind.shape, box.width, box.height);
+    const details = form.details.map((detail) => `<path class="node-detail" d="${detail}"></path>`).join("");
     const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId });
-    return `<button class="graph-node component-node ${node.type}${uiDirection === undefined ? "" : ` ui-${uiDirection}`}${selected ? " selected" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px" data-select="node" data-node="${escapeHtml(node.id)}" data-node-id="${escapeHtml(nodeId)}" aria-label="Inspect ${label} ${escapeHtml(node.name)}">
-      <span class="component-glyph">${glyph}</span><span class="component-copy"><span class="component-name">${escapeHtml(node.name)}</span><span class="node-kind">${label}</span></span>
+    return `<button class="graph-node boundary-node${selected ? " selected" : ""}${node.changeType === "deleted" ? " deleted" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;--type-color:${kind.color};--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(node.id)}" data-node-id="${escapeHtml(nodeId)}" aria-label="Inspect ${kind.label} ${escapeHtml(node.name)}">
+      <svg class="node-shape" width="${box.width}" height="${box.height}" viewBox="0 0 ${box.width} ${box.height}" aria-hidden="true"><path class="node-outline" d="${form.outline}"${form.dashed ? ' stroke-dasharray="6 4"' : ""}></path>${details}</svg>
+      <span class="boundary-body"><span class="node-badge">${kind.badge}</span><span class="component-name">${escapeHtml(node.name)}</span></span>
     </button>`;
   }).join("");
 

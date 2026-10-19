@@ -313,29 +313,21 @@ body.embedded .topbar {
   opacity: 0.17;
 }
 
-.class-tab {
-  z-index: 3;
-  display: flex;
+.class-tab .boundary-body {
+  flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  height: 24px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  padding: 0 14px;
   white-space: nowrap;
-  background: oklch(0.232 0.028 255);
 }
 
-.class-tab:hover,
-.class-tab.selected {
-  border-color: var(--accent);
+.function-pill:hover {
+  box-shadow: 0 0 0 1px var(--change-color);
 }
 
-.class-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex: 0 0 auto;
+.function-pill.selected {
+  box-shadow: 0 0 0 1px var(--change-color), 0 0 10px color-mix(in oklch, var(--accent) 45%, transparent);
 }
 
 .class-name {
@@ -358,7 +350,7 @@ body.embedded .topbar {
   gap: 7px;
   height: 32px;
   padding: 0 9px 0 11px;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--change-color, var(--border));
   border-radius: 7px;
   background: var(--raised);
   box-shadow: 0 1px 2px oklch(0.1 0.02 255 / 0.35);
@@ -366,17 +358,7 @@ body.embedded .topbar {
 
 .function-pill:hover,
 .function-pill.selected {
-  border-color: var(--accent);
   background: oklch(0.33 0.034 255);
-}
-
-.function-accent {
-  position: absolute;
-  top: 5px;
-  bottom: 5px;
-  left: 0;
-  width: 3px;
-  border-radius: 2px;
 }
 
 .function-glyph,
@@ -384,6 +366,10 @@ body.embedded .topbar {
   flex: 0 0 auto;
   font-family: "IBM Plex Mono", monospace;
   font-size: 11px;
+}
+
+.function-glyph {
+  color: var(--muted);
 }
 
 .function-name {
@@ -433,8 +419,11 @@ body.embedded .topbar {
 .state-variable-row {
   position: relative;
   display: flex;
-  width: 100%;
+  width: calc(100% - 8px);
+  margin: 0 4px;
   border: 0;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1.5px var(--change-color, transparent);
   background: transparent;
   text-align: left;
   align-items: center;
@@ -443,20 +432,14 @@ body.embedded .topbar {
   padding: 0 9px;
 }
 
+.state-variable-row + .state-variable-row {
+  margin-top: 2px;
+}
+
 .state-variable-row:hover,
 .state-variable-row.selected {
   background: oklch(0.33 0.034 255);
-}
-
-.function-pill.static-data {
-  border-color: oklch(0.48 0.08 175);
-}
-
-.state-variable-accent {
-  width: 3px;
-  height: 11px;
-  flex: 0 0 auto;
-  border-radius: 2px;
+  box-shadow: inset 0 0 0 2.5px var(--change-color, transparent);
 }
 
 .state-variable-name {
@@ -469,60 +452,87 @@ body.embedded .topbar {
   white-space: nowrap;
 }
 
-.component-node {
+.boundary-node {
   z-index: 3;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+
+.node-shape {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.node-outline {
+  fill: color-mix(in oklch, var(--type-color) 9%, var(--raised));
+  stroke: var(--change-color);
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+  transition: stroke-width 120ms ease;
+}
+
+.node-detail {
+  fill: none;
+  stroke: color-mix(in oklch, var(--type-color) 52%, transparent);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}
+
+.boundary-node:hover .node-outline,
+.boundary-node.selected .node-outline {
+  stroke-width: 2.5;
+}
+
+.boundary-node.selected {
+  filter: drop-shadow(0 0 7px color-mix(in oklch, var(--type-color) 45%, transparent));
+}
+
+.boundary-body {
+  position: absolute;
+  inset: 0;
   display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 24px;
+  pointer-events: none;
+}
+
+.node-badge {
+  display: flex;
+  height: 15px;
+  align-self: stretch;
   align-items: center;
-  gap: 9px;
-  height: 46px;
-  padding: 0 13px;
-  border: 1.5px solid oklch(0.47 0.04 255);
-  background: oklch(0.272 0.026 255);
-  box-shadow: 0 1px 3px oklch(0.1 0.02 255 / 0.5);
-}
-
-.component-node.ui-component {
-  border-top-width: 4px;
-  border-radius: 5px;
-}
-
-.component-node.ui-write {
-  border-top-width: 1.5px;
-  border-bottom-width: 4px;
-}
-
-.component-node.system-input {
-  border-left: 4px solid oklch(0.7 0.12 210);
-  border-radius: 5px;
-}
-
-.component-node.system-output {
-  border-right: 4px solid oklch(0.7 0.12 145);
-  border-radius: 5px;
-}
-
-.component-node.external-dependency {
-  border-style: dashed;
-  border-radius: 999px;
-  background: oklch(0.208 0.02 255);
-}
-
-.component-node.static-data {
-  border-radius: 5px;
-  border-color: oklch(0.5 0.08 82);
-  background: oklch(0.25 0.035 82);
-}
-
-.component-node:hover,
-.component-node.selected {
-  border-color: var(--accent);
-}
-
-.component-glyph {
-  flex: 0 0 auto;
+  justify-content: center;
+  border: 1px solid color-mix(in oklch, var(--type-color) 44%, transparent);
+  border-radius: 4px;
+  color: var(--type-color);
+  background: color-mix(in oklch, var(--type-color) 17%, transparent);
   font-family: "IBM Plex Mono", monospace;
-  font-size: 12px;
-  color: oklch(0.78 0.12 245);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  white-space: nowrap;
+}
+
+.boundary-node .component-name {
+  text-align: center;
+}
+
+.graph-node.deleted:not(.dimmed) {
+  opacity: 0.66;
+}
+
+.graph-node.deleted .component-name,
+.graph-node.deleted .function-name,
+.graph-node.deleted .state-variable-name,
+.graph-node.deleted .class-name {
+  text-decoration: line-through;
 }
 
 .component-copy {
