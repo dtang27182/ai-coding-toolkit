@@ -55,6 +55,7 @@ let panX = 0;
 let panY = 0;
 let inspectorWidth = 356;
 let currentGraphWidth = 320;
+let currentGraphHeight = 240;
 let userZoomed = false;
 let selection: Selection | undefined;
 let hovered: Selection | undefined;
@@ -205,6 +206,7 @@ function renderGraph(graph: VisibleGraph): string {
   const stateWriters = new Set(graph.relationships.filter((relationship) => relationship.to.type === "state-variable" && relationship.from.type === "function").map((relationship) => relationship.from.nodeId!));
   const layout = computeLayout(graph.nodes, graph.relationships, functionsHidden, functionWidth, stateVariableWidth, componentWidth, stateWriters);
   currentGraphWidth = layout.width;
+  currentGraphHeight = layout.height;
   const containers = new Map(graph.containers.map((container) => [container.id, container]));
   const routingBounds = new Map(graph.nodes.map((node): [string, Rect] => {
     const box = layout.boxes.get(node.id)!;
@@ -306,7 +308,7 @@ function renderGraph(graph: VisibleGraph): string {
     return `<span class="graph-node empty-class" data-node="${escapeHtml(container.id)}" style="left:${box.x + 15}px;top:${box.y + 30}px">No visible members</span>`;
   }).join("");
 
-  queueMicrotask(() => fitGraph(layout.width));
+  queueMicrotask(() => fitGraph(layout.width, layout.height));
   return `<div class="graph-space">
     ${graph.nodes.length === 0 ? '<div class="empty-graph">No nodes match the current filters</div>' : ""}
     <div class="graph" style="left:calc(50% + ${panX}px);top:calc(50% + ${panY}px);width:${layout.width}px;height:${layout.height}px;transform:translate(-50%, -50%) scale(${zoom})">
@@ -632,7 +634,7 @@ function setInspectorWidth(nextWidth: number): void {
   inspector.style.width = `${inspectorWidth}px`;
   inspector.style.flexBasis = `${inspectorWidth}px`;
   app.querySelector<HTMLElement>("[data-inspector-resizer]")!.setAttribute("aria-valuenow", String(Math.round(inspectorWidth)));
-  fitGraph(currentGraphWidth);
+  fitGraph(currentGraphWidth, currentGraphHeight);
 }
 
 function updateGraphTransform(): void {
@@ -691,12 +693,16 @@ function updateGraphFocus(value: Selection | undefined): void {
   }
 }
 
-function fitGraph(graphWidth: number): void {
+function fitGraph(graphWidth: number, graphHeight: number): void {
   if (!userZoomed) {
     const canvas = app.querySelector<HTMLElement>(".canvas");
     if (canvas !== null) {
-      const nextZoom = Math.min(1, Math.max(0.15, (canvas.clientWidth - 112) / graphWidth));
-      if (Math.abs(nextZoom - zoom) >= 0.01) {
+      const legend = app.querySelector<HTMLElement>(".change-legend")!;
+      const nextZoom = Math.min(1, Math.max(0.15, Math.min(
+        (canvas.clientWidth - 112) / graphWidth,
+        (canvas.clientHeight - 2 * (legend.offsetHeight + 28)) / graphHeight,
+      )));
+      if (nextZoom !== zoom) {
         zoom = nextZoom;
         updateGraphTransform();
       }
