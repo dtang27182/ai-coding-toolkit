@@ -432,7 +432,7 @@
       "unevaluatedProperties": false
     },
     "staticData": {
-      "description": "Fixed data read without updating, such as constants or static lookup data. May only send data to functions. May optionally belong to a class or module through containerId; omit containerId for unowned static data. External files and storage are external-dependency nodes.",
+      "description": "Fixed data that is significant to the design or patch. Some examples would be configuration files or static data files used for object initialization . Contant varibles in the code may be included as static data if they are truely significant to the design or patch, but this is usually not the case. If this is the case, group together contants in the same class/module under one staticData node. May only send data to functions. May optionally belong to a class or module through containerId. External files and storage are external-dependency nodes.",
       "type": "object",
       "allOf": [
         {
