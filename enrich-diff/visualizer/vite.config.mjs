@@ -54,7 +54,7 @@ function richDiffReferencesPlugin() {
           if (
             reference === null ||
             !path.isAbsolute(reference) ||
-            !(reference.endsWith(".enriched-patch.json") || reference.endsWith(".sys-dataflow.json") || reference.endsWith(".impl-dataflow.json"))
+            !(reference.endsWith(".enriched-patch.json") || reference.endsWith(".impl-dataflow.json"))
           ) {
             response.statusCode = 400;
             response.end("Invalid rich-diff reference");

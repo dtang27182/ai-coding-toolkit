@@ -359,7 +359,7 @@ test("maps changed rows to their owning change and leaves hidden rows out of lin
   assert.deepEqual(statsForElement(examplePatch.elements["element-4"], files, hiddenRows), { added: 0, removed: 0, changeType: "modified" });
 });
 
-test("the enrich-diff viewer loads all three files through the newest Rich Diff manifest", async (t) => {
+test("the enrich-diff viewer loads both files through the newest Rich Diff manifest", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "enriched-patch-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const repositoryDirectory = path.join(directory, "repository");
@@ -369,15 +369,13 @@ test("the enrich-diff viewer loads all three files through the newest Rich Diff 
   const older = path.join(outputDirectory, "older.rich-diff.json");
   const newer = path.join(outputDirectory, "newer.rich-diff.json");
   const enrichedPatch = path.join(directory, "patches", "feature.enriched-patch.json");
-  const sysDataflow = path.join(directory, "diagrams", "feature.cr.sys-dataflow.json");
   const implDataflow = path.join(directory, "diagrams", "feature.cr.impl-dataflow.json");
   await mkdir(path.dirname(enrichedPatch));
-  await mkdir(path.dirname(sysDataflow));
+  await mkdir(path.dirname(implDataflow));
   await writeFile(enrichedPatch, '{"patch":"example"}');
-  await writeFile(sysDataflow, '{"feature":"example"}');
   await writeFile(implDataflow, '{"stage":"code-review"}');
   await writeFile(older, "{}");
-  const manifest = { enrichedPatch, sysDataflow, implDataflow };
+  const manifest = { enrichedPatch, implDataflow };
   await writeFile(newer, JSON.stringify(manifest));
   await utimes(older, new Date(1_000), new Date(1_000));
   await utimes(newer, new Date(2_000), new Date(2_000));
@@ -389,22 +387,21 @@ test("the enrich-diff viewer loads all three files through the newest Rich Diff 
   assert.equal(JSON.parse(defaultResponse.body).fileName, path.relative(repositoryDirectory, newer));
   assert.deepEqual(JSON.parse(JSON.parse(defaultResponse.body).contents), manifest);
   assert.equal((await pluginResponse(plugins[1], `/__rich-diff/reference?path=${encodeURIComponent(enrichedPatch)}`)).body, '{"patch":"example"}');
-  assert.equal((await pluginResponse(plugins[1], `/__rich-diff/reference?path=${encodeURIComponent(sysDataflow)}`)).body, '{"feature":"example"}');
   assert.equal((await pluginResponse(plugins[1], `/__rich-diff/reference?path=${encodeURIComponent(implDataflow)}`)).body, '{"stage":"code-review"}');
+  assert.equal((await pluginResponse(plugins[1], `/__rich-diff/reference?path=${encodeURIComponent(path.join(directory, "diagrams", "feature.cr.sys-dataflow.json"))}`)).statusCode, 400);
   assert.equal((await pluginResponse(plugins[1], "/__rich-diff/reference?path=relative.json")).statusCode, 400);
 });
 
-test("Rich Diff requires three absolute JSON paths", () => {
+test("Rich Diff requires two absolute JSON paths", () => {
   const manifest = {
     enrichedPatch: "/tmp/feature.enriched-patch.json",
-    sysDataflow: "/elsewhere/feature.cr.sys-dataflow.json",
     implDataflow: "/elsewhere/feature.cr.impl-dataflow.json",
   };
   assert.deepEqual(richDiffReferences(manifest), manifest);
-  assert.throws(() => richDiffReferences({ enrichedPatch: manifest.enrichedPatch, sysDataflow: manifest.sysDataflow }), /only enrichedPatch, sysDataflow, and implDataflow/);
-  assert.throws(() => richDiffReferences({ ...manifest, sysDataflow: "feature.cr.sys-dataflow.json" }), /absolute/);
+  assert.throws(() => richDiffReferences({ enrichedPatch: manifest.enrichedPatch }), /only enrichedPatch and implDataflow/);
   assert.throws(() => richDiffReferences({ ...manifest, implDataflow: "feature.cr.impl-dataflow.json" }), /absolute/);
-  assert.throws(() => richDiffReferences({ ...manifest, extra: "value" }), /only enrichedPatch, sysDataflow, and implDataflow/);
+  assert.throws(() => richDiffReferences({ ...manifest, sysDataflow: "/elsewhere/feature.cr.sys-dataflow.json" }), /only enrichedPatch and implDataflow/);
+  assert.throws(() => richDiffReferences({ ...manifest, extra: "value" }), /only enrichedPatch and implDataflow/);
 });
 
 test("recognizes Alt or Option plus Z as the line-wrapping shortcut", () => {

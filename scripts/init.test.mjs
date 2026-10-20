@@ -216,7 +216,7 @@ test("installs refactor-design independently for Codex and Claude", async (t) =>
   }
 });
 
-test("installs enrich-diff with the shared dataflow files", async (t) => {
+test("installs enrich-diff without the system dataflow", async (t) => {
   const repoDirectory = await createRepository(t);
   await writeFile(
     path.join(repoDirectory, "package.json"),
@@ -238,11 +238,9 @@ test("installs enrich-diff with the shared dataflow files", async (t) => {
     "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer",
   });
 
-  const inputPath = "ai-coding-toolkit/common/sys-dataflow/sys-dataflow.example.json";
-  const validation = spawnSync(process.execPath, [
-    "ai-coding-toolkit/enrich-diff/scripts/validate-sys-dataflow.mjs", inputPath,
-  ], { cwd: repoDirectory, encoding: "utf8" });
-  assert.equal(validation.status, 0, validation.stderr);
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "sys-dataflow")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "enrich-diff", "instructions", "gen-sys-dataflow.md")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "enrich-diff", "scripts", "validate-sys-dataflow.mjs")), { code: "ENOENT" });
 
   const patchPath = path.join(repoDirectory, "feature.patch");
   const implementationValidation = spawnSync(process.execPath, [
@@ -288,8 +286,9 @@ test("installs enrich-diff with the shared dataflow files", async (t) => {
   const retiredEntryPoint = path.join(repoDirectory, "ai-coding-toolkit", "common", "enriched-patch", "viewer", "index.html");
   await writeFile(retiredEntryPoint, "retired entry point");
   const systemVisualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "sys-dataflow", "visualizer");
+  await mkdir(systemVisualizerPath, { recursive: true });
   for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
-    await assert.rejects(lstat(path.join(systemVisualizerPath, relativePath)), { code: "ENOENT" });
+    await mkdir(path.dirname(path.join(systemVisualizerPath, relativePath)), { recursive: true });
     await writeFile(path.join(systemVisualizerPath, relativePath), "retired standalone file");
   }
   const retiredDataflowDirectory = path.join(repoDirectory, "ai-coding-toolkit", "common", "system-dataflow");
@@ -302,9 +301,7 @@ test("installs enrich-diff with the shared dataflow files", async (t) => {
   const reinstall = install([repoDirectory, "--tool", "enrich-diff"]);
   assert.equal(reinstall.status, 0, reinstall.stderr);
   await assert.rejects(lstat(retiredEntryPoint), { code: "ENOENT" });
-  for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
-    await assert.rejects(lstat(path.join(systemVisualizerPath, relativePath)), { code: "ENOENT" });
-  }
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "sys-dataflow")), { code: "ENOENT" });
   await assert.rejects(lstat(retiredDataflowDirectory), { code: "ENOENT" });
   await assert.rejects(lstat(retiredValidator), { code: "ENOENT" });
   await assert.rejects(lstat(retiredInstruction), { code: "ENOENT" });

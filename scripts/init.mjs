@@ -216,8 +216,20 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     await rm(path.join(installedToolkitDirectory, "feature-design", "visualizer", "dist"), { recursive: true, force: true });
   }
   if (toolNames.includes("enrich-diff")) {
-    for (const relativePath of ["instructions/generate-system-dataflow.md", "scripts/validate-system-dataflow.mjs"]) {
+    for (const relativePath of ["instructions/generate-system-dataflow.md", "scripts/validate-system-dataflow.mjs", "instructions/gen-sys-dataflow.md", "scripts/validate-sys-dataflow.mjs"]) {
       await rm(path.join(installedToolkitDirectory, "enrich-diff", relativePath), { force: true });
+    }
+    if (!toolNames.includes("feature-design") && !toolNames.includes("refactor-design")) {
+      let designInstalled = false;
+      for (const toolName of ["feature-design", "refactor-design"]) {
+        try {
+          await stat(path.join(installedToolkitDirectory, toolName));
+          designInstalled = true;
+        } catch (error) {
+          if (error.code !== "ENOENT") throw error;
+        }
+      }
+      if (!designInstalled) await rm(path.join(installedToolkitDirectory, "common", "sys-dataflow"), { recursive: true, force: true });
     }
     await rm(path.join(installedToolkitDirectory, "common", "enriched-patch", "visualizer"), { recursive: true, force: true });
   }

@@ -5,8 +5,7 @@ import type { DataflowNode, NodeType } from "../../types";
 import { computeLayout } from "./layout";
 import { filterGraph, type VisibleGraph } from "./filter";
 import { dataflowEdges, relationshipsForEdge } from "./edges";
-import { findUiPairs } from "./pairing";
-import { linkPath } from "../../../sys-dataflow/visualizer/src/pairing.ts";
+import { findUiPairs, linkPath } from "./pairing";
 import { edgePortSpreads, routeCompositionEdge, routeEdge } from "./routing";
 import { semanticError } from "./validation";
 import "./styles.css";
@@ -50,7 +49,7 @@ const NODE_GLYPHS: Record<NodeType, string> = {
 type Silhouette = "rect" | "dashed" | "stadium-left" | "stadium-right" | "dogear" | "hexagon";
 type BoundaryKind = "user-input" | "user-output" | "external-dependency" | "system-input" | "system-output" | "static-data";
 
-/** Boundary node looks, matching the sys-dataflow visualizer: the type sets the silhouette, badge and tint; the change type sets the outline. */
+/** Boundary node looks: the type sets the silhouette, badge and tint; the change type sets the outline. */
 const BOUNDARY_TYPES: Record<BoundaryKind, { label: string; badge: string; shape: Silhouette; color: string }> = {
   "user-input": { label: "UI read", badge: "USER →", shape: "rect", color: "oklch(0.80 0.095 232)" },
   "user-output": { label: "UI write", badge: "→ USER", shape: "rect", color: "oklch(0.78 0.095 300)" },
@@ -60,7 +59,7 @@ const BOUNDARY_TYPES: Record<BoundaryKind, { label: string; badge: string; shape
   "static-data": { label: "Static data", badge: "STATIC", shape: "dogear", color: "oklch(0.71 0.03 250)" },
 };
 
-/** Containers take the sys-dataflow data-processing look: a hexagon in its type color. */
+/** Containers use a hexagon in their type color. */
 const CONTAINER_TYPE = { badge: { class: "CLASS", module: "MODULE" }, shape: "hexagon" as Silhouette, color: "oklch(0.85 0.09 255)" };
 
 function boundaryKind(type: NodeType, uiDirection: "read" | "write" | undefined): BoundaryKind {
@@ -70,7 +69,7 @@ function boundaryKind(type: NodeType, uiDirection: "read" | "write" | undefined)
   return type as BoundaryKind;
 }
 
-/** Outline and detail strokes for a boundary node, as in the sys-dataflow visualizer. */
+/** Outline and detail strokes for a boundary node. */
 function silhouette(shape: Silhouette, width: number, height: number): { outline: string; details: string[]; dashed: boolean } {
   const round = (value: number): number => Math.round(value * 100) / 100;
   const half = round(height / 2);
