@@ -465,7 +465,6 @@ function renderInspector(graph: VisibleGraph): string {
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
     content = `${inspectorHeader(NODE_LABELS[node.type], node.name, nodeChangeType(node), node.type === "function" && node.subtype === "missing-from-cr" ? `Expected: ${node.changeType}` : undefined)}${diffEvidence(node.diffHunkIds)}${node.description === undefined ? "" : section("Description", `<p class="component-description">${escapeHtml(node.description)}</p>`)}`;
     if (node.type === "function") {
-      content += section("Source file", `<p class="component-description">${escapeHtml(node.sourceFile)}</p>`);
       if (node["hld-change-mismatch"] === true) {
         let hldStatus: string;
         if (node.subtype === "missing-from-cr") {
@@ -481,7 +480,7 @@ function renderInspector(graph: VisibleGraph): string {
         content += section("HLD comparison", `<div class="hld-comparison">${mismatchBadge(node["hld-change-mismatch"] === true)}<p>HLD: <strong>${hldStatus}</strong></p><p>CR: <strong>${crStatus}</strong></p></div>`);
       }
     }
-    if ("containerId" in node && node.containerId !== undefined) {
+    if (node.type !== "function" && "containerId" in node && node.containerId !== undefined) {
       const owner = implementationDataflow.containers.find((container) => container.id === node.containerId)!;
       if (graph.containers.some((container) => container.id === owner.id)) {
         content += section("Container", `<button class="function-row" data-jump="${escapeHtml(JSON.stringify({ type: "container", containerId: owner.id }))}"><div class="flow-endpoint">${escapeHtml(owner.name)}</div><div class="flow-label">${owner.type}</div></button>`);
@@ -490,9 +489,8 @@ function renderInspector(graph: VisibleGraph): string {
       }
     }
     if (node.type === "function" && node.subtype !== "missing-from-cr") {
-      const writes = outputs.filter((relationship) => relationship.to.type === "state-variable");
       const transfers = outputs.filter((relationship) => relationship.to.type !== "state-variable");
-      content += `${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(transfers, "to"), transfers.length)}${section("State written", flowRows(writes, "to", true), writes.length)}`;
+      content += `${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(transfers, "to"), transfers.length)}`;
     } else if (node.type === "state-variable") {
       content += `${section("Read by", flowRows(outputs, "to"), outputs.length)}${section("Written by", flowRows(inputs, "from", true), inputs.length)}`;
     } else if (node.type === "static-data") {
