@@ -111,6 +111,7 @@ let zoom = 1;
 let panX = 0;
 let panY = 0;
 let inspectorWidth = 356;
+let inspectorCollapsed = true;
 let currentGraphWidth = 320;
 let currentGraphHeight = 240;
 let graphLayout: GraphLayout;
@@ -520,7 +521,8 @@ function renderInspector(graph: VisibleGraph): string {
 }
 
 function updateInspector(): void {
-  app.querySelector<HTMLElement>(".inspector")!.innerHTML = renderInspector(visibleGraph());
+  const inspector = app.querySelector<HTMLElement>(".inspector");
+  if (inspector !== null) inspector.innerHTML = renderInspector(visibleGraph());
 }
 
 function render(): void {
@@ -534,6 +536,7 @@ function render(): void {
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
           <button class="control-button${hideInitialization ? " active" : ""}" data-toggle-initialization aria-pressed="${hideInitialization}">Hide Initialization</button>
           <button class="control-button${functionsHidden ? " active" : ""}" data-toggle-functions>${functionsHidden ? "Expand containers" : "Collapse containers"}</button>
+          <button class="control-button${inspectorCollapsed ? "" : " active"}" data-toggle-inspector aria-pressed="${!inspectorCollapsed}" aria-label="${inspectorCollapsed ? "Show inspector" : "Hide inspector"}">${inspectorCollapsed ? "Show inspector" : "Hide inspector"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
       </div>
@@ -544,8 +547,10 @@ function render(): void {
         <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}<div class="change-key"><span class="change-label">○ tail = data returns</span></div>${implementationDataflow.nodes.some((node) => node.type === "function" && node["hld-change-mismatch"] === true) ? `<div class="change-key">${MISMATCH_GLYPH}<span class="change-label">HLD mismatch</span></div>` : ""}</div>
         ${dragDepth > 0 ? '<div class="drop-overlay">Drop an impl-dataflow.json file</div>' : ""}
       </div>
-      <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuenow="${Math.round(inspectorWidth)}" tabindex="0"></div>
-      <aside class="inspector" style="width:${inspectorWidth}px;flex-basis:${inspectorWidth}px" aria-label="Implementation dataflow inspector">${renderInspector(graph)}</aside>
+      ${inspectorCollapsed
+        ? '<button class="inspector-rail" data-toggle-inspector aria-label="Show inspector" title="Show inspector"><span class="inspector-rail-chevron">‹</span><span class="inspector-rail-label">Inspector</span></button>'
+        : `<div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuenow="${Math.round(inspectorWidth)}" tabindex="0"><button class="inspector-collapse" data-toggle-inspector aria-label="Hide inspector" title="Hide inspector">›</button></div>
+      <aside class="inspector" style="width:${inspectorWidth}px;flex-basis:${inspectorWidth}px" aria-label="Implementation dataflow inspector">${renderInspector(graph)}</aside>`}
     </div>
     <input type="file" accept="application/json,.json" data-file-input hidden>
   </div>`;
@@ -556,7 +561,7 @@ function render(): void {
 function bindEvents(): void {
   const canvas = app.querySelector<HTMLElement>(".canvas")!;
   const workspace = app.querySelector<HTMLElement>(".workspace")!;
-  const inspectorResizer = app.querySelector<HTMLElement>("[data-inspector-resizer]")!;
+  const inspectorResizer = app.querySelector<HTMLElement>("[data-inspector-resizer]");
   let rightDragPointer: number | undefined;
   let resizePointer: number | undefined;
   let dragStartX = 0;
@@ -565,33 +570,40 @@ function bindEvents(): void {
   let dragStartPanY = 0;
   let resizeStartX = 0;
   let resizeStartWidth = 0;
-  inspectorResizer.addEventListener("pointerdown", (event) => {
+  for (const toggle of app.querySelectorAll<HTMLElement>("[data-toggle-inspector]")) {
+    toggle.addEventListener("pointerdown", (event) => event.stopPropagation());
+    toggle.addEventListener("click", () => {
+      inspectorCollapsed = !inspectorCollapsed;
+      render();
+    });
+  }
+  inspectorResizer?.addEventListener("pointerdown", (event) => {
     if (event.button === 0) {
       resizePointer = event.pointerId;
       resizeStartX = event.clientX;
       resizeStartWidth = inspectorWidth;
-      inspectorResizer.setPointerCapture(event.pointerId);
+      inspectorResizer!.setPointerCapture(event.pointerId);
       workspace.classList.add("resizing-inspector");
       event.preventDefault();
     }
   });
-  inspectorResizer.addEventListener("pointermove", (event) => {
+  inspectorResizer?.addEventListener("pointermove", (event) => {
     if (event.pointerId === resizePointer) {
       setInspectorWidth(resizeStartWidth - (event.clientX - resizeStartX));
     }
   });
-  inspectorResizer.addEventListener("pointerup", (event) => {
+  inspectorResizer?.addEventListener("pointerup", (event) => {
     if (event.pointerId === resizePointer) {
-      inspectorResizer.releasePointerCapture(event.pointerId);
+      inspectorResizer!.releasePointerCapture(event.pointerId);
       workspace.classList.remove("resizing-inspector");
       resizePointer = undefined;
     }
   });
-  inspectorResizer.addEventListener("pointercancel", () => {
+  inspectorResizer?.addEventListener("pointercancel", () => {
     workspace.classList.remove("resizing-inspector");
     resizePointer = undefined;
   });
-  inspectorResizer.addEventListener("keydown", (event) => {
+  inspectorResizer?.addEventListener("keydown", (event) => {
     if (event.key === "ArrowLeft") {
       setInspectorWidth(inspectorWidth + 16);
       event.preventDefault();
@@ -683,7 +695,7 @@ function bindEvents(): void {
       updateInspector();
     });
   }
-  app.querySelector<HTMLElement>(".inspector")!.addEventListener("click", (event) => {
+  app.querySelector<HTMLElement>(".inspector")?.addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLElement>("[data-jump], [data-close]");
     if (button?.dataset.jump !== undefined) {
       selection = JSON.parse(button.dataset.jump) as Selection;

@@ -724,6 +724,63 @@ body.embedded .topbar {
   background: var(--accent);
 }
 
+.inspector-collapse {
+  position: absolute;
+  top: 10px;
+  left: -8px;
+  z-index: 1;
+  width: 18px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  background: var(--header);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.inspector-collapse:hover,
+.inspector-collapse:focus-visible {
+  border-color: var(--accent);
+  color: var(--bright);
+}
+
+.inspector-rail {
+  display: flex;
+  flex: 0 0 28px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 28px;
+  padding: 12px 0;
+  border: 0;
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--header);
+  cursor: pointer;
+}
+
+.inspector-rail:hover,
+.inspector-rail:focus-visible {
+  color: var(--bright);
+  background: oklch(0.205 0.026 255);
+}
+
+.inspector-rail-chevron {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.inspector-rail-label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+}
+
 .resizing-inspector,
 .resizing-inspector * {
   cursor: col-resize !important;
