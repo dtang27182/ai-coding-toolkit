@@ -576,7 +576,7 @@ function semanticErrors(index, files) {
   return errors;
 }
 
-export function generateEnrichedPatch(patch) {
+export function parsePatchDeclarations(patch) {
   const files = parsePatch(patch);
   if (files.length === 0) {
     throw new Error("Patch contains no file sections.");
@@ -589,6 +589,11 @@ export function generateEnrichedPatch(patch) {
     }
   }
   populateDeclarations(files);
+  return files;
+}
+
+export function generateEnrichedPatch(patch) {
+  const files = parsePatchDeclarations(patch);
 
   const elements = {};
   let nextId = 1;

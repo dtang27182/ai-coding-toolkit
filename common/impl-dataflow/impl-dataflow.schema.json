@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI Coding Toolkit Implementation Dataflow — Nodes and Containers",
   "description": "impl-dataflow is shorthand for implementation dataflow. This JSON models proposed designs or implemented behavior using a flat array of typed dataflow nodes and class/module containers. Functions and mutable state belong to containers; static data may optionally belong to a container. Membership is distinct from class composition. Dataflow relationships connect nodes, and composition relationships connect class containers. Diff hunks provide code-review evidence.",
-  "$comment": "Schema version 17. Semantic validation must check that node and container IDs are unique across both arrays, container names are unique, owned node names are unique within each owner and subtype, and unowned node names are unique among unowned nodes. Resolve every containerId and endpoint ID explicitly, and verify that endpoint types match referenced entities. Diff-hunk IDs must be unique, every reference must resolve, and every diff hunk must be referenced by a node, container, or relationship. Validate derived counts against nodes and relationships. These cross-entry checks cannot be enforced by this static JSON Schema alone.",
+  "$comment": "Schema version 17. Semantic validation must check that node and container IDs are unique across both arrays, container names are unique, function names are unique within each source file and owner, other owned node names are unique within each owner and subtype, and unowned node names are unique among unowned nodes. Resolve every containerId and endpoint ID explicitly, and verify that endpoint types match referenced entities. Diff-hunk IDs must be unique, every reference must resolve, and every diff hunk must be referenced by a node, container, or relationship. Validate derived counts against nodes and relationships. These cross-entry checks cannot be enforced by this static JSON Schema alone.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -52,7 +52,7 @@
       "minimum": 0
     },
     "nodes": {
-      "description": "One entry per represented dataflow entity. Node IDs are unique across nodes and containers. Owned node names are unique within their owner and subtype, so names may repeat across owners. Names of unowned nodes are unique among unowned nodes. Use explicit IDs for references; never infer identity from a name.",
+      "description": "One entry per represented dataflow entity. Node IDs are unique across nodes and containers. Function names are unique within their source file and owner; other owned node names are unique within their owner and subtype, so names may repeat across files or owners. Names of unowned nodes are unique among unowned nodes. Use explicit IDs for references; never infer identity from a name.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/node"
@@ -116,13 +116,34 @@
           "nodes": {
             "type": "array",
             "items": {
-              "$ref": "#/$defs/noDiffHunkReferences"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/noDiffHunkReferences"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "subtype": false,
+                    "hld-change-mismatch": false
+                  }
+                }
+              ]
             }
           },
           "containers": {
             "type": "array",
             "items": {
-              "$ref": "#/$defs/noDiffHunkReferences"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/noDiffHunkReferences"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "generatedBy": false
+                  }
+                }
+              ]
             }
           },
           "relationships": {
@@ -162,7 +183,7 @@
       }
     },
     "diffHunkIds": {
-      "description": "References to relevant diff hunks, permitted only during code review. Required for changed nodes and relationships; omitted for unchanged nodes and relationships. Containers may reference relevant hunks for their declarations or ownership independently of their derived member status.",
+      "description": "References to relevant diff hunks, permitted only during code review. Required for actual changed nodes and relationships; omitted for unchanged entries and missing-from-cr markers. Containers may reference relevant hunks independently of their derived member status.",
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
@@ -181,7 +202,7 @@
       ]
     },
     "codeReviewEvidence": {
-      "description": "Changed nodes and relationships require supporting diff hunks; unchanged entries must omit diffHunkIds. Containers retain optional evidence and do not use this change-status rule.",
+      "description": "Actual changed nodes and relationships require supporting diff hunks; unchanged entries must omit diffHunkIds. Missing-from-cr function markers carry expected change types and omit evidence. Containers retain optional evidence independently of member status.",
       "type": "object",
       "allOf": [
         {
@@ -197,6 +218,11 @@
                   "deleted"
                 ]
               }
+            },
+            "not": {
+              "required": [
+                "subtype"
+              ]
             }
           },
           "then": {
@@ -339,6 +365,14 @@
           "type": "string",
           "minLength": 1,
           "pattern": "^(?!/|[A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+        },
+        "subtype": {
+          "description": "Code-review marker for a function change expected by the HLD but missing from the CR graph; not an implemented function.",
+          "const": "missing-from-cr"
+        },
+        "hld-change-mismatch": {
+          "description": "Optional function-level mismatch flag assigned by annotate-hld-function-coverage.mjs after comparison with the HLD.",
+          "type": "boolean"
         }
       },
       "allOf": [
@@ -350,6 +384,25 @@
           "properties": {
             "type": {
               "const": "function"
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "subtype"
+            ]
+          },
+          "then": {
+            "properties": {
+              "changeType": {
+                "enum": [
+                  "added",
+                  "modified",
+                  "deleted"
+                ]
+              },
+              "diffHunkIds": false
             }
           }
         }
@@ -517,6 +570,10 @@
         },
         "diffHunkIds": {
           "$ref": "#/$defs/diffHunkIds"
+        },
+        "generatedBy": {
+          "description": "Marks a container created solely to own missing-from-cr function nodes, allowing the annotation script to remove it when no longer needed.",
+          "const": "annotate-hld-function-coverage"
         }
       }
     },

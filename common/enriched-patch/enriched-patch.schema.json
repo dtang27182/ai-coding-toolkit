@@ -226,6 +226,14 @@
           "items": {
             "$ref": "#/$defs/change"
           }
+        },
+        "tags": {
+          "description": "Element-level tags that apply to everything under the element. Currently only assigned by annotate-hld-function-coverage.mjs from the HLD and computed CR function change types.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "const": "hld-change-mismatch"
+          }
         }
       },
       "allOf": [
@@ -276,6 +284,25 @@
                   "$ref": "#/$defs/locatedElementLocation"
                 }
               }
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "file",
+                  "class"
+                ]
+              }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "tags": false
             }
           }
         }

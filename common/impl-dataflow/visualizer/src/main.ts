@@ -129,11 +129,17 @@ function escapeHtml(value: string | number): string {
     .replaceAll("'", "&#039;");
 }
 
-function changeColor(changeType: ChangeType | ContainerStatus): string {
-  return CHANGE_COLORS[changeType === "new" ? "added" : changeType === "changed" ? "modified" : changeType];
+type DisplayChangeType = ChangeType | ContainerStatus | "missing-from-cr";
+
+function nodeChangeType(node: DataflowNode): ChangeType | "missing-from-cr" {
+  return node.type === "function" && node.subtype === "missing-from-cr" ? node.subtype : node.changeType;
 }
 
-function chipStyle(changeType: ChangeType | ContainerStatus): string {
+function changeColor(changeType: DisplayChangeType): string {
+  return changeType === "missing-from-cr" ? "oklch(0.75 0.15 300)" : CHANGE_COLORS[changeType === "new" ? "added" : changeType === "changed" ? "modified" : changeType];
+}
+
+function chipStyle(changeType: DisplayChangeType): string {
   return `color:${changeColor(changeType)};background:color-mix(in oklch, ${changeColor(changeType)} 15%, transparent)`;
 }
 
@@ -335,7 +341,7 @@ function renderGraph(graph: VisibleGraph): string {
   const members = functionsHidden ? "" : graph.containers.flatMap((container) => container.functions.map((node) => {
     const rect = layout.memberRects.get(node.id)!;
     const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
-    return `<button class="graph-node function-pill${selected ? " selected" : ""}${node.changeType === "deleted" ? " deleted" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(container.name)}.${escapeHtml(node.name)}">
+    return `<button class="graph-node function-pill${selected ? " selected" : ""}${nodeChangeType(node) === "deleted" ? " deleted" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;--change-color:${changeColor(nodeChangeType(node))}" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(container.name)}.${escapeHtml(node.name)}">
       <span class="function-glyph">${NODE_GLYPHS[node.type]}</span><span class="function-name">${escapeHtml(node.name)}</span>
       ${stateWriters.has(node.id) ? '<span class="state-glyph" title="Writes state">◈</span>' : ""}
     </button>`;
@@ -402,7 +408,7 @@ function section(title: string, content: string, count?: number): string {
   return `<section class="inspector-section"><div class="section-heading"><span>${escapeHtml(title)}</span>${count === undefined ? "" : `<span class="inspector-count">${count}</span>`}</div>${content}</section>`;
 }
 
-function inspectorHeader(eyebrow: string, title: string, changeType: ChangeType | ContainerStatus, detail?: string): string {
+function inspectorHeader(eyebrow: string, title: string, changeType: DisplayChangeType, detail?: string): string {
   return `<header class="inspector-header">
     <div class="inspector-eyebrow">${escapeHtml(eyebrow)}</div>
     <div class="inspector-title-row"><div class="inspector-title">${escapeHtml(title)}</div><button class="close-button" data-close aria-label="Clear selection">✕</button></div>
@@ -411,7 +417,7 @@ function inspectorHeader(eyebrow: string, title: string, changeType: ChangeType 
 }
 
 function nodeRows(nodes: DataflowNode[]): string {
-  return nodes.length === 0 ? '<p class="empty-copy">None</p>' : `<div class="function-list">${nodes.map((node) => `<button class="function-row" style="border-color:${changeColor(node.changeType)}" data-jump="${escapeHtml(JSON.stringify({ type: "node", nodeId: node.id }))}"><div class="flow-endpoint">${escapeHtml(node.name)}</div><div class="flow-label">${node.changeType}</div></button>`).join("")}</div>`;
+  return nodes.length === 0 ? '<p class="empty-copy">None</p>' : `<div class="function-list">${nodes.map((node) => `<button class="function-row" style="border-color:${changeColor(nodeChangeType(node))}" data-jump="${escapeHtml(JSON.stringify({ type: "node", nodeId: node.id }))}"><div class="flow-endpoint">${escapeHtml(node.name)}</div><div class="flow-label">${nodeChangeType(node)}</div></button>`).join("")}</div>`;
 }
 
 function renderInspector(graph: VisibleGraph): string {
@@ -425,7 +431,7 @@ function renderInspector(graph: VisibleGraph): string {
     const node = implementationDataflow.nodes.find((node) => node.id === inspected.nodeId)!;
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, inspected));
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
-    content = `${inspectorHeader(NODE_LABELS[node.type], node.name, node.changeType)}${diffEvidence(node.diffHunkIds)}${node.description === undefined ? "" : section("Description", `<p class="component-description">${escapeHtml(node.description)}</p>`)}`;
+    content = `${inspectorHeader(NODE_LABELS[node.type], node.name, nodeChangeType(node))}${diffEvidence(node.diffHunkIds)}${node.description === undefined ? "" : section("Description", `<p class="component-description">${escapeHtml(node.description)}</p>`)}`;
     if ("containerId" in node && node.containerId !== undefined) {
       const owner = implementationDataflow.containers.find((container) => container.id === node.containerId)!;
       content += section("Container", `<button class="function-row" data-jump="${escapeHtml(JSON.stringify({ type: "container", containerId: owner.id }))}"><div class="flow-endpoint">${escapeHtml(owner.name)}</div><div class="flow-label">${owner.type}</div></button>`);

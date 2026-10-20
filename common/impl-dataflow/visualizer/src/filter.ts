@@ -28,7 +28,7 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
   const containers: GraphContainer[] = implementationDataflow.containers.filter((container) =>
     (!containersWithChildren.has(container.id) || visibleMemberContainerIds.has(container.id)) && (showUnchanged || containerIds.has(container.id)),
   ).map((container) => {
-    const children = implementationDataflow.nodes.filter((node) => "containerId" in node && node.containerId === container.id);
+    const children = implementationDataflow.nodes.filter((node) => "containerId" in node && node.containerId === container.id && (node.type !== "function" || node.subtype !== "missing-from-cr"));
     let changeType: ContainerStatus;
     if (children.length === 0 || children.every((node) => node.changeType === "unchanged")) {
       changeType = "unchanged";

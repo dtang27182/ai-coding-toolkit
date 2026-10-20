@@ -18,6 +18,7 @@ export interface DiffElement {
   parentId?: string;
   locations: DiffLocation[];
   changes?: DiffChange[];
+  tags?: "hld-change-mismatch"[];
 }
 
 export interface EnrichedPatch {

@@ -32,7 +32,7 @@ export function implementationDataflowErrors(implementationDataflow, evaluated =
       if (!containers.has(node.containerId)) {
         semanticErrors.push(`Unknown container for node ${node.id}: ${node.containerId}`);
       }
-      const nameKey = JSON.stringify([node.containerId, node.type, node.name]);
+      const nameKey = JSON.stringify(node.type === "function" ? [node.containerId, node.type, node.sourceFile, node.name] : [node.containerId, node.type, node.name]);
       if (ownedNodeNames.has(nameKey)) {
         semanticErrors.push(`Duplicate ${node.type} name in container ${node.containerId}: ${node.name}`);
       } else {
@@ -96,7 +96,7 @@ export function implementationDataflowErrors(implementationDataflow, evaluated =
     }
   }
 
-  const changedNodes = implementationDataflow.nodes.filter((node) => ["added", "modified", "deleted"].includes(node.changeType));
+  const changedNodes = implementationDataflow.nodes.filter((node) => (node.type !== "function" || node.subtype !== "missing-from-cr") && ["added", "modified", "deleted"].includes(node.changeType));
   const changedContainerIds = new Set(changedNodes.filter((node) => node.containerId !== undefined).map((node) => node.containerId));
   const counts = {
     changedClassCount: implementationDataflow.containers.filter((container) => container.type === "class" && changedContainerIds.has(container.id)).length,

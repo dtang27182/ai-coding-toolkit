@@ -13,7 +13,13 @@ interface NodeBase {
   diffHunkIds?: string[];
 }
 
-export type FunctionNode = NodeBase & { type: "function"; containerId: string; sourceFile: string };
+export type FunctionNode = NodeBase & {
+  type: "function";
+  containerId: string;
+  sourceFile: string;
+  subtype?: "missing-from-cr";
+  "hld-change-mismatch"?: boolean;
+};
 export type StateVariableNode = NodeBase & { type: "state-variable"; containerId: string };
 export type StaticDataNode = NodeBase & { type: "static-data"; containerId?: string };
 export type BoundaryNode = NodeBase & { type: ComponentType; description: string };
@@ -24,6 +30,7 @@ export interface Container {
   name: string;
   type: ContainerType;
   diffHunkIds?: string[];
+  generatedBy?: "annotate-hld-function-coverage";
 }
 
 export interface NodeEndpoint<Type extends NodeType = NodeType> {
