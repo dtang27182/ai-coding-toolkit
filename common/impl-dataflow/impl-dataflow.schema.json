@@ -124,7 +124,8 @@
                   "type": "object",
                   "properties": {
                     "subtype": false,
-                    "hld-change-mismatch": false
+                    "hld-change-mismatch": false,
+                    "hldChangeType": false
                   }
                 }
               ]
@@ -373,6 +374,17 @@
         "hld-change-mismatch": {
           "description": "Optional function-level mismatch flag assigned by annotate-hld-function-coverage.mjs after comparison with the HLD.",
           "type": "boolean"
+        },
+        "hldChangeType": {
+          "description": "The matching HLD function's planned change type, copied onto an actual code-review function by annotate-hld-function-coverage.mjs; null means the function is absent from the HLD. Missing-from-cr markers already carry the HLD expectation in changeType.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/changeType"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "allOf": [
@@ -402,7 +414,8 @@
                   "deleted"
                 ]
               },
-              "diffHunkIds": false
+              "diffHunkIds": false,
+              "hldChangeType": false
             }
           }
         }

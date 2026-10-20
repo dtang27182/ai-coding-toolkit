@@ -8,13 +8,17 @@ export interface VisibleGraph {
   containers: GraphContainer[];
   components: GraphComponent[];
   staticData: StaticDataNode[];
+  missingFunctions: FunctionNode[];
   nodes: GraphNode[];
   relationships: ResolvedRelationship[];
 }
 
 export function filterGraph(implementationDataflow: ImplementationDataflow, showUnchanged: boolean, hideInitialization = true): VisibleGraph {
   const filteredNodes = implementationDataflow.nodes.filter((node) => !hideInitialization || !node.initialization);
-  const visibleNodes = filteredNodes.filter((node) => showUnchanged || node.changeType !== "unchanged");
+  const missingFunctions = filteredNodes.filter((node): node is FunctionNode => node.type === "function" && node.subtype === "missing-from-cr");
+  const visibleNodes = filteredNodes.filter((node) =>
+    (node.type !== "function" || node.subtype !== "missing-from-cr") && (showUnchanged || node.changeType !== "unchanged"),
+  );
   const nodeIds = new Set(visibleNodes.map((node) => node.id));
   const containersWithChildren = new Set(implementationDataflow.nodes.flatMap((node) => "containerId" in node && node.containerId !== undefined ? [node.containerId] : []));
   const visibleMemberContainerIds = new Set(visibleNodes.flatMap((node) => "containerId" in node && node.containerId !== undefined ? [node.containerId] : []));
@@ -42,6 +46,7 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
     return {
       ...container,
       changeType,
+      hldMismatch: implementationDataflow.nodes.some((node) => node.type === "function" && node.containerId === container.id && node["hld-change-mismatch"] === true),
       functions: visibleNodes.filter((node): node is FunctionNode => node.type === "function" && node.containerId === container.id),
       stateVariables: visibleNodes.filter((node): node is StateVariableNode => node.type === "state-variable" && node.containerId === container.id),
       staticData: visibleNodes.filter((node): node is StaticDataNode => node.type === "static-data" && node.containerId === container.id),
@@ -92,5 +97,5 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
     if (to.type === "ui-component") to.boxId = uiWriteIds.get(to.nodeId!)!;
     return { relationship, from, to };
   });
-  return { containers, components, staticData, nodes, relationships };
+  return { containers, components, staticData, missingFunctions, nodes, relationships };
 }

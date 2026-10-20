@@ -60,6 +60,7 @@ test("computes actual statuses and compares all HLD status combinations by conta
       const mismatch = planned === undefined ? actual !== "unchanged" : actual !== planned;
       assert.equal(result.codeReview.nodes[0].changeType, actual);
       assert.equal(result.codeReview.nodes[0][tag], mismatch, `${planned} -> ${actual}`);
+      assert.equal(result.codeReview.nodes[0].hldChangeType, planned ?? null);
       for (const [id, element] of Object.entries(result.enrichedPatch.elements)) {
         if (element.kind === "method") assert.equal(element.tags?.includes(tag) ?? false, mismatch);
         assert.deepEqual(element.changes, originalPatch.elements[id].changes);
@@ -72,6 +73,20 @@ test("computes actual statuses and compares all HLD status combinations by conta
       assert.deepEqual(enriched, originalPatch);
     }
   }
+});
+
+test("refreshes the HLD status on reruns when the planned function changes or disappears", () => {
+  const review = graph("code-review", [fn("actual", "run", "modified")]);
+  addEvidence(review, patches.modified);
+  const enriched = generateEnrichedPatch(patches.modified);
+  const first = annotateHldFunctionCoverage(graph("high-level-design", [fn("planned", "run", "added")]), review, patches.modified, enriched);
+  assert.equal(first.codeReview.nodes[0].hldChangeType, "added");
+  const matching = annotateHldFunctionCoverage(graph("high-level-design", [fn("planned", "run", "modified")]), first.codeReview, patches.modified, first.enrichedPatch);
+  assert.equal(matching.codeReview.nodes[0].hldChangeType, "modified");
+  assert.equal(matching.codeReview.nodes[0][tag], false);
+  const absent = annotateHldFunctionCoverage(graph("high-level-design"), matching.codeReview, patches.modified, matching.enrichedPatch);
+  assert.equal(absent.codeReview.nodes[0].hldChangeType, null);
+  assert.equal(absent.codeReview.nodes[0][tag], true);
 });
 
 test("classifies whole methods, arrow functions and unchanged functions in a mixed hunk", () => {
@@ -201,7 +216,9 @@ test("adds missing function subtypes with local ownership and tags existing patc
       assert.equal(result.codeReview.containers[0].name, hld.containers[0].name);
       assert.equal(result.codeReview.nodes[0][tag], true);
       assert.ok(Object.values(result.enrichedPatch.elements).find((element) => element.kind === "method").tags.includes(tag));
-      assert.deepEqual(filterGraph(result.codeReview, true, false).containers.map((container) => container.changeType), ["unchanged"]);
+      const visible = filterGraph(result.codeReview, true, false);
+      assert.deepEqual(visible.containers, []);
+      assert.deepEqual(visible.missingFunctions, result.codeReview.nodes);
     }
     assert.deepEqual(annotateHldFunctionCoverage(hld, result.codeReview, patches.modified, result.enrichedPatch), result);
   }
@@ -230,6 +247,7 @@ test("replaces a missing marker when an actual review function is supplied and c
   assert.equal(result.codeReview.nodes.length, 1);
   assert.equal(result.codeReview.nodes[0].id, "actual");
   assert.equal(result.codeReview.nodes[0].changeType, "modified");
+  assert.equal(result.codeReview.nodes[0].hldChangeType, "modified");
   assert.equal(result.codeReview.nodes[0][tag], false);
   assert.ok(Object.values(result.enrichedPatch.elements).every((element) => !element.tags?.includes(tag)));
 });
@@ -269,7 +287,7 @@ test("missing-function markers store planned changeType without evidence and are
   const validate = new Ajv2020({ allErrors: true, strictTypes: true }).compile(JSON.parse(await readFile(new URL("../common/impl-dataflow/impl-dataflow.schema.json", import.meta.url), "utf8")));
   assert.equal(validate(result.codeReview), true, JSON.stringify(validate.errors));
   assert.equal(result.codeReview.nodes[0].changeType, "modified");
-  for (const extra of [{ changeType: "unchanged" }, { diffHunkIds: ["evidence"] }, { expectedChangeType: "modified" }, { tags: [tag] }, { [tag]: "true" }]) {
+  for (const extra of [{ changeType: "unchanged" }, { diffHunkIds: ["evidence"] }, { expectedChangeType: "modified" }, { hldChangeType: "added" }, { tags: [tag] }, { [tag]: "true" }]) {
     const invalid = structuredClone(result.codeReview);
     Object.assign(invalid.nodes[0], extra);
     assert.equal(validate(invalid), false, JSON.stringify(extra));
@@ -284,6 +302,13 @@ test("CR functions support an optional mismatch boolean rather than a tags array
   const validate = new Ajv2020({ allErrors: true, strictTypes: true }).compile(JSON.parse(await readFile(new URL("../common/impl-dataflow/impl-dataflow.schema.json", import.meta.url), "utf8")));
   const review = graph("code-review", [fn("run", "run", "unchanged")]);
   assert.equal(validate(review), true, JSON.stringify(validate.errors));
+  for (const value of ["added", "modified", "deleted", "unchanged", null]) {
+    review.nodes[0].hldChangeType = value;
+    assert.equal(validate(review), true, JSON.stringify(validate.errors));
+  }
+  review.nodes[0].hldChangeType = "absent";
+  assert.equal(validate(review), false);
+  delete review.nodes[0].hldChangeType;
   for (const value of [false, true]) {
     review.nodes[0][tag] = value;
     assert.equal(validate(review), true, JSON.stringify(validate.errors));

@@ -1,4 +1,5 @@
 import type { GraphLayout, GraphNode, Rect, ResolvedRelationship } from "./types.ts";
+import type { FunctionNode } from "../../types.ts";
 
 export const FUNCTION_HEIGHT = 32;
 export const STATE_VARIABLE_HEIGHT = 20;
@@ -10,6 +11,22 @@ const TAB_HEIGHT = 26;
 const GAP_X = 64;
 const GAP_Y = 128;
 const COMPONENT_HEIGHT = 46;
+
+function withMissingFunctions(layout: GraphLayout, missingFunctions: FunctionNode[]): GraphLayout {
+  if (missingFunctions.length > 0) {
+    const width = 320;
+    const offset = width + GAP_X;
+    for (const rect of [...layout.boxes.values(), ...layout.memberRects.values(), ...layout.stateRects.values()]) {
+      rect.x += offset;
+    }
+    for (const [index, node] of missingFunctions.entries()) {
+      layout.missingFunctionRects.set(node.id, { x: 0, y: 48 + index * 100, width, height: 86 });
+    }
+    layout.width = layout.boxes.size === 0 ? width : layout.width + offset;
+    layout.height = Math.max(layout.height, 48 + missingFunctions.length * 100);
+  }
+  return layout;
+}
 
 function acyclicEdges(nodes: GraphNode[], edges: ResolvedRelationship[]): ResolvedRelationship[] {
   const kept: ResolvedRelationship[] = [];
@@ -44,13 +61,14 @@ export function computeLayout(
   nodes: GraphNode[],
   relationships: ResolvedRelationship[],
   collapsed: boolean,
-  measureFunction: (name: string, writesState: boolean) => number,
+  measureFunction: (name: string, writesState: boolean, mismatch?: boolean) => number,
   measureStateVariable: (name: string) => number,
   measureComponent: (name: string) => number,
   stateWriters: Set<string>,
+  missingFunctions: FunctionNode[] = [],
 ): GraphLayout {
   if (nodes.length === 0) {
-    return { boxes: new Map(), memberRects: new Map(), stateRects: new Map(), compositionRelationships: [], width: 320, height: 240 };
+    return withMissingFunctions({ boxes: new Map(), memberRects: new Map(), missingFunctionRects: new Map(), stateRects: new Map(), compositionRelationships: [], width: 320, height: 240 }, missingFunctions);
   }
 
   const ids = nodes.map((node) => node.id);
@@ -151,7 +169,7 @@ export function computeLayout(
     } else {
       const members = visibleMembers(node);
       const memberWidth = members.reduce(
-        (total, member) => total + measureFunction(member.name, stateWriters.has(member.id)) + FUNCTION_GAP,
+        (total, member) => total + measureFunction(member.name, stateWriters.has(member.id), member["hld-change-mismatch"]) + FUNCTION_GAP,
         -FUNCTION_GAP,
       );
       const stateBoxWidth = stateWidth(node);
@@ -264,7 +282,7 @@ export function computeLayout(
       memberX += width + FUNCTION_GAP;
     }
     for (const member of visibleMembers(node)) {
-      const width = measureFunction(member.name, stateWriters.has(member.id));
+      const width = measureFunction(member.name, stateWriters.has(member.id), member["hld-change-mismatch"]);
       memberRects.set(member.id, {
         x: memberX,
         y: box.y + TAB_HEIGHT,
@@ -275,12 +293,13 @@ export function computeLayout(
     }
   }
 
-  return {
+  return withMissingFunctions({
     boxes,
     memberRects,
+    missingFunctionRects: new Map(),
     stateRects,
     compositionRelationships: composition,
     width: Math.max(320, ...nodes.map((node) => boxes.get(node.id)!.x + boxes.get(node.id)!.width)),
     height: Math.max(240, y - GAP_Y),
-  };
+  }, missingFunctions);
 }

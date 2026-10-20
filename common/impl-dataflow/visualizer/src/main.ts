@@ -143,6 +143,12 @@ function chipStyle(changeType: DisplayChangeType): string {
   return `color:${changeColor(changeType)};background:color-mix(in oklch, ${changeColor(changeType)} 15%, transparent)`;
 }
 
+function mismatchBadge(mismatch: boolean): string {
+  return mismatch
+    ? '<span class="hld-mismatch" title="Function change does not match the HLD">HLD mismatch</span>'
+    : "";
+}
+
 function diffEvidence(ids: string[] | undefined): string {
   if (ids === undefined || ids.length === 0) {
     return "";
@@ -154,9 +160,9 @@ function diffEvidence(ids: string[] | undefined): string {
   }
 }
 
-function functionWidth(name: string, writesState: boolean): number {
+function functionWidth(name: string, writesState: boolean, mismatch = false): number {
   measureContext.font = "500 12.5px IBM Plex Mono, monospace";
-  return Math.ceil(measureContext.measureText(name).width) + (writesState ? 57 : 42);
+  return Math.ceil(measureContext.measureText(name).width) + (writesState ? 57 : 42) + (mismatch ? 96 : 0);
 }
 
 function stateVariableWidth(name: string): number {
@@ -220,7 +226,7 @@ function graphFocus(value: Selection | undefined): Selection | undefined {
   let focus = value;
   if (functionsHidden && value?.type === "node") {
     const node = implementationDataflow.nodes.find((node) => node.id === value.nodeId)!;
-    if (node.type === "function" || node.type === "state-variable") {
+    if ((node.type === "function" && node.subtype !== "missing-from-cr") || node.type === "state-variable") {
       focus = { type: "container", containerId: node.containerId };
     }
   }
@@ -266,7 +272,7 @@ function renderMarkers(): string {
 
 function renderGraph(graph: VisibleGraph): string {
   const stateWriters = new Set(graph.relationships.filter((relationship) => relationship.to.type === "state-variable" && relationship.from.type === "function").map((relationship) => relationship.from.nodeId!));
-  const layout = computeLayout(graph.nodes, graph.relationships, functionsHidden, functionWidth, stateVariableWidth, componentWidth, stateWriters);
+  const layout = computeLayout(graph.nodes, graph.relationships, functionsHidden, functionWidth, stateVariableWidth, componentWidth, stateWriters, graph.missingFunctions);
   currentGraphWidth = layout.width;
   currentGraphHeight = layout.height;
   const containers = new Map(graph.containers.map((container) => [container.id, container]));
@@ -322,14 +328,14 @@ function renderGraph(graph: VisibleGraph): string {
     const box = layout.boxes.get(container.id)!;
     const selected = selectionKey(selection) === selectionKey({ type: "container", containerId: container.id });
     const deleted = container.changeType === "deleted" ? " deleted" : "";
-    const attributes = `data-select="container" data-node="${escapeHtml(container.id)}" data-container="${escapeHtml(container.id)}" aria-label="Inspect ${container.type} ${escapeHtml(container.name)}"`;
+    const attributes = `data-select="container" data-node="${escapeHtml(container.id)}" data-container="${escapeHtml(container.id)}" aria-label="Inspect ${container.type} ${escapeHtml(container.name)}${functionsHidden && container.hldMismatch ? ", HLD mismatch" : ""}"`;
     const rect = functionsHidden ? { x: box.x, y: box.y, width: box.width, height: box.height } : classTargetRect(container, box);
     const form = silhouette(CONTAINER_TYPE.shape, rect.width, rect.height);
     const style = `left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;height:${rect.height}px;--type-color:${CONTAINER_TYPE.color};--change-color:${changeColor(container.changeType)}`;
     const shape = `<svg class="node-shape" width="${rect.width}" height="${rect.height}" viewBox="0 0 ${rect.width} ${rect.height}" aria-hidden="true"><path class="node-outline" d="${form.outline}"></path></svg>`;
     if (functionsHidden) {
       return `<button class="graph-node boundary-node container-node${selected ? " selected" : ""}${deleted}" style="${style}" ${attributes}>
-        ${shape}<span class="boundary-body"><span class="node-badge">${CONTAINER_TYPE.badge[container.type]}</span><span class="component-name">${escapeHtml(container.name)}</span></span>
+        ${shape}<span class="boundary-body"><span class="node-badge">${CONTAINER_TYPE.badge[container.type]}</span><span class="component-name">${escapeHtml(container.name)}</span></span>${mismatchBadge(container.hldMismatch)}
       </button>`;
     } else {
       return `<button class="graph-node boundary-node class-tab${selected ? " selected" : ""}${deleted}" style="${style}" ${attributes}>
@@ -343,9 +349,21 @@ function renderGraph(graph: VisibleGraph): string {
     const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
     return `<button class="graph-node function-pill${selected ? " selected" : ""}${nodeChangeType(node) === "deleted" ? " deleted" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;--change-color:${changeColor(nodeChangeType(node))}" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(container.name)}.${escapeHtml(node.name)}">
       <span class="function-glyph">${NODE_GLYPHS[node.type]}</span><span class="function-name">${escapeHtml(node.name)}</span>
+      ${mismatchBadge(node["hld-change-mismatch"] === true)}
       ${stateWriters.has(node.id) ? '<span class="state-glyph" title="Writes state">◈</span>' : ""}
     </button>`;
   })).join("");
+
+  const missingFunctions = graph.missingFunctions.map((node) => {
+    const rect = layout.missingFunctionRects.get(node.id)!;
+    const owner = implementationDataflow.containers.find((container) => container.id === node.containerId)!;
+    const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
+    return `<button class="graph-node missing-function${selected ? " selected" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;height:${rect.height}px" data-select="node" data-node="${escapeHtml(node.containerId)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect missing function ${escapeHtml(owner.name)}.${escapeHtml(node.name)}">
+      <span class="missing-function-name" title="${escapeHtml(owner.name)}.${escapeHtml(node.name)}">${escapeHtml(owner.name)}.${escapeHtml(node.name)}</span>
+      <span class="missing-function-source" title="${escapeHtml(node.sourceFile)}">${escapeHtml(node.sourceFile)}</span>
+      <span class="missing-function-status">Expected: ${node.changeType}</span>
+    </button>`;
+  }).join("");
 
   const stateBoxes = graph.containers.filter((container) => !functionsHidden && container.stateVariables.length > 0).map((container) => {
     const rect = layout.stateRects.get(container.id)!;
@@ -379,10 +397,11 @@ function renderGraph(graph: VisibleGraph): string {
 
   queueMicrotask(() => fitGraph(layout.width, layout.height));
   return `<div class="graph-space">
-    ${graph.nodes.length === 0 ? '<div class="empty-graph">No nodes match the current filters</div>' : ""}
+    ${graph.nodes.length === 0 && graph.missingFunctions.length === 0 ? '<div class="empty-graph">No nodes match the current filters</div>' : ""}
     <div class="graph" style="left:calc(50% + ${panX}px);top:calc(50% + ${panY}px);width:${layout.width}px;height:${layout.height}px;transform:translate(-50%, -50%) scale(${zoom})">
       <svg class="graph-svg" width="${layout.width}" height="${layout.height}"><defs>${renderMarkers()}</defs>${classFrames}${compositionEdges}${edges}</svg>
       ${classTabs}${standaloneNodes}${members}${stateBoxes}${emptyNotes}
+      ${graph.missingFunctions.length === 0 ? "" : `<div class="missing-functions-heading">Missing from CR <span>${graph.missingFunctions.length}</span><small>Function changes expected by the HLD</small></div>${missingFunctions}`}
       <svg class="graph-svg return-arrows" width="${layout.width}" height="${layout.height}">${returnArrows.join("")}</svg>
     </div>
   </div>`;
@@ -412,12 +431,12 @@ function inspectorHeader(eyebrow: string, title: string, changeType: DisplayChan
   return `<header class="inspector-header">
     <div class="inspector-eyebrow">${escapeHtml(eyebrow)}</div>
     <div class="inspector-title-row"><div class="inspector-title">${escapeHtml(title)}</div><button class="close-button" data-close aria-label="Clear selection">✕</button></div>
-    <span class="change-chip" style="${chipStyle(changeType)}">${changeType}</span>${detail === undefined ? "" : `<span class="change-chip neutral">${escapeHtml(detail)}</span>`}
+    <span class="change-chip" style="${chipStyle(changeType)}">${changeType === "missing-from-cr" ? "Missing from CR" : changeType}</span>${detail === undefined ? "" : `<span class="change-chip neutral">${escapeHtml(detail)}</span>`}
   </header>`;
 }
 
 function nodeRows(nodes: DataflowNode[]): string {
-  return nodes.length === 0 ? '<p class="empty-copy">None</p>' : `<div class="function-list">${nodes.map((node) => `<button class="function-row" style="border-color:${changeColor(nodeChangeType(node))}" data-jump="${escapeHtml(JSON.stringify({ type: "node", nodeId: node.id }))}"><div class="flow-endpoint">${escapeHtml(node.name)}</div><div class="flow-label">${nodeChangeType(node)}</div></button>`).join("")}</div>`;
+  return nodes.length === 0 ? '<p class="empty-copy">None</p>' : `<div class="function-list">${nodes.map((node) => `<button class="function-row" style="border-color:${changeColor(nodeChangeType(node))}" data-jump="${escapeHtml(JSON.stringify({ type: "node", nodeId: node.id }))}"><div class="flow-endpoint">${escapeHtml(node.name)}</div><div class="flow-label">${node.type === "function" && node.subtype === "missing-from-cr" ? `Expected: ${node.changeType}` : node.changeType}</div>${mismatchBadge(node.type === "function" && node["hld-change-mismatch"] === true)}</button>`).join("")}</div>`;
 }
 
 function renderInspector(graph: VisibleGraph): string {
@@ -427,16 +446,38 @@ function renderInspector(graph: VisibleGraph): string {
     const stateUpdates = graph.relationships.filter((relationship) => relationship.to.type === "state-variable");
     const containers = graph.containers.map((container) => `<button class="function-row" data-jump="${escapeHtml(JSON.stringify({ type: "container", containerId: container.id }))}"><div class="flow-endpoint">${escapeHtml(container.name)}</div><div class="flow-label">${container.functions.length} functions · ${container.stateVariables.length} state variables · ${container.staticData.length} static data</div></button>`).join("");
     content = `${section("Containers", containers || '<p class="empty-copy">None</p>', graph.containers.length)}${section("State updates", flowRows(stateUpdates, "from", true), stateUpdates.length)}`;
+    if (graph.missingFunctions.length > 0) content += section("Missing from CR", nodeRows(graph.missingFunctions), graph.missingFunctions.length);
   } else if (inspected.type === "node") {
     const node = implementationDataflow.nodes.find((node) => node.id === inspected.nodeId)!;
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, inspected));
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
-    content = `${inspectorHeader(NODE_LABELS[node.type], node.name, nodeChangeType(node))}${diffEvidence(node.diffHunkIds)}${node.description === undefined ? "" : section("Description", `<p class="component-description">${escapeHtml(node.description)}</p>`)}`;
+    content = `${inspectorHeader(NODE_LABELS[node.type], node.name, nodeChangeType(node), node.type === "function" && node.subtype === "missing-from-cr" ? `Expected: ${node.changeType}` : undefined)}${diffEvidence(node.diffHunkIds)}${node.description === undefined ? "" : section("Description", `<p class="component-description">${escapeHtml(node.description)}</p>`)}`;
+    if (node.type === "function") {
+      content += section("Source file", `<p class="component-description">${escapeHtml(node.sourceFile)}</p>`);
+      if (node["hld-change-mismatch"] === true) {
+        let hldStatus: string;
+        if (node.subtype === "missing-from-cr") {
+          hldStatus = node.changeType;
+        } else if (node.hldChangeType === null) {
+          hldStatus = "Absent from HLD";
+        } else if (node.hldChangeType !== undefined) {
+          hldStatus = node.hldChangeType;
+        } else {
+          hldStatus = "Unavailable";
+        }
+        const crStatus = node.subtype === "missing-from-cr" ? "Missing from CR" : node.changeType;
+        content += section("HLD comparison", `<div class="hld-comparison">${mismatchBadge(node["hld-change-mismatch"] === true)}<p>HLD: <strong>${hldStatus}</strong></p><p>CR: <strong>${crStatus}</strong></p></div>`);
+      }
+    }
     if ("containerId" in node && node.containerId !== undefined) {
       const owner = implementationDataflow.containers.find((container) => container.id === node.containerId)!;
-      content += section("Container", `<button class="function-row" data-jump="${escapeHtml(JSON.stringify({ type: "container", containerId: owner.id }))}"><div class="flow-endpoint">${escapeHtml(owner.name)}</div><div class="flow-label">${owner.type}</div></button>`);
+      if (graph.containers.some((container) => container.id === owner.id)) {
+        content += section("Container", `<button class="function-row" data-jump="${escapeHtml(JSON.stringify({ type: "container", containerId: owner.id }))}"><div class="flow-endpoint">${escapeHtml(owner.name)}</div><div class="flow-label">${owner.type}</div></button>`);
+      } else {
+        content += section("Container", `<div class="function-row"><div class="flow-endpoint">${escapeHtml(owner.name)}</div><div class="flow-label">${owner.type}</div></div>`);
+      }
     }
-    if (node.type === "function") {
+    if (node.type === "function" && node.subtype !== "missing-from-cr") {
       const writes = outputs.filter((relationship) => relationship.to.type === "state-variable");
       const transfers = outputs.filter((relationship) => relationship.to.type !== "state-variable");
       content += `${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(transfers, "to"), transfers.length)}${section("State written", flowRows(writes, "to", true), writes.length)}`;

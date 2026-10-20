@@ -19,6 +19,7 @@ export type FunctionNode = NodeBase & {
   sourceFile: string;
   subtype?: "missing-from-cr";
   "hld-change-mismatch"?: boolean;
+  hldChangeType?: ChangeType | null;
 };
 export type StateVariableNode = NodeBase & { type: "state-variable"; containerId: string };
 export type StaticDataNode = NodeBase & { type: "static-data"; containerId?: string };

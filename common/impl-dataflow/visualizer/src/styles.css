@@ -361,6 +361,110 @@ body.embedded .topbar {
   background: oklch(0.33 0.034 255);
 }
 
+.hld-mismatch {
+  display: inline-block;
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border: 1px solid oklch(0.65 0.13 300);
+  border-radius: 4px;
+  color: oklch(0.88 0.09 300);
+  background: oklch(0.3 0.07 300);
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.container-node > .hld-mismatch {
+  position: absolute;
+  z-index: 3;
+  top: -9px;
+  right: -9px;
+  pointer-events: none;
+}
+
+.hld-comparison {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.hld-comparison p {
+  margin: 0;
+}
+
+.hld-comparison strong {
+  color: var(--bright);
+  font-weight: 600;
+}
+
+.missing-functions-heading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 320px;
+  color: oklch(0.88 0.09 300);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.missing-functions-heading span {
+  margin-left: 6px;
+  color: var(--muted);
+}
+
+.missing-functions-heading small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.missing-function {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  border: 1px dashed oklch(0.65 0.13 300);
+  border-radius: 8px;
+  background: oklch(0.24 0.035 300);
+  text-align: left;
+}
+
+.missing-function:hover,
+.missing-function.selected {
+  background: oklch(0.3 0.055 300);
+  box-shadow: 0 0 0 1px oklch(0.75 0.15 300);
+}
+
+.missing-function-name,
+.missing-function-source {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.missing-function-name {
+  color: var(--bright);
+  font-size: 12px;
+}
+
+.missing-function-source {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.missing-function-status {
+  color: oklch(0.88 0.09 300);
+  font-size: 11px;
+}
+
 .function-glyph,
 .state-glyph {
   flex: 0 0 auto;

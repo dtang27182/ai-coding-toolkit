@@ -132,6 +132,7 @@ export function annotateHldFunctionCoverage(hld, review, patch, enrichedPatch) {
       entry.node.changeType = actualChangeType(entry.node, entry.container, files);
       const planned = hldFunctions.get(entry.key);
       entry.node[mismatchKey] = planned === undefined ? entry.node.changeType !== "unchanged" : planned.node.changeType !== entry.node.changeType;
+      entry.node.hldChangeType = planned === undefined ? null : planned.node.changeType;
       actualFunctions.set(entry.key, entry);
     }
   }

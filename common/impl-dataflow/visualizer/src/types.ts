@@ -5,6 +5,7 @@ export type ContainerStatus = "new" | "changed" | "unchanged" | "deleted";
 
 export interface GraphContainer extends Container {
   changeType: ContainerStatus;
+  hldMismatch: boolean;
   functions: FunctionNode[];
   stateVariables: StateVariableNode[];
   staticData: StaticDataNode[];
@@ -59,6 +60,7 @@ export function isInternalDataRelationship(relationship: ResolvedRelationship): 
 export interface GraphLayout {
   boxes: Map<string, Rect>;
   memberRects: Map<string, Rect>;
+  missingFunctionRects: Map<string, Rect>;
   stateRects: Map<string, Rect>;
   compositionRelationships: ResolvedRelationship[];
   width: number;
