@@ -47,6 +47,8 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   let dragDepth = 0;
   let wrapLines = false;
   let sidebarWidth = 560;
+  let fittedSidebarWidth = 0;
+  let sidebarResizedByUser = false;
   let hiddenTags = new Set<string>();
   let mismatchOnly = false;
   let revealedChanges = new Set<string>();
@@ -540,6 +542,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     });
     resizer.addEventListener("pointermove", (event) => {
       if (dragging) {
+        sidebarResizedByUser = true;
         setSidebarWidth(startWidth + event.clientX - startX);
       }
     });
@@ -558,12 +561,40 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
       }
       if (requestedWidth !== undefined) {
         event.preventDefault();
+        sidebarResizedByUser = true;
         setSidebarWidth(requestedWidth);
       }
     });
-    if (matchMedia("(min-width: 621px)").matches) {
-      setSidebarWidth(sidebarWidth);
+    fitSidebarWidth();
+  }
+
+  // Until the user resizes the navigation, widen it so no visible tree row is truncated.
+  // It only grows while the same patch is shown, so collapsing a node does not make the panel jump.
+  function fitSidebarWidth(): void {
+    const workspace = app.querySelector<HTMLElement>(".workspace")!;
+    if (!matchMedia("(min-width: 621px)").matches || workspace.clientWidth === 0) {
+      return;
     }
+    if (!sidebarResizedByUser) {
+      const tree = app.querySelector<HTMLElement>("#file-tree")!;
+      const rows = [...tree.querySelectorAll<HTMLElement>(".tree-row")];
+      const scrollbarWidth = tree.offsetWidth - tree.clientWidth;
+      fittedSidebarWidth = Math.max(fittedSidebarWidth, ...rows.map((row) => naturalWidth(row) + scrollbarWidth + 8));
+      sidebarWidth = fittedSidebarWidth;
+    }
+    setSidebarWidth(sidebarWidth);
+  }
+
+  function naturalWidth(element: Element): number {
+    const style = getComputedStyle(element);
+    if (style.display !== "flex") {
+      return Math.ceil(Math.max(element.scrollWidth, element.getBoundingClientRect().width));
+    }
+    const children = [...element.children].filter((child) => getComputedStyle(child).display !== "none");
+    const edges = ["paddingLeft", "paddingRight", "borderLeftWidth", "borderRightWidth"] as const;
+    return edges.reduce((sum, edge) => sum + (parseFloat(style[edge]) || 0), 0)
+      + (parseFloat(style.columnGap) || 0) * Math.max(0, children.length - 1)
+      + children.reduce((sum, child) => sum + naturalWidth(child), 0);
   }
 
   function setSidebarWidth(width: number): void {
@@ -751,6 +782,9 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
       selectedId = initialSelection(index, true, filterStates);
     }
     expandedIds = expandedNodeIds(buildTree(index), true, previousExpansion);
+    if (!preserveView) {
+      fittedSidebarWidth = 0;
+    }
     hasLoadedEnrichedPatch = true;
     saveExpansion();
     statusMessage = "";
@@ -803,9 +837,6 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   });
 
   window.addEventListener("resize", () => {
-    if (matchMedia("(min-width: 621px)").matches) {
-      setSidebarWidth(sidebarWidth);
-    }
     fitScrollEndSpacer();
     updateChangeNavigation();
   });
@@ -836,6 +867,9 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   selectedId = initialSelection(index, true, filterStates);
   render();
   requestAnimationFrame(scrollToSelection);
+  // Refit when the viewer first becomes visible, the window resizes, or web fonts finish loading.
+  new ResizeObserver(fitSidebarWidth).observe(host);
+  void document.fonts.ready.then(fitSidebarWidth);
   if (options.loadDefault !== false) void loadDefault();
   return { loadEnrichedPatch };
 }

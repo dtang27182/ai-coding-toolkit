@@ -1,5 +1,5 @@
 export const MIN_SIDEBAR_WIDTH = 240;
-export const MAX_SIDEBAR_WIDTH = 640;
+export const MAX_SIDEBAR_WIDTH = 960;
 export const MIN_FILE_PANEL_WIDTH = 320;
 
 export function clampSidebarWidth(width: number, workspaceWidth: number): number {

@@ -414,6 +414,7 @@ test("recognizes Alt or Option plus Z as the line-wrapping shortcut", () => {
 test("keeps the draggable navigation width within usable panel bounds", () => {
   assert.equal(clampSidebarWidth(100, 1200), 240);
   assert.equal(clampSidebarWidth(420, 1200), 420);
-  assert.equal(clampSidebarWidth(900, 1200), 640);
+  assert.equal(clampSidebarWidth(900, 1200), 880);
+  assert.equal(clampSidebarWidth(1200, 1600), 960);
   assert.equal(clampSidebarWidth(500, 700), 380);
 });
