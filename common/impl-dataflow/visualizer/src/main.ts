@@ -5,10 +5,12 @@ import type { DataflowNode, NodeType } from "../../types";
 import { computeLayout } from "./layout";
 import { filterGraph, type VisibleGraph } from "./filter";
 import { dataflowEdges, relationshipsForEdge } from "./edges";
+import { findUiPairs } from "./pairing";
+import { linkPath } from "../../../sys-dataflow/visualizer/src/pairing.ts";
 import { edgePortSpreads, routeCompositionEdge, routeEdge } from "./routing";
 import { semanticError } from "./validation";
 import "./styles.css";
-import type { ChangeType, ContainerStatus, GraphContainer, ImplementationDataflow, Rect, ResolvedEndpoint, ResolvedRelationship, Selection } from "./types";
+import type { ChangeType, ContainerStatus, GraphContainer, GraphLayout, ImplementationDataflow, Rect, ResolvedEndpoint, ResolvedRelationship, Selection } from "./types";
 import { edgeKey } from "./types";
 import { droppedJsonFile, pickJsonFile, supportsJsonFileHandles, watchOpenedJson, type JsonFileHandle } from "../../../watch-opened-json.ts";
 
@@ -112,6 +114,7 @@ let panY = 0;
 let inspectorWidth = 356;
 let currentGraphWidth = 320;
 let currentGraphHeight = 240;
+let graphLayout: GraphLayout;
 let userZoomed = false;
 let selection: Selection | undefined;
 let hovered: Selection | undefined;
@@ -273,8 +276,10 @@ function renderMarkers(): string {
 function renderGraph(graph: VisibleGraph): string {
   const stateWriters = new Set(graph.relationships.filter((relationship) => relationship.to.type === "state-variable" && relationship.from.type === "function").map((relationship) => relationship.from.nodeId!));
   const layout = computeLayout(graph.nodes, graph.relationships, functionsHidden, functionWidth, stateVariableWidth, componentWidth, stateWriters, graph.missingFunctions);
+  graphLayout = layout;
   currentGraphWidth = layout.width;
   currentGraphHeight = layout.height;
+  const pairsByBox = new Map(findUiPairs(graph.components).flatMap((pair) => [[pair.read.id, pair], [pair.write.id, pair]] as const));
   const containers = new Map(graph.containers.map((container) => [container.id, container]));
   const routingBounds = new Map(graph.nodes.map((node): [string, Rect] => {
     const box = layout.boxes.get(node.id)!;
@@ -384,9 +389,12 @@ function renderGraph(graph: VisibleGraph): string {
     const form = silhouette(kind.shape, box.width, box.height);
     const details = form.details.map((detail) => `<path class="node-detail" d="${detail}"></path>`).join("");
     const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId });
-    return `<button class="graph-node boundary-node${selected ? " selected" : ""}${node.changeType === "deleted" ? " deleted" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;--type-color:${kind.color};--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(node.id)}" data-node-id="${escapeHtml(nodeId)}" aria-label="Inspect ${kind.label} ${escapeHtml(node.name)}">
+    const pair = pairsByBox.get(node.id);
+    const pairingLabel = pair === undefined ? "" : `, paired with UI ${uiDirection === "read" ? "write" : "read"}, pair ${pair.label}`;
+    return `<button class="graph-node boundary-node${selected ? " selected" : ""}${node.changeType === "deleted" ? " deleted" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;--type-color:${kind.color};--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(node.id)}" data-node-id="${escapeHtml(nodeId)}" aria-label="Inspect ${kind.label} ${escapeHtml(node.name + pairingLabel)}">
       <svg class="node-shape" width="${box.width}" height="${box.height}" viewBox="0 0 ${box.width} ${box.height}" aria-hidden="true"><path class="node-outline" d="${form.outline}"${form.dashed ? ' stroke-dasharray="6 4"' : ""}></path>${details}</svg>
       <span class="boundary-body"><span class="node-badge">${kind.badge}</span><span class="component-name">${escapeHtml(node.name)}</span></span>
+      ${pair === undefined ? "" : `<span class="pair-token" aria-hidden="true">${pair.label}</span>`}
     </button>`;
   }).join("");
 
@@ -403,6 +411,7 @@ function renderGraph(graph: VisibleGraph): string {
       ${classTabs}${standaloneNodes}${members}${stateBoxes}${emptyNotes}
       ${graph.missingFunctions.length === 0 ? "" : `<div class="missing-functions-heading">Missing from CR <span>${graph.missingFunctions.length}</span><small>Function changes expected by the HLD</small></div>${missingFunctions}`}
       <svg class="graph-svg return-arrows" width="${layout.width}" height="${layout.height}">${returnArrows.join("")}</svg>
+      <svg class="pair-link-layer" width="${layout.width}" height="${layout.height}" aria-hidden="true"></svg>
     </div>
   </div>`;
 }
@@ -773,6 +782,7 @@ function updateGraphFocus(value: Selection | undefined): void {
   const relatedBoxes = new Set<string>();
   const relatedNodes = new Set<string>();
   const graph = visibleGraph();
+  const focusedPair = value?.type === "node" ? findUiPairs(graph.components).find((pair) => pair.read.nodeId === value.nodeId) : undefined;
   if (value?.type === "container") {
     relatedBoxes.add(value.containerId);
   } else if (value?.type === "node") {
@@ -791,6 +801,9 @@ function updateGraphFocus(value: Selection | undefined): void {
   for (const element of app.querySelectorAll<HTMLElement>(".graph-node[data-node]")) {
     const memberVisible = element.dataset.nodeId === undefined || relatedNodes.has(element.dataset.nodeId) || (value?.type === "container" && value.containerId === element.dataset.node);
     element.classList.toggle("dimmed", value !== undefined && (!relatedBoxes.has(element.dataset.node!) || !memberVisible));
+    const paired = focusedPair !== undefined && element.dataset.nodeId === focusedPair.read.nodeId;
+    element.classList.toggle("pair-partner", paired);
+    element.querySelector(".pair-token")?.classList.toggle("active", paired);
   }
   for (const element of app.querySelectorAll<SVGElement>(".class-frame[data-node]")) {
     element.classList.toggle("dimmed", value !== undefined && !relatedBoxes.has(element.dataset.node!));
@@ -801,6 +814,14 @@ function updateGraphFocus(value: Selection | undefined): void {
       : endpointDatasetMatches(element, "from", value) || endpointDatasetMatches(element, "to", value));
     element.classList.toggle("dimmed", value !== undefined && !relevant);
   }
+  let links = "";
+  if (focusedPair !== undefined) {
+    const link = linkPath(graphLayout.boxes.get(focusedPair.read.id)!, graphLayout.boxes.get(focusedPair.write.id)!);
+    links = `<path class="pair-link-halo" d="${link.d}"></path><path class="pair-link" d="${link.d}"></path>
+      <circle class="pair-link-end" cx="${link.start.x}" cy="${link.start.y}" r="5"></circle>
+      <circle class="pair-link-end" cx="${link.end.x}" cy="${link.end.y}" r="5"></circle>`;
+  }
+  app.querySelector<SVGElement>(".pair-link-layer")!.innerHTML = links;
 }
 
 function fitGraph(graphWidth: number, graphHeight: number): void {

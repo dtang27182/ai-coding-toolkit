@@ -4,6 +4,7 @@ import test from "node:test";
 import { dataflowEdges, relationshipsForEdge } from "../common/impl-dataflow/visualizer/src/edges.ts";
 import { filterGraph } from "../common/impl-dataflow/visualizer/src/filter.ts";
 import { computeLayout } from "../common/impl-dataflow/visualizer/src/layout.ts";
+import { findUiPairs } from "../common/impl-dataflow/visualizer/src/pairing.ts";
 
 function implementation() {
   const nodes = [
@@ -49,6 +50,7 @@ test("UI reads and writes use separate boxes while retaining original nodes and 
   assert.equal(graph.relationships[2].to.boxId, write.id);
   assert.equal(graph.relationships[1].from.nodeId, "panel");
   assert.equal(graph.relationships[2].to.nodeId, "panel");
+  assert.deepEqual(findUiPairs(graph.components), [{ label: "A", read, write }]);
   assert.deepEqual(graph.relationships.map((item) => item.relationship), input.relationships);
   assert.deepEqual(input, original);
 
@@ -105,6 +107,7 @@ test("UI icons appear only for directions with visible dataflow", () => {
     const graph = filterGraph(input, true);
     assert.deepEqual(graph.components.filter((node) => node.nodeId === "panel").map((node) => node.uiDirection), directions);
     assert.equal(graph.components.some((node) => node.nodeId === "unused-panel"), false);
+    assert.equal(findUiPairs(graph.components).length, directions.length === 2 ? 1 : 0);
     for (const collapsed of [false, true]) {
       const layout = computeLayout(graph.nodes, graph.relationships, collapsed, () => 80, () => 80, () => 100, new Set());
       for (const relationship of graph.relationships) {
@@ -129,6 +132,7 @@ test("filtering dataflows and their other endpoints removes the unused UI direct
         input.nodes.find((node) => node.id === "handle").initialization = true;
       }
       const hidden = filterGraph(input, false);
+      assert.deepEqual(findUiPairs(hidden.components), []);
       assert.equal(hidden.components.some((node) => node.nodeId === "panel" && node.uiDirection === direction), false);
       if (hiddenBy === "relationship") {
         assert.deepEqual(hidden.components.filter((node) => node.nodeId === "panel").map((node) => node.uiDirection), [direction === "read" ? "write" : "read"]);
@@ -137,6 +141,20 @@ test("filtering dataflows and their other endpoints removes the unused UI direct
       assert.deepEqual(shown.components.filter((node) => node.nodeId === "panel").map((node) => node.uiDirection), ["read", "write"]);
     }
   }
+});
+
+test("UI pair badges follow component order and connect only the same original ID", () => {
+  const input = implementation();
+  input.relationships.push(
+    { from: { nodeId: "panel", type: "ui-component" }, to: { nodeId: "unused-panel", type: "ui-component" }, type: "dataflow", changeType: "added", dataDescription: "Value", purpose: "Show value" },
+    { from: { nodeId: "unused-panel", type: "ui-component" }, to: { nodeId: "handle", type: "function" }, type: "dataflow", changeType: "added", dataDescription: "Action", purpose: "Handle action" },
+  );
+  const graph = filterGraph(input, true);
+  const pairs = findUiPairs(graph.components);
+  assert.deepEqual(pairs.map((pair) => [pair.label, pair.read.nodeId, pair.write.nodeId]), [
+    ["A", "panel", "panel"], ["B", "unused-panel", "unused-panel"],
+  ]);
+  assert.ok(pairs.every((pair) => pair.read.uiDirection === "read" && pair.write.uiDirection === "write" && pair.read.id !== pair.write.id));
 });
 
 test("unchanged and initialization filters hide both UI icons and their edges", () => {
