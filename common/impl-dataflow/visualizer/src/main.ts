@@ -544,7 +544,7 @@ function render(): void {
     <div class="workspace">
       <div class="canvas-wrap">
         <main class="canvas" aria-label="Implementation dataflow graph">${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}${renderGraph(graph)}</main>
-        <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}<div class="change-key"><span class="change-label">○ tail = data returns</span></div>${implementationDataflow.nodes.some((node) => node.type === "function" && node["hld-change-mismatch"] === true) ? `<div class="change-key">${MISMATCH_GLYPH}<span class="change-label">HLD mismatch</span></div>` : ""}</div>
+        <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}${implementationDataflow.nodes.some((node) => node.type === "function" && node["hld-change-mismatch"] === true) ? `<div class="change-key">${MISMATCH_GLYPH}<span class="change-label">HLD mismatch</span></div>` : ""}</div>
         ${dragDepth > 0 ? '<div class="drop-overlay">Drop an impl-dataflow.json file</div>' : ""}
       </div>
       ${inspectorCollapsed
