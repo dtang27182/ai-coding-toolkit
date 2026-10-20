@@ -51,10 +51,39 @@ function patchFunctionIdentities(method, elements, files, reviewFunctions) {
   return identities;
 }
 
-function actualChangeType(node, container, files) {
+function hasRenamePair(entry, planned, enrichedPatch) {
+  if (planned?.node.renamedFrom === undefined || entry.container.type !== planned.container.type) {
+    return false;
+  } else {
+    const oldOwner = planned.node.renamedFrom.containerName ?? planned.container.renamedFrom?.name ?? planned.container.name;
+    return (enrichedPatch.renames ?? []).some(({ from, to }) => {
+      const source = enrichedPatch.elements[from];
+      const target = enrichedPatch.elements[to];
+      if (source?.kind !== "method" || target?.kind !== "method"
+        || source.name !== planned.node.renamedFrom.name
+        || source.locations[0].file !== planned.node.renamedFrom.sourceFile
+        || target.name !== entry.node.name || target.locations[0].file !== entry.node.sourceFile) {
+        return false;
+      } else {
+        const sourceParent = enrichedPatch.elements[source.parentId];
+        const targetParent = enrichedPatch.elements[target.parentId];
+        if (entry.container.type === "class") {
+          return sourceParent?.kind === "class" && sourceParent.name === oldOwner
+            && targetParent?.kind === "class" && targetParent.name === entry.container.name;
+        } else if (entry.container.type === "module") {
+          return sourceParent?.kind === "file" && targetParent?.kind === "file";
+        }
+      }
+    });
+  }
+}
+
+function actualChangeType(node, container, files, renamed) {
   const matchingFiles = files.filter((file) => file.oldPath === node.sourceFile || file.newPath === node.sourceFile);
   let changeType;
-  if (matchingFiles.length === 0) {
+  if (renamed) {
+    changeType = "modified";
+  } else if (matchingFiles.length === 0) {
     changeType = "unchanged";
   } else if (matchingFiles.length > 1) {
     throw new Error(`Ambiguous patch file for function ${node.id}: ${node.sourceFile}`);
@@ -129,8 +158,14 @@ export function annotateHldFunctionCoverage(hld, review, patch, enrichedPatch) {
       missingFunctions.set(entry.key, entry.node);
     } else if (entry.node.subtype === undefined) {
       if (actualFunctions.has(entry.key)) throw new Error(`Duplicate review function identity: ${entry.key}`);
-      entry.node.changeType = actualChangeType(entry.node, entry.container, files);
       const planned = hldFunctions.get(entry.key);
+      const renamed = hasRenamePair(entry, planned, annotatedPatch);
+      entry.node.changeType = actualChangeType(entry.node, entry.container, files, renamed);
+      if (renamed) {
+        entry.node.renamedFrom = planned.node.renamedFrom;
+      } else {
+        delete entry.node.renamedFrom;
+      }
       entry.node[mismatchKey] = planned === undefined ? entry.node.changeType !== "unchanged" : planned.node.changeType !== entry.node.changeType;
       entry.node.hldChangeType = planned === undefined ? null : planned.node.changeType;
       actualFunctions.set(entry.key, entry);

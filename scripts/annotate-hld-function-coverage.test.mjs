@@ -89,6 +89,95 @@ test("refreshes the HLD status on reruns when the planned function changes or di
   assert.equal(absent.codeReview.nodes[0][tag], true);
 });
 
+test("keeps an HLD-declared function rename as one modified review function", () => {
+  const patch = patchFor(["-export function oldName() { return 1; }", "+export function newName() { return 2; }"]);
+  const renamedFrom = { name: "oldName", sourceFile: "src/service.ts" };
+  const hld = graph("high-level-design", [{ ...fn("planned", "newName", "modified"), renamedFrom }]);
+  const review = graph("code-review", [{ ...fn("actual", "newName", "modified"), renamedFrom }]);
+  addEvidence(review, patch);
+  const enriched = generateEnrichedPatch(patch, hld);
+  assert.equal(enriched.renames.length, 1);
+
+  const result = annotateHldFunctionCoverage(hld, review, patch, enriched);
+  assert.equal(result.codeReview.nodes.length, 1);
+  assert.equal(result.codeReview.nodes[0].changeType, "modified");
+  assert.deepEqual(result.codeReview.nodes[0].renamedFrom, renamedFrom);
+  assert.equal(result.codeReview.nodes[0][tag], false);
+  assert.deepEqual(result.enrichedPatch.renames, enriched.renames);
+  assert.deepEqual(annotateHldFunctionCoverage(hld, result.codeReview, patch, result.enrichedPatch), result);
+});
+
+test("keeps renamed class ownership for a renamed method", () => {
+  const patch = patchFor([
+    "-export class OldService {",
+    "-  run() { return 1; }",
+    "-}",
+    "+export class NewService {",
+    "+  execute() { return 2; }",
+    "+}",
+  ]);
+  const oldClass = { name: "OldService", sourceFile: "src/service.ts" };
+  const oldMethod = { name: "run", sourceFile: "src/service.ts" };
+  const containers = [{ id: "owner", name: "NewService", type: "class", sourceFile: "src/service.ts", renamedFrom: oldClass }];
+  const hld = graph("high-level-design", [
+    { ...fn("planned", "execute", "modified"), renamedFrom: oldMethod },
+  ], containers);
+  const review = graph("code-review", [fn("actual", "execute", "added")], containers);
+  addEvidence(review, patch);
+  const enriched = generateEnrichedPatch(patch, hld);
+  assert.equal(enriched.renames.length, 2);
+
+  const result = annotateHldFunctionCoverage(hld, review, patch, enriched);
+  assert.equal(result.codeReview.nodes[0].changeType, "modified");
+  assert.deepEqual(result.codeReview.nodes[0].renamedFrom, oldMethod);
+  assert.deepEqual(result.codeReview.containers[0].renamedFrom, oldClass);
+  assert.equal(result.codeReview.nodes[0][tag], false);
+});
+
+test("keeps an HLD-declared module and function move under their final identities", () => {
+  const oldPatch = patchFor(["-export function oldName() { return 1; }"], "src/old.ts", null);
+  const newPatch = patchFor(["+export function newName() { return 2; }"], null, "src/new.ts");
+  const patch = `${oldPatch}\n${newPatch}`;
+  const oldModule = { name: "old", sourceFile: "src/old.ts" };
+  const oldFunction = { name: "oldName", sourceFile: "src/old.ts" };
+  const hld = graph("high-level-design", [
+    { ...fn("planned", "newName", "modified", "src/new.ts"), renamedFrom: oldFunction },
+  ], [{ id: "owner", name: "new", type: "module", sourceFile: "src/new.ts", renamedFrom: oldModule }]);
+  const review = graph("code-review", [
+    { ...fn("actual", "newName", "modified", "src/new.ts"), renamedFrom: oldFunction, diffHunkIds: ["old", "new"] },
+  ], [{ id: "owner", name: "new", type: "module", sourceFile: "src/new.ts", renamedFrom: oldModule }]);
+  review.diffHunks = [
+    { id: "old", file: "src/old.ts", patch: oldPatch.slice(oldPatch.indexOf("@@")) },
+    { id: "new", file: "src/new.ts", patch: newPatch.slice(newPatch.indexOf("@@")) },
+  ];
+  const enriched = generateEnrichedPatch(patch, hld);
+  assert.equal(enriched.renames.length, 2);
+
+  const result = annotateHldFunctionCoverage(hld, review, patch, enriched);
+  assert.equal(result.codeReview.nodes.length, 1);
+  assert.equal(result.codeReview.nodes[0].changeType, "modified");
+  assert.deepEqual(result.codeReview.nodes[0].renamedFrom, oldFunction);
+  assert.deepEqual(result.codeReview.nodes[0].diffHunkIds, ["old", "new"]);
+  assert.deepEqual(result.codeReview.containers[0].renamedFrom, oldModule);
+  assert.equal(result.codeReview.nodes[0][tag], false);
+  assert.equal(result.enrichedPatch.patch, patch);
+});
+
+test("does not use an HLD rename when the original function remains", () => {
+  const patch = patchFor([" export function oldName() { return 1; }", "+export function newName() { return 2; }"]);
+  const renamedFrom = { name: "oldName", sourceFile: "src/service.ts" };
+  const hld = graph("high-level-design", [{ ...fn("planned", "newName", "modified"), renamedFrom }]);
+  const review = graph("code-review", [{ ...fn("actual", "newName", "modified"), renamedFrom }]);
+  addEvidence(review, patch);
+  const enriched = generateEnrichedPatch(patch, hld);
+  assert.deepEqual(enriched.renames, []);
+
+  const result = annotateHldFunctionCoverage(hld, review, patch, enriched);
+  assert.equal(result.codeReview.nodes[0].changeType, "added");
+  assert.equal(result.codeReview.nodes[0].renamedFrom, undefined);
+  assert.equal(result.codeReview.nodes[0][tag], true);
+});
+
 test("classifies whole methods, arrow functions and unchanged functions in a mixed hunk", () => {
   const patch = patchFor([
     " export class Service {",
