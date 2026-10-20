@@ -512,7 +512,73 @@ function populateChanges(files, elements) {
   }
 }
 
-function semanticErrors(index, files) {
+function hldRenamePairs(hld, files, elements) {
+  const containers = new Map(hld.containers.map((container) => [container.id, container]));
+  const pairs = [];
+  const fileCandidates = [];
+  const entries = Object.entries(elements);
+
+  function findElement(kind, file, name, side, ownerName) {
+    const matches = entries.filter(([, element]) => {
+      if (element.kind !== kind || element.name !== name) return false;
+      if (kind === "file") {
+        const section = files.find((candidate) => (candidate.newPath ?? candidate.oldPath) === element.name);
+        return side === "old" ? section?.oldPath === file && section.newPath === null : section?.oldPath === null && section.newPath === file;
+      }
+      const location = element.locations[0];
+      const parent = elements[element.parentId];
+      return location.file === file
+        && (side === "old" ? location.oldLines !== null && location.newLines === null : location.oldLines === null && location.newLines !== null)
+        && (kind !== "method" || (ownerName === undefined ? parent?.kind === "file" : parent?.kind === "class" && parent.name === ownerName));
+    });
+    if (matches.length > 1) throw new Error(`Ambiguous HLD rename ${kind}: ${file} ${name}.`);
+    return matches[0]?.[0];
+  }
+
+  function addPair(kind, oldFile, oldName, newFile, newName, oldOwner, newOwner) {
+    const from = findElement(kind, oldFile, oldName, "old", oldOwner);
+    const to = findElement(kind, newFile, newName, "new", newOwner);
+    if (from !== undefined && to !== undefined) {
+      pairs.push({ from, to });
+    }
+  }
+
+  for (const container of hld.containers) {
+    if (container.renamedFrom !== undefined) {
+      if (container.type === "class") {
+        addPair("class", container.renamedFrom.sourceFile, container.renamedFrom.name,
+          container.sourceFile, container.name);
+      } else if (container.type === "module" && container.renamedFrom.sourceFile !== container.sourceFile) {
+        fileCandidates.push({ oldFile: container.renamedFrom.sourceFile, newFile: container.sourceFile });
+      }
+    }
+  }
+  for (const node of hld.nodes) {
+    if (node.type === "function" && node.renamedFrom !== undefined) {
+      const container = containers.get(node.containerId);
+      if (container === undefined) throw new Error(`Unknown HLD function container: ${node.containerId}.`);
+      const oldOwner = container.type === "class"
+        ? node.renamedFrom.containerName ?? container.renamedFrom?.name ?? container.name
+        : undefined;
+      const newOwner = container.type === "class" ? container.name : undefined;
+      addPair("method", node.renamedFrom.sourceFile, node.renamedFrom.name,
+        node.sourceFile, node.name, oldOwner, newOwner);
+    }
+  }
+
+  for (const { oldFile, newFile } of fileCandidates) {
+    if (fileCandidates.some((candidate) => candidate.oldFile === oldFile && candidate.newFile !== newFile)
+      || fileCandidates.some((candidate) => candidate.newFile === newFile && candidate.oldFile !== oldFile)) continue;
+    const from = findElement("file", oldFile, oldFile, "old");
+    const to = findElement("file", newFile, newFile, "new");
+    if (from !== undefined && to !== undefined && !pairs.some((pair) => pair.from === from && pair.to === to)) {
+      pairs.push({ from, to });
+    }
+  }
+  return pairs.sort((left, right) => Number(left.from.slice(8)) - Number(right.from.slice(8)));
+}
+
+export function semanticErrors(index, files) {
   const errors = [];
   const entries = Object.entries(index.elements);
   const filesByName = new Map(files.map((file) => [file.newPath ?? file.oldPath, file]));
@@ -573,6 +639,28 @@ function semanticErrors(index, files) {
       }
     }
   }
+  const paired = new Set();
+  for (const { from, to } of index.renames ?? []) {
+    const oldElement = index.elements[from];
+    const newElement = index.elements[to];
+    if (oldElement === undefined || newElement === undefined) {
+      errors.push(`Rename references an unknown element: ${from} → ${to}.`);
+    } else if (from === to || oldElement.kind !== newElement.kind || paired.has(from) || paired.has(to)) {
+      errors.push(`Invalid or repeated rename pair: ${from} → ${to}.`);
+    } else {
+      const oldFile = oldElement.kind === "file" ? filesByName.get(oldElement.name) : filesByName.get(oldElement.locations[0].file);
+      const newFile = newElement.kind === "file" ? filesByName.get(newElement.name) : filesByName.get(newElement.locations[0].file);
+      const oldOnly = oldElement.kind === "file"
+        ? oldFile?.newPath === null
+        : oldElement.locations.some((location) => location.oldLines !== null) && oldElement.locations.every((location) => location.newLines === null);
+      const newOnly = newElement.kind === "file"
+        ? newFile?.oldPath === null
+        : newElement.locations.some((location) => location.newLines !== null) && newElement.locations.every((location) => location.oldLines === null);
+      if (!oldOnly || !newOnly) errors.push(`Rename must pair a deleted element with an added element: ${from} → ${to}.`);
+      paired.add(from);
+      paired.add(to);
+    }
+  }
   return errors;
 }
 
@@ -592,7 +680,7 @@ export function parsePatchDeclarations(patch) {
   return files;
 }
 
-export function generateEnrichedPatch(patch) {
+export function generateEnrichedPatch(patch, hld) {
   const files = parsePatchDeclarations(patch);
 
   const elements = {};
@@ -600,6 +688,10 @@ export function generateEnrichedPatch(patch) {
   for (const file of files) nextId = indexFile(file, elements, nextId);
   populateChanges(files, elements);
   const index = { schemaVersion: 1, patch, elements };
+  if (hld !== undefined) {
+    if (hld.stage !== "high-level-design") throw new Error("Expected a high-level-design implementation dataflow.");
+    index.renames = hldRenamePairs(hld, files, elements);
+  }
 
   if (!validateSchema(index)) {
     const details = (validateSchema.errors ?? [])
@@ -621,14 +713,18 @@ function defaultOutputPath(patchPath) {
 }
 
 async function main() {
-  const patchArgument = process.argv[2];
-  if (patchArgument === undefined) {
-    console.error("Usage: node generate-enriched-patch.mjs <full-context-patch> [output-json]");
+  const argumentsList = process.argv.slice(2);
+  const hldOptionIndex = argumentsList.indexOf("--hld-impl-dataflow");
+  const hldPath = hldOptionIndex === -1 ? undefined : argumentsList[hldOptionIndex + 1];
+  if (hldOptionIndex !== -1) argumentsList.splice(hldOptionIndex, 2);
+  if (argumentsList.length < 1 || argumentsList.length > 2 || (hldOptionIndex !== -1 && hldPath === undefined)) {
+    console.error("Usage: node generate-enriched-patch.mjs <full-context-patch> [output-json] [--hld-impl-dataflow <hld-impl-dataflow.json>]");
     process.exitCode = 1;
   } else {
-    const patchPath = path.resolve(patchArgument);
-    const outputPath = path.resolve(process.argv[3] ?? defaultOutputPath(patchPath));
-    const index = generateEnrichedPatch(await readFile(patchPath, "utf8"));
+    const patchPath = path.resolve(argumentsList[0]);
+    const outputPath = path.resolve(argumentsList[1] ?? defaultOutputPath(patchPath));
+    const hld = hldPath === undefined ? undefined : JSON.parse(await readFile(hldPath, "utf8"));
+    const index = generateEnrichedPatch(await readFile(patchPath, "utf8"), hld);
     await writeFile(outputPath, `${JSON.stringify(index, null, 2)}\n`);
     console.log(`Generated Enriched Patch: ${outputPath}`);
   }

@@ -7,6 +7,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { generateEnrichedPatch } from "../common/enriched-patch/generate-enriched-patch.mjs";
+import { changeOwnershipErrors } from "../enrich-diff/scripts/validate-enriched-patch.mjs";
 
 const toolkitDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const generatorPath = path.join(toolkitDirectory, "common", "enriched-patch", "generate-enriched-patch.mjs");
@@ -251,6 +252,134 @@ test("the CLI writes a validated enriched patch beside the source patch by defau
   const index = JSON.parse(await readFile(path.join(directory, "feature.enriched-patch.json"), "utf8"));
   assert.equal(index.patch, modifiedPatch);
   assert.equal(index.elements["element-4"].name, "buildChangeSet");
+});
+
+test("pairs HLD-declared file, class, and method renames without changing the embedded patch", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "enriched-patch-rename-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const patch = [
+    "diff --git a/src/OldService.ts b/src/OldService.ts",
+    "deleted file mode 100644",
+    "--- a/src/OldService.ts",
+    "+++ /dev/null",
+    "@@ -1,3 +0,0 @@",
+    "-export class OldService {",
+    "-  run() { return 1; }",
+    "-}",
+    "diff --git a/src/NewService.ts b/src/NewService.ts",
+    "new file mode 100644",
+    "--- /dev/null",
+    "+++ b/src/NewService.ts",
+    "@@ -0,0 +1,3 @@",
+    "+export class NewService {",
+    "+  execute() { return 2; }",
+    "+}",
+  ].join("\n");
+  const hld = {
+    stage: "high-level-design",
+    containers: [
+      { id: "service", type: "class", name: "NewService", sourceFile: "src/NewService.ts", renamedFrom: { name: "OldService", sourceFile: "src/OldService.ts" } },
+      { id: "module", type: "module", name: "new", sourceFile: "src/NewService.ts", renamedFrom: { name: "old", sourceFile: "src/OldService.ts" } },
+    ],
+    nodes: [{ type: "function", name: "execute", sourceFile: "src/NewService.ts", containerId: "service", renamedFrom: { name: "run", sourceFile: "src/OldService.ts" } }],
+  };
+  const patchPath = path.join(directory, "feature.patch");
+  const hldPath = path.join(directory, "feature.impl-dataflow.json");
+  await writeFile(patchPath, patch);
+  await writeFile(hldPath, JSON.stringify(hld));
+
+  const result = spawnSync(process.execPath, [generatorPath, patchPath, "--hld-impl-dataflow", hldPath], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  const index = JSON.parse(await readFile(path.join(directory, "feature.enriched-patch.json"), "utf8"));
+  assert.equal(index.patch, patch);
+  assert.deepEqual(index.renames, [
+    { from: "element-1", to: "element-4" },
+    { from: "element-2", to: "element-5" },
+    { from: "element-3", to: "element-6" },
+  ]);
+  assert.deepEqual(changeOwnershipErrors(index), []);
+  assert.deepEqual(generateEnrichedPatch(patch, { ...hld, containers: [hld.containers[0]] }).renames, [
+    { from: "element-2", to: "element-5" },
+    { from: "element-3", to: "element-6" },
+  ]);
+});
+
+test("pairs a same-file function rename only when both declarations match", () => {
+  const patch = [
+    "diff --git a/src/actions.ts b/src/actions.ts",
+    "--- a/src/actions.ts",
+    "+++ b/src/actions.ts",
+    "@@ -1,3 +1,3 @@",
+    "-export function oldAction() {",
+    "+export function newAction() {",
+    "   return true;",
+    " }",
+  ].join("\n");
+  const hld = {
+    stage: "high-level-design",
+    containers: [{ id: "module", type: "module", name: "actions", sourceFile: "src/actions.ts" }],
+    nodes: [{ type: "function", name: "newAction", sourceFile: "src/actions.ts", containerId: "module", renamedFrom: { name: "oldAction", sourceFile: "src/actions.ts" } }],
+  };
+  const index = generateEnrichedPatch(patch, hld);
+  assert.deepEqual(index.renames, [{ from: "element-2", to: "element-3" }]);
+  assert.equal(index.patch, patch);
+  hld.nodes[0].renamedFrom.name = "unrelatedAction";
+  assert.deepEqual(generateEnrichedPatch(patch, hld).renames, []);
+});
+
+test("pairs an HLD-declared module file move even when its contents are unchanged", () => {
+  const patch = [
+    "diff --git a/src/old.ts b/src/old.ts",
+    "deleted file mode 100644",
+    "--- a/src/old.ts",
+    "+++ /dev/null",
+    "@@ -1 +0,0 @@",
+    "-export const value = 1;",
+    "diff --git a/src/new.ts b/src/new.ts",
+    "new file mode 100644",
+    "--- /dev/null",
+    "+++ b/src/new.ts",
+    "@@ -0,0 +1 @@",
+    "+export const value = 1;",
+  ].join("\n");
+  const hld = {
+    stage: "high-level-design",
+    containers: [{ id: "module", type: "module", name: "new", sourceFile: "src/new.ts", renamedFrom: { name: "old", sourceFile: "src/old.ts" } }],
+    nodes: [],
+  };
+  const index = generateEnrichedPatch(patch, hld);
+  assert.equal(index.patch, patch);
+  assert.deepEqual(index.renames, [{ from: "element-1", to: "element-2" }]);
+});
+
+test("pairs a moved function without pairing files that continue to exist", () => {
+  const patch = [
+    "diff --git a/src/old.ts b/src/old.ts",
+    "--- a/src/old.ts",
+    "+++ b/src/old.ts",
+    "@@ -1,4 +1 @@",
+    "-export function oldAction() {",
+    "-  return true;",
+    "-}",
+    " export const keep = true;",
+    "diff --git a/src/new.ts b/src/new.ts",
+    "--- a/src/new.ts",
+    "+++ b/src/new.ts",
+    "@@ -1 +1,4 @@",
+    " export const existing = true;",
+    "+export function newAction() {",
+    "+  return true;",
+    "+}",
+  ].join("\n");
+  const hld = {
+    stage: "high-level-design",
+    containers: [{ id: "module", type: "module", name: "new", sourceFile: "src/new.ts" }],
+    nodes: [{ type: "function", name: "newAction", sourceFile: "src/new.ts", containerId: "module", renamedFrom: { name: "oldAction", sourceFile: "src/old.ts" } }],
+  };
+  const index = generateEnrichedPatch(patch, hld);
+  assert.deepEqual(index.renames, [{ from: "element-2", to: "element-4" }]);
+  assert.equal(index.patch, patch);
+  assert.deepEqual(changeOwnershipErrors(index), []);
 });
 
 test("rejects a patch that does not contain full file context", () => {

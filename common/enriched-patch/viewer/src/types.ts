@@ -25,6 +25,7 @@ export interface EnrichedPatch {
   schemaVersion: 1;
   patch: string;
   elements: Record<string, DiffElement>;
+  renames?: { from: string; to: string }[];
 }
 
 export interface DiffRow {

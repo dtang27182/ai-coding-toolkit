@@ -41,6 +41,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   let files = parsePatch(index.patch);
   let fileName = "bundled-example.enriched-patch.json";
   let selectedId = initialSelection(index);
+  let showOriginal = false;
   let expandedIds = expandedNodeIds(buildTree(index));
   let hasLoadedEnrichedPatch = false;
   let statusMessage = "";
@@ -71,8 +72,10 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   }
 
   function initialSelection(value: EnrichedPatch, useHash = true, states?: Map<string, ElementFilterState>): string {
-    const hashId = useHash ? decodeURIComponent(location.hash.slice(1)) : "";
-    const entries = Object.entries(value.elements);
+    const sourceTargets = new Map((value.renames ?? []).map(({ from, to }) => [from, to]));
+    const requestedId = useHash ? decodeURIComponent(location.hash.slice(1)) : "";
+    const hashId = sourceTargets.get(requestedId) ?? requestedId;
+    const entries = Object.entries(value.elements).filter(([id]) => !sourceTargets.has(id));
     const visibleEntries = states === undefined ? entries : entries.filter(([id]) => states.get(id)?.visible !== false);
     const candidates = visibleEntries.length > 0 ? visibleEntries : entries;
     let selection;
@@ -84,6 +87,15 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
         ?? candidates[0][0];
     }
     return selection;
+  }
+
+  function renameSource(id: string): DiffElement | undefined {
+    const from = index.renames?.find((rename) => rename.to === id)?.from;
+    return from === undefined ? undefined : index.elements[from];
+  }
+
+  function elementPath(element: DiffElement): string {
+    return element.kind === "file" ? element.name : element.locations[0].file;
   }
 
   function icon(kind: "directory" | DiffElement["kind"]): string {
@@ -168,19 +180,25 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
             ${children}
           </div>`;
       } else {
-        const stats = statsForElement(node.element, files, hiddenRows);
+        const stats = statsForElement(node.element, files, hiddenRows, node.renamedFrom);
         const filterState = filterStates.get(node.id);
         const selected = node.id === selectedId ? " selected" : "";
-        const unmapped = node.element.kind === "file" ? unmatchedCount(node.element) : 0;
+        const unmapped = node.element.kind === "file" ? unmatchedCount(node.element) + (node.renamedFrom === undefined ? 0 : unmatchedCount(node.renamedFrom)) : 0;
+        const displayName = node.element.kind === "file" ? basename(node.element.name) : node.element.name;
+        const oldOwner = node.renamedFrom?.parentId === undefined ? undefined : index.elements[node.renamedFrom.parentId];
+        const renamedFrom = node.renamedFrom === undefined ? undefined : node.element.kind === "file"
+          ? node.renamedFrom.name
+          : `${oldOwner?.kind === "class" ? `${oldOwner.name}.` : ""}${node.renamedFrom.name} in ${elementPath(node.renamedFrom)}`;
         return `
           <div class="tree-node">
             <div class="tree-row element-row ${node.element.kind}-row ${stats.changeType}${selected}" style="--depth:${depth}">
               ${hasChildren
                 ? `<button class="disclosure-button" type="button" data-toggle="${escapeHtml(node.id)}" aria-label="${open ? "Collapse" : "Expand"} ${escapeHtml(node.element.name)}"><span class="disclosure ${open ? "open" : ""}">›</span></button>`
                 : '<span class="disclosure-spacer"></span>'}
-              <button class="element-button" type="button" data-select="${escapeHtml(node.id)}">
+              <button class="element-button${renamedFrom === undefined ? "" : " renamed"}" type="button" data-select="${escapeHtml(node.id)}">
                 <span class="node-icon">${icon(node.element.kind)}</span>
-                <span class="node-label">${escapeHtml(node.element.kind === "file" ? basename(node.element.name) : node.element.name)}</span>
+                ${renamedFrom === undefined ? "" : `<span class="rename-pill" title="Renamed from ${escapeHtml(renamedFrom)}">renamed</span>`}
+                <span class="node-label">${escapeHtml(displayName)}</span>
                 <span class="node-details">
                   ${node.element.kind === "method" && node.element.tags?.includes("hld-change-mismatch") ? `<span class="function-tag" title="hld-change-mismatch" style="--tag-color:${tagColor("hld-change-mismatch")}">HLD mismatch</span>` : ""}
                   ${unmapped > 0 ? `<span class="unmapped" title="Changed lines not matched to a class or method">${unmapped} unmapped</span>` : ""}
@@ -198,7 +216,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
 
   function selectedFile(): DiffFile {
     const element = index.elements[selectedId];
-    const path = element.kind === "file" ? element.name : element.locations[0].file;
+    const path = elementPath(showOriginal ? renameSource(selectedId) ?? element : element);
     return files.find((file) => file.path === path)!;
   }
 
@@ -221,7 +239,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   }
 
   function renderDiffRow(row: DiffFile["rows"][number], blockAttribute: string): string {
-    const element = index.elements[selectedId];
+    const element = showOriginal ? renameSource(selectedId) ?? index.elements[selectedId] : index.elements[selectedId];
     const selectedDeclaration = element.kind === "method" && (element.locations[0].newLines !== null
       ? row.newLine === element.locations[0].newLines[0]
       : row.oldLine === element.locations[0].oldLines![0]);
@@ -319,16 +337,23 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     const totalAdded = visibleRowCount("add");
     const totalRemoved = visibleRowCount("delete");
     const hiddenLineCount = files.reduce((sum, file) => sum + file.added + file.removed, 0) - totalAdded - totalRemoved;
-    const fileEntries = Object.entries(index.elements).filter(([, element]) => element.kind === "file");
+    const renamedSources = new Set((index.renames ?? []).map(({ from }) => from));
+    const visibleEntries = Object.entries(index.elements).filter(([id]) => !renamedSources.has(id));
+    const fileEntries = visibleEntries.filter(([, element]) => element.kind === "file");
     const fileElements = fileEntries.map(([, element]) => element);
-    const entityCount = Object.keys(index.elements).length - fileElements.length;
+    const entityCount = visibleEntries.length - fileElements.length;
     const visibleFileCount = fileEntries.filter(([id]) => isVisible(id)).length;
-    const visibleEntityCount = Object.entries(index.elements).filter(([id, element]) => element.kind !== "file" && isVisible(id)).length;
+    const visibleEntityCount = visibleEntries.filter(([id, element]) => element.kind !== "file" && isVisible(id)).length;
     const hiddenFileCount = fileElements.length - visibleFileCount;
     const hiddenEntityCount = entityCount - visibleEntityCount;
     const hiddenChangeCount = changes.filter((change) => isChangeHidden(change, hiddenTags, mismatchOnly)).length;
-    const unmapped = fileElements.reduce((sum, element) => sum + unmatchedCount(element), 0);
+    const unmapped = fileEntries.reduce((sum, [id, element]) => {
+      const source = renameSource(id);
+      return sum + unmatchedCount(element) + (source === undefined ? 0 : unmatchedCount(source));
+    }, 0);
     const file = selectedFile();
+    const original = renameSource(selectedId);
+    const canSwitchSection = original !== undefined && elementPath(original) !== elementPath(index.elements[selectedId]);
     const view = fileFilterView(file);
     const blockCount = changeBlocks(view.navigableRows).length;
     app.innerHTML = `
@@ -374,6 +399,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
             <div class="file-bar">
               <span class="file-icon">${icon("file")}</span>
               <span class="file-path">${escapeHtml(file.path)}</span>
+              ${canSwitchSection ? `<button class="wrap-button ${showOriginal ? "active" : ""}" type="button" id="toggle-rename-section">Show ${showOriginal ? "final" : "original"}</button>` : ""}
               <span class="file-stats"><span class="plus">+${file.rows.filter((row, rowIndex) => row.kind === "add" && !view.collapsed[rowIndex]).length}</span><span class="minus">−${file.rows.filter((row, rowIndex) => row.kind === "delete" && !view.collapsed[rowIndex]).length}</span></span>
               <div class="change-navigation" aria-label="Change navigation">
                 ${blockCount === 0
@@ -408,6 +434,11 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
       }
     });
     app.querySelector<HTMLButtonElement>("#toggle-wrap")!.addEventListener("click", toggleLineWrapping);
+    app.querySelector<HTMLButtonElement>("#toggle-rename-section")?.addEventListener("click", () => {
+      showOriginal = !showOriginal;
+      render();
+      requestAnimationFrame(scrollToSelection);
+    });
     app.querySelector<HTMLButtonElement>("#toggle-tree")!.addEventListener("click", () => setAllNodesExpanded(!allExpanded));
     for (const button of app.querySelectorAll<HTMLElement>("[data-toggle]")) {
       button.addEventListener("click", () => toggleNode(button.dataset.toggle!));
@@ -692,6 +723,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   function selectElement(id: string, updateHash = true): void {
     const navigationScrollTop = app.querySelector<HTMLElement>("#file-tree")!.scrollTop;
     selectedId = id;
+    showOriginal = false;
     if (updateHash) {
       history.replaceState(null, "", `#${encodeURIComponent(id)}`);
     }
@@ -701,7 +733,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   }
 
   function scrollToSelection(): void {
-    const element = index.elements[selectedId];
+    const element = showOriginal ? renameSource(selectedId) ?? index.elements[selectedId] : index.elements[selectedId];
     const scroll = app.querySelector<HTMLElement>("#diff-scroll")!;
     let selector;
     if (element.kind === "file") {
@@ -754,6 +786,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     index = value;
     files = parsedFiles;
     fileName = name;
+    showOriginal = false;
     revealedChanges = new Set();
     if (!preserveView) mismatchOnly = false;
     refreshTagFilter(!preserveView && options.hideTagsByDefault === true);
@@ -769,10 +802,10 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
         element.kind === "file" && element.name === previousFile
       );
       if (match !== undefined) {
-        selectedId = match[0];
+        selectedId = index.renames?.find((rename) => rename.from === match[0])?.to ?? match[0];
         preservedSelection = true;
       } else if (fileMatch !== undefined) {
-        selectedId = fileMatch[0];
+        selectedId = index.renames?.find((rename) => rename.from === fileMatch[0])?.to ?? fileMatch[0];
         preservedSelection = true;
       } else {
         selectedId = initialSelection(index, false, filterStates);
@@ -824,8 +857,9 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
 
   window.addEventListener("hashchange", () => {
     const hashId = decodeURIComponent(location.hash.slice(1));
-    if (index.elements[hashId] !== undefined && hashId !== selectedId) {
-      selectElement(hashId, false);
+    const id = index.renames?.find((rename) => rename.from === hashId)?.to ?? hashId;
+    if (index.elements[id] !== undefined && id !== selectedId) {
+      selectElement(id, false);
     }
   });
 

@@ -428,6 +428,17 @@ button.tree-row,
   color: #7695ad;
 }
 
+.rename-pill {
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid #8fb5d2;
+  border-radius: 8px;
+  color: #8fb5d2;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 8.5px;
+  white-space: nowrap;
+}
+
 .element-button {
   display: flex;
   min-width: 0;
@@ -452,6 +463,11 @@ button.tree-row,
 .element-button .node-label {
   flex: none;
   max-width: calc(100% - 39px);
+}
+
+.element-button.renamed .node-label {
+  flex: 0 1 auto;
+  max-width: none;
 }
 
 .node-details {

@@ -118,9 +118,11 @@ export function hiddenRowsByFile(files: DiffFile[], changes: OwnedChange[], hidd
 
 export function elementFilterStates(index: EnrichedPatch, hiddenTags: ReadonlySet<string>, mismatchOnly = false): Map<string, ElementFilterState> {
   const children = new Map<string, string[]>();
+  const targets = new Map((index.renames ?? []).map(({ from, to }) => [from, to]));
   for (const [id, element] of Object.entries(index.elements)) {
-    if (element.parentId !== undefined) {
-      children.set(element.parentId, [...(children.get(element.parentId) ?? []), id]);
+    const parentId = targets.get(id) ?? (element.parentId === undefined ? undefined : targets.get(element.parentId) ?? element.parentId);
+    if (parentId !== undefined) {
+      children.set(parentId, [...(children.get(parentId) ?? []), id]);
     }
   }
   const states = new Map<string, ElementFilterState>();
