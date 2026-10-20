@@ -8,13 +8,13 @@ import { dataflowEdges, relationshipsForEdge } from "../common/impl-dataflow/vis
 
 function implementation(relationships = []) {
   return {
-    schemaVersion: 16,
+    schemaVersion: 17,
     stage: "high-level-design",
     containers: [{ id: "model", name: "Model", type: "class" }, { id: "controller", name: "Controller", type: "module" }],
     nodes: [
-      { id: "write", name: "update", type: "function", containerId: "model", changeType: "added", initialization: false },
-      { id: "read", name: "read", type: "function", containerId: "model", changeType: "added", initialization: false },
-      { id: "handle", name: "update", type: "function", containerId: "controller", changeType: "added", initialization: false },
+      { id: "write", name: "update", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", initialization: false },
+      { id: "read", name: "read", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", initialization: false },
+      { id: "handle", name: "update", type: "function", containerId: "controller", sourceFile: "src/controller.ts", changeType: "added", initialization: false },
       { id: "value", name: "value", type: "state-variable", containerId: "model", changeType: "added", initialization: false },
       { id: "rules", name: "Rules", type: "static-data", containerId: "model", changeType: "added", initialization: false },
     ],

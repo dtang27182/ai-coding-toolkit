@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 16,
+  "schemaVersion": 17,
   "stage": "high-level-design",
   "containers": [
     {
@@ -29,6 +29,7 @@
       "name": "configure",
       "type": "function",
       "containerId": "entity-1",
+      "sourceFile": "src/ChangeService.ts",
       "changeType": "added",
       "initialization": true
     },
@@ -37,6 +38,7 @@
       "name": "buildChangeSet",
       "type": "function",
       "containerId": "entity-1",
+      "sourceFile": "src/ChangeService.ts",
       "changeType": "added",
       "initialization": false
     },
@@ -45,6 +47,7 @@
       "name": "currentChanges",
       "type": "function",
       "containerId": "entity-4",
+      "sourceFile": "src/ChangeModel.ts",
       "changeType": "added",
       "initialization": false
     },
@@ -61,6 +64,7 @@
       "name": "readSourceFiles",
       "type": "function",
       "containerId": "entity-7",
+      "sourceFile": "src/Repository.ts",
       "changeType": "unchanged",
       "initialization": false
     },
@@ -69,6 +73,7 @@
       "name": "adaptLegacyChange",
       "type": "function",
       "containerId": "entity-9",
+      "sourceFile": "src/LegacyChangeAdapter.ts",
       "changeType": "deleted",
       "initialization": false
     },

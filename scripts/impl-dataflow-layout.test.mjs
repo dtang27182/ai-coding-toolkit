@@ -14,8 +14,8 @@ function implementation() {
     { id: "storage", name: "Storage", type: "external-dependency", description: "Stores values", changeType: "added", initialization: false },
     { id: "rules", name: "Rules", type: "static-data", containerId: "child", changeType: "added", initialization: false },
     { id: "defaults", name: "Defaults", type: "static-data", changeType: "added", initialization: false },
-    { id: "handle", name: "handle", type: "function", containerId: "parent", changeType: "added", initialization: false },
-    { id: "process", name: "process", type: "function", containerId: "child", changeType: "added", initialization: false },
+    { id: "handle", name: "handle", type: "function", containerId: "parent", sourceFile: "src/Parent.ts", changeType: "added", initialization: false },
+    { id: "process", name: "process", type: "function", containerId: "child", sourceFile: "src/Child.ts", changeType: "added", initialization: false },
   ];
   const flow = (from, to) => ({
     from: { nodeId: from, type: nodes.find((node) => node.id === from).type },
@@ -23,7 +23,7 @@ function implementation() {
     type: "dataflow", changeType: "added", dataDescription: "Value", purpose: "Transfer value",
   });
   return {
-    schemaVersion: 16,
+    schemaVersion: 17,
     stage: "high-level-design",
     containers: [{ id: "parent", name: "Parent", type: "class" }, { id: "child", name: "Child", type: "class" }],
     nodes,

@@ -22,7 +22,7 @@ Design the additions and changes to current code needed to satisfy High Level Re
 ### Initialize impl-dataflow.json
 
 - Follow `ai-coding-toolkit/common/impl-dataflow/impl-dataflow.schema.json`, using `ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json` as an example.
-- Initialize `<feature>.impl-dataflow.json` beside the HLD with `schemaVersion: 16`, `stage: "high-level-design"`, and empty `nodes`, `containers`, and `relationships` arrays.
+- Initialize `<feature>.impl-dataflow.json` beside the HLD with `schemaVersion: 17`, `stage: "high-level-design"`, and empty `nodes`, `containers`, and `relationships` arrays.
 - Omit diff-hunk references and derived counts; calculate no quantitative quality metrics.
 
 ### Design the Implementation

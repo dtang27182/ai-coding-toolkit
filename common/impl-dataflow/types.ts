@@ -13,7 +13,7 @@ interface NodeBase {
   diffHunkIds?: string[];
 }
 
-export type FunctionNode = NodeBase & { type: "function"; containerId: string };
+export type FunctionNode = NodeBase & { type: "function"; containerId: string; sourceFile: string };
 export type StateVariableNode = NodeBase & { type: "state-variable"; containerId: string };
 export type StaticDataNode = NodeBase & { type: "static-data"; containerId?: string };
 export type BoundaryNode = NodeBase & { type: ComponentType; description: string };
@@ -53,7 +53,7 @@ export type Relationship = RelationshipBase & (
 );
 
 export interface ImplementationDataflow {
-  schemaVersion: 16;
+  schemaVersion: 17;
   stage: "high-level-design" | "code-review";
   diffHunks?: { id: string; file: string; patch: string }[];
   nodes: DataflowNode[];

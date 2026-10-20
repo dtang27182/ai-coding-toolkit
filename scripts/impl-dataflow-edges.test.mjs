@@ -6,12 +6,12 @@ import { filterGraph } from "../common/impl-dataflow/visualizer/src/filter.ts";
 
 function implementation(relationships) {
   return {
-    schemaVersion: 16,
+    schemaVersion: 17,
     stage: "high-level-design",
     containers: [{ id: "client", name: "Client", type: "module" }, { id: "service", name: "Service", type: "class" }],
     nodes: [
-      ...["a", "a2"].map((id) => ({ id, name: id, type: "function", containerId: "client", changeType: "added", initialization: false })),
-      ...["b", "b2"].map((id) => ({ id, name: id, type: "function", containerId: "service", changeType: "added", initialization: false })),
+      ...["a", "a2"].map((id) => ({ id, name: id, type: "function", containerId: "client", sourceFile: "src/client.ts", changeType: "added", initialization: false })),
+      ...["b", "b2"].map((id) => ({ id, name: id, type: "function", containerId: "service", sourceFile: "src/Service.ts", changeType: "added", initialization: false })),
       { id: "state", name: "State", type: "state-variable", containerId: "service", changeType: "added", initialization: false },
       { id: "static", name: "Static", type: "static-data", containerId: "service", changeType: "added", initialization: false },
       { id: "boundary", name: "Boundary", type: "external-dependency", description: "Storage", changeType: "added", initialization: false },
