@@ -26,7 +26,11 @@ function runGit(argumentsList, workingDirectory, environment = process.env) {
   });
 }
 
-export async function generateFullContextPatch(outputPath, workingDirectory = process.cwd(), excludedPaths = []) {
+function renameDetectionOption(percentage) {
+  return percentage === undefined ? "--no-renames" : `--find-renames=${percentage}%`;
+}
+
+export async function generateFullContextPatch(outputPath, workingDirectory = process.cwd(), excludedPaths = [], renamePercentage) {
   const repositoryDirectory = (await runGit(["rev-parse", "--show-toplevel"], workingDirectory)).trim();
   const resolvedOutputPath = path.resolve(workingDirectory, outputPath);
   const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "ai-coding-toolkit-diff-"));
@@ -57,6 +61,7 @@ export async function generateFullContextPatch(outputPath, workingDirectory = pr
       "--cached",
       "--no-ext-diff",
       "--no-color",
+      renameDetectionOption(renamePercentage),
       "--binary",
       "--unified=1000000",
       "HEAD",
@@ -72,7 +77,7 @@ export async function generateFullContextPatch(outputPath, workingDirectory = pr
   }
 }
 
-export async function generateCommitPatch(outputPath, firstRevision, secondRevision, workingDirectory = process.cwd()) {
+export async function generateCommitPatch(outputPath, firstRevision, secondRevision, workingDirectory = process.cwd(), renamePercentage) {
   const repositoryDirectory = (await runGit(["rev-parse", "--show-toplevel"], workingDirectory)).trim();
   const first = (await runGit(["rev-parse", "--verify", "--end-of-options", `${firstRevision}^{commit}`], repositoryDirectory)).trim();
   const second = (await runGit(["rev-parse", "--verify", "--end-of-options", `${secondRevision}^{commit}`], repositoryDirectory)).trim();
@@ -106,6 +111,7 @@ export async function generateCommitPatch(outputPath, firstRevision, secondRevis
     "diff",
     "--no-ext-diff",
     "--no-color",
+    renameDetectionOption(renamePercentage),
     "--binary",
     "--unified=1000000",
     base,
@@ -120,16 +126,23 @@ export async function generateCommitPatch(outputPath, firstRevision, secondRevis
 
 async function main() {
   const outputArgument = process.argv[2];
-  const commitMode = process.argv[3] === "--commits";
-  if (outputArgument === undefined || (commitMode && process.argv.length !== 6) || (!commitMode && process.argv.length !== 3)) {
-    console.error("Usage: node generate-full-context-patch.mjs <output-patch> [--commits <commit-1> <commit-2>]");
+  const argumentsList = process.argv.slice(3);
+  const renameOptionIndex = argumentsList.indexOf("--rename-percentage");
+  const renamePercentage = renameOptionIndex === -1 ? undefined : Number(argumentsList[renameOptionIndex + 1]);
+  if (renameOptionIndex !== -1) argumentsList.splice(renameOptionIndex, 2);
+  const commitMode = argumentsList[0] === "--commits";
+  if (outputArgument === undefined
+    || (renameOptionIndex !== -1 && (!Number.isInteger(renamePercentage) || renamePercentage < 0 || renamePercentage > 100))
+    || (commitMode && argumentsList.length !== 3)
+    || (!commitMode && argumentsList.length !== 0)) {
+    console.error("Usage: node generate-full-context-patch.mjs <output-patch> [--rename-percentage <0-100>] [--commits <commit-1> <commit-2>]");
     process.exitCode = 1;
   } else {
     const outputPath = path.resolve(outputArgument);
     if (commitMode) {
-      await generateCommitPatch(outputPath, process.argv[4], process.argv[5]);
+      await generateCommitPatch(outputPath, argumentsList[1], argumentsList[2], process.cwd(), renamePercentage);
     } else {
-      await generateFullContextPatch(outputPath);
+      await generateFullContextPatch(outputPath, process.cwd(), [], renamePercentage);
     }
     console.log(`Generated full-context patch: ${outputPath}`);
   }

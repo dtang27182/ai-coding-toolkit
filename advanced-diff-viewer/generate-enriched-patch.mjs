@@ -37,6 +37,7 @@ export async function generateAdvancedEnrichedPatch(workingDirectory = process.c
       path.join(temporaryDirectory, "changes.patch"),
       repositoryDirectory,
       await advancedDiffExcludedPaths(repositoryDirectory),
+      30,
     );
     if (patch.trim() === "") {
       await rm(outputFile, { force: true });

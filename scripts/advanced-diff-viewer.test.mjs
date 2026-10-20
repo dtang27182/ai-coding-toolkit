@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
-import { cp, mkdir, mkdtemp, readFile, realpath, rm, symlink, unlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, realpath, rename, rm, symlink, unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -125,6 +125,29 @@ test("generates a repeatable enriched patch for current changes without indexing
   } finally {
     process.chdir(originalDirectory);
   }
+});
+
+test("detects moved files in the advanced diff patch", async (t) => {
+  const repositoryDirectory = await mkdtemp(path.join(os.tmpdir(), "advanced-diff-move-"));
+  t.after(() => rm(repositoryDirectory, { recursive: true, force: true }));
+  git(repositoryDirectory, ["init", "--quiet"]);
+  git(repositoryDirectory, ["config", "user.email", "test@example.com"]);
+  git(repositoryDirectory, ["config", "user.name", "Test User"]);
+  const lines = Array.from({ length: 20 }, (_, index) => `export function function${index}() { return ${index}; }`);
+  await writeFile(path.join(repositoryDirectory, "old.ts"), `${lines.join("\n")}\n`);
+  git(repositoryDirectory, ["add", "old.ts"]);
+  git(repositoryDirectory, ["commit", "--quiet", "-m", "base"]);
+  await rename(path.join(repositoryDirectory, "old.ts"), path.join(repositoryDirectory, "new.ts"));
+  await writeFile(path.join(repositoryDirectory, "new.ts"), `${lines.map((line, index) =>
+    index < 8 ? line : `export function changed${index}() { return ${index + 100}; }`
+  ).join("\n")}\n`);
+
+  const result = spawnSync(process.execPath, [generatorPath, repositoryDirectory], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  const index = JSON.parse(await readFile(path.join(repositoryDirectory, "adv-diff", "enriched-patch.json"), "utf8"));
+  assert.match(index.patch, /rename from old\.ts/);
+  assert.match(index.patch, /rename to new\.ts/);
+  assert.deepEqual(Object.values(index.elements).filter((element) => element.kind === "file").map((element) => element.name), ["new.ts"]);
 });
 
 test("installed viewer excludes configured output changes and refresh events", async (t) => {

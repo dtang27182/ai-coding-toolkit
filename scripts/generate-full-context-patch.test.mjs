@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rename, rm, unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -56,6 +56,49 @@ test("generates one full-context patch without changing the real index", async (
   assert.doesNotMatch(patch, /ignored\.txt/);
   assert.match(patch, /diff --git a\/artifacts\/previous-review\.json b\/artifacts\/previous-review\.json/);
   assert.doesNotMatch(patch, /feature\.patch/);
+});
+
+test("represents moved files as deletion and addition in working-tree and commit patches", async (t) => {
+  const repositoryDirectory = await mkdtemp(path.join(os.tmpdir(), "move-context-patch-"));
+  t.after(() => rm(repositoryDirectory, { recursive: true, force: true }));
+  git(repositoryDirectory, ["init", "--quiet"]);
+  git(repositoryDirectory, ["config", "user.email", "test@example.com"]);
+  git(repositoryDirectory, ["config", "user.name", "Test User"]);
+  git(repositoryDirectory, ["config", "diff.renames", "true"]);
+  await writeFile(path.join(repositoryDirectory, "old.ts"), "export const value = 1;\n");
+  git(repositoryDirectory, ["add", "old.ts"]);
+  git(repositoryDirectory, ["commit", "--quiet", "-m", "base"]);
+  const base = git(repositoryDirectory, ["rev-parse", "HEAD"]).trim();
+  await rename(path.join(repositoryDirectory, "old.ts"), path.join(repositoryDirectory, "new.ts"));
+
+  const outputPath = path.join(os.tmpdir(), `move-context-${path.basename(repositoryDirectory)}.patch`);
+  t.after(() => rm(outputPath, { force: true }));
+  for (const argumentsList of [[], ["--commits", base, "HEAD"]]) {
+    if (argumentsList.length > 0) {
+      git(repositoryDirectory, ["add", "-A"]);
+      git(repositoryDirectory, ["commit", "--quiet", "-m", "move"]);
+    }
+    const result = spawnSync(process.execPath, [generatorPath, outputPath, ...argumentsList], {
+      cwd: repositoryDirectory,
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const patch = await readFile(outputPath, "utf8");
+    assert.equal((patch.match(/^diff --git /gm) ?? []).length, 2);
+    assert.match(patch, /deleted file mode/);
+    assert.match(patch, /new file mode/);
+    assert.doesNotMatch(patch, /rename from|rename to/);
+
+    const withRenames = spawnSync(process.execPath, [generatorPath, outputPath, "--rename-percentage", "30", ...argumentsList], {
+      cwd: repositoryDirectory,
+      encoding: "utf8",
+    });
+    assert.equal(withRenames.status, 0, withRenames.stderr);
+    const renamePatch = await readFile(outputPath, "utf8");
+    assert.equal((renamePatch.match(/^diff --git /gm) ?? []).length, 1);
+    assert.match(renamePatch, /rename from old\.ts/);
+    assert.match(renamePatch, /rename to new\.ts/);
+  }
 });
 
 test("compares ancestor commits from older to newer without including working-tree changes", async (t) => {
