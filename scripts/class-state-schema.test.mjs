@@ -8,9 +8,9 @@ import { dataflowEdges, relationshipsForEdge } from "../common/impl-dataflow/vis
 
 function implementation(relationships = []) {
   return {
-    schemaVersion: 17,
+    schemaVersion: 18,
     stage: "high-level-design",
-    containers: [{ id: "model", name: "Model", type: "class" }, { id: "controller", name: "Controller", type: "module" }],
+    containers: [{ id: "model", name: "Model", type: "class", sourceFile: "src/Model.ts" }, { id: "controller", name: "Controller", type: "module", sourceFile: "src/controller.ts" }],
     nodes: [
       { id: "write", name: "update", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", initialization: false },
       { id: "read", name: "read", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", initialization: false },

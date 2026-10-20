@@ -682,6 +682,7 @@ function bindEvents(): void {
     element.addEventListener("click", (event) => {
       event.stopPropagation();
       selection = target();
+      inspectorCollapsed = false;
       render();
     });
     element.addEventListener("mouseenter", () => {

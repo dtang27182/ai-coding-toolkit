@@ -19,12 +19,12 @@ async function runValidator(t, dataflow, ...argumentsList) {
 
 function codeReview() {
   return {
-    schemaVersion: 17,
+    schemaVersion: 18,
     stage: "code-review",
     diffHunks: [{ id: "change", file: "src/Controller.ts", patch: "@@ -1 +1 @@\n-old implementation\n+new implementation" }],
     containers: [
-      { id: "controller", name: "Controller", type: "class", diffHunkIds: ["change"] },
-      { id: "repository", name: "Repository", type: "class" },
+      { id: "controller", name: "Controller", type: "class", sourceFile: "src/Controller.ts", diffHunkIds: ["change"] },
+      { id: "repository", name: "Repository", type: "class", sourceFile: "src/Repository.ts" },
     ],
     nodes: [
       { id: "inspect", name: "inspect", type: "function", containerId: "controller", sourceFile: "src/Controller.ts", changeType: "modified", initialization: false, diffHunkIds: ["change"] },
@@ -67,7 +67,7 @@ test("validates flat implementation entities and direct transfers sharing diff h
 
 test("represents module-owned functions, state, and static data without requiring a class", async (t) => {
   const value = codeReview();
-  value.containers = [{ id: "operations", name: "src/operations", type: "module" }];
+  value.containers = [{ id: "operations", name: "src/operations", type: "module", sourceFile: "src/operations.ts" }];
   value.nodes = value.nodes.filter((node) => node.id !== "read");
   for (const node of value.nodes) {
     if (node.containerId !== undefined) {
@@ -81,7 +81,7 @@ test("represents module-owned functions, state, and static data without requirin
 
 test("free functions can read and update class state", async (t) => {
   const value = codeReview();
-  value.containers.push({ id: "operations", name: "src/operations", type: "module" });
+  value.containers.push({ id: "operations", name: "src/operations", type: "module", sourceFile: "src/operations.ts" });
   value.nodes.push({ id: "process", name: "process", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "modified", initialization: false, diffHunkIds: ["change"] });
   value.relationships.push(
     { from: { nodeId: "result", type: "state-variable" }, to: { nodeId: "process", type: "function" }, type: "dataflow", changeType: "added", diffHunkIds: ["change"], dataDescription: "Current result", purpose: "Reads the result." },

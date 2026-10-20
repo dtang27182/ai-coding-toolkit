@@ -19,9 +19,9 @@ const validatorPath = path.join(toolkitDirectory, "common/impl-dataflow/validate
 
 function highLevelDesign() {
   return {
-    schemaVersion: 17,
+    schemaVersion: 18,
     stage: "high-level-design",
-    containers: [{ id: "service", name: "Service", type: "class" }, { id: "operations", name: "operations", type: "module" }],
+    containers: [{ id: "service", name: "Service", type: "class", sourceFile: "src/Service.ts" }, { id: "operations", name: "operations", type: "module", sourceFile: "src/operations.ts" }],
     nodes: [
       { id: "inspect", name: "inspect", type: "function", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", initialization: false },
       { id: "value", name: "value", type: "state-variable", containerId: "operations", changeType: "unchanged", initialization: false },
@@ -59,7 +59,7 @@ test("high-level-design validation accepts the implementation example", async (t
   assert.equal(result.status, 0, result.stderr);
 });
 
-test("functions require repository-relative source files in both stages", async () => {
+test("functions and containers require repository-relative source files in both stages", async () => {
   const schema = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.schema.json"), "utf8"));
   const validate = new Ajv2020({ allErrors: true, strictTypes: true }).compile(schema);
   for (const stage of ["high-level-design", "code-review"]) {
@@ -69,9 +69,9 @@ test("functions require repository-relative source files in both stages", async 
     if (stage === "code-review") input.diffHunks = [];
     assert.equal(validate(input), true, JSON.stringify(validate.errors));
 
-    for (const node of input.nodes.filter((node) => node.type === "function")) {
+    for (const node of [...input.nodes.filter((node) => node.type === "function"), ...input.containers]) {
       delete node.sourceFile;
-      assert.equal(validate(input), false, `${stage} functions must require sourceFile`);
+      assert.equal(validate(input), false, `${stage} functions and containers must require sourceFile`);
       assert.ok(validate.errors.some((error) => error.keyword === "required" && error.params.missingProperty === "sourceFile"));
       for (const sourceFile of [null, 1, "", "/src/Service.ts", "C:/src/Service.ts", "src\\Service.ts", "../Service.ts", "src/../Service.ts"]) {
         node.sourceFile = sourceFile;
@@ -84,6 +84,23 @@ test("functions require repository-relative source files in both stages", async 
       }
     }
   }
+});
+
+test("rename origins record old names and paths, with optional original function owner", async () => {
+  const schema = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.schema.json"), "utf8"));
+  const validate = new Ajv2020({ allErrors: true, strictTypes: true }).compile(schema);
+  const input = highLevelDesign();
+  input.containers[0].renamedFrom = { name: "OldService", sourceFile: "src/OldService.ts" };
+  input.nodes[0].renamedFrom = { name: "oldInspect", sourceFile: "src/OldService.ts", containerName: "OldOwner" };
+  assert.equal(validate(input), true, JSON.stringify(validate.errors));
+
+  input.containers[0].renamedFrom.containerName = "OldOwner";
+  assert.equal(validate(input), false);
+  delete input.containers[0].renamedFrom.containerName;
+  delete input.nodes[0].renamedFrom.sourceFile;
+  assert.equal(validate(input), false);
+  input.nodes[0].renamedFrom.sourceFile = "../old.ts";
+  assert.equal(validate(input), false);
 });
 
 test("initialization is a required boolean only on nodes in both stages", async () => {
@@ -132,7 +149,7 @@ test("initialization is a required boolean only on nodes in both stages", async 
 
 test("container-free graphs are valid but functions still require an existing owner", async (t) => {
   for (const stage of ["high-level-design", "code-review"]) {
-    const input = { schemaVersion: 17, stage, containers: [], nodes: [], relationships: [] };
+    const input = { schemaVersion: 18, stage, containers: [], nodes: [], relationships: [] };
     if (stage === "code-review") {
       input.diffHunks = [];
     }
@@ -263,7 +280,7 @@ test("dataflow endpoints resolve exact node IDs and verify their declared types"
 
 test("class composition is separate from membership and excludes module endpoints", async (t) => {
   const input = highLevelDesign();
-  input.containers.push({ id: "model", name: "Model", type: "class" });
+  input.containers.push({ id: "model", name: "Model", type: "class", sourceFile: "src/Model.ts" });
   input.relationships.push({ from: { containerId: "service", type: "class" }, to: { containerId: "model", type: "class" }, type: "composition", changeType: "added" });
   assert.equal((await runValidator(t, input)).status, 0);
 
@@ -375,7 +392,7 @@ test("changed relationships do not independently mark containers changed", async
     from: { nodeId: "rules", type: "static-data" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow",
     changeType: "added", dataDescription: "Rules", purpose: "Inspect rules",
   });
-  input.containers.push({ id: "model", name: "Model", type: "class" });
+  input.containers.push({ id: "model", name: "Model", type: "class", sourceFile: "src/Model.ts" });
   input.relationships.push({ from: { containerId: "service", type: "class" }, to: { containerId: "model", type: "class" }, type: "composition", changeType: "added" });
   input.nodes.push({ id: "panel", name: "Panel", type: "ui-component", description: "Shows inspection results", changeType: "modified", initialization: false });
   Object.assign(input, { changedClassCount: 0, changedFunctionCount: 0, changedComponentCount: 1, changedDataflowRelationshipCount: 1 });
@@ -386,7 +403,7 @@ test("changed relationships do not independently mark containers changed", async
   assert.match((await runValidator(t, input)).stderr, /changedComponentCount must equal the derived count: 1/);
 });
 
-test("visualizer loads version 17 examples with owned static data", async () => {
+test("visualizer loads version 18 examples with owned static data", async () => {
   const input = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"), "utf8"));
   assert.equal(semanticError(input), undefined);
   const graph = filterGraph(input, true, false);

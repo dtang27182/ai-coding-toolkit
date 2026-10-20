@@ -24,9 +24,9 @@ function implementation() {
     type: "dataflow", changeType: "added", dataDescription: "Value", purpose: "Transfer value",
   });
   return {
-    schemaVersion: 17,
+    schemaVersion: 18,
     stage: "high-level-design",
-    containers: [{ id: "parent", name: "Parent", type: "class" }, { id: "child", name: "Child", type: "class" }],
+    containers: [{ id: "parent", name: "Parent", type: "class", sourceFile: "src/Parent.ts" }, { id: "child", name: "Child", type: "class", sourceFile: "src/Child.ts" }],
     nodes,
     relationships: [
       { from: { containerId: "parent", type: "class" }, to: { containerId: "child", type: "class" }, type: "composition", changeType: "added" },

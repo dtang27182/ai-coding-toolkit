@@ -27,8 +27,8 @@ function patchFor(rows, oldFile = "src/service.ts", newFile = oldFile) {
   ].join("\n");
 }
 
-function graph(stage, nodes = [], containers = [{ id: "owner", name: "src/service.ts", type: "module" }]) {
-  return { schemaVersion: 17, stage, nodes, containers, relationships: [], ...(stage === "code-review" ? { diffHunks: [] } : {}) };
+function graph(stage, nodes = [], containers = [{ id: "owner", name: "src/service.ts", type: "module", sourceFile: "src/service.ts" }]) {
+  return { schemaVersion: 18, stage, nodes, containers, relationships: [], ...(stage === "code-review" ? { diffHunks: [] } : {}) };
 }
 
 function fn(id, name, changeType, sourceFile = "src/service.ts", containerId = "owner") {
@@ -50,7 +50,7 @@ const patches = {
 test("computes actual statuses and compares all HLD status combinations by container name", () => {
   for (const [actual, patch] of Object.entries(patches)) {
     for (const planned of ["added", "modified", "deleted", "unchanged", undefined]) {
-      const hld = graph("high-level-design", planned === undefined ? [] : [fn("planned-run", "run", planned, "src/service.ts", "design-owner")], [{ id: "design-owner", name: "src/service.ts", type: "module" }]);
+      const hld = graph("high-level-design", planned === undefined ? [] : [fn("planned-run", "run", planned, "src/service.ts", "design-owner")], [{ id: "design-owner", name: "src/service.ts", type: "module", sourceFile: "src/service.ts" }]);
       const review = graph("code-review", [fn("review-run", "run", "modified")]);
       if (actual !== "unchanged") addEvidence(review, patch);
       const enriched = generateEnrichedPatch(patch);
@@ -102,7 +102,7 @@ test("classifies whole methods, arrow functions and unchanged functions in a mix
     " }",
     " export class Other { run() { return 6; } }",
   ]);
-  const containers = [{ id: "owner", name: "Service", type: "class" }, { id: "other", name: "Other", type: "class" }];
+  const containers = [{ id: "owner", name: "Service", type: "class", sourceFile: "src/service.ts" }, { id: "other", name: "Other", type: "class", sourceFile: "src/service.ts" }];
   const review = graph("code-review", [fn("run", "run", "added"), fn("removed", "removed", "added"), fn("added", "added", "deleted")], containers);
   addEvidence(review, patch);
   review.nodes.push(fn("stable", "stable", "modified"), fn("other-run", "run", "modified", "src/service.ts", "other"));
@@ -129,7 +129,7 @@ test("keeps class-method and standalone-function mismatches separate when owner 
   ]);
   for (const type of ["class", "module"]) {
     for (const missing of [false, true]) {
-      const containers = [{ id: "owner", name: "Service", type }];
+      const containers = [{ id: "owner", name: "Service", type, sourceFile: "src/service.ts" }];
       const hld = graph("high-level-design", [fn("planned", "run", "added")], containers);
       const review = graph("code-review", missing ? [] : [fn("actual", "run", "modified")], containers);
       if (!missing) addEvidence(review, patch);
@@ -196,6 +196,18 @@ test("keeps a missing addition separate from a same-named deletion in a moved fi
   assert.ok(Object.values(result.enrichedPatch.elements).every((element) => !element.tags?.includes(tag)));
 });
 
+test("missing-function markers retain declared rename origins", () => {
+  const planned = fn("planned", "run", "modified");
+  planned.renamedFrom = { name: "oldRun", sourceFile: "src/old.ts", containerName: "OldOwner" };
+  const hld = graph("high-level-design", [planned], [{
+    id: "owner", name: "NewOwner", type: "class", sourceFile: "src/service.ts",
+    renamedFrom: { name: "OldOwner", sourceFile: "src/old.ts" },
+  }]);
+  const result = annotateHldFunctionCoverage(hld, graph("code-review"), patches.modified, generateEnrichedPatch(patches.modified));
+  assert.deepEqual(result.codeReview.nodes[0].renamedFrom, planned.renamedFrom);
+  assert.deepEqual(result.codeReview.containers[1].renamedFrom, hld.containers[0].renamedFrom);
+});
+
 test("adds missing function subtypes with local ownership and tags existing patch functions", () => {
   for (const planned of ["added", "modified", "deleted", "unchanged"]) {
     const hld = graph("high-level-design", [fn("planned", "run", planned)]);
@@ -253,8 +265,8 @@ test("replaces a missing marker when an actual review function is supplied and c
 });
 
 test("flags a renamed module container without confusing its missing marker with an actual function", () => {
-  const hld = graph("high-level-design", [fn("planned", "run", "modified")], [{ id: "owner", name: "old-module", type: "module" }]);
-  const review = graph("code-review", [fn("actual", "run", "added")], [{ id: "owner", name: "new-module", type: "module" }]);
+  const hld = graph("high-level-design", [fn("planned", "run", "modified")], [{ id: "owner", name: "old-module", type: "module", sourceFile: "src/service.ts" }]);
+  const review = graph("code-review", [fn("actual", "run", "added")], [{ id: "owner", name: "new-module", type: "module", sourceFile: "src/service.ts" }]);
   addEvidence(review, patches.modified);
   const result = annotateHldFunctionCoverage(hld, review, patches.modified, generateEnrichedPatch(patches.modified));
   assert.equal(result.codeReview.nodes.length, 2);
@@ -280,7 +292,7 @@ test("preserves nonfunction nodes, relationships, containers and patch change en
 
 test("missing-function markers store planned changeType without evidence and are code-review-only", async () => {
   const patch = patchFor([" export class Service {", "-  run() { return 1; }", "+  run() { return 2; }", " }"]);
-  const hld = graph("high-level-design", [fn("planned", "run", "modified")], [{ id: "owner", name: "Service", type: "class" }]);
+  const hld = graph("high-level-design", [fn("planned", "run", "modified")], [{ id: "owner", name: "Service", type: "class", sourceFile: "src/service.ts" }]);
   const result = annotateHldFunctionCoverage(hld, graph("code-review", [], []), patch, generateEnrichedPatch(patch));
   assert.deepEqual(result.codeReview.relationships, []);
   assert.equal(Object.values(result.enrichedPatch.elements).find((element) => element.kind === "method").tags[0], tag);

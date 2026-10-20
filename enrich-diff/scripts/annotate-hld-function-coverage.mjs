@@ -142,7 +142,11 @@ export function annotateHldFunctionCoverage(hld, review, patch, enrichedPatch) {
     if (!actualFunctions.has(key) && ["added", "modified", "deleted"].includes(entry.node.changeType)) {
       let container = codeReview.containers.find((container) => container.name === entry.container.name);
       if (container === undefined) {
-        container = { id: newId(), name: entry.container.name, type: entry.container.type, generatedBy: generator };
+        container = {
+          id: newId(), name: entry.container.name, type: entry.container.type, sourceFile: entry.container.sourceFile,
+          ...(entry.container.renamedFrom === undefined ? {} : { renamedFrom: entry.container.renamedFrom }),
+          generatedBy: generator,
+        };
         codeReview.containers.push(container);
       } else if (container.type !== entry.container.type) {
         throw new Error(`Container type differs between HLD and review: ${container.name}`);
@@ -155,6 +159,7 @@ export function annotateHldFunctionCoverage(hld, review, patch, enrichedPatch) {
         subtype: "missing-from-cr",
         containerId: container.id,
         sourceFile: entry.node.sourceFile,
+        ...(entry.node.renamedFrom === undefined ? {} : { renamedFrom: entry.node.renamedFrom }),
         initialization: entry.node.initialization,
         changeType: entry.node.changeType,
         [mismatchKey]: true,

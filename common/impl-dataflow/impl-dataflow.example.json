@@ -1,26 +1,30 @@
 {
-  "schemaVersion": 17,
+  "schemaVersion": 18,
   "stage": "high-level-design",
   "containers": [
     {
       "id": "entity-1",
       "name": "ChangeService",
-      "type": "class"
+      "type": "class",
+      "sourceFile": "src/ChangeService.ts"
     },
     {
       "id": "entity-4",
       "name": "ChangeModel",
-      "type": "class"
+      "type": "class",
+      "sourceFile": "src/ChangeModel.ts"
     },
     {
       "id": "entity-7",
       "name": "Repository",
-      "type": "class"
+      "type": "class",
+      "sourceFile": "src/Repository.ts"
     },
     {
       "id": "entity-9",
       "name": "LegacyChangeAdapter",
-      "type": "class"
+      "type": "class",
+      "sourceFile": "src/LegacyChangeAdapter.ts"
     }
   ],
   "nodes": [

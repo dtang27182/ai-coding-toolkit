@@ -6,9 +6,9 @@ import { filterGraph } from "../common/impl-dataflow/visualizer/src/filter.ts";
 
 function implementation(relationships) {
   return {
-    schemaVersion: 17,
+    schemaVersion: 18,
     stage: "high-level-design",
-    containers: [{ id: "client", name: "Client", type: "module" }, { id: "service", name: "Service", type: "class" }],
+    containers: [{ id: "client", name: "Client", type: "module", sourceFile: "src/client.ts" }, { id: "service", name: "Service", type: "class", sourceFile: "src/Service.ts" }],
     nodes: [
       ...["a", "a2"].map((id) => ({ id, name: id, type: "function", containerId: "client", sourceFile: "src/client.ts", changeType: "added", initialization: false })),
       ...["b", "b2"].map((id) => ({ id, name: id, type: "function", containerId: "service", sourceFile: "src/Service.ts", changeType: "added", initialization: false })),

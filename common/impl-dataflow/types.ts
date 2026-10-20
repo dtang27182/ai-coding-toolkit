@@ -3,6 +3,11 @@ export type ComponentType = "ui-component" | "system-input" | "system-output" | 
 export type NodeType = "function" | ComponentType | "static-data" | "state-variable";
 export type ContainerType = "class" | "module";
 
+export interface RenameOrigin {
+  name: string;
+  sourceFile: string;
+}
+
 interface NodeBase {
   id: string;
   name: string;
@@ -17,6 +22,7 @@ export type FunctionNode = NodeBase & {
   type: "function";
   containerId: string;
   sourceFile: string;
+  renamedFrom?: RenameOrigin & { containerName?: string };
   subtype?: "missing-from-cr";
   "hld-change-mismatch"?: boolean;
   hldChangeType?: ChangeType | null;
@@ -30,6 +36,8 @@ export interface Container {
   id: string;
   name: string;
   type: ContainerType;
+  sourceFile: string;
+  renamedFrom?: RenameOrigin;
   diffHunkIds?: string[];
   generatedBy?: "annotate-hld-function-coverage";
 }
@@ -61,7 +69,7 @@ export type Relationship = RelationshipBase & (
 );
 
 export interface ImplementationDataflow {
-  schemaVersion: 17;
+  schemaVersion: 18;
   stage: "high-level-design" | "code-review";
   diffHunks?: { id: string; file: string; patch: string }[];
   nodes: DataflowNode[];

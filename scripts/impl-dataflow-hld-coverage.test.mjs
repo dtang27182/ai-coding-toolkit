@@ -6,11 +6,11 @@ import { computeLayout } from "../common/impl-dataflow/visualizer/src/layout.ts"
 
 function review() {
   return {
-    schemaVersion: 17,
+    schemaVersion: 18,
     stage: "code-review",
     containers: [
-      { id: "service", name: "Service", type: "class" },
-      { id: "other", name: "Other", type: "class" },
+      { id: "service", name: "Service", type: "class", sourceFile: "src/Service.ts" },
+      { id: "other", name: "Other", type: "class", sourceFile: "src/Other.ts" },
     ],
     nodes: [
       { id: "actual", name: "run", type: "function", containerId: "service", sourceFile: "src/service.ts", initialization: false, changeType: "added", "hld-change-mismatch": true },
@@ -46,7 +46,7 @@ test("marks containers with any mismatching child, including filtered and missin
   input.nodes[0].changeType = "unchanged";
   input.nodes.push({ ...input.nodes[0], id: "service-visible", name: "visible", changeType: "added", "hld-change-mismatch": false });
   input.nodes.push({ ...input.nodes[0], id: "other-visible", name: "other", containerId: "other", changeType: "added", "hld-change-mismatch": false });
-  input.containers.push({ id: "matching", name: "Matching", type: "class" });
+  input.containers.push({ id: "matching", name: "Matching", type: "class", sourceFile: "src/Matching.ts" });
   input.nodes.push({ ...input.nodes[0], id: "matching-visible", name: "matching", containerId: "matching", changeType: "added", "hld-change-mismatch": false });
   const graph = filterGraph(input, false, false);
   assert.deepEqual(graph.containers.map((container) => [container.id, container.hldMismatch]), [
