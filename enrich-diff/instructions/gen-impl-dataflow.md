@@ -13,31 +13,22 @@ Map production implementation changes in the selected diff into an understandabl
 
 - Production implementation changes include application code, configuration, and static data, including constructors and initializers. Exclude test code, comments, documentation, and other nonbehavioral edits from the graph, even when they share a hunk with production changes.
 - Ground changed entries in the shared patch's diff hunks and unchanged entries in selected target code. For commit comparisons, read target files with `git show <target-commit>:<path>`. Ground deleted entries and transfers in removed hunks and base code when needed; mark them `deleted` rather than current behavior.
-- Use one entry per actual entity across the graph. Put class and module containers in `containers`; put functions, state variables, boundary components, and static data in the flat `nodes` array. Give every node and container an explicit `id`, unique across both arrays, using a monotonically increasing counter.
-- Functions and state variables require `containerId` referencing their class or module owner; static data may optionally have an owner. Function names are unique within their source file and owner; other owned node names are unique within their owner and subtype; unowned node names are unique among unowned nodes. Never infer identity or ownership from names.
-- Set node and relationship `changeType` from the diff. A new relationship alone does not modify its endpoints, and a runtime write alone does not make an existing state variable `modified`. Containers have no stored `changeType`; derive container status from all owned nodes, including hidden nodes: new when all are added, unchanged when all are unchanged or there are no owned nodes, deleted when all are deleted, and changed for mixed statuses or modified children.
-- Set `initialization` on every node to `true` for explicit constructor code, one-time initialization code, plumbing of callbacks, or object/dependency graph construction, and `false` otherwise. Ordinary updates after initialization do not qualify.
-- Reference the smallest relevant diff hunks for changed nodes and relationships with `diffHunkIds`; omit these references on unchanged nodes and relationships. Containers may optionally reference relevant declaration or ownership hunks independently of their derived status. Store only referenced hunks in `diffHunks`, with repository-relative paths, exact unified diff text including the `@@` header, and monotonically increasing IDs. Reuse IDs for hunks supporting multiple entries.
+- Reference the smallest relevant diff hunks for changed nodes and relationships. Assign hunk IDs with a monotonically increasing counter and reuse IDs for hunks supporting multiple entries.
 
 ## 1. Inspect the Diff and Write the Changed Entities
 
 - Inspect every changed file and each hunk's added and removed lines to identify production implementation changes. Locate the actual entities whose declarations or behavior were added, modified, or deleted, including changes to initialization, object construction, configuration, and behavior outside the HLD's High Level Requirements and User Journeys. Unchanged context lines help interpret changes but do not establish them.
 - Check each HLD-declared function, class, or module rename against the old and final declarations or module source paths in the patch, including function ownership. When both sides match, write one entry under the final identity with the HLD `renamedFrom` value and evidence from both sides; mark a renamed function `modified`. Otherwise, record the actual additions and deletions observed in the patch.
-- Write functions as `function` nodes and their owning classes as `class` containers. For changes to transfers, state accesses, or ownership, write the endpoint entities even when those endpoints are unchanged, and track the relationships to add in pass 2.
-- Group functions without a class owner through `containerId` referencing their actual `module` container. Use a language-level module, namespace, or package name when available, or the source file path otherwise. Include the containing module when only a function changed.
-- Write `ui-component`, `system-input`, `system-output`, and `external-dependency` nodes as appropriate. Merge inputs and outputs that refer to the same actual UI component or system endpoint into one node. Use `external-dependency` for a system endpoint that both supplies and receives data.
-- Write changed mutable instance fields and module-scoped mutable variables as `state-variable` nodes with their owning `containerId`. Write changed fixed data sources as `static-data` nodes, optionally with a `containerId`. Follow the schema's state-variable criteria; constructor initialization, local variables, and fields used only to hold child objects are not mutable state.
-- Represent browser, file, database, and object storage as `external-dependency` nodes. Add the application functions that access these resources with their owning class or module `containerId`. Include a known path, key, URL, or other concrete identifier in each boundary node's required `description`.
+- For changes to transfers, state accesses, or ownership, write the endpoint entities even when those endpoints are unchanged, and track the relationships to add in pass 2.
+- For functions without a class owner, use a language-level module, namespace, or package name when available, or the source file path otherwise.
+- Merge inputs and outputs that refer to the same actual UI component or system endpoint into one node.
 - Map production implementation changes to their relevant entities or pending relationships. Do not invent entities for changes the schema cannot represent.
 - Write these entries and their diff hunk references to the JSON as they are identified. Leave `relationships` empty until pass 2.
 
 ## 2. Trace and Write the Relationships
 
 - Inspect hunks with production implementation changes alongside the in-progress JSON and implementation. Write all added, modified, and deleted transfers, state accesses, and ownership relationships, including changes between unchanged endpoints. Include direct unchanged relationships between represented entities when they help explain a change.
-- Use the schema's explicit typed endpoints: `{ "nodeId": "...", "type": "function" }` for functions, and the matching subtype for other nodes. Write `dataflow` relationships for function and boundary transfers, static-data reads, and mutable state accesses. State variable to function means a read; function to state variable means a write. Static data only flows to functions, system inputs only send, and system outputs only receive. Endpoint types must match the referenced nodes.
-- Keep container membership through `containerId` separate from composition. Create a directed `composition` relationship from each represented class that owns instances of another represented class to the class it owns, using `{ "containerId": "...", "type": "class" }` endpoints. Modules cannot be composition endpoints.
 - Merge repeated transfers only when they have the same direct endpoints, relationship type, transfer type, and change type; do not collapse a path through another function into an end-to-end edge. Independent changes may remain disconnected.
-- Describe the actual data transferred, read, or written in `dataDescription` and how it explains the change in `purpose`. Omit these fields for composition, as the schema requires.
 - Ground every relationship in an actual transfer, state access, or ownership relationship. Execution order or co-location within a function does not establish a data transfer.
 - Set relationship change types independently of their endpoints. Reference relevant diff hunks showing changed arguments, return values, assignments, state accesses, external requests or responses, or ownership declarations.
 - If a changed relationship requires a missing endpoint, add it using pass 1's criteria before writing the relationship.
@@ -46,9 +37,13 @@ Map production implementation changes in the selected diff into an understandabl
 
 - Revisit added and removed lines across the patch. Verify that production implementation changes representable by the schema are covered by the appropriate entities and relationships. Referencing a hunk does not establish coverage of every production change within it.
 - Compare the graph with the implementation: check entity identities, ownership, state-variable eligibility, processing, direct transfers, and request/response directions. Remove duplicates and unchanged behavior that does not help explain a change.
+- Trim unchanged entities from the graph.
+    - Remove unchanged nodes unless they are directly connected to a changed node by a dataflow relationship or are endpoints of a changed relationship.
+    - Retain containers of all remaining owned nodes and containers used by changed composition relationships. Remove other containers with no remaining owned nodes.
+    - Remove relationships whose endpoints were removed, then remove unreferenced diff hunks.
 - Check relevant relationship purposes against the HLD's High Level Requirements and User Journeys.
-- Verify every node and relationship `changeType` against the patch. Confirm that changed entries' `diffHunkIds` reference relevant hunks showing their declaration, behavior, transfer, or ownership changes, and that hunk text matches the patch exactly. Unchanged nodes and relationships must have no `diffHunkIds`; containers may retain relevant references independently of their derived status.
-- Run `node ai-coding-toolkit/enrich-diff/scripts/validate-impl-dataflow.mjs <output-path>` for structural and semantic validation, including IDs, ownership, endpoint types, and diff-hunk references. Correct all errors and rerun after corrections.
+- Verify every node and relationship `changeType` against the patch. Confirm that changed entries' diff hunks show their declaration, behavior, transfer, or ownership changes, and that hunk text matches the patch exactly.
+- Run `node ai-coding-toolkit/enrich-diff/scripts/validate-impl-dataflow.mjs <output-path>`. Correct all errors and rerun after corrections.
 
 ## Report the Result
 
