@@ -73,3 +73,15 @@ test("the CLI validates saved enriched patches", async (t) => {
   assert.notEqual(invalid.status, 0);
   assert.match(invalid.stderr, /old line 2 is not assigned/);
 });
+
+test("the CLI rejects rename pairs with incompatible element kinds", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "enriched-patch-renames-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const indexPath = path.join(directory, "run.enriched-patch.json");
+  const index = generateEnrichedPatch(patch);
+  index.renames = [{ from: "element-1", to: "element-2" }];
+  await writeFile(indexPath, JSON.stringify(index));
+  const result = spawnSync(process.execPath, [validatorPath, indexPath], { encoding: "utf8" });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Invalid or repeated rename pair/);
+});

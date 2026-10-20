@@ -6,6 +6,7 @@ import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { changeBlocks, changeRuns } from "../common/enriched-patch/viewer/src/change-navigation.ts";
+import { generateEnrichedPatch } from "../common/enriched-patch/generate-enriched-patch.mjs";
 import { examplePatch } from "../common/enriched-patch/viewer/src/example.ts";
 import { clampSidebarWidth } from "../common/enriched-patch/viewer/src/layout.ts";
 import { buildTree, expandedNodeIds, expansionStates, filterTree, statsForElement, unmatchedCount } from "../common/enriched-patch/viewer/src/model.ts";
@@ -146,6 +147,45 @@ test("builds directory nodes above indexed files and preserves entity nesting", 
     tree[0].children[0].children[0].children[0].children.map((node) => node.element.name),
     ["build", "configure"],
   );
+});
+
+test("shows HLD rename pairs as one modified navigation branch", () => {
+  const patch = [
+    "diff --git a/src/old.ts b/src/old.ts",
+    "deleted file mode 100644",
+    "--- a/src/old.ts",
+    "+++ /dev/null",
+    "@@ -1 +0,0 @@",
+    "-export function oldName() {}",
+    "diff --git a/src/new.ts b/src/new.ts",
+    "new file mode 100644",
+    "--- /dev/null",
+    "+++ b/src/new.ts",
+    "@@ -0,0 +1 @@",
+    "+export function newName() {}",
+  ].join("\n");
+  const index = generateEnrichedPatch(patch, {
+    stage: "high-level-design",
+    containers: [{ id: "module", type: "module", name: "new", sourceFile: "src/new.ts", renamedFrom: { name: "old", sourceFile: "src/old.ts" } }],
+    nodes: [{ type: "function", name: "newName", sourceFile: "src/new.ts", containerId: "module", renamedFrom: { name: "oldName", sourceFile: "src/old.ts" } }],
+  });
+  const tree = buildTree(index);
+  const file = tree[0].children[0];
+  assert.equal(file.element.name, "src/new.ts");
+  assert.equal(file.renamedFrom.name, "src/old.ts");
+  assert.equal(file.children.length, 1);
+  assert.equal(file.children[0].element.name, "newName");
+  assert.equal(file.children[0].renamedFrom.name, "oldName");
+  assert.deepEqual(statsForElement(file.element, parsePatch(index.patch), undefined, file.renamedFrom), {
+    added: 1, removed: 1, changeType: "modified",
+  });
+  assert.deepEqual(statsForElement(file.children[0].element, parsePatch(index.patch), undefined, file.children[0].renamedFrom), {
+    added: 1, removed: 1, changeType: "modified",
+  });
+  index.elements["element-2"].changes[0].tags = ["test-code"];
+  const states = elementFilterStates(index, new Set(["test-code"]));
+  assert.equal(states.get("element-4").totalChanges, 2);
+  assert.equal(filterTree(buildTree(index), (id) => states.get(id).visible).length, 1);
 });
 
 test("sorts every navigation level by its full hierarchical key", () => {

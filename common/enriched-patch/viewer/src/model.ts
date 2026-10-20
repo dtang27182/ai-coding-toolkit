@@ -14,19 +14,20 @@ export interface ElementNode {
   kind: "element";
   id: string;
   element: DiffElement;
+  renamedFrom?: DiffElement;
   sortKey: string;
   children: ElementNode[];
 }
 
 export type TreeNode = DirectoryNode | ElementNode;
 
-function elementSortKey(index: EnrichedPatch, id: string): string {
+function elementSortKey(index: EnrichedPatch, id: string, targets: Map<string, string>): string {
   const element = index.elements[id];
   let key;
   if (element.parentId === undefined) {
     key = element.name;
   } else {
-    key = `${elementSortKey(index, element.parentId)}/${element.name}`;
+    key = `${elementSortKey(index, targets.get(element.parentId) ?? element.parentId, targets)}/${element.name}`;
   }
   return key;
 }
@@ -39,16 +40,25 @@ function sortNodes(nodes: TreeNode[]): void {
 }
 
 export function buildTree(index: EnrichedPatch): TreeNode[] {
+  const targets = new Map((index.renames ?? []).map(({ from, to }) => [from, to]));
+  const sources = new Map((index.renames ?? []).map(({ from, to }) => [to, from]));
   const nodes = new Map<string, ElementNode>();
   const roots: ElementNode[] = [];
   for (const [id, element] of Object.entries(index.elements)) {
-    nodes.set(id, { kind: "element", id, element, sortKey: elementSortKey(index, id), children: [] });
+    if (!targets.has(id)) {
+      const renamedFromId = sources.get(id);
+      nodes.set(id, {
+        kind: "element", id, element,
+        ...(renamedFromId === undefined ? {} : { renamedFrom: index.elements[renamedFromId] }),
+        sortKey: elementSortKey(index, id, targets), children: [],
+      });
+    }
   }
   for (const node of nodes.values()) {
     if (node.element.parentId === undefined) {
       roots.push(node);
     } else {
-      nodes.get(node.element.parentId)!.children.push(node);
+      nodes.get(targets.get(node.element.parentId) ?? node.element.parentId)!.children.push(node);
     }
   }
   const tree: TreeNode[] = [];
@@ -149,7 +159,12 @@ function locationChangeType(element: DiffElement): ChangeType {
   }
 }
 
-export function statsForElement(element: DiffElement, files: DiffFile[], hiddenRows?: ReadonlyMap<string, readonly boolean[]>): ElementStats {
+export function statsForElement(element: DiffElement, files: DiffFile[], hiddenRows?: ReadonlyMap<string, readonly boolean[]>, renamedFrom?: DiffElement): ElementStats {
+  if (renamedFrom !== undefined) {
+    const oldStats = statsForElement(renamedFrom, files, hiddenRows);
+    const newStats = statsForElement(element, files, hiddenRows);
+    return { added: oldStats.added + newStats.added, removed: oldStats.removed + newStats.removed, changeType: "modified" };
+  }
   const filePath = element.kind === "file" ? element.name : element.locations[0].file;
   const file = files.find((candidate) => candidate.path === filePath);
   if (element.kind === "file") {
@@ -238,6 +253,26 @@ export function semanticError(index: EnrichedPatch, files: DiffFile[]): string |
         return `${id} has an invalid new line range`;
       }
     }
+  }
+  const paired = new Set<string>();
+  for (const { from, to } of index.renames ?? []) {
+    const source = index.elements[from];
+    const target = index.elements[to];
+    if (source === undefined || target === undefined || from === to || source.kind !== target.kind || paired.has(from) || paired.has(to)) {
+      return `Invalid rename pair: ${from} → ${to}`;
+    } else {
+      const oldFile = files.find((file) => file.path === (source.kind === "file" ? source.name : source.locations[0].file));
+      const newFile = files.find((file) => file.path === (target.kind === "file" ? target.name : target.locations[0].file));
+      const oldOnly = source.kind === "file"
+        ? oldFile?.newPath === null
+        : source.locations.some((location) => location.oldLines !== null) && source.locations.every((location) => location.newLines === null);
+      const newOnly = target.kind === "file"
+        ? newFile?.oldPath === null
+        : target.locations.some((location) => location.newLines !== null) && target.locations.every((location) => location.oldLines === null);
+      if (!oldOnly || !newOnly) return `Rename must pair a deleted element with an added element: ${from} → ${to}`;
+    }
+    paired.add(from);
+    paired.add(to);
   }
   return undefined;
 }

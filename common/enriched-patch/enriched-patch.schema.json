@@ -28,9 +28,26 @@
       "additionalProperties": {
         "$ref": "#/$defs/element"
       }
+    },
+    "renames": {
+      "description": "HLD-declared renames resolved to old and new navigation elements. The embedded patch remains unchanged; each element keeps its own source section and changed-row ownership. A pair is displayed as one modified entity.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/rename"
+      }
     }
   },
   "$defs": {
+    "rename": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "type": "string", "pattern": "^element-[1-9][0-9]*$" },
+        "to": { "type": "string", "pattern": "^element-[1-9][0-9]*$" }
+      }
+    },
     "lineRange": {
       "description": "Inclusive one-based source line range, expressed as [startLine, endLine]. The end must be greater than or equal to the start.",
       "type": "array",

@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 
 import Ajv2020 from "ajv/dist/2020.js";
 
-import { parsePatch } from "../../common/enriched-patch/generate-enriched-patch.mjs";
+import { parsePatch, semanticErrors } from "../../common/enriched-patch/generate-enriched-patch.mjs";
 
 const schema = JSON.parse(await readFile(new URL("../../common/enriched-patch/enriched-patch.schema.json", import.meta.url), "utf8"));
 const validateSchema = new Ajv2020({ allErrors: true }).compile(schema);
@@ -69,9 +69,9 @@ async function main() {
       const details = (validateSchema.errors ?? []).map((error) => `${error.instancePath || "/"}: ${error.message}`);
       throw new Error(`Enriched Patch does not match its schema:\n${details.join("\n")}`);
     }
-    const errors = changeOwnershipErrors(index);
+    const errors = [...semanticErrors(index, parsePatch(index.patch)), ...changeOwnershipErrors(index)];
     if (errors.length > 0) {
-      throw new Error(`Enriched Patch change ownership is invalid:\n${errors.join("\n")}`);
+      throw new Error(`Enriched Patch is invalid:\n${errors.join("\n")}`);
     }
     console.log(`Validated Enriched Patch: ${path.resolve(fileArgument)}`);
   }

@@ -4,6 +4,7 @@
 
 - Before writing or updating a skill that produces a structured artifact, read its output schema.
 - Do not add skill instructions that repeat requirements already specified in the output schema. Keep skill instructions focused on workflow, judgment, and information the schema cannot express.
+- Do not explain a command in skill instructions when its arguments or output schema already make the behavior clear; keep the command and omit the redundant description.
 
 ## Markdown Style
 
