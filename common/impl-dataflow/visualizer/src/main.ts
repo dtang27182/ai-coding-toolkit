@@ -146,9 +146,11 @@ function chipStyle(changeType: DisplayChangeType): string {
   return `color:${changeColor(changeType)};background:color-mix(in oklch, ${changeColor(changeType)} 15%, transparent)`;
 }
 
+const MISMATCH_GLYPH = '<span class="hld-mismatch-glyph" aria-hidden="true">≠</span>';
+
 function mismatchBadge(mismatch: boolean): string {
   return mismatch
-    ? '<span class="hld-mismatch" title="Function change does not match the HLD">HLD mismatch</span>'
+    ? `<span class="hld-mismatch" title="Function change does not match the HLD">${MISMATCH_GLYPH}HLD mismatch</span>`
     : "";
 }
 
@@ -165,7 +167,7 @@ function diffEvidence(ids: string[] | undefined): string {
 
 function functionWidth(name: string, writesState: boolean, mismatch = false): number {
   measureContext.font = "500 12.5px IBM Plex Mono, monospace";
-  return Math.ceil(measureContext.measureText(name).width) + (writesState ? 57 : 42) + (mismatch ? 96 : 0);
+  return Math.ceil(measureContext.measureText(name).width) + (writesState ? 57 : 42) + (mismatch ? 6 : 0);
 }
 
 function stateVariableWidth(name: string): number {
@@ -340,7 +342,9 @@ function renderGraph(graph: VisibleGraph): string {
     const shape = `<svg class="node-shape" width="${rect.width}" height="${rect.height}" viewBox="0 0 ${rect.width} ${rect.height}" aria-hidden="true"><path class="node-outline" d="${form.outline}"></path></svg>`;
     if (functionsHidden) {
       return `<button class="graph-node boundary-node container-node${selected ? " selected" : ""}${deleted}" style="${style}" ${attributes}>
-        ${shape}<span class="boundary-body"><span class="node-badge">${CONTAINER_TYPE.badge[container.type]}</span><span class="component-name">${escapeHtml(container.name)}</span></span>${mismatchBadge(container.hldMismatch)}
+        ${shape}<span class="boundary-body">${container.hldMismatch
+          ? `<span class="node-badge hld-mismatch-badge" title="A function change in this ${container.type} does not match the HLD">${CONTAINER_TYPE.badge[container.type]} · ≠ HLD</span>`
+          : `<span class="node-badge">${CONTAINER_TYPE.badge[container.type]}</span>`}<span class="component-name">${escapeHtml(container.name)}</span></span>
       </button>`;
     } else {
       return `<button class="graph-node boundary-node class-tab${selected ? " selected" : ""}${deleted}" style="${style}" ${attributes}>
@@ -352,9 +356,9 @@ function renderGraph(graph: VisibleGraph): string {
   const members = functionsHidden ? "" : graph.containers.flatMap((container) => container.functions.map((node) => {
     const rect = layout.memberRects.get(node.id)!;
     const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
-    return `<button class="graph-node function-pill${selected ? " selected" : ""}${nodeChangeType(node) === "deleted" ? " deleted" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;--change-color:${changeColor(nodeChangeType(node))}" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(container.name)}.${escapeHtml(node.name)}">
-      <span class="function-glyph">${NODE_GLYPHS[node.type]}</span><span class="function-name">${escapeHtml(node.name)}</span>
-      ${mismatchBadge(node["hld-change-mismatch"] === true)}
+    const mismatch = node["hld-change-mismatch"] === true;
+    return `<button class="graph-node function-pill${selected ? " selected" : ""}${nodeChangeType(node) === "deleted" ? " deleted" : ""}${mismatch ? " hld-mismatch-pill" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;--change-color:${changeColor(nodeChangeType(node))}" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(container.name)}.${escapeHtml(node.name)}${mismatch ? ", HLD mismatch" : ""}">
+      ${mismatch ? '<span class="hld-mismatch-glyph" title="Function change does not match the HLD">≠</span>' : `<span class="function-glyph">${NODE_GLYPHS[node.type]}</span>`}<span class="function-name">${escapeHtml(node.name)}</span>
       ${stateWriters.has(node.id) ? '<span class="state-glyph" title="Writes state">◈</span>' : ""}
     </button>`;
   })).join("");
@@ -540,7 +544,7 @@ function render(): void {
     <div class="workspace">
       <div class="canvas-wrap">
         <main class="canvas" aria-label="Implementation dataflow graph">${statusMessage === "" ? "" : `<div class="status-banner">${escapeHtml(statusMessage)}</div>`}${renderGraph(graph)}</main>
-        <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}<div class="change-key"><span class="change-label">○ tail = data returns</span></div></div>
+        <div class="change-legend">${(Object.keys(CHANGE_COLORS) as ChangeType[]).map((changeType) => `<div class="change-key"><span class="change-swatch" style="background:${changeColor(changeType)}"></span><span class="change-label">${changeType}</span></div>`).join("")}<div class="change-key"><span class="change-label">○ tail = data returns</span></div>${implementationDataflow.nodes.some((node) => node.type === "function" && node["hld-change-mismatch"] === true) ? `<div class="change-key">${MISMATCH_GLYPH}<span class="change-label">HLD mismatch</span></div>` : ""}</div>
         ${dragDepth > 0 ? '<div class="drop-overlay">Drop an impl-dataflow.json file</div>' : ""}
       </div>
       <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuenow="${Math.round(inspectorWidth)}" tabindex="0"></div>
