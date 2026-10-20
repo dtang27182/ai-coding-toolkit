@@ -61,26 +61,36 @@ Compare each function's planned `changeType` in the HLD impl-dataflow (rows) wit
 - On reruns, exclude generated missing nodes from actual-function matching, reuse still-needed markers, and remove obsolete markers and their generated containers when empty.
 - Preserve patch text, change entries, diff-hunk evidence, and unrelated tags; recompute the function-level mismatch annotations on repeat runs.
 
-## 4. Integrate generation and display
+## 4. Update generation instructions
 
-Run annotation after ordinary tagging, validate both artifacts, and display function-level mismatch annotations in both viewers.
+Run annotation after ordinary tagging and before final validation.
 
-- Add the optional `hld-change-mismatch` boolean to CR functions and the corresponding function-level tag to enriched-patch elements in their schemas and types.
-- Define `missing-from-cr` as a code-review-only function subtype whose `changeType` records the HLD expectation without diff-hunk evidence; display it distinctly and exclude it from actual change counts and container statuses.
-- Display function mismatches in both viewers and let enriched-patch filtering apply function tags to owned changes without copying tags onto change entries.
-- Keep the skill's top-level sequence unchanged: inside its third review-artifact step, update `enrich-diff/instructions/generate-enriched-patch.md` to run annotation after current step 4 (ordinary tagging) and before final validation.
-- Document in `common/impl-dataflow/impl-dataflow.schema.json` that CR function `changeType` values are initially generated and then mechanically recomputed from the patch by the annotation script, which also assigns `hld-change-mismatch`.
-- Document in `common/enriched-patch/enriched-patch.schema.json` that function-level `hld-change-mismatch` tags are assigned by the annotation script; keep these ownership rules in schema descriptions rather than generation or tagging instructions.
-- Pass the HLD, CR impl-dataflow, patch, and enriched patch belonging to the same review.
-- Validate both updated artifacts before writing either, then run both existing validators as final workflow checks.
-- If corrected statuses conflict with existing graph evidence rules, report the validation error rather than modifying evidence to repair it.
-- Keep the shared patch generator and standalone advanced diff independent of HLD input; store results in existing artifacts without extra trace files or graph snapshots.
+- Update `enrich-diff/instructions/generate-enriched-patch.md` after its current step 4, preserving the skill's top-level sequence.
+- Pass the same review's HLD, CR graph, patch, and enriched patch to the command below.
+- Run both existing artifact validators after annotation as final workflow checks.
+- Update existing artifacts only; keep the shared generator and standalone advanced diff independent of HLD input.
 
 ```sh
 node ai-coding-toolkit/enrich-diff/scripts/annotate-hld-function-coverage.mjs <hld-impl-dataflow-path> <cr-impl-dataflow-path> <patch-path> --enriched-patch <enriched-patch-path>
 ```
 
-## 5. Verify behavior
+## 5. Update the impl-dataflow viewer
+
+Display function mismatches and missing-function markers in the CR graph.
+
+- Visually ndicate functions whose `hld-change-mismatch` boolean is true.
+- Display `missing-from-cr` functions distinctly, treating their `changeType` as the expected change rather than an actual change.
+    - These should all be layed out together to the left side of the graph
+- Exclude missing-function markers from derived container statuses.
+
+## 6. Update the enriched-patch viewer
+
+Display function-level mismatch tags and use them when filtering changes.
+
+- Show `hld-change-mismatch` tags on function elements.
+- Apply each function's tags to its owned changes during filtering without copying tags onto change entries.
+
+## 7. Verify behavior
 
 Test computed statuses, mismatch rules, function-level annotations in both artifacts, and existing review workflows.
 
