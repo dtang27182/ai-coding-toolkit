@@ -466,6 +466,7 @@ button.tree-row,
 }
 
 .node-details > .unmapped,
+.node-details > .function-tag,
 .node-details > .hidden-count,
 .node-details > .tag-dots,
 .node-details > .line-stats {
@@ -485,6 +486,16 @@ button.tree-row,
 .unmapped {
   margin-left: auto;
   color: #718695;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 8.5px;
+  white-space: nowrap;
+}
+
+.function-tag {
+  padding: 1px 5px;
+  border: 1px solid var(--tag-color);
+  border-radius: 8px;
+  color: var(--tag-color);
   font-family: "IBM Plex Mono", monospace;
   font-size: 8.5px;
   white-space: nowrap;
@@ -926,6 +937,12 @@ button.tree-row,
 .tag-chip.hidden-tag .tag-chip-name {
   text-decoration: line-through;
   text-decoration-color: #91a4b3;
+}
+
+.tag-chip.mismatch-only.active {
+  border-color: var(--tag-color);
+  background: #173250;
+  color: #e1ebf3;
 }
 
 .tag-filter-separator {

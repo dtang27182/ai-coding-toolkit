@@ -21,6 +21,7 @@ const TAG_PALETTE = [
 export interface OwnedChange extends DiffChange {
   elementId: string;
   file: string;
+  elementTags: string[];
 }
 
 export interface TagCount {
@@ -46,10 +47,14 @@ export function collectChanges(index: EnrichedPatch): OwnedChange[] {
   const changes: OwnedChange[] = [];
   for (const [elementId, element] of Object.entries(index.elements)) {
     for (const change of element.changes ?? []) {
-      changes.push({ ...change, elementId, file: elementFile(element) });
+      changes.push({ ...change, elementId, file: elementFile(element), elementTags: element.tags ?? [] });
     }
   }
   return changes;
+}
+
+function effectiveTags(change: DiffChange, elementTags: string[] = []): string[] {
+  return [...new Set([...change.tags, ...elementTags])];
 }
 
 function compareTags(left: string, right: string): number {
@@ -70,7 +75,7 @@ export function sortTags(tags: Iterable<string>): string[] {
 export function tagCounts(changes: OwnedChange[]): TagCount[] {
   const counts = new Map<string, number>();
   for (const change of changes) {
-    for (const tag of change.tags) {
+    for (const tag of effectiveTags(change, change.elementTags)) {
       counts.set(tag, (counts.get(tag) ?? 0) + 1);
     }
   }
@@ -82,9 +87,10 @@ export function tagCounts(changes: OwnedChange[]): TagCount[] {
   });
 }
 
-/** A change is hidden when it carries any hidden tag. */
-export function isChangeHidden(change: DiffChange, hiddenTags: ReadonlySet<string>): boolean {
-  return change.tags.some((tag) => hiddenTags.has(tag));
+/** A change is hidden by a selected tag or when mismatch-only mode excludes its function. */
+export function isChangeHidden(change: DiffChange & { elementTags?: string[] }, hiddenTags: ReadonlySet<string>, mismatchOnly = false): boolean {
+  return (mismatchOnly && !change.elementTags?.includes("hld-change-mismatch")) ||
+    effectiveTags(change, change.elementTags).some((tag) => hiddenTags.has(tag));
 }
 
 export function changeKey(change: OwnedChange): string {
@@ -103,14 +109,14 @@ export function rowChanges(file: DiffFile, changes: OwnedChange[]): (OwnedChange
 }
 
 /** For each file path, which rows belong to a hidden change. */
-export function hiddenRowsByFile(files: DiffFile[], changes: OwnedChange[], hiddenTags: ReadonlySet<string>): Map<string, boolean[]> {
+export function hiddenRowsByFile(files: DiffFile[], changes: OwnedChange[], hiddenTags: ReadonlySet<string>, mismatchOnly = false): Map<string, boolean[]> {
   return new Map(files.map((file) => [
     file.path,
-    rowChanges(file, changes).map((change) => change !== undefined && isChangeHidden(change, hiddenTags)),
+    rowChanges(file, changes).map((change) => change !== undefined && isChangeHidden(change, hiddenTags, mismatchOnly)),
   ]));
 }
 
-export function elementFilterStates(index: EnrichedPatch, hiddenTags: ReadonlySet<string>): Map<string, ElementFilterState> {
+export function elementFilterStates(index: EnrichedPatch, hiddenTags: ReadonlySet<string>, mismatchOnly = false): Map<string, ElementFilterState> {
   const children = new Map<string, string[]>();
   for (const [id, element] of Object.entries(index.elements)) {
     if (element.parentId !== undefined) {
@@ -124,23 +130,28 @@ export function elementFilterStates(index: EnrichedPatch, hiddenTags: ReadonlySe
     if (state === undefined) {
       let totalChanges = 0;
       let hiddenChanges = 0;
+      let visibleChild = false;
       const tags = new Set<string>();
       for (const change of index.elements[id].changes ?? []) {
+        const changeTags = effectiveTags(change, index.elements[id].tags);
         totalChanges += 1;
-        if (isChangeHidden(change, hiddenTags)) {
+        if (isChangeHidden({ ...change, elementTags: index.elements[id].tags }, hiddenTags, mismatchOnly)) {
           hiddenChanges += 1;
         } else {
-          change.tags.forEach((tag) => tags.add(tag));
+          changeTags.forEach((tag) => tags.add(tag));
         }
       }
       for (const childId of children.get(id) ?? []) {
         const child = visit(childId);
         totalChanges += child.totalChanges;
         hiddenChanges += child.hiddenChanges;
+        visibleChild ||= child.visible;
         child.visibleTags.forEach((tag) => tags.add(tag));
       }
       state = {
-        visible: totalChanges === 0 || hiddenChanges < totalChanges,
+        visible: (totalChanges === 0
+          ? !mismatchOnly || index.elements[id].tags?.includes("hld-change-mismatch") === true
+          : hiddenChanges < totalChanges) || (mismatchOnly && visibleChild),
         totalChanges,
         hiddenChanges,
         visibleTags: sortTags(tags),

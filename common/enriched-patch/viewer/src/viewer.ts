@@ -48,6 +48,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   let wrapLines = false;
   let sidebarWidth = 560;
   let hiddenTags = new Set<string>();
+  let mismatchOnly = false;
   let revealedChanges = new Set<string>();
   let changes: OwnedChange[] = [];
   let tagList: TagCount[] = [];
@@ -91,12 +92,13 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     const previousTags = new Set(tagList.map(({ tag }) => tag));
     changes = collectChanges(index);
     tagList = tagCounts(changes);
-    const presentTags = new Set(tagList.map(({ tag }) => tag));
+    if (!tagList.some(({ tag }) => tag === "hld-change-mismatch")) mismatchOnly = false;
+    const presentTags = new Set(tagList.filter(({ tag }) => tag !== "hld-change-mismatch").map(({ tag }) => tag));
     hiddenTags = applyDefaults
       ? presentTags
       : new Set([...presentTags].filter((tag) => hiddenTags.has(tag) || (options.hideTagsByDefault === true && !previousTags.has(tag))));
-    filterStates = elementFilterStates(index, hiddenTags);
-    hiddenRows = hiddenRowsByFile(files, changes, hiddenTags);
+    filterStates = elementFilterStates(index, hiddenTags, mismatchOnly);
+    hiddenRows = hiddenRowsByFile(files, changes, hiddenTags, mismatchOnly);
   }
 
   function tagColor(tag: string): string {
@@ -118,7 +120,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     if (tagList.length === 0) {
       return "";
     } else {
-      const chips = tagList.map(({ tag, count, color }) => {
+      const chips = tagList.filter(({ tag }) => tag !== "hld-change-mismatch").map(({ tag, count, color }) => {
         const hidden = hiddenTags.has(tag);
         return `
           <button class="tag-chip${hidden ? " hidden-tag" : ""}" type="button" data-hide-tag="${escapeHtml(tag)}" aria-pressed="${hidden}" style="--tag-color:${color}"
@@ -128,7 +130,8 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
             <span class="tag-chip-count">${count}</span>
           </button>`;
       }).join("");
-      const status = hiddenTags.size === 0
+      const mismatchCount = tagList.find(({ tag }) => tag === "hld-change-mismatch");
+      const status = hiddenTags.size === 0 && !mismatchOnly
         ? `All <strong>${changes.length}</strong> changes shown`
         : [
           `Hiding <strong>${hiddenChangeCount}</strong> of ${changes.length} changes`,
@@ -136,12 +139,13 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
           hiddenEntityCount === 0 ? "" : `${hiddenEntityCount} ${hiddenEntityCount === 1 ? "entity" : "entities"}`,
         ].filter((part) => part !== "").join(" · ");
       return `
-        <div class="tag-filter" role="toolbar" aria-label="Hide changes by tag">
-          <span class="tag-filter-label">${EYE_OFF_ICON}Hide tags</span>
+        <div class="tag-filter" role="toolbar" aria-label="Filter changes">
+          <span class="tag-filter-label">${EYE_OFF_ICON}Filters</span>
           ${chips}
+          ${mismatchCount === undefined ? "" : `<button class="tag-chip mismatch-only${mismatchOnly ? " active" : ""}" type="button" data-mismatch-only aria-pressed="${mismatchOnly}" style="--tag-color:${mismatchCount.color}" title="Show only changes in functions with an HLD mismatch"><span class="tag-chip-dot"></span><span class="tag-chip-name">hld-mismatch only</span><span class="tag-chip-count">${mismatchCount.count}</span></button>`}
           <span class="tag-filter-separator"></span>
           <span class="tag-filter-status" aria-live="polite">${status}</span>
-          ${hiddenTags.size === 0 ? "" : '<button class="show-all-button" type="button" data-show-all>Show all</button>'}
+          ${hiddenTags.size === 0 && !mismatchOnly ? "" : '<button class="show-all-button" type="button" data-show-all>Show all</button>'}
         </div>`;
     }
   }
@@ -176,9 +180,10 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
                 <span class="node-icon">${icon(node.element.kind)}</span>
                 <span class="node-label">${escapeHtml(node.element.kind === "file" ? basename(node.element.name) : node.element.name)}</span>
                 <span class="node-details">
+                  ${node.element.kind === "method" && node.element.tags?.includes("hld-change-mismatch") ? `<span class="function-tag" title="hld-change-mismatch" style="--tag-color:${tagColor("hld-change-mismatch")}">HLD mismatch</span>` : ""}
                   ${unmapped > 0 ? `<span class="unmapped" title="Changed lines not matched to a class or method">${unmapped} unmapped</span>` : ""}
-                  ${hiddenTags.size > 0 && filterState !== undefined && filterState.hiddenChanges > 0 ? `<span class="hidden-count" title="Changes hidden by the tag filter">${filterState.hiddenChanges} hidden</span>` : ""}
-                  ${renderTagDots(filterState?.visibleTags ?? [])}
+                  ${(hiddenTags.size > 0 || mismatchOnly) && filterState !== undefined && filterState.hiddenChanges > 0 ? `<span class="hidden-count" title="Changes hidden by the filter">${filterState.hiddenChanges} hidden</span>` : ""}
+                  ${renderTagDots(filterState?.visibleTags.filter((tag) => !node.element.tags?.some((ownTag) => ownTag === tag)) ?? [])}
                   <span class="line-stats"><span class="plus">+${stats.added}</span><span class="minus">−${stats.removed}</span></span>
                 </span>
               </button>
@@ -204,12 +209,12 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
 
   function fileFilterView(file: DiffFile): FileFilterView {
     const owners = rowChanges(file, changes);
-    const collapsed = owners.map((owner) => owner !== undefined && isChangeHidden(owner, hiddenTags) && !revealedChanges.has(changeKey(owner)));
+    const collapsed = owners.map((owner) => owner !== undefined && isChangeHidden(owner, hiddenTags, mismatchOnly) && !revealedChanges.has(changeKey(owner)));
     return {
       owners,
       collapsed,
       navigableRows: file.rows.map((row, rowIndex) => collapsed[rowIndex] ? { ...row, kind: "context" as const } : row),
-      hiddenChangeCount: new Set(owners.filter((owner) => owner !== undefined && isChangeHidden(owner, hiddenTags))).size,
+      hiddenChangeCount: new Set(owners.filter((owner) => owner !== undefined && isChangeHidden(owner, hiddenTags, mismatchOnly))).size,
     };
   }
 
@@ -255,8 +260,8 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
           html = startsChange ? renderHiddenChange(file, view, owner) : "";
         } else {
           let blockAttribute = blockStarts.has(rowIndex) ? `data-change-block="${blockStarts.get(rowIndex)}"` : "";
-          if (startsChange && owner.tags.length > 0) {
-            const revealed = isChangeHidden(owner, hiddenTags);
+          if (startsChange && (owner.tags.length > 0 || isChangeHidden(owner, hiddenTags, mismatchOnly))) {
+            const revealed = isChangeHidden(owner, hiddenTags, mismatchOnly);
             html += `
         <div class="change-header${revealed ? " revealed" : ""}" ${blockAttribute}>
           ${revealed ? '<span class="change-header-label">Shown once</span>' : ""}
@@ -302,7 +307,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   function render(): void {
     const tree = buildTree(index);
     const allExpanded = [...expandedNodeIds(tree)].every((id) => expandedIds.has(id));
-    const filtering = hiddenTags.size > 0;
+    const filtering = hiddenTags.size > 0 || mismatchOnly;
     const isVisible = (id: string): boolean => filterStates.get(id)?.visible ?? true;
     const visibleTree = filtering ? filterTree(tree, isVisible) : tree;
     const visibleRowCount = (kind: "add" | "delete"): number => files.reduce((sum, file) => {
@@ -319,7 +324,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     const visibleEntityCount = Object.entries(index.elements).filter(([id, element]) => element.kind !== "file" && isVisible(id)).length;
     const hiddenFileCount = fileElements.length - visibleFileCount;
     const hiddenEntityCount = entityCount - visibleEntityCount;
-    const hiddenChangeCount = changes.filter((change) => isChangeHidden(change, hiddenTags)).length;
+    const hiddenChangeCount = changes.filter((change) => isChangeHidden(change, hiddenTags, mismatchOnly)).length;
     const unmapped = fileElements.reduce((sum, element) => sum + unmatchedCount(element), 0);
     const file = selectedFile();
     const view = fileFilterView(file);
@@ -359,7 +364,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
               ? `<div class="filter-footnote"><span>${[
                 hiddenFileCount === 0 ? "" : `${hiddenFileCount} ${hiddenFileCount === 1 ? "file" : "files"}`,
                 hiddenEntityCount === 0 ? "" : `${hiddenEntityCount} ${hiddenEntityCount === 1 ? "entity" : "entities"}`,
-              ].filter((part) => part !== "").join(" · ")} hidden by tag filter</span><button type="button" data-show-all>Show all</button></div>`
+              ].filter((part) => part !== "").join(" · ")} hidden by filters</span><button type="button" data-show-all>Show all</button></div>`
               : ""}</nav>
           </aside>
           <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-label="Resize file navigation" aria-orientation="vertical" aria-valuemin="${MIN_SIDEBAR_WIDTH}" aria-valuemax="${MAX_SIDEBAR_WIDTH}" aria-valuenow="${sidebarWidth}" tabindex="0"></div>
@@ -411,6 +416,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     for (const button of app.querySelectorAll<HTMLButtonElement>("[data-hide-tag]")) {
       button.addEventListener("click", () => toggleHiddenTag(button.dataset.hideTag!));
     }
+    app.querySelector<HTMLButtonElement>("[data-mismatch-only]")?.addEventListener("click", toggleMismatchOnly);
     for (const button of app.querySelectorAll<HTMLButtonElement>("[data-show-all]")) {
       button.addEventListener("click", showAllTags);
     }
@@ -606,8 +612,16 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     renderPreservingScroll();
   }
 
+  function toggleMismatchOnly(): void {
+    mismatchOnly = !mismatchOnly;
+    revealedChanges = new Set();
+    refreshTagFilter();
+    renderPreservingScroll();
+  }
+
   function showAllTags(): void {
     hiddenTags = new Set();
+    mismatchOnly = false;
     revealedChanges = new Set();
     refreshTagFilter();
     renderPreservingScroll();
@@ -710,6 +724,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     files = parsedFiles;
     fileName = name;
     revealedChanges = new Set();
+    if (!preserveView) mismatchOnly = false;
     refreshTagFilter(!preserveView && options.hideTagsByDefault === true);
     let preservedSelection = false;
     if (preserveView) {

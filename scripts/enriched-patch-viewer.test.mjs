@@ -282,6 +282,46 @@ test("hides a change when it carries any hidden tag", () => {
   assert.equal(isChangeHidden({ ...change, tags: [] }, new Set(["initialization"])), false);
 });
 
+test("HLD mismatch-only filtering hides nonmismatches without changing patch entries", () => {
+  const index = structuredClone(examplePatch);
+  index.elements["element-4"].tags = ["hld-change-mismatch"];
+  const originalChanges = structuredClone(index.elements["element-4"].changes);
+  const changes = collectChanges(index);
+  const states = elementFilterStates(index, new Set(), true);
+  const hiddenRows = hiddenRowsByFile(parsePatch(index.patch), changes, new Set(), true);
+
+  assert.deepEqual(tagCounts(changes).map(({ tag, count }) => [tag, count]), [
+    ["initialization", 1],
+    ["hld-change-mismatch", 1],
+  ]);
+  assert.equal(isChangeHidden(changes.find((change) => change.elementId === "element-3"), new Set()), false);
+  assert.equal(isChangeHidden(changes.find((change) => change.elementId === "element-3"), new Set(), true), true);
+  assert.equal(isChangeHidden(changes.find((change) => change.elementId === "element-4"), new Set(), true), false);
+  assert.deepEqual(states.get("element-3"), { visible: false, totalChanges: 1, hiddenChanges: 1, visibleTags: [] });
+  assert.deepEqual(states.get("element-4"), { visible: true, totalChanges: 1, hiddenChanges: 0, visibleTags: ["hld-change-mismatch"] });
+  assert.deepEqual(states.get("element-2"), { visible: true, totalChanges: 2, hiddenChanges: 1, visibleTags: ["hld-change-mismatch"] });
+  assert.equal(states.get("element-5").visible, false);
+  assert.deepEqual(hiddenRows.get("src/services/ChangeService.ts"), [
+    false, false, true, true, false, false, false, false, false, false, false, false,
+  ]);
+  assert.deepEqual(hiddenRows.get("src/utils/format.ts"), [true, true, true]);
+  assert.deepEqual(index.elements["element-4"].changes, originalChanges);
+});
+
+test("mismatch-only navigation keeps a tagged function without owned changes and its ancestors", () => {
+  const index = {
+    elements: {
+      file: { kind: "file", name: "src/work.ts", locations: [] },
+      matched: { kind: "method", name: "matched", parentId: "file", locations: [], tags: ["hld-change-mismatch"] },
+      other: { kind: "method", name: "other", parentId: "file", locations: [] },
+    },
+  };
+  const states = elementFilterStates(index, new Set(), true);
+  assert.equal(states.get("file").visible, true);
+  assert.equal(states.get("matched").visible, true);
+  assert.equal(states.get("other").visible, false);
+});
+
 test("hides navigation elements only when every change beneath them is hidden", () => {
   const index = structuredClone(examplePatch);
   index.elements["element-4"].changes[0].tags = ["test-code"];
