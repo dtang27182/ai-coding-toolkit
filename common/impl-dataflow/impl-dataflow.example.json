@@ -60,6 +60,7 @@
       "name": "changes",
       "type": "state-variable",
       "containerId": "entity-4",
+      "sourceFile": "src/ChangeModel.ts",
       "changeType": "added",
       "initialization": false
     },
@@ -110,6 +111,7 @@
       "type": "static-data",
       "containerId": "entity-1",
       "name": "Diff Format Rules",
+      "sourceFile": "src/ChangeService.ts",
       "changeType": "unchanged",
       "initialization": false
     },

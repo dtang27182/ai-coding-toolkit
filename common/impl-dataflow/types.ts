@@ -27,8 +27,8 @@ export type FunctionNode = NodeBase & {
   "hld-change-mismatch"?: boolean;
   hldChangeType?: ChangeType | null;
 };
-export type StateVariableNode = NodeBase & { type: "state-variable"; containerId: string };
-export type StaticDataNode = NodeBase & { type: "static-data"; containerId?: string };
+export type StateVariableNode = NodeBase & { type: "state-variable"; containerId: string; sourceFile: string };
+export type StaticDataNode = NodeBase & { type: "static-data"; containerId?: string; sourceFile: string };
 export type BoundaryNode = NodeBase & { type: ComponentType; description: string };
 export type DataflowNode = FunctionNode | StateVariableNode | StaticDataNode | BoundaryNode;
 

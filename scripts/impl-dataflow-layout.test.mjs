@@ -13,8 +13,8 @@ function implementation() {
     { id: "input", name: "Input", type: "system-input", description: "Incoming requests", changeType: "added", initialization: false },
     { id: "output", name: "Output", type: "system-output", description: "Published results", changeType: "added", initialization: false },
     { id: "storage", name: "Storage", type: "external-dependency", description: "Stores values", changeType: "added", initialization: false },
-    { id: "rules", name: "Rules", type: "static-data", containerId: "child", changeType: "added", initialization: false },
-    { id: "defaults", name: "Defaults", type: "static-data", changeType: "added", initialization: false },
+    { id: "rules", name: "Rules", type: "static-data", containerId: "child", sourceFile: "src/Child.ts", changeType: "added", initialization: false },
+    { id: "defaults", name: "Defaults", type: "static-data", sourceFile: "src/defaults.ts", changeType: "added", initialization: false },
     { id: "handle", name: "handle", type: "function", containerId: "parent", sourceFile: "src/Parent.ts", changeType: "added", initialization: false },
     { id: "process", name: "process", type: "function", containerId: "child", sourceFile: "src/Child.ts", changeType: "added", initialization: false },
   ];

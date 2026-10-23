@@ -24,8 +24,8 @@ function highLevelDesign() {
     containers: [{ id: "service", name: "Service", type: "class", sourceFile: "src/Service.ts" }, { id: "operations", name: "operations", type: "module", sourceFile: "src/operations.ts" }],
     nodes: [
       { id: "inspect", name: "inspect", type: "function", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", initialization: false },
-      { id: "value", name: "value", type: "state-variable", containerId: "operations", changeType: "unchanged", initialization: false },
-      { id: "rules", name: "Rules", type: "static-data", containerId: "service", changeType: "unchanged", initialization: false },
+      { id: "value", name: "value", type: "state-variable", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", initialization: false },
+      { id: "rules", name: "Rules", type: "static-data", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", initialization: false },
     ],
     relationships: [],
   };
@@ -59,7 +59,7 @@ test("high-level-design validation accepts the implementation example", async (t
   assert.equal(result.status, 0, result.stderr);
 });
 
-test("functions and containers require repository-relative source files in both stages", async () => {
+test("code nodes and containers require repository-relative source files in both stages", async () => {
   const schema = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.schema.json"), "utf8"));
   const validate = new Ajv2020({ allErrors: true, strictTypes: true }).compile(schema);
   for (const stage of ["high-level-design", "code-review"]) {
@@ -69,9 +69,9 @@ test("functions and containers require repository-relative source files in both 
     if (stage === "code-review") input.diffHunks = [];
     assert.equal(validate(input), true, JSON.stringify(validate.errors));
 
-    for (const node of [...input.nodes.filter((node) => node.type === "function"), ...input.containers]) {
+    for (const node of [...input.nodes, ...input.containers]) {
       delete node.sourceFile;
-      assert.equal(validate(input), false, `${stage} functions and containers must require sourceFile`);
+      assert.equal(validate(input), false, `${stage} ${node.type} must require sourceFile`);
       assert.ok(validate.errors.some((error) => error.keyword === "required" && error.params.missingProperty === "sourceFile"));
       for (const sourceFile of [null, 1, "", "/src/Service.ts", "C:/src/Service.ts", "src\\Service.ts", "../Service.ts", "src/../Service.ts"]) {
         node.sourceFile = sourceFile;
@@ -157,7 +157,7 @@ test("container-free graphs are valid but functions still require an existing ow
 
     input.nodes.push(
       { id: "panel", name: "Panel", type: "ui-component", description: "Displays results", changeType: "unchanged", initialization: false },
-      { id: "rules", name: "Rules", type: "static-data", changeType: "unchanged", initialization: false },
+      { id: "rules", name: "Rules", type: "static-data", sourceFile: "src/rules.ts", changeType: "unchanged", initialization: false },
     );
     assert.equal((await runValidator(t, input)).status, 0);
 
@@ -177,10 +177,10 @@ test("classes and modules can own state, functions, and optionally static data",
   const input = highLevelDesign();
   input.nodes.push(
     { id: "module-inspect", name: "inspect", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "added", initialization: false },
-    { id: "class-value", name: "value", type: "state-variable", containerId: "service", changeType: "modified", initialization: false },
-    { id: "module-rules", name: "Rules", type: "static-data", containerId: "operations", changeType: "unchanged", initialization: false },
-    { id: "unowned-rules", name: "Rules", type: "static-data", changeType: "unchanged", initialization: false },
-    { id: "same-name", name: "inspect", type: "state-variable", containerId: "service", changeType: "unchanged", initialization: false },
+    { id: "class-value", name: "value", type: "state-variable", containerId: "service", sourceFile: "src/Service.ts", changeType: "modified", initialization: false },
+    { id: "module-rules", name: "Rules", type: "static-data", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", initialization: false },
+    { id: "unowned-rules", name: "Rules", type: "static-data", sourceFile: "src/rules.ts", changeType: "unchanged", initialization: false },
+    { id: "same-name", name: "inspect", type: "state-variable", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", initialization: false },
   );
   input.relationships.push({
     from: { nodeId: "value", type: "state-variable" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow",
@@ -342,7 +342,7 @@ test("schema enforces all node-type connection combinations and limits transferT
         if (type === "function" || type === "state-variable") {
           node.containerId = "service";
         }
-        if (type === "function") {
+        if (type === "function" || type === "state-variable" || type === "static-data") {
           node.sourceFile = "src/Service.ts";
         }
         return node;
@@ -424,7 +424,7 @@ test("visualizer keeps repeated member names and container/node names distinct b
   const input = highLevelDesign();
   input.nodes.push(
     { id: "module-inspect", name: "inspect", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", initialization: false },
-    { id: "module-rules", name: "Rules", type: "static-data", containerId: "operations", changeType: "unchanged", initialization: false },
+    { id: "module-rules", name: "Rules", type: "static-data", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", initialization: false },
     { id: "service-panel", name: "Service", type: "ui-component", description: "Service panel", changeType: "unchanged", initialization: false },
   );
   for (const nodeId of ["inspect", "module-inspect"]) {
@@ -503,6 +503,7 @@ test("initialization filtering hides every node subtype and restores it when dis
     input.nodes = [{ id: "setup", name: "Setup", type, description: "Initialization", changeType: "added", initialization: true }];
     if (type === "function" || type === "state-variable" || type === "static-data") {
       input.nodes[0].containerId = "service";
+      input.nodes[0].sourceFile = "src/Service.ts";
     }
     if (type === "ui-component") {
       input.nodes.push({ id: "output", name: "Output", type: "system-output", description: "Setup result", changeType: "added", initialization: false });
@@ -569,7 +570,7 @@ test("visualizer supports boundary-only graphs and an empty graph", () => {
   input.nodes = [
     { id: "input", name: "Input", type: "system-input", description: "Incoming request", changeType: "added", initialization: false },
     { id: "output", name: "Output", type: "system-output", description: "Published result", changeType: "added", initialization: false },
-    { id: "rules", name: "Rules", type: "static-data", changeType: "added", initialization: false },
+    { id: "rules", name: "Rules", type: "static-data", sourceFile: "src/rules.ts", changeType: "added", initialization: false },
   ];
   input.relationships.push({ from: { nodeId: "input", type: "system-input" }, to: { nodeId: "output", type: "system-output" }, type: "dataflow", changeType: "added", dataDescription: "Result", purpose: "Publish" });
   assert.equal(semanticError(input), undefined);

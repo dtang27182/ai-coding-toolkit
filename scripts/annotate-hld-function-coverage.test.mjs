@@ -368,7 +368,7 @@ test("preserves nonfunction nodes, relationships, containers and patch change en
   const review = graph("code-review", [fn("run", "run", "deleted")]);
   addEvidence(review, patches.modified);
   review.containers[0].diffHunkIds = ["evidence"];
-  review.nodes.push({ id: "state", name: "state", type: "state-variable", containerId: "owner", initialization: false, changeType: "added", diffHunkIds: ["evidence"] });
+  review.nodes.push({ id: "state", name: "state", type: "state-variable", containerId: "owner", sourceFile: "src/service.ts", initialization: false, changeType: "added", diffHunkIds: ["evidence"] });
   review.relationships.push({ from: { nodeId: "run", type: "function" }, to: { nodeId: "state", type: "state-variable" }, type: "dataflow", changeType: "added", diffHunkIds: ["evidence"], dataDescription: "Result", purpose: "Retain result" });
   const enriched = generateEnrichedPatch(patches.modified);
   const result = annotateHldFunctionCoverage(graph("high-level-design"), review, patches.modified, enriched);
