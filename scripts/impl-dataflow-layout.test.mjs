@@ -8,11 +8,11 @@ import { findUiPairs } from "../common/impl-dataflow/visualizer/src/pairing.ts";
 
 function implementation() {
   const nodes = [
-    { id: "panel", name: "Panel", type: "ui-component", changeType: "added", changeSummary: "Add Panel.", initialization: false },
-    { id: "unused-panel", name: "Unused panel", type: "ui-component", changeType: "added", changeSummary: "Add Unused panel.", initialization: false },
-    { id: "input", name: "Input", type: "system-input", changeType: "added", changeSummary: "Add Input.", initialization: false },
-    { id: "output", name: "Output", type: "system-output", changeType: "added", changeSummary: "Add Output.", initialization: false },
-    { id: "storage", name: "Storage", type: "external-dependency", changeType: "added", changeSummary: "Add Storage.", initialization: false },
+    { id: "panel", name: "Panel", type: "ui-component", location: "Panel", changeType: "added", changeSummary: "Add Panel.", initialization: false },
+    { id: "unused-panel", name: "Unused panel", type: "ui-component", location: "UnusedPanel", changeType: "added", changeSummary: "Add Unused panel.", initialization: false },
+    { id: "input", name: "Input", type: "system-input", location: "incoming requests", changeType: "added", changeSummary: "Add Input.", initialization: false },
+    { id: "output", name: "Output", type: "system-output", location: "published results", changeType: "added", changeSummary: "Add Output.", initialization: false },
+    { id: "storage", name: "Storage", type: "external-dependency", location: "storage service", changeType: "added", changeSummary: "Add Storage.", initialization: false },
     { id: "rules", name: "Rules", type: "static-data", containerId: "child", sourceFile: "src/Child.ts", changeType: "added", changeSummary: "Add Rules.", initialization: false },
     { id: "defaults", name: "Defaults", type: "static-data", sourceFile: "src/defaults.ts", changeType: "added", changeSummary: "Add Defaults.", initialization: false },
     { id: "handle", name: "handle", type: "function", containerId: "parent", sourceFile: "src/Parent.ts", changeType: "added", changeSummary: "Add handle.", initialization: false },

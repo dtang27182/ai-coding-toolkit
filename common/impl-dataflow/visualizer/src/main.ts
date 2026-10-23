@@ -496,8 +496,8 @@ function renderInspector(graph: VisibleGraph): string {
       content += `${section("Read by", flowRows(outputs, "to"), outputs.length)}${section("Written by", flowRows(inputs, "from", true), inputs.length)}`;
     } else if (node.type === "static-data") {
       content += section("Read by", flowRows(outputs, "to"), outputs.length);
-    } else if (["ui-component", "system-input", "system-output", "external-dependency"].includes(node.type)) {
-      content += `${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
+    } else if (node.type === "ui-component" || node.type === "system-input" || node.type === "system-output" || node.type === "external-dependency") {
+      content += `${section("Location", `<p class="flow-label">${escapeHtml(node.location)}</p>`)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
     }
   } else if (inspected.type === "container") {
     const container = graph.containers.find((container) => container.id === inspected.containerId)!;

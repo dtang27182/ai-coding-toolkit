@@ -448,7 +448,24 @@
     },
     "boundaryNode": {
       "description": "A UI surface, system input or output, or external dependency. Represent implementation handlers and adapters as function nodes instead.",
-      "$ref": "#/$defs/nodeBase"
+      "allOf": [
+        {
+          "$ref": "#/$defs/nodeBase"
+        },
+        {
+          "type": "object",
+          "required": [
+            "location"
+          ],
+          "properties": {
+            "location": {
+              "description": "The concrete system location, such as a UI component name, storage location, external service URI, or class and method name. Do not use a source-code file or line location.",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
     },
     "uiComponent": {
       "description": "A UI surface that receives user input or presents output. May send and receive data. Has no container owner.",
