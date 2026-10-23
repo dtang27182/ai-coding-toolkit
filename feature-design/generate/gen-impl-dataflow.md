@@ -6,7 +6,7 @@ Design implementation changes that satisfy the confirmed High Level Requirements
 
 - Understand the required behavior, constraints, and outcomes by reading the HLD's confirmed High Level Requirements: Desired Behavior, Scope and Assumptions, and User Journeys.
 - Read and apply the HLD's `Design Guidelines`; do not use `Detailed Requirements` for design generation.
-- Read and apply `ai-coding-toolkit/feature-design/hld-quality.md`. Minimize end-state complexity, and minimize change complexity wherever doing so does not increase end-state complexity.
+- Read and apply `ai-coding-toolkit/common/hld/hld-quality.md`. Minimize end-state complexity, and minimize change complexity wherever doing so does not increase end-state complexity.
 
 ## 2. Understand the Existing Codebase
 
@@ -39,7 +39,7 @@ Design the additions and changes to current code needed to satisfy High Level Re
 
 ### Evaluate and Correct Design Quality
 
-- Read `ai-coding-toolkit/feature-design/hld-quality.md` again and evaluate the implementation design against its goals and design principles. Identify deficiencies using the confirmed High Level Requirements and actual codebase as evidence.
+- Read `ai-coding-toolkit/common/hld/hld-quality.md` again and evaluate the implementation design against its goals and design principles. Identify deficiencies using the confirmed High Level Requirements and actual codebase as evidence.
 - Correct the deficiencies in `<feature>.impl-dataflow.json`.
 
 ### Verify Coverage and Validate the JSON

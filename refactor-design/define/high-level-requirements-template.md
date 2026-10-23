@@ -21,7 +21,3 @@
 ##### Explicitly Out of Scope
 
 <changes that explicitly must not be made>
-
-#### User Journeys
-
-<user journeys within the confirmed scope>

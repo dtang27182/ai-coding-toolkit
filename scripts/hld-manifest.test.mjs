@@ -5,8 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { findDefaultHldManifest, hldManifestPlugin } from "../feature-design/visualizer/hld-manifest-plugin.mjs";
-import { hldManifestReferences } from "../feature-design/visualizer/src/hld-manifest.ts";
+import { findDefaultHldManifest, hldManifestPlugin } from "../common/hld/visualizer/hld-manifest-plugin.mjs";
+import { hldManifestReferences } from "../common/hld/visualizer/src/hld-manifest.ts";
 
 test("writes candidate and selected HLD references with shared detailed requirements and opens the newest manifest", async (t) => {
   const repositoryDirectory = await mkdtemp(path.join(os.tmpdir(), "hld-manifest-"));
@@ -16,7 +16,7 @@ test("writes candidate and selected HLD references with shared detailed requirem
   await writeFile(path.join(toolkitDirectory, "config.json"), '{"outputDirectory":"docs/plans"}\n');
   const featureDirectory = path.join(repositoryDirectory, "docs/plans/example");
   const candidateDirectory = path.join(featureDirectory, "iterations/1/candidate-1");
-  const generator = path.resolve("feature-design/generate/write-hld-manifest.mjs");
+  const generator = path.resolve("common/hld/generate/write-hld-manifest.mjs");
   const detailedRequirements = path.join(featureDirectory, "example.detailed-requirements.md");
   await mkdir(featureDirectory, { recursive: true });
   await writeFile(detailedRequirements, "# example Detailed Requirements\n\n- Show a masked API-key field.\n");
@@ -26,7 +26,7 @@ test("writes candidate and selected HLD references with shared detailed requirem
     for (const suffix of ["hld.md", "sys-dataflow.json", "impl-dataflow.json"]) {
       await writeFile(path.join(directory, `example.${suffix}`), "{}\n");
     }
-    execFileSync(process.execPath, [generator, path.join(directory, "example.hld.md"), detailedRequirements]);
+    execFileSync(process.execPath, [generator, path.join(directory, "example.hld.md"), detailedRequirements, "--sys-dataflow"]);
     const manifest = JSON.parse(await readFile(path.join(directory, "example.hld-manifest.json"), "utf8"));
     assert.deepEqual(manifest, {
       hld: path.join(directory, "example.hld.md"),
@@ -65,4 +65,18 @@ test("opens HLD manifests without detailed requirements", () => {
     implDataflow: path.resolve("example.impl-dataflow.json"),
   };
   assert.deepEqual(hldManifestReferences(manifest), manifest);
+});
+
+test("writes and opens a refactoring HLD without a system dataflow", async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "refactor-hld-manifest-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const hld = path.join(directory, "refactor.hld.md");
+  const implDataflow = path.join(directory, "refactor.impl-dataflow.json");
+  const detailedRequirements = path.join(directory, "refactor.detailed-requirements.md");
+  await Promise.all([hld, implDataflow, detailedRequirements].map((file) => writeFile(file, "")));
+
+  execFileSync(process.execPath, [path.resolve("common/hld/generate/write-hld-manifest.mjs"), hld, detailedRequirements]);
+  const manifest = JSON.parse(await readFile(path.join(directory, "refactor.hld-manifest.json"), "utf8"));
+  assert.deepEqual(manifest, { hld, implDataflow, detailedRequirements });
+  assert.deepEqual(hldManifestReferences(manifest), { hld, implDataflow });
 });

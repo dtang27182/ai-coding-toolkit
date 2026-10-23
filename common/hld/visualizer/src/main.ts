@@ -1,6 +1,6 @@
 import "./styles.css";
 import { hldManifestReferences } from "./hld-manifest.ts";
-import { droppedJsonFile, pickJsonFile, supportsJsonFileHandles, watchOpenedJson, type JsonFileHandle } from "../../../common/watch-opened-json.ts";
+import { droppedJsonFile, pickJsonFile, supportsJsonFileHandles, watchOpenedJson, type JsonFileHandle } from "../../../watch-opened-json.ts";
 
 type View = "system" | "implementation";
 
@@ -31,19 +31,23 @@ function sourceControl(action: string): HTMLElement | null {
 function syncHeader(): void {
   const systemRoot = viewerRoot("system");
   const implementationRoot = viewerRoot("implementation");
-  const stage = systemRoot?.querySelector<HTMLElement>(".stage-chip")?.textContent;
+  const stage = (systemFile === undefined ? implementationRoot : systemRoot)?.querySelector<HTMLElement>(".stage-chip")?.textContent;
   const featureName = systemRoot?.querySelector<HTMLElement>(".feature-name")?.textContent;
   const nodeCount = systemRoot?.querySelector<HTMLElement>(".overview-counts strong")?.textContent;
   const classCount = implementationRoot?.querySelectorAll(".class-tab").length;
 
-  if (featureName !== undefined) app.querySelector<HTMLElement>(".review-title")!.textContent = featureName;
+  if (systemFile === undefined && implementationFile !== undefined) {
+    app.querySelector<HTMLElement>(".review-title")!.textContent = implementationFile.name.split("/").at(-1)!.replace(/\.impl-dataflow\.json$/, "");
+  } else if (featureName !== undefined) {
+    app.querySelector<HTMLElement>(".review-title")!.textContent = featureName;
+  }
   if (stage !== undefined) {
     const chip = app.querySelector<HTMLElement>(".stage-chip")!;
     chip.textContent = stage;
     chip.hidden = false;
   }
   const pathLabel = app.querySelector<HTMLElement>(".review-path")!;
-  pathLabel.textContent = manifestError ?? manifestName ?? "Open an HLD manifest to load both dataflows";
+  pathLabel.textContent = manifestError ?? manifestName ?? "Open an HLD manifest to load its dataflow";
   pathLabel.classList.toggle("error", manifestError !== undefined);
   if (nodeCount !== undefined) app.querySelector<HTMLElement>('[data-count="system"]')!.textContent = `${nodeCount} nodes`;
   if (classCount !== undefined) app.querySelector<HTMLElement>('[data-count="implementation"]')!.textContent = `${classCount} units`;
@@ -73,18 +77,20 @@ async function openManifest(value: unknown, name: string, repositoryFile = false
   try {
     const references = hldManifestReferences(value);
     const [system, implementation] = await Promise.all([
-      fetchReference(references.sysDataflow),
+      references.sysDataflow === undefined ? undefined : fetchReference(references.sysDataflow),
       fetchReference(references.implDataflow),
     ]);
-    systemFile = { value: JSON.parse(system.contents), name: system.fileName };
+    systemFile = system === undefined ? undefined : { value: JSON.parse(system.contents), name: system.fileName };
     implementationFile = { value: JSON.parse(implementation.contents), name: implementation.fileName };
-    app.querySelector<HTMLIFrameElement>('[data-panel="system"] iframe')!.contentWindow?.postMessage({ type: "load-sys-dataflow", ...systemFile }, location.origin);
+    if (systemFile !== undefined) app.querySelector<HTMLIFrameElement>('[data-panel="system"] iframe')!.contentWindow?.postMessage({ type: "load-sys-dataflow", ...systemFile }, location.origin);
     app.querySelector<HTMLIFrameElement>('[data-panel="implementation"] iframe')!.contentWindow?.postMessage({ type: "load-impl-dataflow", ...implementationFile }, location.origin);
+    app.querySelector<HTMLButtonElement>('[data-view="system"]')!.hidden = system === undefined;
+    selectView(system === undefined ? "implementation" : "system");
     manifestName = name;
     manifestValue = value;
     manifestIsRepositoryFile = repositoryFile;
     manifestError = undefined;
-    openedRepositoryFiles = repositoryFile ? [name, system.fileName, implementation.fileName] : [system.fileName, implementation.fileName];
+    openedRepositoryFiles = repositoryFile ? [name, ...(system === undefined ? [] : [system.fileName]), implementation.fileName] : [...(system === undefined ? [] : [system.fileName]), implementation.fileName];
   } catch (error) {
     manifestError = `Could not open HLD manifest: ${error instanceof Error ? error.message : String(error)}`;
   }

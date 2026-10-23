@@ -70,9 +70,7 @@ async function installRootCommands() {
 
   if (packageJson !== undefined) {
     const commands = {};
-    if (toolNames.includes("feature-design")) {
-      commands["hld-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/feature-design/visualizer";
-    } else if (toolNames.includes("refactor-design")) {
+    if (toolNames.includes("feature-design") || toolNames.includes("refactor-design")) {
       commands["hld-visualizer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer";
     }
     if (toolNames.includes("enrich-diff")) {
@@ -83,8 +81,9 @@ async function installRootCommands() {
     }
     let packageChanged = false;
     if (
-      toolNames.includes("feature-design") &&
-      packageJson.scripts?.["hld-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer"
+      (toolNames.includes("feature-design") || toolNames.includes("refactor-design")) &&
+      (packageJson.scripts?.["hld-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/feature-design/visualizer" ||
+        packageJson.scripts?.["hld-visualizer"] === "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer")
     ) {
       packageJson.scripts["hld-visualizer"] = commands["hld-visualizer"];
       packageChanged = true;
@@ -212,9 +211,6 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   if (toolNames.includes("feature-design") || toolNames.includes("refactor-design")) {
     await rm(path.join(installedToolkitDirectory, "common", "hld", "visualizer", "dist"), { recursive: true, force: true });
   }
-  if (toolNames.includes("feature-design")) {
-    await rm(path.join(installedToolkitDirectory, "feature-design", "visualizer", "dist"), { recursive: true, force: true });
-  }
   if (toolNames.includes("enrich-diff")) {
     for (const relativePath of ["instructions/generate-system-dataflow.md", "scripts/validate-system-dataflow.mjs", "instructions/gen-sys-dataflow.md", "scripts/validate-sys-dataflow.mjs"]) {
       await rm(path.join(installedToolkitDirectory, "enrich-diff", relativePath), { force: true });
@@ -240,6 +236,17 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   }
   const skillToolNames = toolNames.filter((name) => name !== "advanced-diff-viewer");
   if (toolNames.includes("feature-design")) {
+    for (const relativePath of [
+      "define/define+confirm-design-guidlines.md",
+      "define/define+confirm-requirements.md",
+      "generate/gen-design-context.md",
+      "generate/hld-doc-template.md",
+      "generate/write-hld-manifest.mjs",
+      "hld-quality.md",
+      "visualizer",
+    ]) {
+      await rm(path.join(installedToolkitDirectory, "feature-design", relativePath), { recursive: true, force: true });
+    }
     skillToolNames.push("feature-redesign");
   }
   if (agentNames.includes("codex")) {

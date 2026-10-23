@@ -8,16 +8,17 @@ const designFrontmatter = [
   "allowed-tools:",
   "  - Bash(node ai-coding-toolkit/common/hld/generate/*)",
   "  - Bash(node ai-coding-toolkit/common/impl-dataflow/*)",
-  "  - Bash(node ai-coding-toolkit/common/sys-dataflow/*)",
 ];
 const claudeFrontmatter = {
   "feature-design": [
-    "allowed-tools:",
+    ...designFrontmatter,
     "  - Bash(node ai-coding-toolkit/feature-design/generate/*)",
-    "  - Bash(node ai-coding-toolkit/common/impl-dataflow/*)",
     "  - Bash(node ai-coding-toolkit/common/sys-dataflow/*)",
   ],
-  "refactor-design": designFrontmatter,
+  "refactor-design": [
+    ...designFrontmatter,
+    "  - Bash(node ai-coding-toolkit/refactor-design/generate/*)",
+  ],
   "enrich-diff": [
     "context: fork",
     "allowed-tools:",

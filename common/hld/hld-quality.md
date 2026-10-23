@@ -1,6 +1,6 @@
 # HLD Design Quality
 
-The goal is to minimize end-state complexity while fully satisfying the confirmed High Level Requirements and realizing the User Journeys within the confirmed scope. Minimize change complexity wherever doing so does not increase end-state complexity.
+The goal is to minimize end-state complexity while fully satisfying the confirmed High Level Requirements within the confirmed scope. For feature designs, realize the confirmed User Journeys. Minimize change complexity wherever doing so does not increase end-state complexity.
 
 Behavior should be easy to trace through direct paths with few unnecessary special cases.
 
@@ -40,6 +40,6 @@ Use these principles together to minimize overall end-state complexity. Introduc
 
    Design existing and new behavior as a coherent whole. Reorganize the existing architecture when it reduces end-state complexity, including redrawing higher-level component boundaries, creating new groupings, or restructuring the component hierarchy. Place behavior according to its responsibility in the resulting architecture, with clear, explicit integration points. Avoid feature-specific structures that fragment an existing responsibility or distort the system around its implementation history.
 
-   Where doing so does not increase end-state complexity, concentrate as much new behavior as possible in one cohesive subcomponent and minimize the interactions and dataflows between it and the rest of the system. This should make the feature understandable largely within that subcomponent, narrow the scope of review, and make disabling or rolling back the behavior straightforward.
+   Where doing so does not increase end-state complexity, concentrate as much new behavior as possible in one cohesive subcomponent and minimize the interactions and dataflows between it and the rest of the system. This should make the changed behavior understandable largely within that subcomponent, narrow the scope of review, and make disabling or rolling back the behavior straightforward.
 
 Explain consequential design choices and tradeoffs briefly in the HLD's design rationale, using the requirements and current code as evidence. Show how the choices reduce overall end-state complexity. Keep the change easy to understand and avoid changes that provide no benefit to the required behavior or end-state simplicity.

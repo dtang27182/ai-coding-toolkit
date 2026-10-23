@@ -11,7 +11,7 @@ Use four primary inputs:
 - **Desired Behavior and Scope and Assumptions:** Determine required behavior and effects within each journey's boundary. Do not use them to introduce additional user actions or alternative workflows.
 - **User Journeys:** Define each subgraph's user actions, useful result, and boundary.
 - **Current codebase:** Understand existing dataflow, state, and external dependencies. Use Design Context and Related Workflows to locate relevant code.
-- **HLD Design Quality:** Read `ai-coding-toolkit/feature-design/hld-quality.md` and apply its design principles to minimize end-state complexity, and minimize change complexity wherever doing so does not increase end-state complexity.
+- **HLD Design Quality:** Read `ai-coding-toolkit/common/hld/hld-quality.md` and apply its design principles to minimize end-state complexity, and minimize change complexity wherever doing so does not increase end-state complexity.
 
 Apply the level of abstraction in Design Guidelines.
 

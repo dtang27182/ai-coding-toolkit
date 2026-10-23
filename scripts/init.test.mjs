@@ -86,7 +86,7 @@ test("copies skills and scripts that work after the source checkout is removed",
   }
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/feature-design/visualizer",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
     "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer",
     "adv-diff": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer",
   });
@@ -97,23 +97,23 @@ test("copies skills and scripts that work after the source checkout is removed",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(validation.status, 0, validation.stderr);
 
-  for (const [toolName, title] of [
-    ["feature-design", "HLD Dataflow Visualizer"],
-    ["enrich-diff", "Enriched Diff Visualizer"],
-    ["advanced-diff-viewer", "Advanced Diff Viewer"],
+  for (const [visualizerPath, title] of [
+    ["common/hld/visualizer", "HLD Dataflow Visualizer"],
+    ["enrich-diff/visualizer", "Enriched Diff Visualizer"],
+    ["advanced-diff-viewer/visualizer", "Advanced Diff Viewer"],
   ]) {
-    await rm(path.join(repoDirectory, "ai-coding-toolkit", toolName, "visualizer", "dist"), {
+    await rm(path.join(repoDirectory, "ai-coding-toolkit", visualizerPath, "dist"), {
       recursive: true,
       force: true,
     });
     const visualizerBuild = spawnSync(process.execPath, [
       "ai-coding-toolkit/node_modules/vite/bin/vite.js",
       "build",
-      `ai-coding-toolkit/${toolName}/visualizer`,
+      `ai-coding-toolkit/${visualizerPath}`,
     ], { cwd: repoDirectory, encoding: "utf8" });
     assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
     assert.match(
-      await readFile(path.join(repoDirectory, "ai-coding-toolkit", toolName, "visualizer", "dist", "index.html"), "utf8"),
+      await readFile(path.join(repoDirectory, "ai-coding-toolkit", visualizerPath, "dist", "index.html"), "utf8"),
       new RegExp(title)
     );
   }
@@ -127,7 +127,7 @@ test("installs only feature-design while exposing the feature-design skill", asy
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
-    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/feature-design/visualizer",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
   });
   assert.equal(
     await readFile(path.join(repoDirectory, ".agents", "skills", "feature-design", "SKILL.md"), "utf8"),
@@ -140,14 +140,23 @@ test("installs only feature-design while exposing the feature-design skill", asy
   );
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "impl-dataflow"))).isDirectory(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "node_modules"))).isDirectory(), true);
-  const visualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "feature-design", "visualizer");
+  const visualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "hld", "visualizer");
   await assert.rejects(lstat(path.join(visualizerPath, "dist")), { code: "ENOENT" });
-  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "hld")), { code: "ENOENT" });
-  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer"}}\n');
+  const oldVisualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "feature-design", "visualizer");
+  await mkdir(oldVisualizerPath);
+  await writeFile(path.join(oldVisualizerPath, "old-file.txt"), "old viewer");
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/feature-design/visualizer"}}\n');
   const migratedCommands = install([repoDirectory, "--tool", "feature-design"]);
   assert.equal(migratedCommands.status, 0, migratedCommands.stderr);
+  await assert.rejects(lstat(oldVisualizerPath), { code: "ENOENT" });
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
-    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/feature-design/visualizer",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
+  });
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/hld-gen-new/visualizer"}}\n');
+  const olderCommands = install([repoDirectory, "--tool", "feature-design"]);
+  assert.equal(olderCommands.status, 0, olderCommands.stderr);
+  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
   });
   await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-visualizer":"custom viewer"}}\n');
   const conflictingCommands = install([repoDirectory, "--tool", "feature-design"]);
@@ -171,7 +180,7 @@ test("installs only feature-design while exposing the feature-design skill", asy
   const visualizerBuild = spawnSync(process.execPath, [
     "ai-coding-toolkit/node_modules/vite/bin/vite.js",
     "build",
-    "ai-coding-toolkit/feature-design/visualizer",
+    "ai-coding-toolkit/common/hld/visualizer",
   ], { cwd: repoDirectory, encoding: "utf8" });
   assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
   for (const htmlFile of ["index.html", "system.html", "implementation.html"]) {
@@ -193,10 +202,14 @@ test("installs refactor-design independently for Codex and Claude", async (t) =>
   assert.ok(claudeSkill.endsWith(sourceSkill.slice(frontmatterEnd)));
   assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/hld\/generate\/\*\)\n/);
   assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/impl-dataflow\/\*\)\n/);
-  assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/sys-dataflow\/\*\)\n/);
+  assert.match(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/refactor-design\/generate\/\*\)\n/);
+  assert.doesNotMatch(claudeSkill, /\n {2}- Bash\(node ai-coding-toolkit\/common\/sys-dataflow\/\*\)\n/);
   for (const relativePath of [
     "refactor-design/define/define-requirements.md",
     "refactor-design/define/high-level-requirements-template.md",
+    "refactor-design/generate/gen-design.md",
+    "refactor-design/generate/gen-impl-dataflow.md",
+    "common/hld/generate/hld-doc-template.md",
   ]) {
     assert.equal(
       await readFile(path.join(repoDirectory, "ai-coding-toolkit", relativePath), "utf8"),
@@ -207,6 +220,12 @@ test("installs refactor-design independently for Codex and Claude", async (t) =>
     outputDirectory: "docs/plans/refactors",
   });
   assert.equal((await lstat(path.join(repoDirectory, "docs/plans/refactors"))).isDirectory(), true);
+  const visualizerBuild = spawnSync(process.execPath, [
+    "ai-coding-toolkit/node_modules/vite/bin/vite.js",
+    "build",
+    "ai-coding-toolkit/common/hld/visualizer",
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(visualizerBuild.status, 0, visualizerBuild.stderr);
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     test: "existing",
     "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",

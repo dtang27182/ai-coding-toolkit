@@ -6,8 +6,8 @@ import path from "node:path";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
 
-import { hldManifestReferences } from "../feature-design/visualizer/src/hld-manifest.ts";
-import { watchDataflowFiles } from "../feature-design/visualizer/watch-dataflow-files.mjs";
+import { hldManifestReferences } from "../common/hld/visualizer/src/hld-manifest.ts";
+import { watchDataflowFiles } from "../common/hld/visualizer/watch-dataflow-files.mjs";
 import { watchOpenedJson } from "../common/watch-opened-json.ts";
 
 test("notifies the HLD visualizer when an output dataflow file changes", async (t) => {
@@ -83,16 +83,17 @@ test("refreshes a selected JSON file when its handle returns new contents", asyn
 });
 
 test("refreshes referenced dataflows for automatically and manually opened manifests", async (t) => {
-  const mainSource = await readFile(new URL("../feature-design/visualizer/src/main.ts", import.meta.url), "utf8");
+  const mainSource = await readFile(new URL("../common/hld/visualizer/src/main.ts", import.meta.url), "utf8");
   const watcherSource = await readFile(new URL("../common/watch-opened-json.ts", import.meta.url), "utf8");
   const source = stripTypeScriptTypes(watcherSource).replaceAll("export ", "") +
     stripTypeScriptTypes(mainSource).replace(/^import .*\n/gm, "").replace("import.meta.hot", "hot");
 
-  for (const opening of ["default", "picker", "input", "drop"]) {
+  for (const opening of ["default", "picker", "input", "drop", "refactor-default", "refactor-drop"]) {
     await t.test(opening, async () => {
+      const refactoring = opening.startsWith("refactor");
       const manifest = {
         hld: "/repository/docs/plans/feature.hld.md",
-        sysDataflow: "/repository/docs/plans/feature.sys-dataflow.json",
+        ...(refactoring ? {} : { sysDataflow: "/repository/docs/plans/feature.sys-dataflow.json" }),
         implDataflow: "/repository/docs/plans/feature.impl-dataflow.json",
       };
       const manifestPath = "docs/plans/feature.hld-manifest.json";
@@ -101,7 +102,7 @@ test("refreshes referenced dataflows for automatically and manually opened manif
       const events = new Map();
       const messages = { system: [], implementation: [] };
       const values = new Map([
-        [manifest.sysDataflow, { revision: "system-before" }],
+        ...(refactoring ? [] : [[manifest.sysDataflow, { revision: "system-before" }]]),
         [manifest.implDataflow, { revision: "implementation-before" }],
       ]);
       for (const view of ["system", "implementation"]) {
@@ -111,16 +112,35 @@ test("refreshes referenced dataflows for automatically and manually opened manif
           addEventListener() {},
         });
       }
-      for (const selector of ["#open-hld-manifest", "#hld-manifest-input", ".review-path"]) {
+      for (const selector of ["#open-hld-manifest", "#hld-manifest-input", ".review-path", ".review-title"]) {
         elements.set(selector, {
           files: [file],
           classList: { toggle() {} },
           addEventListener(event, callback) { events.set(`${selector}:${event}`, callback); },
         });
       }
+      for (const view of ["system", "implementation"]) {
+        elements.set(`[data-view="${view}"]`, {
+          dataset: { view },
+          classList: { toggle() {} },
+          addEventListener() {},
+          setAttribute(name, value) { this[name] = value; },
+          removeAttribute() {},
+        });
+        elements.set(`[data-panel="${view}"]`, {
+          dataset: { panel: view },
+          classList: { toggle() {} },
+          setAttribute(name, value) { this[name] = value; },
+        });
+      }
       const app = {
         querySelector(selector) { return elements.get(selector); },
-        querySelectorAll(selector) { return selector === "iframe" ? [elements.get('[data-panel="system"] iframe'), elements.get('[data-panel="implementation"] iframe')] : []; },
+        querySelectorAll(selector) {
+          if (selector === "iframe") return [elements.get('[data-panel="system"] iframe'), elements.get('[data-panel="implementation"] iframe')];
+          if (selector === "[data-view]") return [elements.get('[data-view="system"]'), elements.get('[data-view="implementation"]')];
+          if (selector === "[data-panel]") return [elements.get('[data-panel="system"]'), elements.get('[data-panel="implementation"]')];
+          return [];
+        },
         addEventListener(event, callback) { events.set(event, callback); },
       };
       const window = { setInterval() { return 1; }, clearInterval() {} };
@@ -135,7 +155,7 @@ test("refreshes referenced dataflows for automatically and manually opened manif
         hot: { on(event, callback) { events.set(event, callback); } },
         async fetch(url) {
           if (url === "/__hld-manifest/default") {
-            return { status: opening === "default" ? 200 : 204, ok: true, json: async () => ({ fileName: manifestPath, contents: JSON.stringify(manifest) }) };
+            return { status: opening === "default" || opening === "refactor-default" ? 200 : 204, ok: true, json: async () => ({ fileName: manifestPath, contents: JSON.stringify(manifest) }) };
           } else {
             const reference = new URL(url, "http://localhost").searchParams.get("path");
             assert.equal(values.has(reference), true);
@@ -148,14 +168,22 @@ test("refreshes referenced dataflows for automatically and manually opened manif
         events.get("#open-hld-manifest:click")();
       } else if (opening === "input") {
         events.get("#hld-manifest-input:change")({ currentTarget: elements.get("#hld-manifest-input") });
-      } else if (opening === "drop") {
+      } else if (opening === "drop" || opening === "refactor-drop") {
         events.get("drop")({ preventDefault() {}, stopPropagation() {}, dataTransfer: { items: [], files: [file] } });
       }
       await new Promise(setImmediate);
-      assert.equal(messages.system.length, 1);
+      assert.equal(messages.system.length, refactoring ? 0 : 1);
       assert.equal(messages.implementation.length, 1);
+      if (refactoring) {
+        assert.equal(elements.get('[data-view="system"]').hidden, true);
+        assert.equal(elements.get('[data-view="implementation"]')["aria-selected"], "true");
+      }
 
-      for (const [reference, view] of [[manifest.sysDataflow, "system"], [manifest.implDataflow, "implementation"], [manifest.sysDataflow, "system"]]) {
+      for (const [reference, view] of [
+        ...(refactoring ? [] : [[manifest.sysDataflow, "system"]]),
+        [manifest.implDataflow, "implementation"],
+        ...(refactoring ? [] : [[manifest.sysDataflow, "system"]]),
+      ]) {
         values.set(reference, { revision: `${view}-${messages[view].length}` });
         events.get("hld-dataflow:file-change")({ fileName: path.relative("/repository", reference), contents: JSON.stringify(values.get(reference)) });
         await new Promise(setImmediate);
@@ -165,11 +193,13 @@ test("refreshes referenced dataflows for automatically and manually opened manif
       events.get("hld-dataflow:file-change")({ fileName: "other/feature.sys-dataflow.json", contents: '{}' });
       await new Promise(setImmediate);
       assert.equal(messages.system.length, count);
-      if (opening === "default") {
-        values.set(manifest.sysDataflow, { revision: "manifest-refresh" });
+      if (opening === "default" || opening === "refactor-default") {
+        const refreshedReference = refactoring ? manifest.implDataflow : manifest.sysDataflow;
+        const refreshedView = refactoring ? "implementation" : "system";
+        values.set(refreshedReference, { revision: "manifest-refresh" });
         events.get("hld-dataflow:file-change")({ fileName: manifestPath, contents: JSON.stringify(manifest) });
         await new Promise(setImmediate);
-        assert.deepEqual(messages.system.at(-1).value, values.get(manifest.sysDataflow));
+        assert.deepEqual(messages[refreshedView].at(-1).value, values.get(refreshedReference));
       } else {
         events.get("hld-dataflow:file-change")({ fileName: file.name, contents: JSON.stringify(manifest) });
         await new Promise(setImmediate);

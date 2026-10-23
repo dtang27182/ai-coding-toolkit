@@ -70,9 +70,9 @@ Each target repository has its own files and output configuration and works inde
 
 Start `$feature-design` at any point in a conversation about a feature. Before generating the design, the agent drafts requirements in the HLD, presents its understanding of the desired behavior, scope, and user journeys, asks the user to confirm or correct all three, and waits for explicit approval.
 
-`feature-design/hld-quality.md` defines qualitative guidance for generating one design. The goal is to minimize end-state complexity, then minimize change complexity wherever doing so does not increase end-state complexity.
+`common/hld/hld-quality.md` defines qualitative guidance for generating one design. The goal is to minimize end-state complexity, then minimize change complexity wherever doing so does not increase end-state complexity.
 
-`feature-design` defines and confirms requirements, including User Journeys, then calls `feature-design/generate/gen-design.md` to fill the HLD's Design section and generate its dataflow artifacts and manifest. The HLD template, generation instructions, manifest writer, and visualizer live in `feature-design`. The behavior-change requirements template and definition instructions remain in `feature-design/define`.
+`feature-design` defines and confirms requirements, including User Journeys, then calls `feature-design/generate/gen-design.md` to fill the HLD's Design section and generate its dataflow artifacts and manifest. The shared HLD template, confirmation instructions, quality guidance, manifest writer, and visualizer live in `common/hld`. The behavior-change requirements template and definition instructions remain in `feature-design/define`.
 
 Ask the agent:
 
@@ -88,17 +88,17 @@ The final artifacts are ready for human review; application implementation is a 
 
 Use `$feature-redesign` with an existing HLD whose Design Guidelines and Requirements are filled out to start directly at design generation. It regenerates the Design section, both dataflows, and manifest, overwriting existing design output while preserving the guidelines and requirements. It installs alongside `feature-design` for Codex and Claude Code, where it is invoked as `/feature-redesign`.
 
-The shared dataflow validation scripts remain available independently. Run `npm run hld-visualizer` to switch between its System Dataflow and Implementation Dataflow views. The visualizer loads the newest HLD manifest under the configured output directory, keeping both views on the same design. You can open or drag in another HLD manifest. The views refresh when the open repository manifest or either referenced dataflow changes; manifests chosen with a browser file handle refresh too.
+The shared dataflow validation scripts remain available independently. Run `npm run hld-visualizer` to view an HLD's dataflows. Feature designs have System Dataflow and Implementation Dataflow views; refactoring designs have only the Implementation Dataflow view. The visualizer loads the newest HLD manifest under the configured output directory. You can open or drag in another HLD manifest. Referenced dataflows refresh when they change; manifests chosen with a browser file handle refresh too.
 
 ## Design a Refactoring
 
-Use `$refactor-design` to plan structural changes to existing code, preserving externally observable behavior except for explicitly permitted changes. Its High Level Requirements are organized into Desired Code Structure, Scope, and User Journeys. Refactoring Goal sits under Desired Code Structure; behavior preservation, permitted changes, and explicit exclusions sit under Scope. The skill asks for approval of the high-level and detailed requirements before generating the design.
+Use `$refactor-design` to plan structural changes to existing code, preserving externally observable behavior except for explicitly permitted changes. Its High Level Requirements are organized into Desired Code Structure and Scope. Refactoring Goal sits under Desired Code Structure; behavior preservation, permitted changes, and explicit exclusions sit under Scope. The skill asks for approval of the high-level and detailed requirements before generating the design.
 
 ```text
 Use $refactor-design to separate parsing from storage in the import workflow while preserving its behavior.
 ```
 
-The skill uses the shared HLD template, definition and confirmation workflow, generator, and visualizer. It produces the same HLD, Detailed Requirements, dataflows, and manifest as `feature-design`, under a slug chosen for the refactoring. Design generation may leave the System Dataflow unchanged when the refactoring affects only implementation structure. Application implementation follows human design review.
+The skill uses the shared HLD template, confirmation workflow, quality guidance, manifest writer, and visualizer. Its own requirements template and implementation dataflow instructions guide the refactoring. It produces an HLD, Detailed Requirements, Implementation Dataflow, and manifest under a slug chosen for the refactoring. The HLD and manifest omit System Dataflow. Application implementation follows human design review.
 
 ## Enrich the Current Diff
 

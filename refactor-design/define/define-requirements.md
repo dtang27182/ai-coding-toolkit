@@ -5,7 +5,7 @@
 
 Use the current code and tests to understand existing behavior and constraints, not to choose an implementation. Preserve explicit requirements and decisions without adding unspecified design choices. The confirmed high-level requirements guide design; detailed requirements guide implementation after design handoff.
 
-Use concise bullets for intended outcomes, behavior, scope, and constraints across all sections. Keep numbered journeys and clarification questions equally concise.
+Use concise bullets for intended outcomes, behavior, scope, and constraints across all sections. Keep numbered clarification questions equally concise.
 
 ## Define High Level Requirements
 
@@ -36,13 +36,6 @@ Use `Scope` only to group the following subsections; do not generate content dir
 #### Explicitly Out of Scope
 
 - Record changes the user explicitly rules out, including structural changes, behavior changes, and affected code areas or workflows.
-
-### User Journeys
-
-- Identify user journeys through the affected code, grounded in current code and tests and constrained by Scope. Do not turn optional behavior changes into required journey outcomes or invent interactions to describe restructuring.
-- Describe user actions and their visible outputs or effects, with explicit subjects, triggers, and useful results. Omit implementation details.
-- Keep dependent actions toward one goal together; separate journeys that produce distinct useful results. Do not create journeys for structural goals or implementation constraints.
-- Write a numbered list, giving each journey a short name.
 
 ## Define Detailed Requirements
 
