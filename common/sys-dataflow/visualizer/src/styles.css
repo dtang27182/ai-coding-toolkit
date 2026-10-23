@@ -386,6 +386,11 @@ button:focus-visible,
   cursor: pointer;
 }
 
+.edge-return-arrow {
+  pointer-events: all;
+  cursor: pointer;
+}
+
 .legend {
   position: absolute;
   bottom: 14px;
@@ -789,6 +794,10 @@ button:focus-visible,
 .location-copy {
   color: oklch(0.83 0.045 245);
   font-size: 12px;
+}
+
+.merged-flow-details p + p {
+  margin-top: 9px;
 }
 
 .pseudo-code {

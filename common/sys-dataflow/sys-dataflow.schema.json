@@ -237,7 +237,7 @@
           "minLength": 1
         },
         "location": {
-          "description": "The concrete system location, such as a UI component name, storage location, external service URI, or class and method name. Do not use a source-code file or line location.",
+          "description": "The concrete system location, such as a UI component name, storage location, or external service URI. For data-processing nodes, include the class name and method name for class-based methods, or the module name and function name for functions outside a class. Do not use a source-code file or line location.",
           "type": "string",
           "minLength": 1
         },
