@@ -21,7 +21,7 @@ const plannerPatch = [
 ].join("\n");
 
 function node(name, diffHunkIds) {
-  const value = { type: "data-processing", name, description: `${name} description`, medium: "TypeScript", location: name, algorithm: "Transform." };
+  const value = { type: "data-processing", name, journeySequenceId: 1, description: `${name} description`, medium: "TypeScript", location: name, algorithm: "Transform." };
   if (diffHunkIds !== undefined) value.diffHunkIds = diffHunkIds;
   return value;
 }
@@ -35,7 +35,7 @@ function relationship(id, from, to, diffHunkIds) {
 /** Ranker cites two hunks; Policy and the policy-to-ranker flow share a third; Display cites none. */
 function codeReviewDataflow() {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     stage: "code-review",
     feature: "Diff hunk rendering",
     diffHunks: [
@@ -46,6 +46,7 @@ function codeReviewDataflow() {
     subgraphs: [{
       id: "journey-1",
       name: "Test flow",
+      journeySequenceId: 1,
       nodes: [
         node("Ranker", ["hunk-planner", "hunk-score"]),
         node("Policy", ["hunk-policy"]),
@@ -142,7 +143,7 @@ test("references collect every node and relationship citing a hunk", () => {
 
 test("shared hunk references link to owners in other subgraphs", () => {
   const dataflow = codeReviewDataflow();
-  dataflow.subgraphs.push({ id: "another-flow", name: "Another flow", nodes: [node("Other processor", ["hunk-policy"])], relationships: [] });
+  dataflow.subgraphs.push({ id: "another-flow", name: "Another flow", journeySequenceId: 1, nodes: [node("Other processor", ["hunk-policy"])], relationships: [] });
   assert.deepEqual(hunkReferences(dataflow).get("hunk-policy"), [policy, { type: "node", name: "Other processor" }, policyFlow]);
   const html = render(policy, ["hunk-policy"], { dataflow, openHunk: { owner: "node:Policy", id: "hunk-policy" } });
   assert.match(html, /data-jump-node="Other processor"><badge data-processing>/);

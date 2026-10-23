@@ -13,6 +13,7 @@ export type NodeType =
 export interface SystemDataflowNode {
   type: NodeType;
   name: string;
+  journeySequenceId: number;
   description: string;
   medium: string;
   location: string;
@@ -41,12 +42,13 @@ export interface DiffHunk {
 export interface SystemDataflowSubgraph {
   id: string;
   name: string;
+  journeySequenceId: number;
   nodes: SystemDataflowNode[];
   relationships: SystemDataflowRelationship[];
 }
 
 export interface SystemDataflow {
-  schemaVersion: 3;
+  schemaVersion: 4;
   stage: "high-level-design" | "inspect-code" | "code-review";
   feature: string;
   diffHunks?: DiffHunk[];

@@ -3,7 +3,7 @@ import test from "node:test";
 import { findPairs, linkPath, partnersOf, tokenLabel } from "../common/sys-dataflow/visualizer/src/pairing.ts";
 
 function node(type, name, location) {
-  return { type, name, location, medium: "Shared medium", description: name };
+  return { type, name, journeySequenceId: 1, location, medium: "Shared medium", description: name };
 }
 
 const nodes = [

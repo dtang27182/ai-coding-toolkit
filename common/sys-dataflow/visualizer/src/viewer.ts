@@ -269,12 +269,12 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
         const pair = pairsByNode.get(node.name);
         const pairingLabel = pair === undefined ? "" : `, paired with ${pair.members.filter((member) => member !== node).map((member) => member.name).join(", ")}`;
         const details = form.details.map((detail) => `<path class="node-detail" d="${detail}"></path>`).join("");
-        return `<button class="graph-node${selected ? " selected" : ""}${node.changeType === "deleted" ? " deleted" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;--type-color:${type.color};--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(node.name)}" aria-label="Inspect ${escapeHtml(type.label)} ${escapeHtml(node.name + pairingLabel)}">
+        return `<button class="graph-node${selected ? " selected" : ""}${node.changeType === "deleted" ? " deleted" : ""}" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px;--type-color:${type.color};--change-color:${changeColor(node.changeType)}" data-select="node" data-node="${escapeHtml(node.name)}" aria-label="Inspect ${escapeHtml(type.label)} ${escapeHtml(node.name + pairingLabel)}, phase ${node.journeySequenceId}">
           <svg class="node-shape" width="${box.width}" height="${box.height}" viewBox="0 0 ${box.width} ${box.height}" aria-hidden="true">
             <path class="node-outline" d="${form.outline}"${form.dashed ? ' stroke-dasharray="7 5"' : ""}></path>${details}
           </svg>
           <span class="node-body">
-            <span class="node-badge">${type.badge}</span>
+            <span class="node-badge"><span>${type.badge}</span><span class="node-phase">PHASE ${node.journeySequenceId}</span></span>
             <span class="node-name">${escapeHtml(node.name)}</span>
             <span class="node-medium">${escapeHtml(node.medium)}</span>
           </span>
@@ -290,7 +290,7 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
         <svg class="graph-svg" width="${layout.width}" height="${layout.height}" aria-hidden="true"><defs>${renderMarkers()}</defs>${edges}</svg>
         ${graph.subgraphs.map((subgraph) => {
           const box = layout.subgraphs.get(subgraph.id)!;
-          return `<section class="subgraph" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px" aria-label="${escapeHtml(subgraph.name)}"><h2>${escapeHtml(subgraph.name)}</h2></section>`;
+          return `<section class="subgraph" style="left:${box.x}px;top:${box.y}px;width:${box.width}px;height:${box.height}px" aria-label="Phase ${subgraph.journeySequenceId}: ${escapeHtml(subgraph.name)}"><h2>Phase ${subgraph.journeySequenceId} · ${escapeHtml(subgraph.name)}</h2></section>`;
         }).join("")}
         ${nodes}
         <svg class="pair-link-layer" width="${layout.width}" height="${layout.height}" aria-hidden="true"></svg>

@@ -325,7 +325,8 @@ button:focus-visible,
   height: 27px;
   align-self: stretch;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 6px;
   padding: 0 11px;
   border: 1px solid color-mix(in oklch, var(--type-color) 44%, transparent);
   border-radius: 6px;
@@ -336,6 +337,12 @@ button:focus-visible,
   font-weight: 600;
   letter-spacing: 0.11em;
   white-space: nowrap;
+}
+
+.node-phase {
+  flex: 0 0 auto;
+  font-size: 9px;
+  letter-spacing: 0.05em;
 }
 
 .node-name {
@@ -810,7 +817,7 @@ button:focus-visible,
   background: oklch(0.15 0.02 255);
   font-size: 12px;
   line-height: 1.55;
-  white-space: pre-wrap;
+  white-space: pre;
 }
 
 .flow-list {
