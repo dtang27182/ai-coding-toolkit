@@ -317,11 +317,6 @@
             "state-variable"
           ]
         },
-        "description": {
-          "description": "What this node is or represents, including a concrete URL, file path, storage key, or other identifier when relevant.",
-          "type": "string",
-          "minLength": 1
-        },
         "changeType": {
           "$ref": "#/$defs/changeType"
         },
@@ -447,17 +442,7 @@
     },
     "boundaryNode": {
       "description": "A UI surface, system input or output, or external dependency. Represent implementation handlers and adapters as function nodes instead.",
-      "allOf": [
-        {
-          "$ref": "#/$defs/nodeBase"
-        },
-        {
-          "type": "object",
-          "required": [
-            "description"
-          ]
-        }
-      ]
+      "$ref": "#/$defs/nodeBase"
     },
     "uiComponent": {
       "description": "A UI surface that receives user input or presents output. May send and receive data. Has no container owner.",

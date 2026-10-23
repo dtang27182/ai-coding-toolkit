@@ -30,7 +30,7 @@ function codeReview() {
       { id: "inspect", name: "inspect", type: "function", containerId: "controller", sourceFile: "src/Controller.ts", changeType: "modified", initialization: false, diffHunkIds: ["change"] },
       { id: "result", name: "result", type: "state-variable", containerId: "controller", sourceFile: "src/Controller.ts", changeType: "added", initialization: false, diffHunkIds: ["change"] },
       { id: "read", name: "read", type: "function", containerId: "repository", sourceFile: "src/Repository.ts", changeType: "unchanged", initialization: false },
-      { id: "panel", name: "Panel", description: "Displays results.", type: "ui-component", changeType: "modified", initialization: false, diffHunkIds: ["change"] },
+      { id: "panel", name: "Panel", type: "ui-component", changeType: "modified", initialization: false, diffHunkIds: ["change"] },
       { id: "rules", name: "Rules", type: "static-data", containerId: "controller", sourceFile: "src/Controller.ts", changeType: "modified", initialization: false, diffHunkIds: ["change"] },
     ],
     relationships: [

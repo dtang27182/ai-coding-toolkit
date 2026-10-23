@@ -12,7 +12,6 @@ interface NodeBase {
   id: string;
   name: string;
   type: NodeType;
-  description?: string;
   changeType: ChangeType;
   initialization: boolean;
   diffHunkIds?: string[];
@@ -29,7 +28,7 @@ export type FunctionNode = NodeBase & {
 };
 export type StateVariableNode = NodeBase & { type: "state-variable"; containerId: string; sourceFile: string };
 export type StaticDataNode = NodeBase & { type: "static-data"; containerId?: string; sourceFile: string };
-export type BoundaryNode = NodeBase & { type: ComponentType; description: string };
+export type BoundaryNode = NodeBase & { type: ComponentType };
 export type DataflowNode = FunctionNode | StateVariableNode | StaticDataNode | BoundaryNode;
 
 export interface Container {

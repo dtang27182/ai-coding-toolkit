@@ -108,8 +108,8 @@ test("initialization is a required boolean only on nodes in both stages", async 
   const validate = new Ajv2020({ allErrors: true, strictTypes: true }).compile(schema);
   const example = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"), "utf8"));
   example.nodes.push(
-    { id: "input", name: "Input", type: "system-input", description: "Incoming request", changeType: "unchanged", initialization: false },
-    { id: "output", name: "Output", type: "system-output", description: "Published result", changeType: "unchanged", initialization: false },
+    { id: "input", name: "Input", type: "system-input", changeType: "unchanged", initialization: false },
+    { id: "output", name: "Output", type: "system-output", changeType: "unchanged", initialization: false },
   );
   for (const stage of ["high-level-design", "code-review"]) {
     const input = structuredClone(example);
@@ -156,7 +156,7 @@ test("container-free graphs are valid but functions still require an existing ow
     assert.equal((await runValidator(t, input)).status, 0);
 
     input.nodes.push(
-      { id: "panel", name: "Panel", type: "ui-component", description: "Displays results", changeType: "unchanged", initialization: false },
+      { id: "panel", name: "Panel", type: "ui-component", changeType: "unchanged", initialization: false },
       { id: "rules", name: "Rules", type: "static-data", sourceFile: "src/rules.ts", changeType: "unchanged", initialization: false },
     );
     assert.equal((await runValidator(t, input)).status, 0);
@@ -193,15 +193,20 @@ test("classes and modules can own state, functions, and optionally static data",
   assert.equal(result.status, 0, result.stderr);
 });
 
-test("boundary nodes require descriptions and cannot have container owners", async (t) => {
+test("nodes reject descriptions and boundary nodes cannot have container owners", async (t) => {
+  for (const node of highLevelDesign().nodes) {
+    const input = highLevelDesign();
+    input.nodes.find((entry) => entry.id === node.id).description = "Extra description";
+    assert.equal((await runValidator(t, input)).status, 1);
+  }
   for (const type of ["ui-component", "system-input", "system-output", "external-dependency"]) {
     const input = highLevelDesign();
-    input.nodes.push({ id: "boundary", name: "Boundary", type, description: "System boundary", changeType: "unchanged", initialization: false });
+    input.nodes.push({ id: "boundary", name: "Boundary", type, changeType: "unchanged", initialization: false });
     assert.equal((await runValidator(t, input)).status, 0);
 
-    const missingDescription = structuredClone(input);
-    delete missingDescription.nodes[3].description;
-    assert.equal((await runValidator(t, missingDescription)).status, 1);
+    input.nodes[3].description = "Extra description";
+    assert.equal((await runValidator(t, input)).status, 1);
+    delete input.nodes[3].description;
 
     input.nodes[3].containerId = "service";
     assert.equal((await runValidator(t, input)).status, 1);
@@ -233,11 +238,11 @@ test("name uniqueness follows owner and subtype rather than entity IDs", async (
 
   const duplicateUnowned = highLevelDesign();
   delete duplicateUnowned.nodes[2].containerId;
-  duplicateUnowned.nodes.push({ id: "external-rules", name: "Rules", type: "external-dependency", description: "External rules", changeType: "unchanged", initialization: false });
+  duplicateUnowned.nodes.push({ id: "external-rules", name: "Rules", type: "external-dependency", changeType: "unchanged", initialization: false });
   assert.match((await runValidator(t, duplicateUnowned)).stderr, /Duplicate unowned node name: Rules/);
 
   const sharedContainerName = highLevelDesign();
-  sharedContainerName.nodes.push({ id: "boundary", name: "Service", type: "ui-component", description: "Service panel", changeType: "unchanged", initialization: false });
+  sharedContainerName.nodes.push({ id: "boundary", name: "Service", type: "ui-component", changeType: "unchanged", initialization: false });
   assert.equal((await runValidator(t, sharedContainerName)).status, 0);
 });
 
@@ -338,7 +343,7 @@ test("schema enforces all node-type connection combinations and limits transferT
     for (const to of Object.keys(permittedTargets)) {
       const input = highLevelDesign();
       input.nodes = Object.keys(permittedTargets).map((type) => {
-        const node = { id: type, name: type, type, description: type, changeType: "unchanged", initialization: false };
+        const node = { id: type, name: type, type, changeType: "unchanged", initialization: false };
         if (type === "function" || type === "state-variable") {
           node.containerId = "service";
         }
@@ -394,7 +399,7 @@ test("changed relationships do not independently mark containers changed", async
   });
   input.containers.push({ id: "model", name: "Model", type: "class", sourceFile: "src/Model.ts" });
   input.relationships.push({ from: { containerId: "service", type: "class" }, to: { containerId: "model", type: "class" }, type: "composition", changeType: "added" });
-  input.nodes.push({ id: "panel", name: "Panel", type: "ui-component", description: "Shows inspection results", changeType: "modified", initialization: false });
+  input.nodes.push({ id: "panel", name: "Panel", type: "ui-component", changeType: "modified", initialization: false });
   Object.assign(input, { changedClassCount: 0, changedFunctionCount: 0, changedComponentCount: 1, changedDataflowRelationshipCount: 1 });
   const result = await runValidator(t, input, "--evaluated");
   assert.equal(result.status, 0, result.stderr);
@@ -425,7 +430,7 @@ test("visualizer keeps repeated member names and container/node names distinct b
   input.nodes.push(
     { id: "module-inspect", name: "inspect", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", initialization: false },
     { id: "module-rules", name: "Rules", type: "static-data", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", initialization: false },
-    { id: "service-panel", name: "Service", type: "ui-component", description: "Service panel", changeType: "unchanged", initialization: false },
+    { id: "service-panel", name: "Service", type: "ui-component", changeType: "unchanged", initialization: false },
   );
   for (const nodeId of ["inspect", "module-inspect"]) {
     input.relationships.push({ from: { nodeId: "service-panel", type: "ui-component" }, to: { nodeId, type: "function" }, type: "dataflow", changeType: "added", dataDescription: "Request", purpose: "Inspect" });
@@ -500,13 +505,13 @@ test("visualizer filters all member types and derives status from changed owned 
 test("initialization filtering hides every node subtype and restores it when disabled", () => {
   for (const type of ["function", "state-variable", "static-data", "ui-component", "system-input", "system-output", "external-dependency"]) {
     const input = highLevelDesign();
-    input.nodes = [{ id: "setup", name: "Setup", type, description: "Initialization", changeType: "added", initialization: true }];
+    input.nodes = [{ id: "setup", name: "Setup", type, changeType: "added", initialization: true }];
     if (type === "function" || type === "state-variable" || type === "static-data") {
       input.nodes[0].containerId = "service";
       input.nodes[0].sourceFile = "src/Service.ts";
     }
     if (type === "ui-component") {
-      input.nodes.push({ id: "output", name: "Output", type: "system-output", description: "Setup result", changeType: "added", initialization: false });
+      input.nodes.push({ id: "output", name: "Output", type: "system-output", changeType: "added", initialization: false });
       input.relationships.push({ from: { nodeId: "setup", type }, to: { nodeId: "output", type: "system-output" }, type: "dataflow", changeType: "added", dataDescription: "Setup result", purpose: "Publish setup" });
     }
     for (const hideInitialization of [true, false]) {
@@ -568,8 +573,8 @@ test("visualizer supports boundary-only graphs and an empty graph", () => {
   const input = highLevelDesign();
   input.containers = [];
   input.nodes = [
-    { id: "input", name: "Input", type: "system-input", description: "Incoming request", changeType: "added", initialization: false },
-    { id: "output", name: "Output", type: "system-output", description: "Published result", changeType: "added", initialization: false },
+    { id: "input", name: "Input", type: "system-input", changeType: "added", initialization: false },
+    { id: "output", name: "Output", type: "system-output", changeType: "added", initialization: false },
     { id: "rules", name: "Rules", type: "static-data", sourceFile: "src/rules.ts", changeType: "added", initialization: false },
   ];
   input.relationships.push({ from: { nodeId: "input", type: "system-input" }, to: { nodeId: "output", type: "system-output" }, type: "dataflow", changeType: "added", dataDescription: "Result", purpose: "Publish" });

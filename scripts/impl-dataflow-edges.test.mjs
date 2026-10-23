@@ -14,7 +14,7 @@ function implementation(relationships) {
       ...["b", "b2"].map((id) => ({ id, name: id, type: "function", containerId: "service", sourceFile: "src/Service.ts", changeType: "added", initialization: false })),
       { id: "state", name: "State", type: "state-variable", containerId: "service", sourceFile: "src/Service.ts", changeType: "added", initialization: false },
       { id: "static", name: "Static", type: "static-data", containerId: "service", sourceFile: "src/Service.ts", changeType: "added", initialization: false },
-      { id: "boundary", name: "Boundary", type: "external-dependency", description: "Storage", changeType: "added", initialization: false },
+      { id: "boundary", name: "Boundary", type: "external-dependency", changeType: "added", initialization: false },
     ],
     relationships,
   };
