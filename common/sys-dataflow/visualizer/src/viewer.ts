@@ -74,6 +74,7 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
   let graphLayout: ReturnType<typeof computeLayout>;
   let userZoomed = false;
   let inspectorWidth: number | undefined;
+  let inspectorCollapsed = true;
   let selection: Selection | undefined;
   let hovered: Selection | undefined;
   let statusMessage = "";
@@ -426,6 +427,7 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
           <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
           <button class="control-button primary" data-open>Open JSON</button>
           ${hasUnchanged ? `<button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged aria-pressed="${!showUnchanged}">${showUnchanged ? "Hide unchanged" : "Show unchanged"}</button>` : ""}
+          <button class="control-button${inspectorCollapsed ? "" : " active"}" data-toggle-inspector aria-pressed="${!inspectorCollapsed}" aria-label="${inspectorCollapsed ? "Show inspector" : "Hide inspector"}">${inspectorCollapsed ? "Show inspector" : "Hide inspector"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
       </header>
@@ -436,17 +438,22 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
           ${renderGraph()}
           ${renderLegend()}
         </main>
-        <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuemin="240" tabindex="0"></div>
-        <aside class="inspector" aria-label="Dataflow inspector">${renderInspector()}</aside>
+        ${inspectorCollapsed
+          ? '<button class="inspector-rail" data-toggle-inspector aria-label="Show inspector" title="Show inspector"><span class="inspector-rail-chevron">‹</span><span class="inspector-rail-label">Inspector</span></button>'
+          : `<div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuemin="240" tabindex="0"><button class="inspector-collapse" data-toggle-inspector aria-label="Hide inspector" title="Hide inspector">›</button></div>
+        <button class="inspector-collapse-mobile" data-toggle-inspector aria-label="Hide inspector">Hide inspector</button>
+        <aside class="inspector" aria-label="Dataflow inspector">${renderInspector()}</aside>`}
       </div>
       <input data-file-input type="file" accept="application/json,.json" hidden />
     </div>`;
     bindInteractions();
+    fitGraph();
     updateGraphFocus(hovered ?? selection);
   }
 
   function bindInspector(): void {
-    const inspector = app.querySelector<HTMLElement>(".inspector")!;
+    const inspector = app.querySelector<HTMLElement>(".inspector");
+    if (inspector === null) return;
     // updateInspector() swaps this element's contents but keeps the element, so bind its listener only once.
     if (inspector.dataset.bound === "true") return;
     inspector.dataset.bound = "true";
@@ -472,8 +479,11 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
   }
 
   function updateInspector(): void {
-    app.querySelector<HTMLElement>(".inspector")!.innerHTML = renderInspector();
-    bindInspector();
+    const inspector = app.querySelector<HTMLElement>(".inspector");
+    if (inspector !== null) {
+      inspector.innerHTML = renderInspector();
+      bindInspector();
+    }
   }
 
   function updateGraphFocus(value: Selection | undefined): void {
@@ -521,13 +531,20 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
   function bindInteractions(): void {
     bindInspector();
     const workspace = app.querySelector<HTMLElement>(".workspace")!;
-    const inspectorResizer = app.querySelector<HTMLElement>("[data-inspector-resizer]")!;
-    inspectorResizer.setAttribute("aria-valuemax", String(workspace.clientWidth - 260));
-    inspectorResizer.setAttribute("aria-valuenow", String(Math.round(app.querySelector<HTMLElement>(".inspector")!.getBoundingClientRect().width)));
+    const inspectorResizer = app.querySelector<HTMLElement>("[data-inspector-resizer]");
+    for (const toggle of app.querySelectorAll<HTMLElement>("[data-toggle-inspector]")) {
+      toggle.addEventListener("pointerdown", (event) => event.stopPropagation());
+      toggle.addEventListener("click", () => {
+        inspectorCollapsed = !inspectorCollapsed;
+        render();
+      });
+    }
+    inspectorResizer?.setAttribute("aria-valuemax", String(workspace.clientWidth - 260));
+    inspectorResizer?.setAttribute("aria-valuenow", String(Math.round(app.querySelector<HTMLElement>(".inspector")!.getBoundingClientRect().width)));
     let resizePointer: number | undefined;
     let resizeStartX = 0;
     let resizeStartWidth = 0;
-    inspectorResizer.addEventListener("pointerdown", (event) => {
+    inspectorResizer?.addEventListener("pointerdown", (event) => {
       if (event.button === 0) {
         resizePointer = event.pointerId;
         resizeStartX = event.clientX;
@@ -537,21 +554,21 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
         event.preventDefault();
       }
     });
-    inspectorResizer.addEventListener("pointermove", (event) => {
+    inspectorResizer?.addEventListener("pointermove", (event) => {
       if (event.pointerId === resizePointer) {
         setInspectorWidth(resizeStartWidth - (event.clientX - resizeStartX));
       }
     });
-    inspectorResizer.addEventListener("pointerup", (event) => {
+    inspectorResizer?.addEventListener("pointerup", (event) => {
       if (event.pointerId === resizePointer) {
         inspectorResizer.releasePointerCapture(event.pointerId);
       }
     });
-    inspectorResizer.addEventListener("lostpointercapture", () => {
+    inspectorResizer?.addEventListener("lostpointercapture", () => {
       workspace.classList.remove("resizing-inspector");
       resizePointer = undefined;
     });
-    inspectorResizer.addEventListener("keydown", (event) => {
+    inspectorResizer?.addEventListener("keydown", (event) => {
       if (event.key === "ArrowLeft") {
         setInspectorWidth(app.querySelector<HTMLElement>(".inspector")!.getBoundingClientRect().width + 16);
         event.preventDefault();
@@ -572,6 +589,7 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
         event.stopPropagation();
         selection = target();
         hovered = undefined;
+        inspectorCollapsed = false;
         render();
       });
       element.addEventListener("mouseenter", () => {
