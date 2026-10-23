@@ -18,6 +18,10 @@ const claudeFrontmatter = {
     "  - Bash(node ai-coding-toolkit/common/sys-dataflow/*)",
   ],
   "refactor-design": designFrontmatter,
+  "user-journey-dataflow": [
+    "allowed-tools:",
+    "  - Bash(node ai-coding-toolkit/common/sys-dataflow/*)",
+  ],
   "enrich-diff": [
     "context: fork",
     "allowed-tools:",
@@ -30,7 +34,7 @@ const claudeFrontmatter = {
 export async function installClaudeSkills(repoDirectory, toolkitDirectory, toolNames) {
   for (const toolName of toolNames) {
     const sourceSkillDirectory =
-      toolName === "feature-design" || toolName === "refactor-design"
+      toolName === "feature-design" || toolName === "refactor-design" || toolName === "user-journey-dataflow"
         ? path.join(toolkitDirectory, toolName)
         : path.join(toolkitDirectory, toolName === "feature-redesign" ? "feature-design" : toolName, "skills", toolName);
     const installedSkillDirectory = path.join(repoDirectory, ".claude", "skills", toolName);

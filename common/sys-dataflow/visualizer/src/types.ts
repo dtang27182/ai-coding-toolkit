@@ -47,7 +47,7 @@ export interface SystemDataflowSubgraph {
 
 export interface SystemDataflow {
   schemaVersion: 3;
-  stage: "high-level-design" | "code-review";
+  stage: "high-level-design" | "inspect-code" | "code-review";
   feature: string;
   diffHunks?: DiffHunk[];
   subgraphs: SystemDataflowSubgraph[];

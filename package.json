@@ -9,9 +9,11 @@
     "install:refactor-design": "node scripts/init.mjs --agent codex --tool refactor-design",
     "install:enrich-diff": "node scripts/init.mjs --agent codex --tool enrich-diff",
     "install:adv-diff": "node scripts/init.mjs --agent codex --tool advanced-diff-viewer",
+    "install:user-journey-dataflow": "node scripts/init.mjs --agent codex --tool user-journey-dataflow",
     "adv-diff": "vite advanced-diff-viewer/visualizer",
     "hld-visualizer": "vite feature-design/visualizer",
-    "diff-visualizer": "vite enrich-diff/visualizer"
+    "diff-visualizer": "vite enrich-diff/visualizer",
+    "user-journey-dataflow-viewer": "vite user-journey-dataflow/visualizer"
   },
   "dependencies": {
     "ajv": "8.20.0"

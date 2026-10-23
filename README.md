@@ -14,7 +14,7 @@ npm run install:all -- /path/to/code-repo
 
 Run `npm install` in this toolkit checkout before using any installer command; the installer copies its `node_modules` into the target repository. If an earlier attempt stopped with a missing `node_modules` error, install the dependencies and rerun the same installer command to finish the installation.
 
-The default installer installs `feature-design` (including `feature-redesign`), `refactor-design`, and `enrich-diff` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the feature design skills, run:
+The default installer installs `feature-design` (including `feature-redesign`), `refactor-design`, `enrich-diff`, and `user-journey-dataflow` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the feature design skills, run:
 
 ```sh
 npm run install:feature-design -- /path/to/code-repo
@@ -30,6 +30,12 @@ To install only the `$enrich-diff` skill, run:
 
 ```sh
 npm run install:enrich-diff -- /path/to/code-repo
+```
+
+To install only the `$user-journey-dataflow` skill and its viewer, run:
+
+```sh
+npm run install:user-journey-dataflow -- /path/to/code-repo
 ```
 
 To install the Advanced Diff Viewer independently, run:
@@ -89,6 +95,14 @@ The final artifacts are ready for human review; application implementation is a 
 Use `$feature-redesign` with an existing HLD whose Design Guidelines and Requirements are filled out to start directly at design generation. It regenerates the Design section, both dataflows, and manifest, overwriting existing design output while preserving the guidelines and requirements. It installs alongside `feature-design` for Codex and Claude Code, where it is invoked as `/feature-redesign`.
 
 The shared dataflow validation scripts remain available independently. Run `npm run hld-visualizer` to switch between its System Dataflow and Implementation Dataflow views. The visualizer loads the newest HLD manifest under the configured output directory, keeping both views on the same design. You can open or drag in another HLD manifest. The views refresh when the open repository manifest or either referenced dataflow changes; manifests chosen with a browser file handle refresh too.
+
+## Map an Existing User Journey
+
+Use `$user-journey-dataflow` with a user journey described in chat to trace its implemented path through the current codebase. It writes one `<slug>.sys-dataflow.json` under `<outputDirectory>/user-journey-dataflow/`, without running the feature design workflow. Open the newest diagram from this skill with:
+
+```sh
+npm run user-journey-dataflow-viewer
+```
 
 ## Design a Refactoring
 

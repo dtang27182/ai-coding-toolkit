@@ -60,6 +60,15 @@ test("the example satisfies schema and direction validation", () => {
   assert.equal(semanticError(example), undefined);
 });
 
+test("inspect-code dataflows validate without comparison fields", () => {
+  const value = dataflow("user-input", "outgoing");
+  value.stage = "inspect-code";
+  assert.equal(validate(value), true, JSON.stringify(validate.errors));
+  assert.equal(semanticError(value), undefined);
+  value.subgraphs[0].nodes[0].diffHunkIds = ["hunk-1"];
+  assert.equal(validate(value), false);
+});
+
 test("requires explicit named subgraphs and rejects the flat format", () => {
   const value = structuredClone(example);
   value.schemaVersion = 2;
@@ -206,4 +215,10 @@ test("finds the newest System Dataflow under the configured output directory", a
   await utimes(proposed, new Date(2_000), new Date(2_000));
   await utimes(newer, new Date(3_000), new Date(3_000));
   assert.equal(await findNewestSystemDataflow(repositoryDirectory, toolkitDirectory), newer);
+  const journeyDirectory = path.join(repositoryDirectory, "docs", "plans", "user-journey-dataflow");
+  await mkdir(journeyDirectory);
+  const journey = path.join(journeyDirectory, "journey.sys-dataflow.json");
+  await writeFile(journey, "{}");
+  await utimes(journey, new Date(1_500), new Date(1_500));
+  assert.equal(await findNewestSystemDataflow(repositoryDirectory, toolkitDirectory, "user-journey-dataflow"), journey);
 });

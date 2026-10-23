@@ -2,6 +2,7 @@ node_modules/
 adiff-visualize-design/
 common/impl-dataflow/visualizer/dist/
 feature-design/visualizer/dist/
+user-journey-dataflow/visualizer/dist/
 enrich-diff/visualizer/dist/
 advanced-diff-viewer/visualizer/dist/
 advanced-diff-viewer/diff-index.json
