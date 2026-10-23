@@ -86,6 +86,11 @@ if (inputPath === undefined) {
     }
     for (const subgraph of dataflow.subgraphs) {
       const nodesByName = new Map(subgraph.nodes.map((node) => [node.name, node]));
+      for (const node of subgraph.nodes) {
+        if (node.journeySequenceId !== subgraph.journeySequenceId) {
+          errors.push(`Node “${node.name}” must use journeySequenceId ${subgraph.journeySequenceId} from subgraph “${subgraph.id}”.`);
+        }
+      }
       for (const relationship of subgraph.relationships) {
         const source = nodesByName.get(relationship.from);
         const destination = nodesByName.get(relationship.to);

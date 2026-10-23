@@ -14,7 +14,7 @@ npm run install:all -- /path/to/code-repo
 
 Run `npm install` in this toolkit checkout before using any installer command; the installer copies its `node_modules` into the target repository. If an earlier attempt stopped with a missing `node_modules` error, install the dependencies and rerun the same installer command to finish the installation.
 
-The default installer installs `feature-design` (including `feature-redesign`), `refactor-design`, and `enrich-diff` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the feature design skills, run:
+The default installer installs `feature-design` (including `feature-redesign`), `refactor-design`, `enrich-diff`, and `user-journey-dataflow` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the feature design skills, run:
 
 ```sh
 npm run install:feature-design -- /path/to/code-repo
@@ -30,6 +30,12 @@ To install only the `$enrich-diff` skill, run:
 
 ```sh
 npm run install:enrich-diff -- /path/to/code-repo
+```
+
+To install only the `$user-journey-dataflow` skill and its viewer, run:
+
+```sh
+npm run install:user-journey-dataflow -- /path/to/code-repo
 ```
 
 To install the Advanced Diff Viewer independently, run:
@@ -90,6 +96,14 @@ Use `$feature-redesign` with an existing HLD whose Design Guidelines and Require
 
 The shared dataflow validation scripts remain available independently. Run `npm run hld-visualizer` to view an HLD's dataflows. Feature designs have System Dataflow and Implementation Dataflow views; refactoring designs have only the Implementation Dataflow view. The visualizer loads the newest HLD manifest under the configured output directory. You can open or drag in another HLD manifest. Referenced dataflows refresh when they change; manifests chosen with a browser file handle refresh too.
 
+## Map an Existing User Journey
+
+Use `$user-journey-dataflow` with a user journey described in chat to trace its implemented path through the current codebase. It writes one `<slug>.sys-dataflow.json` under `<outputDirectory>/user-journey-dataflow/`, without running the feature design workflow. Open the newest diagram from this skill with:
+
+```sh
+npm run user-journey-dataflow-viewer
+```
+
 ## Design a Refactoring
 
 Use `$refactor-design` to plan structural changes to existing code, preserving externally observable behavior except for explicitly permitted changes. Its High Level Requirements are organized into Desired Code Structure and Scope. Refactoring Goal sits under Desired Code Structure; behavior preservation, permitted changes, and explicit exclusions sit under Scope. The skill asks for approval of the high-level and detailed requirements before generating the design.
@@ -104,7 +118,7 @@ The skill uses the shared HLD template, confirmation workflow, quality guidance,
 
 After `feature-design` produces `<feature>.hld.md`, invoke `$enrich-diff`. You can ask it to compare the working tree with the latest commit, the latest commit with its parent, or any two commits; it uses the older commit as the base regardless of the order you name them. Without a selection, it uses the working tree when staged, unstaged, or untracked changes exist; otherwise it compares `HEAD^` with `HEAD`. The skill writes the selected diff to `<feature>.patch` and `<feature>.enriched-patch.json` beside the HLD. The enriched patch embeds the selected patch alongside locations for changed files, classes, and methods. `<feature>.rich-diff.json` contains absolute paths to the enriched patch and code-review Implementation Dataflow JSON for the combined visualizer.
 
-The skill also generates `<feature>.cr.impl-dataflow.json` using three passes: identify changed entities and required endpoints throughout the diff, write direct relationships, and validate diff coverage and implementation accuracy. The HLD's High Level Requirements and User Journeys provide behavior context without limiting which changes appear in the graph. Schema version 18 records a flat array of typed nodes and class/module containers, with explicit IDs for membership and relationship endpoints. Classes and modules can own functions, state variables, and static data. Every function, class, and module requires a repository-relative `sourceFile` path using forward slashes: use the intended final path, or the last existing path for a deleted entity. An optional `renamedFrom` records the original name and path; for a function moved from an unrelated owner, it may also record the original `containerName`. Every node requires an `initialization` boolean identifying constructor code, one-time initialization, callback plumbing, or object/dependency graph construction. Function-to-function dataflows require `transferType: "arguments"` or `"return"`; corresponding flows render as one arrow with a return ring. Relevant diff hunks support changed nodes and relationships; containers may also reference hunks, with their status derived from all owned nodes: `new` when all are added, `deleted` when all are deleted, `unchanged` when all are unchanged or there are no owned nodes, and `changed` otherwise. The skill reports the generated JSON path alongside the combined visualizer input.
+The skill also generates `<feature>.cr.impl-dataflow.json` using three passes: identify changed entities and required endpoints throughout the diff, write direct relationships, and validate diff coverage and implementation accuracy. The HLD's High Level Requirements and User Journeys provide behavior context without limiting which changes appear in the graph. Schema version 18 records a flat array of typed nodes and class/module containers, with explicit IDs for membership and relationship endpoints. Classes and modules can own functions, state variables, and static data. Every function, state variable, static-data node, class, and module requires a repository-relative `sourceFile` path using forward slashes: use the intended final path, or the last existing path for a deleted entity. UI components, system inputs and outputs, and external dependencies require a `location` naming their concrete system location rather than a source-code file or line. An optional `renamedFrom` records the original name and path; for a function moved from an unrelated owner, it may also record the original `containerName`. Every node requires a `changeSummary` describing the planned change in the HLD or the actual change in code review (`N/A` is allowed for unchanged nodes), plus an `initialization` boolean identifying constructor code, one-time initialization, callback plumbing, or object/dependency graph construction. Function-to-function dataflows require `transferType: "arguments"` or `"return"`; corresponding flows render as one arrow with a return ring. Relevant diff hunks support changed nodes and relationships; containers may also reference hunks, with their status derived from all owned nodes: `new` when all are added, `deleted` when all are deleted, `unchanged` when all are unchanged or there are no owned nodes, and `changed` otherwise. The skill reports the generated JSON path alongside the combined visualizer input.
 
 `generate-enriched-patch.mjs` can currently identify class and method entities only in JavaScript and TypeScript files because it uses a deterministic AST parser. Future work could add an LLM-based entity-identification path for broader language support.
 

@@ -930,7 +930,6 @@ button.function-row:hover {
 }
 
 .flow-label,
-.component-description,
 .empty-copy,
 .file-location {
   margin-top: 2px;
@@ -939,7 +938,6 @@ button.function-row:hover {
   color: var(--muted);
 }
 
-.component-description,
 .empty-copy {
   margin: 0;
 }

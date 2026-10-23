@@ -8,15 +8,15 @@ import { findUiPairs } from "../common/impl-dataflow/visualizer/src/pairing.ts";
 
 function implementation() {
   const nodes = [
-    { id: "panel", name: "Panel", type: "ui-component", description: "Edits and displays values", changeType: "added", initialization: false },
-    { id: "unused-panel", name: "Unused panel", type: "ui-component", description: "No visible flows", changeType: "added", initialization: false },
-    { id: "input", name: "Input", type: "system-input", description: "Incoming requests", changeType: "added", initialization: false },
-    { id: "output", name: "Output", type: "system-output", description: "Published results", changeType: "added", initialization: false },
-    { id: "storage", name: "Storage", type: "external-dependency", description: "Stores values", changeType: "added", initialization: false },
-    { id: "rules", name: "Rules", type: "static-data", containerId: "child", changeType: "added", initialization: false },
-    { id: "defaults", name: "Defaults", type: "static-data", changeType: "added", initialization: false },
-    { id: "handle", name: "handle", type: "function", containerId: "parent", sourceFile: "src/Parent.ts", changeType: "added", initialization: false },
-    { id: "process", name: "process", type: "function", containerId: "child", sourceFile: "src/Child.ts", changeType: "added", initialization: false },
+    { id: "panel", name: "Panel", type: "ui-component", location: "Panel", changeType: "added", changeSummary: "Add Panel.", initialization: false },
+    { id: "unused-panel", name: "Unused panel", type: "ui-component", location: "UnusedPanel", changeType: "added", changeSummary: "Add Unused panel.", initialization: false },
+    { id: "input", name: "Input", type: "system-input", location: "incoming requests", changeType: "added", changeSummary: "Add Input.", initialization: false },
+    { id: "output", name: "Output", type: "system-output", location: "published results", changeType: "added", changeSummary: "Add Output.", initialization: false },
+    { id: "storage", name: "Storage", type: "external-dependency", location: "storage service", changeType: "added", changeSummary: "Add Storage.", initialization: false },
+    { id: "rules", name: "Rules", type: "static-data", containerId: "child", sourceFile: "src/Child.ts", changeType: "added", changeSummary: "Add Rules.", initialization: false },
+    { id: "defaults", name: "Defaults", type: "static-data", sourceFile: "src/defaults.ts", changeType: "added", changeSummary: "Add Defaults.", initialization: false },
+    { id: "handle", name: "handle", type: "function", containerId: "parent", sourceFile: "src/Parent.ts", changeType: "added", changeSummary: "Add handle.", initialization: false },
+    { id: "process", name: "process", type: "function", containerId: "child", sourceFile: "src/Child.ts", changeType: "added", changeSummary: "Add process.", initialization: false },
   ];
   const flow = (from, to) => ({
     from: { nodeId: from, type: nodes.find((node) => node.id === from).type },
@@ -44,8 +44,6 @@ test("UI reads and writes use separate boxes while retaining original nodes and 
   const read = graph.components.find((node) => node.nodeId === "panel" && node.uiDirection === "read");
   const write = graph.components.find((node) => node.nodeId === "panel" && node.uiDirection === "write");
   assert.notEqual(read.id, write.id);
-  assert.equal(read.description, input.nodes[0].description);
-  assert.equal(write.description, input.nodes[0].description);
   assert.equal(graph.relationships[1].from.boxId, read.id);
   assert.equal(graph.relationships[2].to.boxId, write.id);
   assert.equal(graph.relationships[1].from.nodeId, "panel");

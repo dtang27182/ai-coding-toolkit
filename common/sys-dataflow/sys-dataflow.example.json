@@ -1,14 +1,16 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "stage": "high-level-design",
   "feature": "Delivery promise estimator",
   "subgraphs": [
     {
       "id": "journey-1",
+      "journeySequenceId": 1,
       "name": "Estimate and choose a delivery option",
       "nodes": [
         {
           "type": "user-input",
+          "journeySequenceId": 1,
           "name": "Delivery options input",
           "description": "Captures the customer's delivery address and their eventual delivery-option selection.",
           "medium": "React UI",
@@ -17,6 +19,7 @@
         },
         {
           "type": "user-output",
+          "journeySequenceId": 1,
           "name": "Delivery options display",
           "description": "Presents priced delivery promises and the current selection to the customer.",
           "medium": "React UI",
@@ -25,6 +28,7 @@
         },
         {
           "type": "system-input",
+          "journeySequenceId": 1,
           "name": "Checkout quote request",
           "description": "Starts delivery estimation with the cart and checkout context supplied by the checkout workflow.",
           "medium": "Application command",
@@ -33,6 +37,7 @@
         },
         {
           "type": "system-output",
+          "journeySequenceId": 1,
           "name": "Selected delivery promise",
           "description": "Returns the customer's final delivery choice to the checkout workflow for order placement.",
           "medium": "Application event",
@@ -41,6 +46,7 @@
         },
         {
           "type": "system-state-read",
+          "journeySequenceId": 1,
           "name": "Shopping cart",
           "description": "Reads the products and quantities that must be fulfilled together with the dimensions and weight needed for shipping.",
           "medium": "PostgreSQL",
@@ -49,6 +55,7 @@
         },
         {
           "type": "system-state-read",
+          "journeySequenceId": 1,
           "name": "Warehouse inventory",
           "description": "Reads available-to-promise quantities by product and fulfillment center.",
           "medium": "PostgreSQL",
@@ -57,6 +64,7 @@
         },
         {
           "type": "static-data",
+          "journeySequenceId": 1,
           "name": "Fulfillment policy",
           "description": "Defines eligible fulfillment centers, handling times, carrier restrictions, split-shipment penalties, and the allowed delivery window.",
           "medium": "Source-controlled YAML",
@@ -65,6 +73,7 @@
         },
         {
           "type": "external-dependency",
+          "journeySequenceId": 1,
           "name": "Address validation service",
           "description": "Normalizes the entered address and returns its deliverability, geographic coordinates, and postal region.",
           "medium": "HTTPS API",
@@ -73,6 +82,7 @@
         },
         {
           "type": "external-dependency",
+          "journeySequenceId": 1,
           "name": "Carrier rates service",
           "description": "Returns shipping prices, service levels, and estimated transit times for proposed packages and routes.",
           "medium": "HTTPS API",
@@ -81,24 +91,27 @@
         },
         {
           "type": "data-processing",
+          "journeySequenceId": 1,
           "name": "Build candidate fulfillment plans",
           "description": "Constructs feasible ways to allocate the cart across fulfillment centers and package the allocated items.",
           "medium": "TypeScript",
           "location": "DeliveryPlanner.buildCandidatePlans",
           "changeType": "added",
-          "pseudo-code": "for each item in cart:\n  eligibleCenters = centers with enough inventory and service to destination\n  extend plans by assigning item to each eligible center\n  prune plans exceeding max shipments or unable to fulfill remaining items\nfor each plan:\n  package items at each center within weight and dimension limits\nreturn plans deduplicated by center, item, and package assignments"
+          "pseudo-code": "plans = [empty_plan]\nfor item in cart:\n    eligible_centers = centers_with_inventory_and_service(item, destination)\n    plans = extend_plans(plans, item, eligible_centers)\n    plans = prune_infeasible_plans(plans, max_shipments, remaining_items)\n\nfor plan in plans:\n    plan.packages = package_items(plan, weight_limits, dimension_limits)\n\nreturn deduplicate(plans, by=(\"center\", \"item\", \"package\"))"
         },
         {
           "type": "data-processing",
+          "journeySequenceId": 1,
           "name": "Rank delivery options",
           "description": "Combines candidate plans with carrier quotes and selects a small set of meaningful delivery choices.",
           "medium": "TypeScript",
           "location": "DeliveryPlanner.rankOptions",
           "changeType": "added",
-          "pseudo-code": "for each plan with carrier quotes:\n  price = sum of quote prices\n  promisedDate = latest handling time plus transit time across shipments\n  discard plan if promisedDate is outside delivery window\nremove plans dominated by a cheaper and no slower plan\nscore remaining plans by price, split-shipment penalty, and delivery-risk buffer\nreturn cheapest, fastest, and best-scoring options, breaking ties by date and plan ID"
+          "pseudo-code": "options = []\nfor plan in plans_with_carrier_quotes:\n    price = sum(quote.price for quote in plan.quotes)\n    promised_date = latest_handling_plus_transit(plan)\n    if promised_date not in delivery_window:\n        continue\n    options.append((plan, price, promised_date))\n\noptions = remove_dominated(options, cheaper_and_no_slower=True)\nfor option in options:\n    option.score = score(option, split_shipment_penalty, delivery_risk_buffer)\n\nreturn select_cheapest_fastest_and_best(options, tie_break=(\"date\", \"plan_id\"))"
         },
         {
           "type": "system-state-write",
+          "journeySequenceId": 1,
           "name": "Delivery quote session write",
           "description": "Retains the ranked options, their expiration time, and the customer's selected option for the active checkout.",
           "medium": "Redis JSON document",
@@ -107,6 +120,7 @@
         },
         {
           "type": "system-state-read",
+          "journeySequenceId": 1,
           "name": "Delivery quote session read",
           "description": "Reads the active delivery options and the customer's selection for display and checkout.",
           "medium": "Redis JSON document",

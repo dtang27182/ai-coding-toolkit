@@ -292,6 +292,7 @@
         "name",
         "type",
         "changeType",
+        "changeSummary",
         "initialization"
       ],
       "properties": {
@@ -317,13 +318,13 @@
             "state-variable"
           ]
         },
-        "description": {
-          "description": "What this node is or represents, including a concrete URL, file path, storage key, or other identifier when relevant.",
-          "type": "string",
-          "minLength": 1
-        },
         "changeType": {
           "$ref": "#/$defs/changeType"
+        },
+        "changeSummary": {
+          "description": "The planned change to this node during high-level design or the actual change during code review. For a missing-from-cr function marker, describe the missing implementation. May be N/A when changeType is unchanged.",
+          "type": "string",
+          "minLength": 1
         },
         "initialization": {
           "description": "True when the node represents one-time initialization code and/or code that does not participate in a User Journey defined in the High Level Requirements. This includes, but is not limited to, constructor code, callback plumbing, object/dependency graph construction, etc. False otherwise.",
@@ -454,8 +455,15 @@
         {
           "type": "object",
           "required": [
-            "description"
-          ]
+            "location"
+          ],
+          "properties": {
+            "location": {
+              "description": "The concrete system location, such as a UI component name, storage location, external service URI, or class and method name. Do not use a source-code file or line location.",
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
       ]
     },
@@ -534,6 +542,12 @@
     "staticData": {
       "description": "Fixed data that is significant to the design or patch. Some examples would be configuration files or static data files used for object initialization . Contant varibles in the code may be included as static data if they are truely significant to the design or patch, but this is usually not the case. If this is the case, group together contants in the same class/module under one staticData node. May only send data to functions. May optionally belong to a class or module through containerId. External files and storage are external-dependency nodes.",
       "type": "object",
+      "required": [
+        "sourceFile"
+      ],
+      "properties": {
+        "sourceFile": { "$ref": "#/$defs/sourceFile" }
+      },
       "allOf": [
         {
           "$ref": "#/$defs/nodeBase"
@@ -557,6 +571,12 @@
     "stateVariable": {
       "description": "Mutable state owned by a class or module: mutable instance fields for classes, or mutable module-scoped variables for modules. Include changed declarations and unchanged state referenced by dataflows. Exclude local variables, explicitly read-only values, fields initialized at declaration or construction but never written afterward, and fields used only as references to owned child objects. Constructor assignment is initialization rather than a state update. Runtime writes alone do not make an existing variable modified. May only exchange data with functions: state-to-function means a read; function-to-state means a write.",
       "type": "object",
+      "required": [
+        "sourceFile"
+      ],
+      "properties": {
+        "sourceFile": { "$ref": "#/$defs/sourceFile" }
+      },
       "allOf": [
         {
           "$ref": "#/$defs/ownedNode"

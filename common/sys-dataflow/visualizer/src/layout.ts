@@ -83,17 +83,24 @@ export function computeLayout(subgraphs: SystemDataflowSubgraph[]): GraphLayout 
   const boxes = new Map<string, Rect>();
   const subgraphBoxes = new Map<string, Rect>();
   const headingHeight = 48;
+  const sequenceIds = [...new Set(subgraphs.map((subgraph) => subgraph.journeySequenceId))].sort((left, right) => left - right);
   let width = 0;
   let height = 0;
-  for (const subgraph of subgraphs) {
-    const layout = computeSubgraphLayout(subgraph.nodes, subgraph.relationships);
-    const x = width + (subgraphBoxes.size === 0 ? 0 : GAP_X);
-    subgraphBoxes.set(subgraph.id, { x, y: 0, width: layout.width, height: layout.height + headingHeight });
-    for (const [name, box] of layout.boxes) {
-      boxes.set(name, { ...box, x: box.x + x, y: box.y + headingHeight });
+  for (const sequenceId of sequenceIds) {
+    let x = 0;
+    let rowHeight = 0;
+    for (const subgraph of subgraphs.filter((item) => item.journeySequenceId === sequenceId)) {
+      const layout = computeSubgraphLayout(subgraph.nodes, subgraph.relationships);
+      const subgraphHeight = layout.height + headingHeight;
+      subgraphBoxes.set(subgraph.id, { x, y: height, width: layout.width, height: subgraphHeight });
+      for (const [name, box] of layout.boxes) {
+        boxes.set(name, { ...box, x: box.x + x, y: box.y + height + headingHeight });
+      }
+      x += layout.width + GAP_X;
+      rowHeight = Math.max(rowHeight, subgraphHeight);
     }
-    width = x + layout.width;
-    height = Math.max(height, layout.height + headingHeight);
+    width = Math.max(width, x - GAP_X);
+    height += rowHeight + (sequenceId === sequenceIds.at(-1) ? 0 : GAP_Y);
   }
   return { boxes, subgraphs: subgraphBoxes, width, height };
 }

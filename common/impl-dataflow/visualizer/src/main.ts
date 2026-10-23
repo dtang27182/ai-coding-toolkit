@@ -464,7 +464,7 @@ function renderInspector(graph: VisibleGraph): string {
     const node = implementationDataflow.nodes.find((node) => node.id === inspected.nodeId)!;
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, inspected));
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
-    content = `${inspectorHeader(NODE_LABELS[node.type], node.name, nodeChangeType(node), node.type === "function" && node.subtype === "missing-from-cr" ? `Expected: ${node.changeType}` : undefined)}${diffEvidence(node.diffHunkIds)}${node.description === undefined ? "" : section("Description", `<p class="component-description">${escapeHtml(node.description)}</p>`)}`;
+    content = `${inspectorHeader(NODE_LABELS[node.type], node.name, nodeChangeType(node), node.type === "function" && node.subtype === "missing-from-cr" ? `Expected: ${node.changeType}` : undefined)}${diffEvidence(node.diffHunkIds)}${section("Change summary", `<p class="flow-label">${escapeHtml(node.changeSummary)}</p>`)}`;
     if (node.type === "function") {
       if (node["hld-change-mismatch"] === true) {
         let hldStatus: string;
@@ -481,7 +481,7 @@ function renderInspector(graph: VisibleGraph): string {
         content += section("HLD comparison", `<div class="hld-comparison">${mismatchBadge(node["hld-change-mismatch"] === true)}<p>HLD: <strong>${hldStatus}</strong></p><p>CR: <strong>${crStatus}</strong></p></div>`);
       }
     }
-    if (node.type !== "function" && "containerId" in node && node.containerId !== undefined) {
+    if (node.type === "static-data" && node.containerId !== undefined) {
       const owner = implementationDataflow.containers.find((container) => container.id === node.containerId)!;
       if (graph.containers.some((container) => container.id === owner.id)) {
         content += section("Container", `<button class="function-row" data-jump="${escapeHtml(JSON.stringify({ type: "container", containerId: owner.id }))}"><div class="flow-endpoint">${escapeHtml(owner.name)}</div><div class="flow-label">${owner.type}</div></button>`);
@@ -496,8 +496,8 @@ function renderInspector(graph: VisibleGraph): string {
       content += `${section("Read by", flowRows(outputs, "to"), outputs.length)}${section("Written by", flowRows(inputs, "from", true), inputs.length)}`;
     } else if (node.type === "static-data") {
       content += section("Read by", flowRows(outputs, "to"), outputs.length);
-    } else if (["ui-component", "system-input", "system-output", "external-dependency"].includes(node.type)) {
-      content += `${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
+    } else if (node.type === "ui-component" || node.type === "system-input" || node.type === "system-output" || node.type === "external-dependency") {
+      content += `${section("Location", `<p class="flow-label">${escapeHtml(node.location)}</p>`)}${section("Data in", flowRows(inputs, "from"), inputs.length)}${section("Data out", flowRows(outputs, "to"), outputs.length)}`;
     }
   } else if (inspected.type === "container") {
     const container = graph.containers.find((container) => container.id === inspected.containerId)!;

@@ -325,7 +325,8 @@ button:focus-visible,
   height: 27px;
   align-self: stretch;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 6px;
   padding: 0 11px;
   border: 1px solid color-mix(in oklch, var(--type-color) 44%, transparent);
   border-radius: 6px;
@@ -336,6 +337,12 @@ button:focus-visible,
   font-weight: 600;
   letter-spacing: 0.11em;
   white-space: nowrap;
+}
+
+.node-phase {
+  flex: 0 0 auto;
+  font-size: 9px;
+  letter-spacing: 0.05em;
 }
 
 .node-name {
@@ -383,6 +390,11 @@ button:focus-visible,
 
 .edge-hit {
   pointer-events: stroke;
+  cursor: pointer;
+}
+
+.edge-return-arrow {
+  pointer-events: all;
   cursor: pointer;
 }
 
@@ -510,6 +522,67 @@ button:focus-visible,
 .resizing-inspector .inspector-resizer::after {
   width: 2px;
   background: var(--accent);
+}
+
+.inspector-collapse {
+  position: absolute;
+  top: 10px;
+  left: -8px;
+  z-index: 1;
+  width: 18px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  background: var(--header);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.inspector-collapse:hover,
+.inspector-collapse:focus-visible {
+  border-color: var(--accent);
+  color: var(--bright);
+}
+
+.inspector-rail {
+  display: flex;
+  flex: 0 0 28px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 28px;
+  padding: 12px 0;
+  border: 0;
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--header);
+  cursor: pointer;
+}
+
+.inspector-rail:hover,
+.inspector-rail:focus-visible {
+  color: var(--bright);
+  background: oklch(0.205 0.026 255);
+}
+
+.inspector-rail-chevron {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.inspector-rail-label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+}
+
+.inspector-collapse-mobile {
+  display: none;
 }
 
 .resizing-inspector,
@@ -730,6 +803,10 @@ button:focus-visible,
   font-size: 12px;
 }
 
+.merged-flow-details p + p {
+  margin-top: 9px;
+}
+
 .pseudo-code {
   margin: 0;
   padding: 12px;
@@ -740,7 +817,7 @@ button:focus-visible,
   background: oklch(0.15 0.02 255);
   font-size: 12px;
   line-height: 1.55;
-  white-space: pre-wrap;
+  white-space: pre;
 }
 
 .flow-list {
@@ -1160,6 +1237,40 @@ button:focus-visible,
 
   .inspector-resizer {
     display: none;
+  }
+
+  .inspector-collapse-mobile {
+    display: block;
+    width: 100%;
+    flex: 0 0 28px;
+    border: 0;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--header);
+    cursor: pointer;
+  }
+
+  .inspector-collapse-mobile:hover,
+  .inspector-collapse-mobile:focus-visible {
+    color: var(--bright);
+  }
+
+  .inspector-rail {
+    width: 100%;
+    flex: 0 0 28px;
+    flex-direction: row;
+    justify-content: center;
+    padding: 0;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+
+  .inspector-rail-chevron {
+    transform: rotate(-90deg);
+  }
+
+  .inspector-rail-label {
+    writing-mode: horizontal-tb;
   }
 
   .legend {

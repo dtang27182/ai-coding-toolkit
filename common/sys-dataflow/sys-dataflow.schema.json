@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI Coding Toolkit System Dataflow",
-  "description": "sys-dataflow is shorthand for system dataflow. This JSON models the high-level flow of information through a feature or system: its inputs and outputs, external dependencies, persistent state, static data, consequential processing, and directed transfers between them. It can represent proposed or implemented behavior. The toolkit currently uses it for high-level design and code-review diagrams, with diff hunks providing evidence in code-review files.",
+  "description": "sys-dataflow is shorthand for system dataflow. This JSON models the high-level flow of information through a feature or system: its inputs and outputs, external dependencies, persistent state, static data, consequential processing, and directed transfers between them. It can represent proposed or implemented behavior, with diff hunks providing evidence in code-review files.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,12 +13,13 @@
   "properties": {
     "schemaVersion": {
       "description": "Version of the System Dataflow schema used by this document.",
-      "const": 3
+      "const": 4
     },
     "stage": {
-      "description": "The development stage represented by the dataflow: proposed behavior during high-level design or implemented behavior during code review.",
+      "description": "The context represented by the dataflow: proposed behavior during high-level design, implemented behavior in the current codebase, or implemented behavior during code review.",
       "enum": [
         "high-level-design",
+        "inspect-code",
         "code-review"
       ]
     },
@@ -35,7 +36,7 @@
       }
     },
     "subgraphs": {
-      "description": "Explicit subgraphs in display order, each owning its nodes and relationships. Membership is defined by containment, not node names or connectivity.",
+      "description": "Explicit subgraphs, each owning its nodes and relationships. Subgraphs with the same journeySequenceId share a horizontal row; different sequence IDs form vertical phases in ascending order. Membership is defined by containment, not node names or connectivity.",
       "type": "array",
       "minItems": 1,
       "items": {
@@ -109,6 +110,7 @@
       "required": [
         "id",
         "name",
+        "journeySequenceId",
         "nodes",
         "relationships"
       ],
@@ -122,6 +124,11 @@
           "description": "Display title describing the journey or user flow.",
           "type": "string",
           "minLength": 1
+        },
+        "journeySequenceId": {
+          "description": "Positive sequence number of this phase in the user journey. All nodes in this subgraph must have the same journeySequenceId. Subgraphs with the same number belong to the same phase.",
+          "type": "integer",
+          "minimum": 1
         },
         "nodes": {
           "description": "User inputs and outputs, external dependencies, system inputs and outputs, persistent state, static data, and critical data processing in the dataflow.",
@@ -174,6 +181,7 @@
       "required": [
         "type",
         "name",
+        "journeySequenceId",
         "description",
         "medium",
         "location"
@@ -225,6 +233,11 @@
           "type": "string",
           "minLength": 1
         },
+        "journeySequenceId": {
+          "description": "Positive sequence number labeling the phase of the user journey that this node implements. Match the containing subgraph's journeySequenceId.",
+          "type": "integer",
+          "minimum": 1
+        },
         "description": {
           "description": "What the node represents and the responsibility it has in the dataflow. For data-processing nodes, a short natural-language summary of the algorithm.",
           "type": "string",
@@ -236,7 +249,7 @@
           "minLength": 1
         },
         "location": {
-          "description": "The concrete system location, such as a UI component name, storage location, external service URI, or class and method name. Do not use a source-code file or line location.",
+          "description": "The concrete system location, such as a UI component name, storage location, or external service URI. For data-processing nodes, include the class name and method name for class-based methods, or the module name and function name for functions outside a class. Do not use a source-code file or line location.",
           "type": "string",
           "minLength": 1
         },
@@ -260,7 +273,7 @@
           }
         },
         "pseudo-code": {
-          "description": "Pseudocode describing the algorithm's steps; source code belongs in referenced diff hunks for changed nodes.",
+          "description": "Python-like pseudocode describing the algorithm's steps. Use line breaks, blank lines between logical sections, and four-space indentation for nested blocks; source code belongs in referenced diff hunks for changed nodes.",
           "type": "string",
           "minLength": 1
         }

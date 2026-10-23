@@ -35,6 +35,7 @@
       "containerId": "entity-1",
       "sourceFile": "src/ChangeService.ts",
       "changeType": "added",
+      "changeSummary": "Add service configuration from stored diff options.",
       "initialization": true
     },
     {
@@ -44,6 +45,7 @@
       "containerId": "entity-1",
       "sourceFile": "src/ChangeService.ts",
       "changeType": "added",
+      "changeSummary": "Add change-set construction for selected source files.",
       "initialization": false
     },
     {
@@ -53,6 +55,7 @@
       "containerId": "entity-4",
       "sourceFile": "src/ChangeModel.ts",
       "changeType": "added",
+      "changeSummary": "Add access to the retained change set.",
       "initialization": false
     },
     {
@@ -60,7 +63,9 @@
       "name": "changes",
       "type": "state-variable",
       "containerId": "entity-4",
+      "sourceFile": "src/ChangeModel.ts",
       "changeType": "added",
+      "changeSummary": "Add mutable storage for the latest change set.",
       "initialization": false
     },
     {
@@ -70,6 +75,7 @@
       "containerId": "entity-7",
       "sourceFile": "src/Repository.ts",
       "changeType": "unchanged",
+      "changeSummary": "N/A",
       "initialization": false
     },
     {
@@ -79,30 +85,34 @@
       "containerId": "entity-9",
       "sourceFile": "src/LegacyChangeAdapter.ts",
       "changeType": "deleted",
+      "changeSummary": "Remove the legacy change adapter.",
       "initialization": false
     },
     {
       "id": "entity-11",
       "name": "Change Panel",
-      "description": "The application's change selection and results panel.",
       "type": "ui-component",
+      "location": "ChangePanel",
       "changeType": "added",
+      "changeSummary": "Add a panel for selecting files and viewing change-set results.",
       "initialization": false
     },
     {
       "id": "entity-12",
       "name": "Source Files on Disk",
-      "description": "Repository source files at the selected repository-relative paths.",
       "type": "external-dependency",
+      "location": "repository working tree",
       "changeType": "unchanged",
+      "changeSummary": "N/A",
       "initialization": false
     },
     {
       "id": "entity-13",
       "name": "Diff Settings File",
-      "description": "The repository's diff settings file.",
       "type": "external-dependency",
+      "location": "config/diff-settings.json",
       "changeType": "unchanged",
+      "changeSummary": "N/A",
       "initialization": true
     },
     {
@@ -110,31 +120,36 @@
       "type": "static-data",
       "containerId": "entity-1",
       "name": "Diff Format Rules",
+      "sourceFile": "src/ChangeService.ts",
       "changeType": "unchanged",
+      "changeSummary": "N/A",
       "initialization": false
     },
     {
       "id": "entity-15",
       "name": "Push Webhook",
-      "description": "Repository push notifications that request a fresh change set for the pushed paths.",
       "type": "system-input",
+      "location": "POST /webhooks/push",
       "changeType": "modified",
+      "changeSummary": "Expand push notifications to request change sets for pushed paths.",
       "initialization": false
     },
     {
       "id": "entity-16",
       "name": "Change Set Published Event",
-      "description": "Event emitted on the message bus after a change set is computed.",
       "type": "system-output",
+      "location": "message-bus:change-set-published",
       "changeType": "added",
+      "changeSummary": "Publish an event when a change set is computed.",
       "initialization": false
     },
     {
       "id": "entity-17",
       "name": "Legacy Change Log",
-      "description": "Append-only log the legacy adapter wrote each adapted change to.",
       "type": "system-output",
+      "location": "logs/legacy-changes.log",
       "changeType": "deleted",
+      "changeSummary": "Stop publishing the legacy change log.",
       "initialization": false
     }
   ],

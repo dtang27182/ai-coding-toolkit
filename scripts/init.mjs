@@ -47,7 +47,7 @@ for (let argumentIndex = 0; argumentIndex < inputArguments.length; ) {
 }
 
 const supportedAgents = ["codex", "claude"];
-const supportedTools = ["feature-design", "refactor-design", "enrich-diff", "advanced-diff-viewer"];
+const supportedTools = ["feature-design", "refactor-design", "enrich-diff", "advanced-diff-viewer", "user-journey-dataflow"];
 const toolNames = selectedTool === undefined ? supportedTools : [selectedTool];
 const relativeOutputDirectory = path.normalize(outputDirectory);
 const outputIsRepoSubdirectory =
@@ -78,6 +78,9 @@ async function installRootCommands() {
     }
     if (toolNames.includes("advanced-diff-viewer")) {
       commands["adv-diff"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer";
+    }
+    if (toolNames.includes("user-journey-dataflow")) {
+      commands["user-journey-dataflow-viewer"] = "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/user-journey-dataflow/visualizer";
     }
     let packageChanged = false;
     if (
@@ -149,7 +152,7 @@ async function installRootCommands() {
 if (argumentError !== undefined || repoDirectory === undefined) {
   console.error(argumentError ?? "Target repository path is required.");
   console.error(
-    "Usage: node scripts/init.mjs <target-repo> [--agent <codex|claude|codex,claude>] [--tool <feature-design|refactor-design|enrich-diff|advanced-diff-viewer>] [--output-dir <relative-directory>]"
+    "Usage: node scripts/init.mjs <target-repo> [--agent <codex|claude|codex,claude>] [--tool <feature-design|refactor-design|enrich-diff|advanced-diff-viewer|user-journey-dataflow>] [--output-dir <relative-directory>]"
   );
   process.exitCode = 1;
 } else if (agentNames.some((agentName) => !supportedAgents.includes(agentName))) {
@@ -179,7 +182,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
   const outputPath = path.resolve(repoDirectory, relativeOutputDirectory);
   const installedDirectories = [
     ...toolNames,
-    ...(toolNames.includes("feature-design") || toolNames.includes("refactor-design") || toolNames.includes("enrich-diff") || toolNames.includes("advanced-diff-viewer") ? ["common"] : []),
+    ...(toolNames.includes("feature-design") || toolNames.includes("refactor-design") || toolNames.includes("enrich-diff") || toolNames.includes("advanced-diff-viewer") || toolNames.includes("user-journey-dataflow") ? ["common"] : []),
     "node_modules",
   ];
   for (const directoryName of installedDirectories) {
@@ -202,7 +205,7 @@ if (argumentError !== undefined || repoDirectory === undefined) {
       relativePaths
     );
   }
-  if (toolNames.includes("feature-design") || toolNames.includes("refactor-design") || toolNames.includes("enrich-diff")) {
+  if (toolNames.includes("feature-design") || toolNames.includes("refactor-design") || toolNames.includes("enrich-diff") || toolNames.includes("user-journey-dataflow")) {
     await rm(path.join(installedToolkitDirectory, "common", "system-dataflow"), { recursive: true, force: true });
     for (const relativePath of ["index.html", "src/main.ts", "src/standalone.css", "tsconfig.json", "vite.config.mjs", "dist"]) {
       await rm(path.join(installedToolkitDirectory, "common", "sys-dataflow", "visualizer", relativePath), { recursive: true, force: true });
@@ -215,9 +218,9 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     for (const relativePath of ["instructions/generate-system-dataflow.md", "scripts/validate-system-dataflow.mjs", "instructions/gen-sys-dataflow.md", "scripts/validate-sys-dataflow.mjs"]) {
       await rm(path.join(installedToolkitDirectory, "enrich-diff", relativePath), { force: true });
     }
-    if (!toolNames.includes("feature-design") && !toolNames.includes("refactor-design")) {
+    if (!toolNames.includes("feature-design") && !toolNames.includes("refactor-design") && !toolNames.includes("user-journey-dataflow")) {
       let designInstalled = false;
-      for (const toolName of ["feature-design", "refactor-design"]) {
+      for (const toolName of ["feature-design", "refactor-design", "user-journey-dataflow"]) {
         try {
           await stat(path.join(installedToolkitDirectory, toolName));
           designInstalled = true;
@@ -256,8 +259,11 @@ if (argumentError !== undefined || repoDirectory === undefined) {
     await installClaudeSkills(repoDirectory, toolkitDirectory, skillToolNames);
   }
   await installRootCommands();
-  if (toolNames.includes("feature-design") || toolNames.includes("refactor-design") || toolNames.includes("enrich-diff")) {
+  if (toolNames.includes("feature-design") || toolNames.includes("refactor-design") || toolNames.includes("enrich-diff") || toolNames.includes("user-journey-dataflow")) {
     await mkdir(outputPath, { recursive: true });
+    if (toolNames.includes("user-journey-dataflow")) {
+      await mkdir(path.join(outputPath, "user-journey-dataflow"), { recursive: true });
+    }
     await writeFile(
       path.join(installedToolkitDirectory, "config.json"),
       `${JSON.stringify({ outputDirectory: relativeOutputDirectory }, null, 2)}\n`

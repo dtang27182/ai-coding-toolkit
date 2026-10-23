@@ -25,9 +25,9 @@ async function matchingFiles(directory) {
   return files;
 }
 
-export async function findNewestSystemDataflow(repositoryDirectory, toolkitDirectory) {
+export async function findNewestSystemDataflow(repositoryDirectory, toolkitDirectory, outputSubdirectory) {
   const config = JSON.parse(await readFile(path.join(toolkitDirectory, "config.json"), "utf8"));
-  const files = await matchingFiles(path.resolve(repositoryDirectory, config.outputDirectory));
+  const files = await matchingFiles(path.resolve(repositoryDirectory, config.outputDirectory, outputSubdirectory ?? ""));
   let newestFile;
   let newestModifiedTime = -Infinity;
   for (const file of files) {

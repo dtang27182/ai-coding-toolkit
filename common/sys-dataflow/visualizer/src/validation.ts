@@ -26,6 +26,13 @@ export function semanticError(value: SystemDataflow): string | undefined {
   } else {
     for (const subgraph of value.subgraphs) {
       const nodesByName = new Map(subgraph.nodes.map((node) => [node.name, node]));
+      for (const node of subgraph.nodes) {
+        if (node.journeySequenceId !== subgraph.journeySequenceId) {
+          error = `Node “${node.name}” must use journeySequenceId ${subgraph.journeySequenceId} from subgraph “${subgraph.id}”.`;
+          break;
+        }
+      }
+      if (error !== undefined) break;
       for (const relationship of subgraph.relationships) {
         const source = nodesByName.get(relationship.from);
         const destination = nodesByName.get(relationship.to);
