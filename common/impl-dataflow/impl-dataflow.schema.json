@@ -292,6 +292,7 @@
         "name",
         "type",
         "changeType",
+        "changeSummary",
         "initialization"
       ],
       "properties": {
@@ -319,6 +320,11 @@
         },
         "changeType": {
           "$ref": "#/$defs/changeType"
+        },
+        "changeSummary": {
+          "description": "The planned change to this node during high-level design or the actual change during code review. For a missing-from-cr function marker, describe the missing implementation. May be N/A when changeType is unchanged.",
+          "type": "string",
+          "minLength": 1
         },
         "initialization": {
           "description": "True when the node represents one-time initialization code and/or code that does not participate in a User Journey defined in the High Level Requirements. This includes, but is not limited to, constructor code, callback plumbing, object/dependency graph construction, etc. False otherwise.",

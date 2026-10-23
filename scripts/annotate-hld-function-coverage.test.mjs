@@ -32,7 +32,7 @@ function graph(stage, nodes = [], containers = [{ id: "owner", name: "src/servic
 }
 
 function fn(id, name, changeType, sourceFile = "src/service.ts", containerId = "owner") {
-  return { id, name, type: "function", sourceFile, containerId, changeType, initialization: false };
+  return { id, name, type: "function", sourceFile, containerId, changeType, changeSummary: changeType === "unchanged" ? "N/A" : `${changeType} ${name}`, initialization: false };
 }
 
 function addEvidence(review, patch) {
@@ -368,7 +368,7 @@ test("preserves nonfunction nodes, relationships, containers and patch change en
   const review = graph("code-review", [fn("run", "run", "deleted")]);
   addEvidence(review, patches.modified);
   review.containers[0].diffHunkIds = ["evidence"];
-  review.nodes.push({ id: "state", name: "state", type: "state-variable", containerId: "owner", sourceFile: "src/service.ts", initialization: false, changeType: "added", diffHunkIds: ["evidence"] });
+  review.nodes.push({ id: "state", name: "state", type: "state-variable", containerId: "owner", sourceFile: "src/service.ts", initialization: false, changeType: "added", changeSummary: "Add state.", diffHunkIds: ["evidence"] });
   review.relationships.push({ from: { nodeId: "run", type: "function" }, to: { nodeId: "state", type: "state-variable" }, type: "dataflow", changeType: "added", diffHunkIds: ["evidence"], dataDescription: "Result", purpose: "Retain result" });
   const enriched = generateEnrichedPatch(patches.modified);
   const result = annotateHldFunctionCoverage(graph("high-level-design"), review, patches.modified, enriched);
@@ -388,6 +388,7 @@ test("missing-function markers store planned changeType without evidence and are
   const validate = new Ajv2020({ allErrors: true, strictTypes: true }).compile(JSON.parse(await readFile(new URL("../common/impl-dataflow/impl-dataflow.schema.json", import.meta.url), "utf8")));
   assert.equal(validate(result.codeReview), true, JSON.stringify(validate.errors));
   assert.equal(result.codeReview.nodes[0].changeType, "modified");
+  assert.equal(result.codeReview.nodes[0].changeSummary, "Not implemented: modified run");
   for (const extra of [{ changeType: "unchanged" }, { diffHunkIds: ["evidence"] }, { expectedChangeType: "modified" }, { hldChangeType: "added" }, { tags: [tag] }, { [tag]: "true" }]) {
     const invalid = structuredClone(result.codeReview);
     Object.assign(invalid.nodes[0], extra);

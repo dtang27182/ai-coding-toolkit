@@ -197,6 +197,7 @@ export function annotateHldFunctionCoverage(hld, review, patch, enrichedPatch) {
         ...(entry.node.renamedFrom === undefined ? {} : { renamedFrom: entry.node.renamedFrom }),
         initialization: entry.node.initialization,
         changeType: entry.node.changeType,
+        changeSummary: `Not implemented: ${entry.node.changeSummary}`,
         [mismatchKey]: true,
       };
       codeReview.nodes.push(node);

@@ -13,11 +13,11 @@ function review() {
       { id: "other", name: "Other", type: "class", sourceFile: "src/Other.ts" },
     ],
     nodes: [
-      { id: "actual", name: "run", type: "function", containerId: "service", sourceFile: "src/service.ts", initialization: false, changeType: "added", "hld-change-mismatch": true },
+      { id: "actual", name: "run", type: "function", containerId: "service", sourceFile: "src/service.ts", initialization: false, changeType: "added", changeSummary: "Add run.", "hld-change-mismatch": true },
       ...["added", "modified", "deleted"].map((changeType, index) => ({
         id: `missing-${index}`, name: `expected${index}`, type: "function", subtype: "missing-from-cr",
         containerId: index === 0 ? "service" : "other", sourceFile: "src/service.ts",
-        initialization: false, changeType, "hld-change-mismatch": true,
+        initialization: false, changeType, changeSummary: `Not implemented: ${changeType} expected${index}`, "hld-change-mismatch": true,
       })),
     ],
     relationships: [],

@@ -13,6 +13,7 @@ interface NodeBase {
   name: string;
   type: NodeType;
   changeType: ChangeType;
+  changeSummary: string;
   initialization: boolean;
   diffHunkIds?: string[];
 }

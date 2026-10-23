@@ -12,11 +12,11 @@ function implementation(relationships = []) {
     stage: "high-level-design",
     containers: [{ id: "model", name: "Model", type: "class", sourceFile: "src/Model.ts" }, { id: "controller", name: "Controller", type: "module", sourceFile: "src/controller.ts" }],
     nodes: [
-      { id: "write", name: "update", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", initialization: false },
-      { id: "read", name: "read", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", initialization: false },
-      { id: "handle", name: "update", type: "function", containerId: "controller", sourceFile: "src/controller.ts", changeType: "added", initialization: false },
-      { id: "value", name: "value", type: "state-variable", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", initialization: false },
-      { id: "rules", name: "Rules", type: "static-data", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", initialization: false },
+      { id: "write", name: "update", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: "Add update.", initialization: false },
+      { id: "read", name: "read", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: "Add read.", initialization: false },
+      { id: "handle", name: "update", type: "function", containerId: "controller", sourceFile: "src/controller.ts", changeType: "added", changeSummary: "Add update.", initialization: false },
+      { id: "value", name: "value", type: "state-variable", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: "Add value.", initialization: false },
+      { id: "rules", name: "Rules", type: "static-data", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: "Add Rules.", initialization: false },
     ],
     relationships,
   };
