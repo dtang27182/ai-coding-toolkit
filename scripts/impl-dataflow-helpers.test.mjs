@@ -123,7 +123,7 @@ test("expanding a parent lays helpers beside it and draws their calls as ordinar
 
 test("several parents can be expanded independently", () => {
   const input = graph();
-  input.nodes.push(fn("second"), fn("second-helper", "service", "second"));
+  input.nodes.splice(3, 0, fn("second"), fn("second-helper", "service", "second"));
   input.relationships.push(flow("second", "second-helper"));
   const one = filterGraph(input, true, true, true, new Set(["root"]));
   assert.equal(one.containers[0].functions.some((node) => node.id === "second-helper"), false);
@@ -133,6 +133,9 @@ test("several parents can be expanded independently", () => {
   assert.ok(bothLayout.memberRects.get("second-helper").x > bothLayout.memberRects.get("second").x);
   assert.equal(bothLayout.memberRects.get("second-helper").y, bothLayout.memberRects.get("second").y);
   assert.deepEqual([...bothLayout.helperFrameRects.keys()], ["root", "second"]);
+  const firstFrame = bothLayout.helperFrameRects.get("root");
+  const secondFrame = bothLayout.helperFrameRects.get("second");
+  assert.ok(firstFrame.x + firstFrame.width < secondFrame.x);
 });
 
 test("a wide helper row leaves room for its dataflow curves below", () => {
