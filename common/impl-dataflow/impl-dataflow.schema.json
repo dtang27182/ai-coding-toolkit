@@ -392,7 +392,7 @@
         "sourceFile": { "$ref": "#/$defs/sourceFile" },
         "renamedFrom": { "$ref": "#/$defs/functionRenamedFrom" },
         "helperOf": {
-          "description": "ID of the function's sole direct caller in the same container, assigned by annotate-helper-functions.mjs.",
+          "description": "ID of the same-container function this function folds under, assigned from function dataflow relationships by annotate-helper-functions.mjs.",
           "type": "string",
           "minLength": 1
         },

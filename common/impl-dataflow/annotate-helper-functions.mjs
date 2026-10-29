@@ -26,6 +26,7 @@ export function annotateHelperFunctions(graph) {
   }
   validateGraph(annotated);
   const callers = new Map();
+  const links = new Map();
   for (const relationship of annotated.relationships) {
     if (relationship.type === "dataflow" && relationship.from.type === "function" && relationship.to.type === "function") {
       let callerId;
@@ -40,6 +41,11 @@ export function annotateHelperFunctions(graph) {
       const functionCallers = callers.get(calleeId) ?? new Set();
       functionCallers.add(callerId);
       callers.set(calleeId, functionCallers);
+      for (const [id, otherId] of [[callerId, calleeId], [calleeId, callerId]]) {
+        const functionLinks = links.get(id) ?? [];
+        functionLinks.push(otherId);
+        links.set(id, functionLinks);
+      }
     }
   }
   const functions = new Map(annotated.nodes.filter((node) => node.type === "function").map((node) => [node.id, node]));
@@ -49,6 +55,13 @@ export function annotateHelperFunctions(graph) {
       const callerId = [...functionCallers][0];
       const caller = functions.get(callerId);
       if (callerId !== node.id && caller.subtype !== "missing-from-cr" && caller.containerId === node.containerId) node.helperOf = callerId;
+    }
+  }
+  for (const node of functions.values()) {
+    const functionLinks = links.get(node.id) ?? [];
+    if (node.subtype !== "missing-from-cr" && node.helperOf === undefined && functionLinks.length === 1) {
+      const parent = functions.get(functionLinks[0]);
+      if (parent.id !== node.id && parent.subtype !== "missing-from-cr" && parent.containerId === node.containerId && parent.helperOf !== node.id) node.helperOf = parent.id;
     }
   }
   validateGraph(annotated);

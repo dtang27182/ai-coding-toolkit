@@ -45,7 +45,35 @@ test("records the sole same-container caller across argument and return flows", 
 test("recognizes a caller from a return flow alone", () => {
   const input = graph();
   input.relationships = [flow("helper", "parent", "return")];
-  assert.equal(annotateHelperFunctions(input).nodes.find((node) => node.id === "helper").helperOf, "parent");
+  const result = annotateHelperFunctions(input);
+  assert.equal(result.nodes.find((node) => node.id === "helper").helperOf, "parent");
+  assert.equal(result.nodes.find((node) => node.id === "parent").helperOf, undefined);
+});
+
+test("recognizes a caller from an arguments flow alone", () => {
+  const input = graph();
+  input.relationships = [flow("parent", "helper")];
+  const result = annotateHelperFunctions(input);
+  assert.equal(result.nodes.find((node) => node.id === "helper").helperOf, "parent");
+  assert.equal(result.nodes.find((node) => node.id === "parent").helperOf, undefined);
+});
+
+test("marks single-link event handlers as helpers of a shared function", () => {
+  const input = graph();
+  input.nodes.push(fn("another-handler"), { id: "page", name: "Page", type: "ui-component", location: "Page", changeType: "unchanged", changeSummary: "N/A", initialization: false });
+  input.relationships = [
+    flow("helper", "parent"),
+    flow("another-handler", "parent"),
+    { type: "dataflow", from: { nodeId: "page", type: "ui-component" }, to: { nodeId: "helper", type: "function" }, dataDescription: "event", purpose: "Trigger handler", changeType: "unchanged" },
+  ];
+  const result = annotateHelperFunctions(input);
+  assert.equal(result.nodes.find((node) => node.id === "helper").helperOf, "parent");
+  assert.equal(result.nodes.find((node) => node.id === "another-handler").helperOf, "parent");
+  assert.equal(result.nodes.find((node) => node.id === "parent").helperOf, undefined);
+  assert.deepEqual(annotateHelperFunctions(result), result);
+
+  input.relationships.push(flow("helper", "other-parent"));
+  assert.equal(annotateHelperFunctions(input).nodes.find((node) => node.id === "helper").helperOf, undefined);
 });
 
 test("does not mark functions with multiple callers, another-container callers, or only self calls", () => {
