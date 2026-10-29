@@ -62,13 +62,34 @@ test("opposite calls or opposite returns do not pair", () => {
   }
 });
 
+test("state writes own the arrow direction even when the read appears first", () => {
+  const write = flow("a", "state", undefined, "added");
+  const read = flow("state", "a", undefined, "modified");
+  for (const relationships of [[write, read], [read, write]]) {
+    const graph = filterGraph(implementation(relationships), true);
+    const edges = dataflowEdges(graph.relationships, false);
+    assert.equal(edges.length, 1);
+    assert.equal(edges[0].forward.relationship, write);
+    assert.equal(edges[0].back.relationship, read);
+    assert.deepEqual(relationshipsForEdge(graph.relationships, edges[0].key, false).map((item) => item.relationship), [write, read]);
+  }
+});
+
+test("state flows pair only when they connect the same function and state variable", () => {
+  const graph = filterGraph(implementation([flow("a", "state"), flow("state", "a2")]), true);
+  const edges = dataflowEdges(graph.relationships, false);
+  assert.equal(edges.length, 2);
+  assert.ok(edges.every((edge) => edge.back === undefined));
+});
+
 test("collapsed state reads and writes and boundary traffic merge by visible pair", () => {
   const graph = filterGraph(implementation([
     flow("a", "state"), flow("state", "a"), flow("a", "boundary"), flow("boundary", "a"),
   ]), true);
   const expanded = dataflowEdges(graph.relationships, false);
-  assert.equal(expanded.length, 4);
-  assert.ok(expanded.every((edge) => edge.back === undefined));
+  assert.equal(expanded.length, 3);
+  assert.equal(expanded[0].back.relationship, graph.relationships[1].relationship);
+  assert.ok(expanded.slice(1).every((edge) => edge.back === undefined));
   const collapsed = dataflowEdges(graph.relationships, true);
   assert.equal(collapsed.length, 2);
   assert.ok(collapsed.every((edge) => edge.back !== undefined));
@@ -89,7 +110,7 @@ test("collapsed flows hide internal members and retain static data sources", () 
     flow("b", "state"), flow("state", "b"), flow("static", "b"),
     flow("boundary", "boundary"),
   ]), true);
-  assert.equal(dataflowEdges(graph.relationships, false).length, graph.relationships.length);
+  assert.equal(dataflowEdges(graph.relationships, false).length, graph.relationships.length - 1);
   const edges = dataflowEdges(graph.relationships, true);
   assert.equal(edges.length, 1);
   assert.equal(edges[0].forward.relationship, graph.relationships[4].relationship);

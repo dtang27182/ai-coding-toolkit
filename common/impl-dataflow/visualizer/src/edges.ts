@@ -7,7 +7,7 @@ export interface DrawnEdge {
   relationships: ResolvedRelationship[];
 }
 
-/** Pair at function IDs, then collapse all flows between each visible pair. */
+/** Pair opposite flows at node IDs, then collapse all flows between each visible pair. */
 export function dataflowEdges(relationships: ResolvedRelationship[], collapsed: boolean): DrawnEdge[] {
   const drawable = relationships.filter((item) => item.relationship.type === "dataflow" && (!collapsed || item.from.boxId !== item.to.boxId));
   const used = new Set<ResolvedRelationship>();
@@ -28,6 +28,18 @@ export function dataflowEdges(relationships: ResolvedRelationship[], collapsed: 
           if (relationship.transferType === "arguments") {
             back = opposite;
           } else if (relationship.transferType === "return") {
+            forward = opposite;
+            back = item;
+          }
+        }
+      } else if (relationship.type === "dataflow" && ((from.type === "function" && to.type === "state-variable") || (from.type === "state-variable" && to.type === "function"))) {
+        const opposite = drawable.find((candidate) => candidate !== item && !used.has(candidate)
+          && candidate.relationship.type === "dataflow" && candidate.from.type === to.type && candidate.to.type === from.type
+          && candidate.from.nodeId === to.nodeId && candidate.to.nodeId === from.nodeId);
+        if (opposite !== undefined) {
+          if (from.type === "function") {
+            back = opposite;
+          } else if (from.type === "state-variable") {
             forward = opposite;
             back = item;
           }
