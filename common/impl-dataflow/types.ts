@@ -23,6 +23,7 @@ export type FunctionNode = NodeBase & {
   containerId: string;
   sourceFile: string;
   renamedFrom?: RenameOrigin & { containerName?: string };
+  helperOf?: string;
   subtype?: "missing-from-cr";
   "hld-change-mismatch"?: boolean;
   hldChangeType?: ChangeType | null;

@@ -49,6 +49,7 @@ Design the additions and changes to current code needed to satisfy High Level Re
 - Compare impl-dataflow with sys-dataflow for added, missing, or rerouted paths, changed outputs, and changed state updates. Detail below its abstraction level is not a mismatch.
 - Correct unjustified mismatches in the implementation design. Update and re-validate sys-dataflow where requirements and code inspection justify a system-level correction.
 - Run `node ai-coding-toolkit/common/impl-dataflow/validate-impl-dataflow.mjs <outputDirectory>/<feature>/<feature>.impl-dataflow.json`. Correct errors and rerun after revisions.
+- Run `node ai-coding-toolkit/common/impl-dataflow/annotate-helper-functions.mjs <outputDirectory>/<feature>/<feature>.impl-dataflow.json`.
 
 ### Write the HLD Narrative from the Design
 

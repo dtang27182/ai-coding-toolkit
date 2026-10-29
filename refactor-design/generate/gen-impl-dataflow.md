@@ -45,6 +45,7 @@ Design the additions and changes to current code needed to satisfy High Level Re
 - Trace affected existing paths from inputs through outputs and state updates. Verify that the design preserves externally observable behavior except for explicitly permitted changes.
 - Correct unjustified behavior changes and gaps in the implementation design.
 - Run `node ai-coding-toolkit/common/impl-dataflow/validate-impl-dataflow.mjs <outputDirectory>/<feature>/<feature>.impl-dataflow.json`. Correct errors and rerun after revisions.
+- Run `node ai-coding-toolkit/common/impl-dataflow/annotate-helper-functions.mjs <outputDirectory>/<feature>/<feature>.impl-dataflow.json`.
 
 ### Write the HLD Narrative from the Design
 

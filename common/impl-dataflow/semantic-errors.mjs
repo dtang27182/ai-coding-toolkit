@@ -47,6 +47,19 @@ export function implementationDataflowErrors(implementationDataflow, evaluated =
     }
   }
 
+  for (const node of implementationDataflow.nodes) {
+    if (node.type === "function" && node.helperOf !== undefined) {
+      const parent = nodes.get(node.helperOf);
+      if (parent === undefined) {
+        semanticErrors.push(`Unknown helper parent for function ${node.id}: ${node.helperOf}`);
+      } else if (parent.type !== "function") {
+        semanticErrors.push(`Helper parent must be a function for ${node.id}: ${node.helperOf}`);
+      } else if (parent.id === node.id || parent.containerId !== node.containerId) {
+        semanticErrors.push(`Helper parent must be another function in the same container for ${node.id}: ${node.helperOf}`);
+      }
+    }
+  }
+
   for (const relationship of implementationDataflow.relationships) {
     for (const endpoint of [relationship.from, relationship.to]) {
       if (relationship.type === "dataflow") {

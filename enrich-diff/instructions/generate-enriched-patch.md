@@ -15,6 +15,7 @@ Use the `outputDirectory` and feature selected in the skill workflow.
      --enriched-patch "<outputDirectory>/<feature>/<feature>.enriched-patch.json"
    ```
 
-5. Run `node ai-coding-toolkit/enrich-diff/scripts/validate-impl-dataflow.mjs "<outputDirectory>/<feature>/<feature>.cr.impl-dataflow.json"`.
-6. Run `node ai-coding-toolkit/enrich-diff/scripts/validate-enriched-patch.mjs <enriched-patch-path>`.
-7. Report the Enriched Patch path as the self-contained enriched patch viewer input.
+5. Run `node ai-coding-toolkit/common/impl-dataflow/annotate-helper-functions.mjs "<outputDirectory>/<feature>/<feature>.cr.impl-dataflow.json"`.
+6. Run `node ai-coding-toolkit/enrich-diff/scripts/validate-impl-dataflow.mjs "<outputDirectory>/<feature>/<feature>.cr.impl-dataflow.json"`.
+7. Run `node ai-coding-toolkit/enrich-diff/scripts/validate-enriched-patch.mjs <enriched-patch-path>`.
+8. Report the Enriched Patch path as the self-contained enriched patch viewer input.
