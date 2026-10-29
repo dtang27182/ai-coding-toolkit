@@ -6,10 +6,7 @@ export const STATE_VARIABLE_HEIGHT = 20;
 const STATE_VERTICAL_PADDING = 10;
 const STATE_BORDER = 2;
 const FUNCTION_GAP = 10;
-const HELPER_INDENT = 40;
-const HELPER_TOP_GAP = 12;
-const HELPER_GAP_Y = 10;
-const HELPER_FRAME_PADDING = 4;
+const HELPER_FRAME_PADDING = 7;
 const BOX_PADDING = 14;
 const TAB_HEIGHT = 26;
 const GAP_X = 64;
@@ -161,14 +158,7 @@ export function computeLayout(
   }
 
   function groupWidth(member: FunctionNode): number {
-    return Math.max(memberWidth(member), ...(helperGroups.get(member.id) ?? []).map(({ node, depth }) => depth * HELPER_INDENT + memberWidth(node)));
-  }
-
-  function functionHeight(node: GraphNode): number {
-    return Math.max(0, ...topMembers(node).map((member) => {
-      const count = helperGroups.get(member.id)?.length ?? 0;
-      return FUNCTION_HEIGHT + (count === 0 ? 0 : HELPER_TOP_GAP + count * FUNCTION_HEIGHT + (count - 1) * HELPER_GAP_Y);
-    }));
+    return memberWidth(member) + (helperGroups.get(member.id) ?? []).reduce((width, { node }) => width + FUNCTION_GAP + memberWidth(node), 0);
   }
 
   function visibleStateVariables(node: GraphNode) {
@@ -208,7 +198,7 @@ export function computeLayout(
     if (collapsed || node.nodeType !== undefined) {
       return COMPONENT_HEIGHT;
     } else {
-      const memberHeight = functionHeight(node);
+      const memberHeight = topMembers(node).length > 0 ? FUNCTION_HEIGHT : 0;
       const contentHeight = Math.max(memberHeight, stateHeight(node));
       if (contentHeight === 0) {
         return TAB_HEIGHT + BOX_PADDING * 2 + 4;
@@ -221,10 +211,14 @@ export function computeLayout(
   const maximumRank = Math.max(...ids.map((id) => rank.get(id)!));
   const rowTops: number[] = [];
   let y = 0;
+  let lastRowGap = GAP_Y;
   for (let row = 0; row <= maximumRank; row += 1) {
     rowTops.push(y);
     const rowNodes = nodes.filter((node) => rank.get(node.id) === row);
-    y += (rowNodes.length > 0 ? Math.max(...rowNodes.map(heightOf)) : 0) + GAP_Y;
+    const widestHelperGroup = Math.max(0, ...rowNodes.flatMap((node) => topMembers(node).filter((member) => helperGroups.has(member.id)).map(groupWidth)));
+    // Same-row call edges bow farther as a helper group widens.
+    lastRowGap = Math.max(GAP_Y, 80 + widestHelperGroup / 8);
+    y += (rowNodes.length > 0 ? Math.max(...rowNodes.map(heightOf)) : 0) + lastRowGap;
   }
 
   const x = new Map<string, number>();
@@ -315,15 +309,16 @@ export function computeLayout(
         width,
         height: FUNCTION_HEIGHT,
       });
-      let helperY = box.y + TAB_HEIGHT + FUNCTION_HEIGHT + HELPER_TOP_GAP;
-      for (const { node: helper, depth } of helperGroups.get(member.id) ?? []) {
+      let helperX = memberX + width + FUNCTION_GAP;
+      for (const { node: helper } of helperGroups.get(member.id) ?? []) {
+        const helperWidth = memberWidth(helper);
         memberRects.set(helper.id, {
-          x: memberX + depth * HELPER_INDENT,
-          y: helperY,
-          width: memberWidth(helper),
+          x: helperX,
+          y: box.y + TAB_HEIGHT,
+          width: helperWidth,
           height: FUNCTION_HEIGHT,
         });
-        helperY += FUNCTION_HEIGHT + HELPER_GAP_Y;
+        helperX += helperWidth + FUNCTION_GAP;
       }
       memberX += groupWidth(member) + FUNCTION_GAP;
     }
@@ -352,6 +347,6 @@ export function computeLayout(
     stateRects,
     compositionRelationships: composition,
     width: Math.max(320, ...nodes.map((node) => boxes.get(node.id)!.x + boxes.get(node.id)!.width)),
-    height: Math.max(240, y - GAP_Y),
+    height: Math.max(240, y - lastRowGap),
   }, missingFunctions);
 }

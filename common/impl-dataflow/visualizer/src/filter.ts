@@ -156,16 +156,13 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
     ...[...components, ...staticData].map((node) => ({ ...node, functions: [], stateVariables: [], staticData: [], nodeType: node.type })),
   ];
   const allNodes = new Map(implementationDataflow.nodes.map((node): [string, DataflowNode] => [node.id, node]));
-  const helperLinks = new Set([...expandedHelperGroups.values()].flatMap((members) => members.map(({ node, parentId }) => JSON.stringify([parentId, node.id]))));
   const relationships = visibleRelationships.map((relationship) => {
     const from = resolveEndpoint(relationship.from, allNodes);
     const to = resolveEndpoint(relationship.to, allNodes);
     if (from.nodeId !== undefined && collapsedHelpers.has(from.nodeId)) from.nodeId = collapsedHelpers.get(from.nodeId)!;
     if (to.nodeId !== undefined && collapsedHelpers.has(to.nodeId)) to.nodeId = collapsedHelpers.get(to.nodeId)!;
     if (to.type === "ui-component") to.boxId = uiWriteIds.get(to.nodeId!)!;
-    const helperConnector = hideHelpers && from.type === "function" && to.type === "function"
-      && (helperLinks.has(JSON.stringify([from.nodeId, to.nodeId])) || helperLinks.has(JSON.stringify([to.nodeId, from.nodeId])));
-    return { relationship, from, to, helperConnector };
+    return { relationship, from, to };
   });
   return { containers, components, staticData, missingFunctions, nodes, relationships, helperGroups, expandedHelperGroups };
 }

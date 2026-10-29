@@ -60,6 +60,19 @@ test("a UI component connected only to collapsed helpers remains visible and poi
   assert.deepEqual(expanded.relationships.map((item) => [item.from.nodeId, item.to.nodeId]), [["provider-page", "child"], ["grandchild", "provider-page"]]);
 });
 
+test("folding helpers preserves merged dataflows in the collapsed container view", () => {
+  const input = graph();
+  input.relationships.push(flow("child", "downstream"));
+  const folded = filterGraph(input, true);
+  const merged = dataflowEdges(folded.relationships, true);
+  assert.equal(merged.length, 1);
+  assert.deepEqual(merged[0].relationships.map((item) => item.relationship), [input.relationships[3], input.relationships[4]]);
+  assert.deepEqual(merged[0].relationships.map((item) => item.from.nodeId), ["root", "root"]);
+
+  const expanded = filterGraph(input, true, true, true, new Set(["root"]));
+  assert.equal(dataflowEdges(expanded.relationships, false).filter((edge) => edge.forward.to.nodeId === "downstream").length, 2);
+});
+
 test("turning Hide helpers off restores the original graph without helper grouping", () => {
   const visible = filterGraph(graph(), true, true, false);
   assert.deepEqual(visible.containers[0].functions.map((node) => node.id), ["root", "child", "grandchild", "peer"]);
@@ -71,13 +84,12 @@ test("turning Hide helpers off restores the original graph without helper groupi
   assert.equal(rects.get("root").y, rects.get("grandchild").y);
 });
 
-test("expanding a parent indents every helper, uses call connectors, and moves lower rows", () => {
+test("expanding a parent lays helpers beside it and draws their calls as ordinary edges", () => {
   const input = graph();
   const folded = filterGraph(input, true);
   const expanded = filterGraph(input, true, true, true, new Set(["root"]));
   assert.deepEqual(expanded.containers[0].functions.map((node) => node.id), ["root", "child", "grandchild", "peer"]);
-  assert.deepEqual(expanded.relationships.slice(0, 2).map((item) => item.helperConnector), [true, true]);
-  assert.equal(dataflowEdges(expanded.relationships, false).length, 2);
+  assert.equal(dataflowEdges(expanded.relationships, false).length, 4);
 
   const foldedLayout = layout(folded);
   const expandedLayout = layout(expanded);
@@ -96,23 +108,17 @@ test("expanding a parent indents every helper, uses call connectors, and moves l
   assert.ok(frame.x > service.x && frame.y > service.y);
   assert.ok(frame.x + frame.width < service.x + service.width);
   assert.ok(frame.y + frame.height < service.y + service.height);
-  assert.ok(child.x > root.x && child.y > root.y);
-  assert.ok(grandchild.x > child.x && grandchild.y > child.y);
-  assert.ok(expandedLayout.boxes.get("service").height > foldedLayout.boxes.get("service").height);
-  assert.ok(expandedLayout.boxes.get("worker").y > foldedLayout.boxes.get("worker").y);
-  assert.equal(expandedLayout.boxes.get("worker").y - foldedLayout.boxes.get("worker").y,
-    expandedLayout.boxes.get("service").height - foldedLayout.boxes.get("service").height);
+  assert.ok(child.x > root.x && grandchild.x > child.x);
+  assert.equal(child.y, root.y);
+  assert.equal(grandchild.y, root.y);
+  assert.equal(service.height, foldedLayout.boxes.get("service").height);
+  assert.equal(expandedLayout.boxes.get("worker").y, foldedLayout.boxes.get("worker").y);
+  assert.ok(expandedLayout.memberRects.get("peer").x > foldedLayout.memberRects.get("peer").x);
   assert.ok(expandedLayout.boxes.get("service").width >= grandchild.x + grandchild.width - expandedLayout.boxes.get("service").x);
-  const rootAnchor = { x: root.x - 6, y: root.y + root.height - 1, width: 32, height: 1 };
-  const route = routeEdge(rootAnchor, expandedLayout.memberRects.get("downstream"), 0, [child, grandchild]);
-  assert.match(route.path, /^M /);
-  assert.equal(route.start.y, root.y + root.height);
-  assert.ok(route.start.x > root.x && route.start.x < root.x + root.width);
-  const childAnchor = { x: child.x - 6, y: child.y + child.height - 1, width: 32, height: 1 };
-  assert.match(routeEdge(childAnchor, expandedLayout.memberRects.get("downstream"), 0, [grandchild]).path, /^M /);
-  const grandchildAnchor = { x: grandchild.x - 6, y: grandchild.y + grandchild.height - 1, width: 32, height: 1 };
-  assert.match(routeEdge(grandchildAnchor, expandedLayout.memberRects.get("peer"), 0, [child]).path, /^M /);
-  assert.match(routeEdge(expandedLayout.memberRects.get("downstream"), grandchild, 0, [child], 8).path, /^M /);
+  assert.match(routeEdge(root, child).path, /^M /);
+  assert.match(routeEdge(child, grandchild).path, /^M /);
+  assert.match(routeEdge(grandchild, expandedLayout.memberRects.get("peer")).path, /^M /);
+  assert.match(routeEdge(root, expandedLayout.memberRects.get("downstream"), 0, [child, grandchild]).path, /^M /);
 });
 
 test("several parents can be expanded independently", () => {
@@ -124,19 +130,30 @@ test("several parents can be expanded independently", () => {
   const both = filterGraph(input, true, true, true, new Set(["root", "second"]));
   assert.equal(both.containers[0].functions.some((node) => node.id === "second-helper"), true);
   const bothLayout = layout(both);
-  assert.ok(bothLayout.memberRects.get("second-helper").y > bothLayout.memberRects.get("second").y);
+  assert.ok(bothLayout.memberRects.get("second-helper").x > bothLayout.memberRects.get("second").x);
+  assert.equal(bothLayout.memberRects.get("second-helper").y, bothLayout.memberRects.get("second").y);
   assert.deepEqual([...bothLayout.helperFrameRects.keys()], ["root", "second"]);
 });
 
-test("an expanded parent can still route a state update past its helper", () => {
+test("a wide helper row leaves room for its dataflow curves below", () => {
+  const input = graph();
+  input.nodes = [fn("root"), ...Array.from({ length: 6 }, (_, index) => fn(`helper-${index}`, "service", "root")), fn("downstream", "worker")];
+  input.relationships = [flow("root", "helper-5"), flow("root", "downstream")];
+  const folded = layout(filterGraph(input, true));
+  const expanded = layout(filterGraph(input, true, true, true, new Set(["root"])));
+  assert.equal(expanded.boxes.get("service").height, folded.boxes.get("service").height);
+  assert.ok(expanded.boxes.get("worker").y > folded.boxes.get("worker").y);
+  assert.ok(expanded.memberRects.get("helper-5").x > expanded.memberRects.get("helper-0").x);
+});
+
+test("an expanded parent can still route a state update beside its helper", () => {
   const input = graph();
   input.nodes.push({ id: "state", name: "state", type: "state-variable", containerId: "service", sourceFile: "src/service.ts", changeType: "modified", changeSummary: "state", initialization: false });
   input.relationships.push({ type: "dataflow", from: { nodeId: "root", type: "function" }, to: { nodeId: "state", type: "state-variable" }, dataDescription: "state", purpose: "Update state", changeType: "modified" });
   const visible = filterGraph(input, true, true, true, new Set(["root"]));
   const rects = layout(visible).memberRects;
   const root = rects.get("root");
-  const source = { x: root.x - 6, y: root.y + root.height - 1, width: 32, height: 1 };
-  assert.match(routeEdge(source, rects.get("state"), 0, [rects.get("child"), rects.get("grandchild")], 8).path, /^M /);
+  assert.match(routeEdge(root, rects.get("state"), 0, [rects.get("child"), rects.get("grandchild")]).path, /^M /);
 });
 
 test("a helper disappears when its nonhelper parent is filtered out", () => {

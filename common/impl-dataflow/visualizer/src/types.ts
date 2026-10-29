@@ -56,7 +56,6 @@ export interface ResolvedRelationship {
   relationship: Relationship;
   from: ResolvedEndpoint;
   to: ResolvedEndpoint;
-  helperConnector?: boolean;
 }
 
 export function isInternalDataRelationship(relationship: ResolvedRelationship): boolean {

@@ -317,36 +317,22 @@ function renderGraph(graph: VisibleGraph): string {
     return `<rect class="helper-frame" data-node="${escapeHtml(members[0].node.containerId)}" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" rx="9"></rect>`;
   }).join("");
 
-  const helperConnectors = functionsHidden ? "" : [...graph.expandedHelperGroups.values()].flatMap((members) => members.map(({ node, parentId }) => {
-    const parent = layout.memberRects.get(parentId);
-    const child = layout.memberRects.get(node.id);
-    if (parent === undefined || child === undefined) return "";
-    const trunkX = parent.x + 20;
-    const childY = child.y + child.height / 2;
-    return `<path class="helper-connector" d="M ${trunkX} ${parent.y + parent.height} V ${childY} H ${child.x}" fill="none"></path>`;
-  })).join("");
-
   const compositionEdges = layout.compositionRelationships.map((relationship) => {
     const path = routeCompositionEdge(routingBounds.get(relationship.from.boxId)!, routingBounds.get(relationship.to.boxId)!, obstaclesFor(relationship));
     return `<path class="edge" ${relationshipAttributes(relationship)} d="${path}" fill="none" stroke="oklch(0.305 0.032 255)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#composition-arrow)"></path>
       <path class="edge-hit" ${relationshipAttributes(relationship)} data-select="relationship" d="${path}" fill="none" stroke="transparent" stroke-width="12"></path>`;
   }).join("");
 
-  const expandedFunctionIds = new Set([...graph.expandedHelperGroups].flatMap(([rootId, members]) => [rootId, ...members.map(({ node }) => node.id)]));
-  const edgeLayouts = dataflowEdges(graph.relationships, functionsHidden).map((edge) => {
-    let from = graphRect(edge.forward.from, routingBounds, layout.memberRects)!;
-    const to = graphRect(edge.forward.to, routingBounds, layout.memberRects)!;
-    if (!functionsHidden && edge.forward.from.type === "function"
-      && edge.forward.from.nodeId !== edge.forward.to.nodeId && expandedFunctionIds.has(edge.forward.from.nodeId!)) {
-      from = { x: from.x - 6, y: from.y + from.height - 1, width: 32, height: 1 };
-    }
-    return { ...edge, from, to };
-  });
+  const edgeLayouts = dataflowEdges(graph.relationships, functionsHidden).map((edge) => ({
+    ...edge,
+    from: graphRect(edge.forward.from, routingBounds, layout.memberRects)!,
+    to: graphRect(edge.forward.to, routingBounds, layout.memberRects)!,
+  }));
   const edgeSpreads = edgePortSpreads(edgeLayouts.map((edge) => ({ fromKey: graphEndpointKey(edge.forward.from), toKey: graphEndpointKey(edge.forward.to), from: edge.from, to: edge.to })));
   const returnArrows: string[] = [];
   const edges = edgeLayouts.map((edge, index) => {
     const { forward: relationship, back, key, from, to } = edge;
-    const route = routeEdge(from, to, edgeSpreads[index], obstaclesFor(relationship), graph.expandedHelperGroups.size > 0 ? 8 : 20);
+    const route = routeEdge(from, to, edgeSpreads[index], obstaclesFor(relationship));
     const changeType = relationship.relationship.changeType;
     const stateUpdate = relationship.to.type === "state-variable";
     const stateRead = relationship.from.type === "state-variable";
@@ -444,7 +430,7 @@ function renderGraph(graph: VisibleGraph): string {
   return `<div class="graph-space">
     ${graph.nodes.length === 0 && graph.missingFunctions.length === 0 ? '<div class="empty-graph">No nodes match the current filters</div>' : ""}
     <div class="graph" style="left:calc(50% + ${panX}px);top:calc(50% + ${panY}px);width:${layout.width}px;height:${layout.height}px;transform:translate(-50%, -50%) scale(${zoom})">
-      <svg class="graph-svg" width="${layout.width}" height="${layout.height}"><defs>${renderMarkers()}</defs>${classFrames}${helperFrames}${helperConnectors}${compositionEdges}${edges}</svg>
+      <svg class="graph-svg" width="${layout.width}" height="${layout.height}"><defs>${renderMarkers()}</defs>${classFrames}${helperFrames}${compositionEdges}${edges}</svg>
       ${classTabs}${standaloneNodes}${members}${stateBoxes}${emptyNotes}
       ${graph.missingFunctions.length === 0 ? "" : `<div class="missing-functions-heading">Missing from CR <span>${graph.missingFunctions.length}</span><small>Function changes expected by the HLD</small></div>${missingFunctions}`}
       <svg class="graph-svg return-arrows" width="${layout.width}" height="${layout.height}">${returnArrows.join("")}</svg>
