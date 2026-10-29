@@ -24,6 +24,7 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
   const helperGroups = new Map<string, HelperMember[]>();
   const expandedHelperGroups = new Map<string, HelperMember[]>();
   const hiddenHelpers = new Set<string>();
+  const collapsedHelpers = new Map<string, string>();
   if (hideHelpers) {
     const functionsById = new Map(implementationDataflow.nodes.filter((node): node is FunctionNode => node.type === "function").map((node) => [node.id, node]));
     const visibleFunctions = new Map(visibleNodes.filter((node): node is FunctionNode => node.type === "function").map((node) => [node.id, node]));
@@ -72,7 +73,10 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
       if (expandedHelpers.has(rootId)) {
         expandedHelperGroups.set(rootId, ordered);
       } else {
-        for (const member of ordered) hiddenHelpers.add(member.node.id);
+        for (const member of ordered) {
+          hiddenHelpers.add(member.node.id);
+          collapsedHelpers.set(member.node.id, rootId);
+        }
       }
     }
   }
@@ -114,7 +118,10 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
   const visibleRelationships = implementationDataflow.relationships.filter((relationship) => {
     let visible = false;
     if (relationship.type === "dataflow") {
-      visible = (showUnchanged || relationship.changeType !== "unchanged") && nodeIds.has(relationship.from.nodeId) && nodeIds.has(relationship.to.nodeId);
+      const fromId = collapsedHelpers.get(relationship.from.nodeId) ?? relationship.from.nodeId;
+      const toId = collapsedHelpers.get(relationship.to.nodeId) ?? relationship.to.nodeId;
+      visible = (showUnchanged || relationship.changeType !== "unchanged") && nodeIds.has(fromId) && nodeIds.has(toId)
+        && (fromId !== toId || relationship.from.nodeId === relationship.to.nodeId);
     } else if (relationship.type === "composition") {
       visible = visibleContainerIds.has(relationship.from.containerId) && visibleContainerIds.has(relationship.to.containerId);
     }
@@ -153,6 +160,8 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
   const relationships = visibleRelationships.map((relationship) => {
     const from = resolveEndpoint(relationship.from, allNodes);
     const to = resolveEndpoint(relationship.to, allNodes);
+    if (from.nodeId !== undefined && collapsedHelpers.has(from.nodeId)) from.nodeId = collapsedHelpers.get(from.nodeId)!;
+    if (to.nodeId !== undefined && collapsedHelpers.has(to.nodeId)) to.nodeId = collapsedHelpers.get(to.nodeId)!;
     if (to.type === "ui-component") to.boxId = uiWriteIds.get(to.nodeId!)!;
     const helperConnector = hideHelpers && from.type === "function" && to.type === "function"
       && (helperLinks.has(JSON.stringify([from.nodeId, to.nodeId])) || helperLinks.has(JSON.stringify([to.nodeId, from.nodeId])));

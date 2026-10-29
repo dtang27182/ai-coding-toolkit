@@ -31,15 +31,33 @@ function layout(visible) {
   return computeLayout(visible.nodes, visible.relationships, false, (_name, _writesState, _mismatch, hasHelpers) => hasHelpers ? 115 : 80, () => 80, () => 100, new Set(), [], visible.expandedHelperGroups, visible.helperGroups);
 }
 
-test("Hide helpers folds all descendants under the first nonhelper parent and removes their relationships", () => {
+test("Hide helpers folds descendants and reroutes their external relationships to the parent", () => {
   const visible = filterGraph(graph(), true);
   assert.deepEqual(visible.containers[0].functions.map((node) => node.id), ["root", "peer"]);
   assert.deepEqual(visible.helperGroups.get("root").map(({ node, parentId, depth }) => [node.id, parentId, depth]), [
     ["child", "root", 1],
     ["grandchild", "child", 2],
   ]);
-  assert.deepEqual(visible.relationships.map((item) => item.relationship), [graph().relationships[3]]);
-  assert.equal(dataflowEdges(visible.relationships, false).length, 1);
+  assert.deepEqual(visible.relationships.map((item) => item.relationship), graph().relationships.slice(2));
+  assert.deepEqual(visible.relationships.map((item) => [item.from.nodeId, item.to.nodeId]), [["root", "peer"], ["root", "downstream"]]);
+  assert.equal(dataflowEdges(visible.relationships, false).length, 2);
+});
+
+test("a UI component connected only to collapsed helpers remains visible and points to their parent", () => {
+  const input = graph();
+  input.nodes.push({ id: "provider-page", name: "Provider-selection page", type: "ui-component", location: "ProviderSelectionPage", changeType: "modified", changeSummary: "Page action", initialization: false });
+  input.relationships = [
+    { type: "dataflow", from: { nodeId: "provider-page", type: "ui-component" }, to: { nodeId: "child", type: "function" }, dataDescription: "select_openai event", purpose: "Handle selection", changeType: "modified" },
+    { type: "dataflow", from: { nodeId: "grandchild", type: "function" }, to: { nodeId: "provider-page", type: "ui-component" }, dataDescription: "page update", purpose: "Show selection", changeType: "modified" },
+  ];
+  const folded = filterGraph(input, true);
+  assert.deepEqual(folded.components.filter((node) => node.nodeId === "provider-page").map((node) => node.uiDirection), ["read", "write"]);
+  assert.deepEqual(folded.relationships.map((item) => [item.from.nodeId, item.to.nodeId]), [["provider-page", "root"], ["root", "provider-page"]]);
+  assert.equal(dataflowEdges(folded.relationships, false).length, 2);
+  assert.deepEqual(folded.relationships.map((item) => item.relationship), input.relationships);
+
+  const expanded = filterGraph(input, true, true, true, new Set(["root"]));
+  assert.deepEqual(expanded.relationships.map((item) => [item.from.nodeId, item.to.nodeId]), [["provider-page", "child"], ["grandchild", "provider-page"]]);
 });
 
 test("turning Hide helpers off restores the original graph without helper grouping", () => {
