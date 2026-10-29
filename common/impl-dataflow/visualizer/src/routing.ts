@@ -36,7 +36,7 @@ export function edgePortSpreads(edges: EdgeAttachment[]): EdgeSpread[] {
   return spreads;
 }
 
-export function routeEdge(from: Rect, to: Rect, spread: number | EdgeSpread = 0, obstacles: Rect[] = []): { path: string; start: Point; end: Point } {
+export function routeEdge(from: Rect, to: Rect, spread: number | EdgeSpread = 0, obstacles: Rect[] = [], clearance = 20): { path: string; start: Point; end: Point } {
   const startSpread = typeof spread === "number" ? spread : spread.start;
   const endSpread = typeof spread === "number" ? spread : spread.end;
   const fromCenterX = from.x + from.width / 2;
@@ -68,7 +68,6 @@ export function routeEdge(from: Rect, to: Rect, spread: number | EdgeSpread = 0,
     lastControl = { x: end.x, y: end.y + bend };
   }
 
-  const clearance = 20;
   const blocked = expandObstacles(obstacles, clearance);
   let path: string;
   if (curveBlocked([start, firstControl, lastControl, end], blocked)) {

@@ -310,7 +310,8 @@ body.embedded .topbar {
 
 .graph-node.dimmed,
 .edge.dimmed,
-.class-frame.dimmed {
+.class-frame.dimmed,
+.helper-frame.dimmed {
   opacity: 0.17;
 }
 
@@ -360,6 +361,43 @@ body.embedded .topbar {
 .function-pill:hover,
 .function-pill.selected {
   background: oklch(0.33 0.034 255);
+}
+
+.function-pill.has-helpers {
+  padding-right: 42px;
+}
+
+.helper-toggle {
+  z-index: 3;
+  width: 36px;
+  height: 24px;
+  padding: 0;
+  border: 1.5px solid var(--change-color);
+  border-radius: 20px;
+  color: var(--change-color);
+  background: var(--raised);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.helper-toggle:hover,
+.helper-toggle:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.helper-connector {
+  stroke: oklch(0.75 0.09 210);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  stroke-linejoin: round;
+}
+
+.helper-frame {
+  fill: oklch(0.65 0.1 210 / 0.06);
+  stroke: oklch(0.72 0.12 210);
+  stroke-width: 1.5;
 }
 
 .hld-mismatch {

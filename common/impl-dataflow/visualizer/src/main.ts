@@ -106,7 +106,9 @@ let implementationDataflow = exampleImplementationDataflow as ImplementationData
 let fileName = "impl-dataflow.example.json";
 let showUnchanged = false;
 let hideInitialization = true;
+let hideHelpers = true;
 let functionsHidden = false;
+const expandedHelpers = new Set<string>();
 let zoom = 1;
 let panX = 0;
 let panY = 0;
@@ -165,9 +167,9 @@ function diffEvidence(ids: string[] | undefined): string {
   }
 }
 
-function functionWidth(name: string, writesState: boolean, mismatch = false): number {
+function functionWidth(name: string, writesState: boolean, mismatch = false, hasHelpers = false): number {
   measureContext.font = "500 12.5px IBM Plex Mono, monospace";
-  return Math.ceil(measureContext.measureText(name).width) + (writesState ? 57 : 42) + (mismatch ? 6 : 0);
+  return Math.ceil(measureContext.measureText(name).width) + (writesState ? 57 : 42) + (mismatch ? 6 : 0) + (hasHelpers ? 35 : 0);
 }
 
 function stateVariableWidth(name: string): number {
@@ -243,7 +245,7 @@ function relationshipAttributes(relationship: ResolvedRelationship, key = edgeKe
 }
 
 function visibleGraph(): VisibleGraph {
-  return filterGraph(implementationDataflow, showUnchanged, hideInitialization);
+  return filterGraph(implementationDataflow, showUnchanged, hideInitialization, hideHelpers, expandedHelpers);
 }
 
 function graphRect(endpoint: ResolvedEndpoint, boxes: Map<string, Rect>, memberRects: Map<string, Rect>): Rect | undefined {
@@ -277,7 +279,7 @@ function renderMarkers(): string {
 
 function renderGraph(graph: VisibleGraph): string {
   const stateWriters = new Set(graph.relationships.filter((relationship) => relationship.to.type === "state-variable" && relationship.from.type === "function").map((relationship) => relationship.from.nodeId!));
-  const layout = computeLayout(graph.nodes, graph.relationships, functionsHidden, functionWidth, stateVariableWidth, componentWidth, stateWriters, graph.missingFunctions);
+  const layout = computeLayout(graph.nodes, graph.relationships, functionsHidden, functionWidth, stateVariableWidth, componentWidth, stateWriters, graph.missingFunctions, graph.expandedHelperGroups, graph.helperGroups);
   graphLayout = layout;
   currentGraphWidth = layout.width;
   currentGraphHeight = layout.height;
@@ -293,7 +295,16 @@ function renderGraph(graph: VisibleGraph): string {
     return [node.id, bounds];
   }));
   function obstaclesFor(relationship: ResolvedRelationship): Rect[] {
-    return [...routingBounds].filter(([id]) => id !== relationship.from.boxId && id !== relationship.to.boxId).map(([, box]) => box);
+    const boxes = [...routingBounds].filter(([id]) => id !== relationship.from.boxId && id !== relationship.to.boxId).map(([, box]) => box);
+    if (relationship.relationship.type === "dataflow" && hideHelpers && !functionsHidden) {
+      for (const members of graph.expandedHelperGroups.values()) {
+        for (const { node } of members) {
+          const rect = layout.memberRects.get(node.id);
+          if (rect !== undefined && node.id !== relationship.from.nodeId && node.id !== relationship.to.nodeId) boxes.push(rect);
+        }
+      }
+    }
+    return boxes;
   }
 
   const classFrames = functionsHidden ? "" : graph.containers.map((container) => {
@@ -301,22 +312,41 @@ function renderGraph(graph: VisibleGraph): string {
     return `<rect class="class-frame" data-node="${escapeHtml(container.id)}" x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="11" fill="oklch(0.212 0.024 255 / 0.72)" stroke="oklch(0.4 0.032 255)" stroke-width="1.25" stroke-dasharray="6 5"></rect>`;
   }).join("");
 
+  const helperFrames = functionsHidden ? "" : [...graph.expandedHelperGroups].map(([rootId, members]) => {
+    const rect = layout.helperFrameRects.get(rootId)!;
+    return `<rect class="helper-frame" data-node="${escapeHtml(members[0].node.containerId)}" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" rx="9"></rect>`;
+  }).join("");
+
+  const helperConnectors = functionsHidden ? "" : [...graph.expandedHelperGroups.values()].flatMap((members) => members.map(({ node, parentId }) => {
+    const parent = layout.memberRects.get(parentId);
+    const child = layout.memberRects.get(node.id);
+    if (parent === undefined || child === undefined) return "";
+    const trunkX = parent.x + 20;
+    const childY = child.y + child.height / 2;
+    return `<path class="helper-connector" d="M ${trunkX} ${parent.y + parent.height} V ${childY} H ${child.x}" fill="none"></path>`;
+  })).join("");
+
   const compositionEdges = layout.compositionRelationships.map((relationship) => {
     const path = routeCompositionEdge(routingBounds.get(relationship.from.boxId)!, routingBounds.get(relationship.to.boxId)!, obstaclesFor(relationship));
     return `<path class="edge" ${relationshipAttributes(relationship)} d="${path}" fill="none" stroke="oklch(0.305 0.032 255)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#composition-arrow)"></path>
       <path class="edge-hit" ${relationshipAttributes(relationship)} data-select="relationship" d="${path}" fill="none" stroke="transparent" stroke-width="12"></path>`;
   }).join("");
 
-  const edgeLayouts = dataflowEdges(graph.relationships, functionsHidden).map((edge) => ({
-    ...edge,
-    from: graphRect(edge.forward.from, routingBounds, layout.memberRects)!,
-    to: graphRect(edge.forward.to, routingBounds, layout.memberRects)!,
-  }));
+  const expandedFunctionIds = new Set([...graph.expandedHelperGroups].flatMap(([rootId, members]) => [rootId, ...members.map(({ node }) => node.id)]));
+  const edgeLayouts = dataflowEdges(graph.relationships, functionsHidden).map((edge) => {
+    let from = graphRect(edge.forward.from, routingBounds, layout.memberRects)!;
+    const to = graphRect(edge.forward.to, routingBounds, layout.memberRects)!;
+    if (!functionsHidden && edge.forward.from.type === "function"
+      && edge.forward.from.nodeId !== edge.forward.to.nodeId && expandedFunctionIds.has(edge.forward.from.nodeId!)) {
+      from = { x: from.x - 6, y: from.y + from.height - 1, width: 32, height: 1 };
+    }
+    return { ...edge, from, to };
+  });
   const edgeSpreads = edgePortSpreads(edgeLayouts.map((edge) => ({ fromKey: graphEndpointKey(edge.forward.from), toKey: graphEndpointKey(edge.forward.to), from: edge.from, to: edge.to })));
   const returnArrows: string[] = [];
   const edges = edgeLayouts.map((edge, index) => {
     const { forward: relationship, back, key, from, to } = edge;
-    const route = routeEdge(from, to, edgeSpreads[index], obstaclesFor(relationship));
+    const route = routeEdge(from, to, edgeSpreads[index], obstaclesFor(relationship), graph.expandedHelperGroups.size > 0 ? 8 : 20);
     const changeType = relationship.relationship.changeType;
     const stateUpdate = relationship.to.type === "state-variable";
     const stateRead = relationship.from.type === "state-variable";
@@ -357,10 +387,13 @@ function renderGraph(graph: VisibleGraph): string {
     const rect = layout.memberRects.get(node.id)!;
     const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
     const mismatch = node["hld-change-mismatch"] === true;
-    return `<button class="graph-node function-pill${selected ? " selected" : ""}${nodeChangeType(node) === "deleted" ? " deleted" : ""}${mismatch ? " hld-mismatch-pill" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;--change-color:${changeColor(nodeChangeType(node))}" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(container.name)}.${escapeHtml(node.name)}${mismatch ? ", HLD mismatch" : ""}">
+    const helperCount = graph.helperGroups.get(node.id)?.length ?? 0;
+    const expanded = expandedHelpers.has(node.id);
+    const toggleLabel = `${expanded ? "Collapse" : "Expand"} ${helperCount} helper ${helperCount === 1 ? "function" : "functions"} for ${container.name}.${node.name}`;
+    return `<button class="graph-node function-pill${selected ? " selected" : ""}${nodeChangeType(node) === "deleted" ? " deleted" : ""}${mismatch ? " hld-mismatch-pill" : ""}${helperCount > 0 ? " has-helpers" : ""}" style="left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;--change-color:${changeColor(nodeChangeType(node))}" data-select="node" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-label="Inspect ${NODE_LABELS[node.type]} ${escapeHtml(container.name)}.${escapeHtml(node.name)}${mismatch ? ", HLD mismatch" : ""}">
       ${mismatch ? '<span class="hld-mismatch-glyph" title="Function change does not match the HLD">≠</span>' : `<span class="function-glyph">${NODE_GLYPHS[node.type]}</span>`}<span class="function-name">${escapeHtml(node.name)}</span>
       ${stateWriters.has(node.id) ? '<span class="state-glyph" title="Writes state">◈</span>' : ""}
-    </button>`;
+    </button>${helperCount === 0 ? "" : `<button class="graph-node helper-toggle" style="left:${rect.x + rect.width - 40}px;top:${rect.y + 4}px;--change-color:${changeColor(nodeChangeType(node))}" data-toggle-helpers="${escapeHtml(node.id)}" data-node="${escapeHtml(container.id)}" data-node-id="${escapeHtml(node.id)}" aria-expanded="${expanded}" aria-label="${escapeHtml(toggleLabel)}" title="${escapeHtml(toggleLabel)}">+${helperCount}</button>`}`;
   })).join("");
 
   const missingFunctions = graph.missingFunctions.map((node) => {
@@ -411,7 +444,7 @@ function renderGraph(graph: VisibleGraph): string {
   return `<div class="graph-space">
     ${graph.nodes.length === 0 && graph.missingFunctions.length === 0 ? '<div class="empty-graph">No nodes match the current filters</div>' : ""}
     <div class="graph" style="left:calc(50% + ${panX}px);top:calc(50% + ${panY}px);width:${layout.width}px;height:${layout.height}px;transform:translate(-50%, -50%) scale(${zoom})">
-      <svg class="graph-svg" width="${layout.width}" height="${layout.height}"><defs>${renderMarkers()}</defs>${classFrames}${compositionEdges}${edges}</svg>
+      <svg class="graph-svg" width="${layout.width}" height="${layout.height}"><defs>${renderMarkers()}</defs>${classFrames}${helperFrames}${helperConnectors}${compositionEdges}${edges}</svg>
       ${classTabs}${standaloneNodes}${members}${stateBoxes}${emptyNotes}
       ${graph.missingFunctions.length === 0 ? "" : `<div class="missing-functions-heading">Missing from CR <span>${graph.missingFunctions.length}</span><small>Function changes expected by the HLD</small></div>${missingFunctions}`}
       <svg class="graph-svg return-arrows" width="${layout.width}" height="${layout.height}">${returnArrows.join("")}</svg>
@@ -535,6 +568,7 @@ function render(): void {
           <button class="control-button open-button" data-open>Open JSON</button>
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
           <button class="control-button${hideInitialization ? " active" : ""}" data-toggle-initialization aria-pressed="${hideInitialization}">Hide Initialization</button>
+          <button class="control-button${hideHelpers ? " active" : ""}" data-toggle-hide-helpers aria-pressed="${hideHelpers}">Hide helpers</button>
           <button class="control-button${functionsHidden ? " active" : ""}" data-toggle-functions>${functionsHidden ? "Expand containers" : "Collapse containers"}</button>
           <button class="control-button${inspectorCollapsed ? "" : " active"}" data-toggle-inspector aria-pressed="${!inspectorCollapsed}" aria-label="${inspectorCollapsed ? "Show inspector" : "Hide inspector"}">${inspectorCollapsed ? "Show inspector" : "Hide inspector"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
@@ -696,6 +730,24 @@ function bindEvents(): void {
       updateInspector();
     });
   }
+  for (const toggle of app.querySelectorAll<HTMLElement>("[data-toggle-helpers]")) {
+    toggle.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const parentId = toggle.dataset.toggleHelpers!;
+      if (expandedHelpers.has(parentId)) {
+        const members = visibleGraph().helperGroups.get(parentId) ?? [];
+        const selectedNodeId = selection?.type === "node" ? selection.nodeId : undefined;
+        if (members.some(({ node }) => node.id === selectedNodeId)) selection = undefined;
+        expandedHelpers.delete(parentId);
+      } else {
+        expandedHelpers.add(parentId);
+      }
+      if (selection?.type === "relationship") selection = undefined;
+      hovered = undefined;
+      render();
+      [...app.querySelectorAll<HTMLElement>("[data-toggle-helpers]")].find((button) => button.dataset.toggleHelpers === parentId)?.focus();
+    });
+  }
   app.querySelector<HTMLElement>(".inspector")?.addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLElement>("[data-jump], [data-close]");
     if (button?.dataset.jump !== undefined) {
@@ -717,6 +769,15 @@ function bindEvents(): void {
   });
   app.querySelector<HTMLElement>("[data-toggle-initialization]")!.addEventListener("click", () => {
     hideInitialization = !hideInitialization;
+    selection = undefined;
+    hovered = undefined;
+    panX = 0;
+    panY = 0;
+    userZoomed = false;
+    render();
+  });
+  app.querySelector<HTMLElement>("[data-toggle-hide-helpers]")!.addEventListener("click", () => {
+    hideHelpers = !hideHelpers;
     selection = undefined;
     hovered = undefined;
     panX = 0;
@@ -819,7 +880,7 @@ function updateGraphFocus(value: Selection | undefined): void {
     element.classList.toggle("pair-partner", paired);
     element.querySelector(".pair-token")?.classList.toggle("active", paired);
   }
-  for (const element of app.querySelectorAll<SVGElement>(".class-frame[data-node]")) {
+  for (const element of app.querySelectorAll<SVGElement>(".class-frame[data-node], .helper-frame[data-node]")) {
     element.classList.toggle("dimmed", value !== undefined && !relatedBoxes.has(element.dataset.node!));
   }
   for (const element of app.querySelectorAll<SVGElement>("[data-relation]")) {
@@ -876,6 +937,7 @@ function setImplementationDataflow(value: unknown, nextFileName: string): string
     } else {
       implementationDataflow = nextImplementationDataflow;
       fileName = nextFileName;
+      expandedHelpers.clear();
       selection = undefined;
       hovered = undefined;
       panX = 0;

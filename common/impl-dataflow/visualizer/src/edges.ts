@@ -9,7 +9,7 @@ export interface DrawnEdge {
 
 /** Pair at function IDs, then collapse all flows between each visible pair. */
 export function dataflowEdges(relationships: ResolvedRelationship[], collapsed: boolean): DrawnEdge[] {
-  const drawable = relationships.filter((item) => item.relationship.type === "dataflow" && (!collapsed || item.from.boxId !== item.to.boxId));
+  const drawable = relationships.filter((item) => item.relationship.type === "dataflow" && !item.helperConnector && (!collapsed || item.from.boxId !== item.to.boxId));
   const used = new Set<ResolvedRelationship>();
   const edges: DrawnEdge[] = [];
   const merged = new Map<string, DrawnEdge>();

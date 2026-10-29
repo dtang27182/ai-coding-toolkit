@@ -11,6 +11,12 @@ export interface GraphContainer extends Container {
   staticData: StaticDataNode[];
 }
 
+export interface HelperMember {
+  node: FunctionNode;
+  parentId: string;
+  depth: number;
+}
+
 export type Selection =
   | { type: "container"; containerId: string }
   | { type: "node"; nodeId: string }
@@ -50,6 +56,7 @@ export interface ResolvedRelationship {
   relationship: Relationship;
   from: ResolvedEndpoint;
   to: ResolvedEndpoint;
+  helperConnector?: boolean;
 }
 
 export function isInternalDataRelationship(relationship: ResolvedRelationship): boolean {
@@ -60,6 +67,7 @@ export function isInternalDataRelationship(relationship: ResolvedRelationship): 
 export interface GraphLayout {
   boxes: Map<string, Rect>;
   memberRects: Map<string, Rect>;
+  helperFrameRects: Map<string, Rect>;
   missingFunctionRects: Map<string, Rect>;
   stateRects: Map<string, Rect>;
   compositionRelationships: ResolvedRelationship[];

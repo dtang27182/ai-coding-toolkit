@@ -1,4 +1,4 @@
-import type { GraphLayout, GraphNode, Rect, ResolvedRelationship } from "./types.ts";
+import type { GraphLayout, GraphNode, HelperMember, Rect, ResolvedRelationship } from "./types.ts";
 import type { FunctionNode } from "../../types.ts";
 
 export const FUNCTION_HEIGHT = 32;
@@ -6,6 +6,10 @@ export const STATE_VARIABLE_HEIGHT = 20;
 const STATE_VERTICAL_PADDING = 10;
 const STATE_BORDER = 2;
 const FUNCTION_GAP = 10;
+const HELPER_INDENT = 40;
+const HELPER_TOP_GAP = 12;
+const HELPER_GAP_Y = 10;
+const HELPER_FRAME_PADDING = 4;
 const BOX_PADDING = 14;
 const TAB_HEIGHT = 26;
 const GAP_X = 64;
@@ -16,7 +20,7 @@ function withMissingFunctions(layout: GraphLayout, missingFunctions: FunctionNod
   if (missingFunctions.length > 0) {
     const width = 320;
     const offset = width + GAP_X;
-    for (const rect of [...layout.boxes.values(), ...layout.memberRects.values(), ...layout.stateRects.values()]) {
+    for (const rect of [...layout.boxes.values(), ...layout.memberRects.values(), ...layout.helperFrameRects.values(), ...layout.stateRects.values()]) {
       rect.x += offset;
     }
     for (const [index, node] of missingFunctions.entries()) {
@@ -61,14 +65,16 @@ export function computeLayout(
   nodes: GraphNode[],
   relationships: ResolvedRelationship[],
   collapsed: boolean,
-  measureFunction: (name: string, writesState: boolean, mismatch?: boolean) => number,
+  measureFunction: (name: string, writesState: boolean, mismatch?: boolean, hasHelpers?: boolean) => number,
   measureStateVariable: (name: string) => number,
   measureComponent: (name: string) => number,
   stateWriters: Set<string>,
   missingFunctions: FunctionNode[] = [],
+  helperGroups: ReadonlyMap<string, HelperMember[]> = new Map(),
+  allHelperGroups: ReadonlyMap<string, HelperMember[]> = helperGroups,
 ): GraphLayout {
   if (nodes.length === 0) {
-    return withMissingFunctions({ boxes: new Map(), memberRects: new Map(), missingFunctionRects: new Map(), stateRects: new Map(), compositionRelationships: [], width: 320, height: 240 }, missingFunctions);
+    return withMissingFunctions({ boxes: new Map(), memberRects: new Map(), helperFrameRects: new Map(), missingFunctionRects: new Map(), stateRects: new Map(), compositionRelationships: [], width: 320, height: 240 }, missingFunctions);
   }
 
   const ids = nodes.map((node) => node.id);
@@ -145,6 +151,26 @@ export function computeLayout(
     return collapsed || node.nodeType !== undefined ? [] : node.functions;
   }
 
+  const expandedHelperIds = new Set([...helperGroups.values()].flatMap((members) => members.map(({ node }) => node.id)));
+  function topMembers(node: GraphNode): FunctionNode[] {
+    return visibleMembers(node).filter((member) => !expandedHelperIds.has(member.id));
+  }
+
+  function memberWidth(member: FunctionNode): number {
+    return measureFunction(member.name, stateWriters.has(member.id), member["hld-change-mismatch"], allHelperGroups.has(member.id));
+  }
+
+  function groupWidth(member: FunctionNode): number {
+    return Math.max(memberWidth(member), ...(helperGroups.get(member.id) ?? []).map(({ node, depth }) => depth * HELPER_INDENT + memberWidth(node)));
+  }
+
+  function functionHeight(node: GraphNode): number {
+    return Math.max(0, ...topMembers(node).map((member) => {
+      const count = helperGroups.get(member.id)?.length ?? 0;
+      return FUNCTION_HEIGHT + (count === 0 ? 0 : HELPER_TOP_GAP + count * FUNCTION_HEIGHT + (count - 1) * HELPER_GAP_Y);
+    }));
+  }
+
   function visibleStateVariables(node: GraphNode) {
     return collapsed || node.nodeType !== undefined ? [] : node.stateVariables;
   }
@@ -167,9 +193,9 @@ export function computeLayout(
     if (collapsed || node.nodeType !== undefined) {
       return Math.max(164, measureComponent(node.name) + 62);
     } else {
-      const members = visibleMembers(node);
+      const members = topMembers(node);
       const memberWidth = members.reduce(
-        (total, member) => total + measureFunction(member.name, stateWriters.has(member.id), member["hld-change-mismatch"]) + FUNCTION_GAP,
+        (total, member) => total + groupWidth(member) + FUNCTION_GAP,
         -FUNCTION_GAP,
       );
       const stateBoxWidth = stateWidth(node);
@@ -182,7 +208,7 @@ export function computeLayout(
     if (collapsed || node.nodeType !== undefined) {
       return COMPONENT_HEIGHT;
     } else {
-      const memberHeight = visibleMembers(node).length > 0 ? FUNCTION_HEIGHT : 0;
+      const memberHeight = functionHeight(node);
       const contentHeight = Math.max(memberHeight, stateHeight(node));
       if (contentHeight === 0) {
         return TAB_HEIGHT + BOX_PADDING * 2 + 4;
@@ -281,21 +307,47 @@ export function computeLayout(
       }
       memberX += width + FUNCTION_GAP;
     }
-    for (const member of visibleMembers(node)) {
-      const width = measureFunction(member.name, stateWriters.has(member.id), member["hld-change-mismatch"]);
+    for (const member of topMembers(node)) {
+      const width = memberWidth(member);
       memberRects.set(member.id, {
         x: memberX,
         y: box.y + TAB_HEIGHT,
         width,
         height: FUNCTION_HEIGHT,
       });
-      memberX += width + FUNCTION_GAP;
+      let helperY = box.y + TAB_HEIGHT + FUNCTION_HEIGHT + HELPER_TOP_GAP;
+      for (const { node: helper, depth } of helperGroups.get(member.id) ?? []) {
+        memberRects.set(helper.id, {
+          x: memberX + depth * HELPER_INDENT,
+          y: helperY,
+          width: memberWidth(helper),
+          height: FUNCTION_HEIGHT,
+        });
+        helperY += FUNCTION_HEIGHT + HELPER_GAP_Y;
+      }
+      memberX += groupWidth(member) + FUNCTION_GAP;
+    }
+  }
+
+  const helperFrameRects = new Map<string, Rect>();
+  if (!collapsed) {
+    for (const [rootId, members] of helperGroups) {
+      const rects = [rootId, ...members.map(({ node }) => node.id)].map((id) => memberRects.get(id)!);
+      const left = Math.min(...rects.map((rect) => rect.x)) - HELPER_FRAME_PADDING;
+      const top = Math.min(...rects.map((rect) => rect.y)) - HELPER_FRAME_PADDING;
+      helperFrameRects.set(rootId, {
+        x: left,
+        y: top,
+        width: Math.max(...rects.map((rect) => rect.x + rect.width)) - left + HELPER_FRAME_PADDING,
+        height: Math.max(...rects.map((rect) => rect.y + rect.height)) - top + HELPER_FRAME_PADDING,
+      });
     }
   }
 
   return withMissingFunctions({
     boxes,
     memberRects,
+    helperFrameRects,
     missingFunctionRects: new Map(),
     stateRects,
     compositionRelationships: composition,
