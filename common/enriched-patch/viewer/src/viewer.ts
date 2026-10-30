@@ -116,7 +116,7 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   }
 
   function tagColor(tag: string): string {
-    return tagList.find((candidate) => candidate.tag === tag)?.color ?? "#8fa3b1";
+    return tagList.find((candidate) => candidate.tag === tag)?.color ?? "var(--cat-slate)";
   }
 
   function renderTagDots(tags: string[]): string {

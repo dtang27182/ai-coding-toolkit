@@ -20,10 +20,10 @@ const measureContext = document.createElement("canvas").getContext("2d")!;
 const LAST_OPENED_KEY = "impl-dataflow:last-opened";
 
 const CHANGE_COLORS: Record<ChangeType, string> = {
-  added: "oklch(0.76 0.16 155)",
-  modified: "oklch(0.82 0.15 82)",
-  deleted: "oklch(0.72 0.18 25)",
-  unchanged: "oklch(0.56 0.02 250)",
+  added: "var(--added)",
+  modified: "var(--modified)",
+  deleted: "var(--deleted)",
+  unchanged: "var(--unchanged)",
 };
 
 const NODE_LABELS: Record<NodeType, string> = {
@@ -51,16 +51,16 @@ type BoundaryKind = "user-input" | "user-output" | "external-dependency" | "syst
 
 /** Boundary node looks: the type sets the silhouette, badge and tint; the change type sets the outline. */
 const BOUNDARY_TYPES: Record<BoundaryKind, { label: string; badge: string; shape: Silhouette; color: string }> = {
-  "user-input": { label: "UI read", badge: "USER →", shape: "rect", color: "oklch(0.80 0.095 232)" },
-  "user-output": { label: "UI write", badge: "→ USER", shape: "rect", color: "oklch(0.78 0.095 300)" },
-  "external-dependency": { label: "External dependency", badge: "EXTERNAL", shape: "dashed", color: "oklch(0.75 0.085 278)" },
-  "system-input": { label: "System input", badge: "SYSTEM →", shape: "stadium-left", color: "oklch(0.80 0.085 205)" },
-  "system-output": { label: "System output", badge: "→ SYSTEM", shape: "stadium-right", color: "oklch(0.76 0.095 325)" },
-  "static-data": { label: "Static data", badge: "STATIC", shape: "dogear", color: "oklch(0.71 0.03 250)" },
+  "user-input": { label: "UI read", badge: "USER →", shape: "rect", color: "var(--cat-blue)" },
+  "user-output": { label: "UI write", badge: "→ USER", shape: "rect", color: "var(--cat-violet)" },
+  "external-dependency": { label: "External dependency", badge: "EXTERNAL", shape: "dashed", color: "var(--cat-indigo)" },
+  "system-input": { label: "System input", badge: "SYSTEM →", shape: "stadium-left", color: "var(--cat-cyan)" },
+  "system-output": { label: "System output", badge: "→ SYSTEM", shape: "stadium-right", color: "var(--cat-magenta)" },
+  "static-data": { label: "Static data", badge: "STATIC", shape: "dogear", color: "var(--cat-slate)" },
 };
 
 /** Containers use a hexagon in their type color. */
-const CONTAINER_TYPE = { badge: { class: "CLASS", module: "MODULE" }, shape: "hexagon" as Silhouette, color: "oklch(0.85 0.09 255)" };
+const CONTAINER_TYPE = { badge: { class: "CLASS", module: "MODULE" }, shape: "hexagon" as Silhouette, color: "var(--cat-navy)" };
 
 function boundaryKind(type: NodeType, uiDirection: "read" | "write" | undefined): BoundaryKind {
   if (type === "ui-component") {
@@ -141,11 +141,11 @@ function nodeChangeType(node: DataflowNode): ChangeType | "missing-from-cr" {
 }
 
 function changeColor(changeType: DisplayChangeType): string {
-  return changeType === "missing-from-cr" ? "oklch(0.75 0.15 300)" : CHANGE_COLORS[changeType === "new" ? "added" : changeType === "changed" ? "modified" : changeType];
+  return changeType === "missing-from-cr" ? "var(--missing)" : CHANGE_COLORS[changeType === "new" ? "added" : changeType === "changed" ? "modified" : changeType];
 }
 
 function chipStyle(changeType: DisplayChangeType): string {
-  return `color:${changeColor(changeType)};background:color-mix(in oklch, ${changeColor(changeType)} 15%, transparent)`;
+  return `color:color-mix(in oklch, ${changeColor(changeType)} var(--ink), var(--bright));background:color-mix(in oklch, ${changeColor(changeType)} 15%, transparent)`;
 }
 
 const MISMATCH_GLYPH = '<span class="hld-mismatch-glyph" aria-hidden="true">≠</span>';
@@ -273,7 +273,7 @@ function renderMarkers(): string {
     .join("");
   return `${changeMarkers}
     <marker id="composition-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="16" markerHeight="16" markerUnits="userSpaceOnUse" orient="auto">
-      <path d="M 0 0 L 7 4 L 0 8 z" fill="oklch(0.305 0.032 255)"></path>
+      <path d="M 0 0 L 7 4 L 0 8 z" fill="var(--composition)"></path>
     </marker>`;
 }
 
@@ -309,7 +309,7 @@ function renderGraph(graph: VisibleGraph): string {
 
   const classFrames = functionsHidden ? "" : graph.containers.map((container) => {
     const box = layout.boxes.get(container.id)!;
-    return `<rect class="class-frame" data-node="${escapeHtml(container.id)}" x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="11" fill="oklch(0.212 0.024 255 / 0.72)" stroke="oklch(0.4 0.032 255)" stroke-width="1.25" stroke-dasharray="6 5"></rect>`;
+    return `<rect class="class-frame" data-node="${escapeHtml(container.id)}" x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="11" fill="var(--frame-fill)" stroke="var(--frame-stroke)" stroke-width="1.25" stroke-dasharray="6 5"></rect>`;
   }).join("");
 
   const helperFrames = functionsHidden ? "" : [...graph.expandedHelperGroups].map(([rootId, members]) => {
@@ -319,7 +319,7 @@ function renderGraph(graph: VisibleGraph): string {
 
   const compositionEdges = layout.compositionRelationships.map((relationship) => {
     const path = routeCompositionEdge(routingBounds.get(relationship.from.boxId)!, routingBounds.get(relationship.to.boxId)!, obstaclesFor(relationship));
-    return `<path class="edge" ${relationshipAttributes(relationship)} d="${path}" fill="none" stroke="oklch(0.305 0.032 255)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#composition-arrow)"></path>
+    return `<path class="edge" ${relationshipAttributes(relationship)} d="${path}" fill="none" stroke="var(--composition)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#composition-arrow)"></path>
       <path class="edge-hit" ${relationshipAttributes(relationship)} data-select="relationship" d="${path}" fill="none" stroke="transparent" stroke-width="12"></path>`;
   }).join("");
 
@@ -338,9 +338,9 @@ function renderGraph(graph: VisibleGraph): string {
     const stateRead = relationship.from.type === "state-variable";
     const dash = stateUpdate || stateRead ? "7 4" : changeType === "deleted" ? "7 5" : "";
     const selected = selectionKey(selection) === selectionKey({ type: "relationship", edge: key });
-    const tail = `<circle class="edge" ${relationshipAttributes(relationship, key)} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${changeColor(changeType)}" stroke="oklch(0.198 0.024 255)" stroke-width="1.5"></circle>`;
+    const tail = `<circle class="edge" ${relationshipAttributes(relationship, key)} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${changeColor(changeType)}" stroke="var(--surface)" stroke-width="1.5"></circle>`;
     if (back !== undefined) {
-      returnArrows.push(`<path class="edge edge-return-arrow${selected ? " selected" : ""}" ${relationshipAttributes(relationship, key)} data-select="relationship" d="M -9.8 -4.2 L 0 0 L -9.8 4.2 z" transform="translate(${route.start.x} ${route.start.y}) rotate(${route.start.y === from.y ? 90 : -90})" fill="oklch(0.198 0.024 255)" stroke="${changeColor(back.relationship.changeType)}" stroke-width="1.6" stroke-linejoin="round"></path>`);
+      returnArrows.push(`<path class="edge edge-return-arrow${selected ? " selected" : ""}" ${relationshipAttributes(relationship, key)} data-select="relationship" d="M -9.8 -4.2 L 0 0 L -9.8 4.2 z" transform="translate(${route.start.x} ${route.start.y}) rotate(${route.start.y === from.y ? 90 : -90})" fill="var(--surface)" stroke="${changeColor(back.relationship.changeType)}" stroke-width="1.6" stroke-linejoin="round"></path>`);
     }
     return `<path class="edge${selected ? " selected" : ""}" ${relationshipAttributes(relationship, key)} d="${route.path}" fill="none" stroke="${changeColor(changeType)}" stroke-width="${stateUpdate ? 1.75 : 1.6}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${changeType})"></path>
       ${back === undefined ? tail : ""}

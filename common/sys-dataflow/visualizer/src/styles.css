@@ -5,17 +5,86 @@
   display: block;
   color-scheme: dark;
   font-family: "IBM Plex Sans", Helvetica, sans-serif;
-  color: oklch(0.938 0.01 250);
-  background: oklch(0.198 0.024 255);
+  color: var(--text);
+  background: var(--surface);
   font-synthesis: none;
   --surface: oklch(0.198 0.024 255);
   --header: oklch(0.172 0.022 255);
   --raised: oklch(0.252 0.028 255);
+  --control: oklch(0.228 0.024 255);
+  --hover: oklch(0.33 0.034 255);
+  --code-bg: oklch(0.155 0.02 255);
   --border: oklch(0.312 0.032 255);
   --subtle-border: oklch(0.255 0.028 255);
-  --muted: oklch(0.725 0.02 250);
   --bright: oklch(0.955 0.01 250);
+  --text: oklch(0.9 0.012 250);
+  --muted: oklch(0.725 0.02 250);
+  --faint: oklch(0.64 0.02 250);
   --accent: oklch(0.78 0.12 245);
+  --accent-ink: oklch(0.86 0.08 245);
+  --accent-soft: oklch(0.27 0.05 255);
+  --added: oklch(0.76 0.16 155);
+  --modified: oklch(0.82 0.15 82);
+  --deleted: oklch(0.72 0.18 25);
+  --unchanged: oklch(0.56 0.02 250);
+  --unspecified: oklch(0.67 0.035 250);
+  --cat-blue: oklch(0.80 0.095 232);
+  --cat-violet: oklch(0.78 0.095 300);
+  --cat-indigo: oklch(0.75 0.085 278);
+  --cat-cyan: oklch(0.80 0.085 205);
+  --cat-magenta: oklch(0.76 0.095 325);
+  --cat-teal: oklch(0.80 0.075 185);
+  --cat-leaf: oklch(0.80 0.095 145);
+  --cat-slate: oklch(0.71 0.03 250);
+  --cat-navy: oklch(0.85 0.09 255);
+  --hover-mix: white;
+  --shadow: oklch(0.1 0.02 255 / 0.35);
+  --banner-bg: oklch(0.23 0.05 25 / 0.96);
+  --overlay-bg: oklch(0.19 0.025 255 / 0.91);
+  --ink: 45%;
+  --added-bg: color-mix(in oklch, var(--added) 14%, transparent);
+  --deleted-bg: color-mix(in oklch, var(--deleted) 13%, transparent);
+  --deleted-ink: color-mix(in oklch, var(--deleted) var(--ink), var(--bright));
+}
+
+@media (prefers-color-scheme: light) {
+  :host {
+    color-scheme: light;
+    --surface: oklch(0.972 0.006 255);
+    --header: oklch(0.992 0.003 255);
+    --raised: oklch(0.998 0.003 255);
+    --control: oklch(0.985 0.004 255);
+    --hover: oklch(0.95 0.009 255);
+    --code-bg: oklch(0.975 0.005 255);
+    --border: oklch(0.895 0.01 255);
+    --subtle-border: oklch(0.93 0.007 255);
+    --bright: oklch(0.3 0.02 255);
+    --text: oklch(0.34 0.02 255);
+    --muted: oklch(0.5 0.018 255);
+    --faint: oklch(0.55 0.018 255);
+    --accent: oklch(0.53 0.093 252);
+    --accent-ink: oklch(0.42 0.081 252);
+    --accent-soft: oklch(0.94 0.022 250);
+    --added: oklch(0.68 0.17 150);
+    --modified: oklch(0.73 0.16 70);
+    --deleted: oklch(0.63 0.2 25);
+    --unchanged: oklch(0.62 0.02 255);
+    --unspecified: oklch(0.58 0.03 252);
+    --cat-blue: oklch(0.53 0.074 236);
+    --cat-violet: oklch(0.52 0.087 302);
+    --cat-indigo: oklch(0.5 0.074 278);
+    --cat-cyan: oklch(0.53 0.056 208);
+    --cat-magenta: oklch(0.52 0.087 330);
+    --cat-teal: oklch(0.53 0.053 186);
+    --cat-leaf: oklch(0.52 0.068 146);
+    --cat-slate: oklch(0.52 0.03 252);
+    --cat-navy: oklch(0.48 0.074 260);
+    --hover-mix: black;
+    --shadow: oklch(0.3 0.03 255 / 0.12);
+    --banner-bg: oklch(0.97 0.012 25 / 0.97);
+    --overlay-bg: oklch(0.985 0.004 255 / 0.92);
+    --ink: 62%;
+  }
 }
 
 :host(.embedded-view) .topbar {
@@ -114,8 +183,8 @@ button:focus-visible,
   flex: 0 0 auto;
   padding: 3px 7px;
   border-radius: 4px;
-  color: oklch(0.84 0.09 245);
-  background: oklch(0.295 0.06 255);
+  color: var(--accent-ink);
+  background: var(--accent-soft);
   font-size: 10px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -140,7 +209,7 @@ button:focus-visible,
 
 .interaction-hint {
   margin-right: 6px;
-  color: oklch(0.61 0.02 250);
+  color: var(--faint);
   font-size: 11px;
   white-space: nowrap;
 }
@@ -149,7 +218,7 @@ button:focus-visible,
 .zoom-button {
   border: 1px solid var(--border);
   color: var(--muted);
-  background: oklch(0.228 0.024 255);
+  background: var(--control);
   cursor: pointer;
 }
 
@@ -176,7 +245,7 @@ button:focus-visible,
 }
 
 .control-button.primary:hover {
-  background: color-mix(in oklch, var(--accent) 85%, white);
+  background: color-mix(in oklch, var(--accent) 85%, var(--hover-mix));
 }
 
 .zoom-controls {
@@ -185,7 +254,7 @@ button:focus-visible,
   align-items: stretch;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: oklch(0.228 0.024 255);
+  background: var(--control);
 }
 
 .zoom-button {
@@ -203,8 +272,8 @@ button:focus-visible,
 }
 
 .zoom-button.active {
-  color: oklch(0.87 0.08 245);
-  background: oklch(0.255 0.045 255);
+  color: var(--accent-ink);
+  background: var(--accent-soft);
 }
 
 .workspace {
@@ -220,7 +289,7 @@ button:focus-visible,
   overflow: hidden;
   flex: 1 1 auto;
   background-color: var(--surface);
-  background-image: radial-gradient(oklch(0.262 0.028 255) 1px, transparent 1px);
+  background-image: radial-gradient(var(--subtle-border) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
@@ -249,7 +318,7 @@ button:focus-visible,
 
 .subgraph {
   position: absolute;
-  border: 1px solid oklch(0.32 0.028 255);
+  border: 1px solid var(--border);
   border-radius: 12px;
   pointer-events: none;
 }
@@ -565,7 +634,7 @@ button:focus-visible,
 .inspector-rail:hover,
 .inspector-rail:focus-visible {
   color: var(--bright);
-  background: oklch(0.205 0.026 255);
+  background: var(--hover);
 }
 
 .inspector-rail-chevron {
@@ -633,7 +702,7 @@ button:focus-visible,
   border: 1px solid var(--subtle-border);
   border-radius: 8px;
   flex-direction: column;
-  background: oklch(0.205 0.024 255);
+  background: var(--surface);
 }
 
 .overview-counts strong {
@@ -675,7 +744,7 @@ button:focus-visible,
   grid-template-columns: 104px 1fr auto;
   align-items: center;
   gap: 9px;
-  color: oklch(0.88 0.015 250);
+  color: var(--text);
   font-size: 13px;
 }
 
@@ -715,7 +784,7 @@ button:focus-visible,
   min-width: 0;
   flex: 1 1 auto;
   overflow-wrap: anywhere;
-  color: oklch(0.86 0.1 235);
+  color: var(--accent-ink);
   font-family: "IBM Plex Mono", monospace;
   font-size: 15px;
   font-weight: 600;
@@ -775,7 +844,7 @@ button:focus-visible,
   align-items: baseline;
   gap: 8px;
   margin-bottom: 10px;
-  color: oklch(0.84 0.055 245);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -793,13 +862,13 @@ button:focus-visible,
 .location-copy {
   margin: 0;
   overflow-wrap: anywhere;
-  color: oklch(0.9 0.012 250);
+  color: var(--text);
   font-size: 14px;
   line-height: 1.55;
 }
 
 .location-copy {
-  color: oklch(0.83 0.045 245);
+  color: var(--accent-ink);
   font-size: 12px;
 }
 
@@ -813,8 +882,8 @@ button:focus-visible,
   overflow-x: auto;
   border: 1px solid var(--subtle-border);
   border-radius: 7px;
-  color: oklch(0.86 0.02 250);
-  background: oklch(0.15 0.02 255);
+  color: var(--text);
+  background: var(--code-bg);
   font-size: 12px;
   line-height: 1.55;
   white-space: pre;
@@ -846,7 +915,7 @@ button:focus-visible,
 
 .flow-endpoint {
   overflow-wrap: anywhere;
-  color: oklch(0.9 0.012 250);
+  color: var(--text);
   font-family: "IBM Plex Mono", monospace;
   font-size: 12px;
 }
@@ -873,7 +942,7 @@ button:focus-visible,
   border: 1px solid var(--subtle-border);
   border-radius: 7px;
   overflow-wrap: anywhere;
-  color: oklch(0.88 0.02 250);
+  color: var(--text);
   background: var(--raised);
   font-family: "IBM Plex Mono", monospace;
   font-size: 11px;
@@ -951,11 +1020,11 @@ button:focus-visible,
 }
 
 .hunk-toggle:hover {
-  background: oklch(0.205 0.024 255);
+  background: var(--hover);
 }
 
 .hunk-toggle[aria-expanded="true"] {
-  background: oklch(0.215 0.024 255);
+  background: var(--surface);
 }
 
 .hunk-chevron {
@@ -995,7 +1064,7 @@ button:focus-visible,
 
 .hunk-dir,
 .hunk-location {
-  color: oklch(0.62 0.02 250);
+  color: var(--faint);
 }
 
 .hunk-location {
@@ -1049,7 +1118,7 @@ button:focus-visible,
 
 .hunk-code {
   padding: 4px 0;
-  background: oklch(0.155 0.02 255);
+  background: var(--code-bg);
   font-family: "IBM Plex Mono", monospace;
   font-size: 11px;
   line-height: 1.62;
@@ -1061,16 +1130,16 @@ button:focus-visible,
 }
 
 .hunk-line.add {
-  background: color-mix(in oklch, var(--added) 13%, transparent);
+  background: var(--added-bg);
 }
 
 .hunk-line.del {
-  background: color-mix(in oklch, var(--deleted) 14%, transparent);
+  background: var(--deleted-bg);
 }
 
 .hunk-sign {
   flex: 0 0 18px;
-  color: oklch(0.62 0.02 250);
+  color: var(--faint);
   text-align: center;
   user-select: none;
 }
@@ -1089,18 +1158,18 @@ button:focus-visible,
   min-width: 0;
   padding: 0 12px 0 calc(var(--indent, 0ch) + 2ch);
   overflow-wrap: anywhere;
-  color: oklch(0.8 0.015 250);
+  color: var(--text);
   text-indent: calc(-1 * (var(--indent, 0ch) + 2ch));
   white-space: pre-wrap;
 }
 
 .hunk-line.add .hunk-text,
 .hunk-line.del .hunk-text {
-  color: oklch(0.9 0.012 250);
+  color: var(--text);
 }
 
 .hunk-line.meta .hunk-text {
-  color: oklch(0.62 0.02 250);
+  color: var(--faint);
   font-style: italic;
 }
 
@@ -1111,11 +1180,11 @@ button:focus-visible,
   gap: 6px 10px;
   padding: 7px 11px;
   border-top: 1px solid var(--subtle-border);
-  background: oklch(0.19 0.022 255);
+  background: var(--header);
 }
 
 .hunk-owners-label {
-  color: oklch(0.62 0.02 250);
+  color: var(--faint);
   font-family: "IBM Plex Mono", monospace;
   font-size: 9px;
   letter-spacing: 0.1em;
@@ -1128,7 +1197,7 @@ button:focus-visible,
   gap: 5px;
   padding: 0;
   border: 0;
-  color: oklch(0.9 0.012 250);
+  color: var(--text);
   background: transparent;
   font-size: 11px;
   cursor: pointer;
@@ -1151,7 +1220,7 @@ button:focus-visible,
 .hunk-missing {
   margin: 0;
   padding: 9px 11px;
-  color: oklch(0.9 0.05 25);
+  color: var(--deleted-ink);
   font-family: "IBM Plex Mono", monospace;
   font-size: 11px;
 }
@@ -1163,11 +1232,11 @@ button:focus-visible,
   z-index: 8;
   max-width: min(620px, calc(100% - 32px));
   padding: 9px 12px;
-  border: 1px solid oklch(0.58 0.13 25);
+  border: 1px solid var(--deleted);
   border-radius: 7px;
-  color: oklch(0.9 0.05 25);
-  background: oklch(0.23 0.05 25 / 0.96);
-  box-shadow: 0 5px 18px oklch(0.1 0.02 255 / 0.45);
+  color: var(--deleted-ink);
+  background: var(--banner-bg);
+  box-shadow: 0 5px 18px var(--shadow);
   font-family: "IBM Plex Mono", monospace;
   font-size: 12px;
   line-height: 1.4;
@@ -1182,8 +1251,8 @@ button:focus-visible,
   place-items: center;
   border: 2px dashed var(--accent);
   border-radius: 12px;
-  color: oklch(0.88 0.08 245);
-  background: oklch(0.19 0.025 255 / 0.91);
+  color: var(--accent-ink);
+  background: var(--overlay-bg);
   font-family: "IBM Plex Mono", monospace;
   font-size: 14px;
   pointer-events: none;

@@ -132,7 +132,6 @@ export interface DiffSectionContext {
   openHunk: { owner: string; id: string | null } | undefined;
   /** Renders a node type's badge, as the graph cards and inspector header do. */
   badge: (nodeType: NodeType) => string;
-  colors: { added: string; deleted: string };
 }
 
 /** The Relevant diff section: one row per hunk, with at most one expanded. Empty when nothing cites a hunk. */
@@ -171,8 +170,7 @@ export function renderDiffSection(owner: Selection, hunkIds: string[] | undefine
       </div>`;
     })
     .join("");
-  const style = `--added:${context.colors.added};--deleted:${context.colors.deleted}`;
-  return `<section class="inspector-section diff-section" style="${style}">
+  return `<section class="inspector-section diff-section">
     <div class="section-heading"><span>Relevant diff</span>${diffCounts(totalAdded, totalRemoved)}<span class="inspector-count">${hunkIds.length}</span></div>
     <div class="hunk-list">${rows}</div>
   </section>`;

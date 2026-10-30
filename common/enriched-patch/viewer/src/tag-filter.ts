@@ -6,16 +6,16 @@ export const KNOWN_TAGS = ["non-code", "test-code", "initialization", "imports"]
 
 // Ten colors that stay clear of the green / amber / red used for added, modified and deleted.
 const TAG_PALETTE = [
-  "#8fa3b1",
-  "#f0883e",
-  "#b392f0",
-  "#3fb9b0",
-  "#58a6ff",
-  "#e58fc0",
-  "#7fd1e8",
-  "#c9c27a",
-  "#9d8cff",
-  "#d8a6ff",
+  "var(--cat-slate)",
+  "var(--cat-orange)",
+  "var(--cat-violet)",
+  "var(--cat-teal)",
+  "var(--cat-blue)",
+  "var(--cat-magenta)",
+  "var(--cat-cyan)",
+  "var(--cat-olive)",
+  "var(--cat-indigo)",
+  "var(--cat-plum)",
 ];
 
 export interface OwnedChange extends DiffChange {

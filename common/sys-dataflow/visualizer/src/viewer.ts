@@ -32,11 +32,11 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
   const validate = ajv.compile<SystemDataflow>(schema);
 
   const CHANGE_COLORS: Record<DisplayChangeType, string> = {
-    added: "oklch(0.76 0.16 155)",
-    modified: "oklch(0.82 0.15 82)",
-    deleted: "oklch(0.72 0.18 25)",
-    unchanged: "oklch(0.56 0.02 250)",
-    unspecified: "oklch(0.67 0.035 250)",
+    added: "var(--added)",
+    modified: "var(--modified)",
+    deleted: "var(--deleted)",
+    unchanged: "var(--unchanged)",
+    unspecified: "var(--unspecified)",
   };
 
   type Silhouette =
@@ -53,15 +53,15 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
   const ATTACHMENT_MARGIN = 10;
 
   const NODE_TYPES: Record<NodeType, { label: string; badge: string; shape: Silhouette; color: string }> = {
-    "user-input": { label: "User input", badge: "USER →", shape: "rect", color: "oklch(0.80 0.095 232)" },
-    "user-output": { label: "User output", badge: "→ USER", shape: "rect", color: "oklch(0.78 0.095 300)" },
-    "external-dependency": { label: "External dependency", badge: "EXTERNAL", shape: "dashed", color: "oklch(0.75 0.085 278)" },
-    "system-input": { label: "System input", badge: "SYSTEM →", shape: "stadium-left", color: "oklch(0.80 0.085 205)" },
-    "system-output": { label: "System output", badge: "→ SYSTEM", shape: "stadium-right", color: "oklch(0.76 0.095 325)" },
-    "system-state-read": { label: "System state read", badge: "STATE →", shape: "rect", color: "oklch(0.80 0.075 185)" },
-    "system-state-write": { label: "System state write", badge: "→ STATE", shape: "rect", color: "oklch(0.80 0.095 145)" },
-    "static-data": { label: "Static data", badge: "STATIC", shape: "dogear", color: "oklch(0.71 0.03 250)" },
-    "data-processing": { label: "Data processing", badge: "PROCESSING", shape: "hexagon", color: "oklch(0.85 0.09 255)" },
+    "user-input": { label: "User input", badge: "USER →", shape: "rect", color: "var(--cat-blue)" },
+    "user-output": { label: "User output", badge: "→ USER", shape: "rect", color: "var(--cat-violet)" },
+    "external-dependency": { label: "External dependency", badge: "EXTERNAL", shape: "dashed", color: "var(--cat-indigo)" },
+    "system-input": { label: "System input", badge: "SYSTEM →", shape: "stadium-left", color: "var(--cat-cyan)" },
+    "system-output": { label: "System output", badge: "→ SYSTEM", shape: "stadium-right", color: "var(--cat-magenta)" },
+    "system-state-read": { label: "System state read", badge: "STATE →", shape: "rect", color: "var(--cat-teal)" },
+    "system-state-write": { label: "System state write", badge: "→ STATE", shape: "rect", color: "var(--cat-leaf)" },
+    "static-data": { label: "Static data", badge: "STATIC", shape: "dogear", color: "var(--cat-slate)" },
+    "data-processing": { label: "Data processing", badge: "PROCESSING", shape: "hexagon", color: "var(--cat-navy)" },
   };
 
   let dataflow = example as SystemDataflow;
@@ -98,7 +98,7 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
       return "";
     } else {
       const color = changeColor(changeType);
-      return `<span class="change-chip" style="color:${color};background:color-mix(in oklch, ${color} 15%, transparent)">${changeType}</span>`;
+      return `<span class="change-chip" style="color:color-mix(in oklch, ${color} var(--ink), var(--bright));background:color-mix(in oklch, ${color} 15%, transparent)">${changeType}</span>`;
     }
   }
 
@@ -254,8 +254,8 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
         const attributes = `data-relationship="${escapeHtml(relationship.id)}" data-from="${escapeHtml(relationship.from)}" data-to="${escapeHtml(relationship.to)}"`;
         return `<path class="edge${selected ? " selected" : ""}" ${attributes} d="${route.path}" fill="none" stroke="${color}" stroke-width="1.8" stroke-dasharray="${relationship.changeType === "deleted" ? "7 5" : ""}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${visualChangeType})"></path>
           ${edge.back === undefined
-            ? `<circle class="edge" ${attributes} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${color}" stroke="oklch(0.198 0.024 255)" stroke-width="1.5"></circle>`
-            : `<path class="edge edge-return-arrow${selected ? " selected" : ""}" ${attributes} data-select="relationship" d="M -9.8 -4.2 L 0 0 L -9.8 4.2 z" transform="translate(${route.start.x} ${route.start.y}) rotate(${route.start.y === from.y ? 90 : -90})" fill="oklch(0.198 0.024 255)" stroke="${changeColor(edge.back.changeType)}" stroke-width="1.6" stroke-linejoin="round"></path>`}
+            ? `<circle class="edge" ${attributes} cx="${route.start.x}" cy="${route.start.y}" r="3.5" fill="${color}" stroke="var(--surface)" stroke-width="1.5"></circle>`
+            : `<path class="edge edge-return-arrow${selected ? " selected" : ""}" ${attributes} data-select="relationship" d="M -9.8 -4.2 L 0 0 L -9.8 4.2 z" transform="translate(${route.start.x} ${route.start.y}) rotate(${route.start.y === from.y ? 90 : -90})" fill="var(--surface)" stroke="${changeColor(edge.back.changeType)}" stroke-width="1.6" stroke-linejoin="round"></path>`}
           <path class="edge-hit" ${attributes} data-select="relationship" d="${route.path}" fill="none" stroke="transparent" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path>`;
       })
       .join("");
@@ -309,7 +309,6 @@ export function mountSystemDataflowViewer(host: HTMLElement, options: { loadDefa
       dataflow,
       openHunk,
       badge: typeBadge,
-      colors: { added: CHANGE_COLORS.added, deleted: CHANGE_COLORS.deleted },
     });
   }
 
