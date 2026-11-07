@@ -9,7 +9,7 @@ Use concise bullets for intended outcomes, behavior, scope, and constraints acro
 
 ## Define High Level Requirements
 
-Replace `<high level requirements section>` under the HLD's `Requirements` section with the contents of `ai-coding-toolkit/feature-design/define/high-level-requirements-template.md`, preserving the template's heading levels. Fill its `Desired Behavior`, `Scope and Assumptions`, and `User Journeys` subsections using the guidance below.
+Replace `<high level requirements section>` under the HLD's `Requirements` section with the contents of `ai-coding-toolkit/common/hld/define/high-level-requirements-template.md`, preserving the template's heading levels. Fill its `Desired Behavior`, `Scope and Assumptions`, and `User Journeys` subsections using the guidance below.
 
 ### Desired Behavior
 

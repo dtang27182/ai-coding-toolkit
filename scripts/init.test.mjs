@@ -35,6 +35,7 @@ test("reports missing toolkit dependencies before modifying the target", async (
   for (const argumentsList of [
     [repoDirectory],
     [repoDirectory, "--tool", "feature-design"],
+    [repoDirectory, "--tool", "impl-design"],
     [repoDirectory, "--tool", "refactor-design"],
     [repoDirectory, "--tool", "enrich-diff"],
     [repoDirectory, "--tool", "advanced-diff-viewer"],
@@ -52,7 +53,7 @@ test("reports missing toolkit dependencies before modifying the target", async (
 
 test("copies skills and scripts that work after the source checkout is removed", async (t) => {
   const sourceDirectory = await createRepository(t);
-  for (const directoryName of ["scripts", "adapters", "feature-design", "refactor-design", "enrich-diff", "advanced-diff-viewer", "user-journey-dataflow", "common", "node_modules"]) {
+  for (const directoryName of ["scripts", "adapters", "feature-design", "impl-design", "refactor-design", "enrich-diff", "advanced-diff-viewer", "user-journey-dataflow", "common", "node_modules"]) {
     await cp(path.join(toolkitDirectory, directoryName), path.join(sourceDirectory, directoryName), {
       recursive: true,
       dereference: true,
@@ -67,7 +68,7 @@ test("copies skills and scripts that work after the source checkout is removed",
   }
   await rm(sourceDirectory, { recursive: true });
 
-  for (const toolName of ["feature-design", "refactor-design"]) {
+  for (const toolName of ["feature-design", "impl-design", "refactor-design"]) {
     const skillPath = path.join(repoDirectory, ".agents", "skills", toolName, "SKILL.md");
     assert.equal((await lstat(path.dirname(skillPath))).isSymbolicLink(), false);
     assert.equal(
@@ -79,7 +80,7 @@ test("copies skills and scripts that work after the source checkout is removed",
     await readFile(path.join(repoDirectory, ".agents", "skills", "enrich-diff", "SKILL.md"), "utf8"),
     await readFile(path.join(toolkitDirectory, "enrich-diff", "skills", "enrich-diff", "SKILL.md"), "utf8")
   );
-  for (const directoryName of ["feature-design", "refactor-design", "enrich-diff", "advanced-diff-viewer", "user-journey-dataflow", "common", "node_modules"]) {
+  for (const directoryName of ["feature-design", "impl-design", "refactor-design", "enrich-diff", "advanced-diff-viewer", "user-journey-dataflow", "common", "node_modules"]) {
     assert.equal(
       (await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isSymbolicLink(),
       false
@@ -142,16 +143,21 @@ test("installs only feature-design while exposing the feature-design skill", asy
     await readFile(path.join(toolkitDirectory, "feature-design/skills/feature-redesign/SKILL.md"), "utf8")
   );
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "common", "impl-dataflow"))).isDirectory(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/hld/define/define-requirements.md"))).isFile(), true);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit", "node_modules"))).isDirectory(), true);
   const visualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "common", "hld", "visualizer");
   await assert.rejects(lstat(path.join(visualizerPath, "dist")), { code: "ENOENT" });
   const oldVisualizerPath = path.join(repoDirectory, "ai-coding-toolkit", "feature-design", "visualizer");
   await mkdir(oldVisualizerPath);
   await writeFile(path.join(oldVisualizerPath, "old-file.txt"), "old viewer");
+  const oldDefinePath = path.join(repoDirectory, "ai-coding-toolkit", "feature-design", "define");
+  await mkdir(oldDefinePath);
+  await writeFile(path.join(oldDefinePath, "define-requirements.md"), "old instructions");
   await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"hld-visualizer":"node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/feature-design/visualizer"}}\n');
   const migratedCommands = install([repoDirectory, "--tool", "feature-design"]);
   assert.equal(migratedCommands.status, 0, migratedCommands.stderr);
   await assert.rejects(lstat(oldVisualizerPath), { code: "ENOENT" });
+  await assert.rejects(lstat(oldDefinePath), { code: "ENOENT" });
   assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
     "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
   });
@@ -189,6 +195,44 @@ test("installs only feature-design while exposing the feature-design skill", asy
   for (const htmlFile of ["index.html", "system.html", "implementation.html"]) {
     assert.equal((await lstat(path.join(visualizerPath, "dist", htmlFile))).isFile(), true);
   }
+});
+
+test("installs impl-design independently and writes an implementation-only manifest", async (t) => {
+  const repoDirectory = await createRepository(t);
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing"}}\n');
+
+  const result = install([repoDirectory, "--tool", "impl-design", "--agent", "codex,claude"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(
+    await readFile(path.join(repoDirectory, ".agents/skills/impl-design/SKILL.md"), "utf8"),
+    await readFile(path.join(toolkitDirectory, "impl-design/SKILL.md"), "utf8")
+  );
+  assert.match(await readFile(path.join(repoDirectory, ".claude/skills/impl-design/SKILL.md"), "utf8"), /Bash\(node ai-coding-toolkit\/common\/impl-dataflow\/\*\)/);
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/hld/define/define-requirements.md"))).isFile(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/hld/define/high-level-requirements-template.md"))).isFile(), true);
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/feature-design")), { code: "ENOENT" });
+  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
+    test: "existing",
+    "hld-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/hld/visualizer",
+  });
+
+  const featureDirectory = path.join(repoDirectory, "docs/plans/features/example");
+  await mkdir(featureDirectory);
+  const hldPath = path.join(featureDirectory, "example.hld.md");
+  const detailedPath = path.join(featureDirectory, "example.detailed-requirements.md");
+  const implPath = path.join(featureDirectory, "example.impl-dataflow.json");
+  await writeFile(hldPath, "# Example High Level Design\n");
+  await writeFile(detailedPath, "# Example Detailed Requirements\n");
+  await writeFile(implPath, await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json")));
+  const manifestResult = spawnSync(process.execPath, [
+    "ai-coding-toolkit/common/hld/generate/write-hld-manifest.mjs", hldPath, detailedPath,
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(manifestResult.status, 0, manifestResult.stderr);
+  assert.deepEqual(JSON.parse(await readFile(path.join(featureDirectory, "example.hld-manifest.json"), "utf8")), {
+    hld: hldPath,
+    implDataflow: implPath,
+    detailedRequirements: detailedPath,
+  });
 });
 
 test("installs user-journey-dataflow independently with its viewer", async (t) => {

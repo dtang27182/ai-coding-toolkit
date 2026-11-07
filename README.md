@@ -14,7 +14,7 @@ npm run install:all -- /path/to/code-repo
 
 Run `npm install` in this toolkit checkout before using any installer command; the installer copies its `node_modules` into the target repository. If an earlier attempt stopped with a missing `node_modules` error, install the dependencies and rerun the same installer command to finish the installation.
 
-The default installer installs `feature-design` (including `feature-redesign`), `refactor-design`, `enrich-diff`, and `user-journey-dataflow` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the feature design skills, run:
+The default installer installs `feature-design` (including `feature-redesign`), `impl-design`, `refactor-design`, `enrich-diff`, and `user-journey-dataflow` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the feature design skills, run:
 
 ```sh
 npm run install:feature-design -- /path/to/code-repo
@@ -52,9 +52,9 @@ npm run adv-diff
 
 The viewer generates `adv-diff/enriched-patch.json` automatically from current staged, unstaged, deleted, and untracked changes against `HEAD`. It updates as files change and provides a Refresh button. The generated enriched patch and, in installed repositories, the copied `ai-coding-toolkit` runtime and the output directory configured in `ai-coding-toolkit/config.json` are excluded from the comparison and do not trigger refreshes. You can open or drag in another enriched patch from the viewer.
 
-The design skills are invoked as `$feature-design` and `$refactor-design`.
+The design skills are invoked as `$feature-design`, `$impl-design`, and `$refactor-design`.
 
-Skills install for Codex by default. To install them for Claude Code, where they are invoked as `/feature-design`, `/refactor-design`, and `/enrich-diff`, pass `--agent claude`, or `--agent codex,claude` for both:
+Skills install for Codex by default. To install them for Claude Code, where they are invoked as `/feature-design`, `/impl-design`, `/refactor-design`, and `/enrich-diff`, pass `--agent claude`, or `--agent codex,claude` for both:
 
 ```sh
 npm run install:all -- /path/to/code-repo --agent claude
@@ -78,7 +78,7 @@ Start `$feature-design` at any point in a conversation about a feature. Before g
 
 `common/hld/hld-quality.md` defines qualitative guidance for generating one design. The goal is to minimize end-state complexity, then minimize change complexity wherever doing so does not increase end-state complexity.
 
-`feature-design` defines and confirms requirements, including User Journeys, then calls `feature-design/generate/gen-design.md` to fill the HLD's Design section and generate its dataflow artifacts and manifest. The shared HLD template, confirmation instructions, quality guidance, manifest writer, and visualizer live in `common/hld`. The behavior-change requirements template and definition instructions remain in `feature-design/define`.
+`feature-design` defines and confirms requirements, including User Journeys, then calls `feature-design/generate/gen-design.md` to fill the HLD's Design section and generate its dataflow artifacts and manifest. `impl-design` uses the same requirements workflow but generates the Implementation Dataflow directly. Shared feature requirements instructions, the HLD template, confirmation instructions, quality guidance, manifest writer, and visualizer live in `common/hld`.
 
 Ask the agent:
 
@@ -90,11 +90,13 @@ Use $feature-design to develop a design from our workbook-import conversation so
 
 The skill generates one design and validates its dataflow artifacts, without candidate comparison, quantitative quality evaluation, or automatic improvement iterations. All artifacts are grouped directly in `<feature>/` under the configured output directory. Requirements and clarification questions live in the HLD; there is no separate iteration summary.
 
+Use `$impl-design` for the same feature-design workflow when you want only `<feature>.impl-dataflow.json`. It traces the confirmed User Journeys and requirements through current code, writes an HLD without a System Dataflow section, and creates a manifest without `sysDataflow`. Install it alone with `npm run install:impl-design -- /path/to/code-repo`.
+
 The final artifacts are ready for human review; application implementation is a separate step.
 
 Use `$feature-redesign` with an existing HLD whose Design Guidelines and Requirements are filled out to start directly at design generation. It regenerates the Design section, both dataflows, and manifest, overwriting existing design output while preserving the guidelines and requirements. It installs alongside `feature-design` for Codex and Claude Code, where it is invoked as `/feature-redesign`.
 
-The shared dataflow validation scripts remain available independently. Run `npm run hld-visualizer` to view an HLD's dataflows. Feature designs have System Dataflow and Implementation Dataflow views; refactoring designs have only the Implementation Dataflow view. The visualizer loads the newest HLD manifest under the configured output directory. You can open or drag in another HLD manifest. Referenced dataflows refresh when they change; manifests chosen with a browser file handle refresh too.
+The shared dataflow validation scripts remain available independently. Run `npm run hld-visualizer` to view an HLD's dataflows. Feature designs have System Dataflow and Implementation Dataflow views; implementation and refactoring designs have only the Implementation Dataflow view. The visualizer loads the newest HLD manifest under the configured output directory. You can open or drag in another HLD manifest. Referenced dataflows refresh when they change; manifests chosen with a browser file handle refresh too.
 
 ## Map an Existing User Journey
 
