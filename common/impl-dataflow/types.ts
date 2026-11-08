@@ -28,9 +28,9 @@ export type FunctionNode = NodeBase & {
   "hld-change-mismatch"?: boolean;
   hldChangeType?: ChangeType | null;
 };
-export type StateVariableNode = NodeBase & { type: "state-variable"; containerId: string; sourceFile: string };
-export type StaticDataNode = NodeBase & { type: "static-data"; containerId?: string; sourceFile: string };
-export type BoundaryNode = NodeBase & { type: ComponentType; location: string };
+export type StateVariableNode = NodeBase & { type: "state-variable"; containerId: string; sourceFile: string; renamedFrom?: RenameOrigin };
+export type StaticDataNode = NodeBase & { type: "static-data"; containerId?: string; sourceFile: string; renamedFrom?: RenameOrigin };
+export type BoundaryNode = NodeBase & { type: ComponentType; location: string; renamedFrom?: { name: string } };
 export type DataflowNode = FunctionNode | StateVariableNode | StaticDataNode | BoundaryNode;
 
 export interface Container {

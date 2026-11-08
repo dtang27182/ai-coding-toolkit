@@ -264,7 +264,7 @@
       "pattern": "^(?!/|[A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
     },
     "renamedFrom": {
-      "description": "Original identity of an entity intentionally renamed or moved.",
+      "description": "Original name and source file of a renamed code node or a renamed or moved container. For a node, use only when the original name differs from its current name and changeType is modified.",
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "sourceFile"],
@@ -274,7 +274,7 @@
       }
     },
     "functionRenamedFrom": {
-      "description": "Original function identity. Provide containerName when moving the function from an unrelated class or module.",
+      "description": "Original identity of a renamed function. Use only when the original name differs from the current name and changeType is modified. Provide containerName when moving the function from an unrelated class or module.",
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "sourceFile"],
@@ -489,6 +489,15 @@
               "description": "The concrete system location, such as a UI component name, storage location, external service URI, or class and method name. Do not use a source-code file or line location.",
               "type": "string",
               "minLength": 1
+            },
+            "renamedFrom": {
+              "description": "Original name of this UI component, system input or output, or external dependency. Use only when the original name differs from the current name and changeType is modified.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name"],
+              "properties": {
+                "name": { "type": "string", "minLength": 1 }
+              }
             }
           }
         }
@@ -573,7 +582,8 @@
         "sourceFile"
       ],
       "properties": {
-        "sourceFile": { "$ref": "#/$defs/sourceFile" }
+        "sourceFile": { "$ref": "#/$defs/sourceFile" },
+        "renamedFrom": { "$ref": "#/$defs/renamedFrom" }
       },
       "allOf": [
         {
@@ -602,7 +612,8 @@
         "sourceFile"
       ],
       "properties": {
-        "sourceFile": { "$ref": "#/$defs/sourceFile" }
+        "sourceFile": { "$ref": "#/$defs/sourceFile" },
+        "renamedFrom": { "$ref": "#/$defs/renamedFrom" }
       },
       "allOf": [
         {

@@ -124,12 +124,21 @@ test("code nodes and containers require repository-relative source files in both
   }
 });
 
-test("rename origins record old names and paths, with optional original function owner", async () => {
+test("rename origins cover every node type and retain code paths and optional original function owner", async () => {
   const schema = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.schema.json"), "utf8"));
   const validate = new Ajv2020({ allErrors: true, strictTypes: true }).compile(schema);
   const input = highLevelDesign();
   input.containers[0].renamedFrom = { name: "OldService", sourceFile: "src/OldService.ts" };
+  for (const node of input.nodes) {
+    node.changeType = "modified";
+    node.changeSummary = { newBehavior: "Rename node." };
+  }
   input.nodes[0].renamedFrom = { name: "oldInspect", sourceFile: "src/OldService.ts", containerName: "OldOwner" };
+  input.nodes[1].renamedFrom = { name: "oldValue", sourceFile: "src/operations.ts" };
+  input.nodes[2].renamedFrom = { name: "OldRules", sourceFile: "src/Service.ts" };
+  for (const type of ["ui-component", "system-input", "system-output", "external-dependency"]) {
+    input.nodes.push({ id: type, name: type, type, location: type, changeType: "modified", changeSummary: { newBehavior: "Rename node." }, initialization: false, renamedFrom: { name: `old-${type}` } });
+  }
   assert.equal(validate(input), true, JSON.stringify(validate.errors));
 
   input.containers[0].renamedFrom.containerName = "OldOwner";
@@ -139,6 +148,32 @@ test("rename origins record old names and paths, with optional original function
   assert.equal(validate(input), false);
   input.nodes[0].renamedFrom.sourceFile = "../old.ts";
   assert.equal(validate(input), false);
+  input.nodes[0].renamedFrom.sourceFile = "src/OldService.ts";
+  for (const node of input.nodes.slice(1, 3)) {
+    delete node.renamedFrom.sourceFile;
+    assert.equal(validate(input), false, `${node.type} must record its original source file`);
+    node.renamedFrom.sourceFile = node.sourceFile;
+  }
+  for (const node of input.nodes.slice(3)) {
+    node.renamedFrom.sourceFile = "src/old.ts";
+    assert.equal(validate(input), false, `${node.type} must use a name-only rename origin`);
+    delete node.renamedFrom.sourceFile;
+  }
+});
+
+test("renamedFrom is used only for modified nodes with a different original name", async (t) => {
+  const input = highLevelDesign();
+  input.nodes[0].changeType = "modified";
+  input.nodes[0].changeSummary = { newBehavior: "Rename inspect." };
+  input.nodes[0].renamedFrom = { name: "oldInspect", sourceFile: "src/Service.ts" };
+  assert.equal((await runValidator(t, input)).status, 0);
+
+  input.nodes[0].renamedFrom.name = "inspect";
+  assert.match((await runValidator(t, input)).stderr, /renamedFrom requires a different original name for node inspect/);
+  input.nodes[0].renamedFrom.name = "oldInspect";
+  input.nodes[0].changeType = "unchanged";
+  delete input.nodes[0].changeSummary;
+  assert.match((await runValidator(t, input)).stderr, /renamedFrom requires a modified node: inspect/);
 });
 
 test("initialization is a required boolean only on nodes in both stages", async () => {

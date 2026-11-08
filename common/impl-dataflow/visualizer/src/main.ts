@@ -487,6 +487,9 @@ function renderInspector(graph: VisibleGraph): string {
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, inspected));
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
     content = `${inspectorHeader(NODE_LABELS[node.type], node.name, nodeChangeType(node), node.type === "function" && node.subtype === "missing-from-cr" ? `Expected: ${node.changeType}` : undefined)}${diffEvidence(node.diffHunkIds)}${node.changeSummary === undefined ? "" : section("Change summary", `${node.changeSummary.existingBehavior === undefined ? "" : `<p class="flow-label"><strong>Existing behavior:</strong> ${escapeHtml(node.changeSummary.existingBehavior)}</p>`}<p class="flow-label"><strong>New behavior:</strong> ${escapeHtml(node.changeSummary.newBehavior)}</p>`)}`;
+    if (node.renamedFrom !== undefined) {
+      content += section("Renamed from", `<p class="flow-label"><strong>Name:</strong> ${escapeHtml(node.renamedFrom.name)}</p>${"sourceFile" in node.renamedFrom ? `<p class="flow-label"><strong>Source file:</strong> ${escapeHtml(node.renamedFrom.sourceFile)}</p>` : ""}${"containerName" in node.renamedFrom && node.renamedFrom.containerName !== undefined ? `<p class="flow-label"><strong>Container:</strong> ${escapeHtml(node.renamedFrom.containerName)}</p>` : ""}`);
+    }
     if (node.type === "function") {
       if (node["hld-change-mismatch"] === true) {
         let hldStatus: string;
@@ -524,7 +527,7 @@ function renderInspector(graph: VisibleGraph): string {
   } else if (inspected.type === "container") {
     const container = graph.containers.find((container) => container.id === inspected.containerId)!;
     const writes = graph.relationships.filter((relationship) => relationship.to.type === "state-variable" && relationship.to.boxId === container.id);
-    content = `${inspectorHeader(container.type === "class" ? "Class" : "Module", container.name, container.changeType)}${diffEvidence(container.diffHunkIds)}${section("Functions", nodeRows(container.functions), container.functions.length)}${section("State variables", nodeRows(container.stateVariables), container.stateVariables.length)}${section("Static data", nodeRows(container.staticData), container.staticData.length)}${section("State written by", flowRows(writes, "from", true), writes.length)}`;
+    content = `${inspectorHeader(container.type === "class" ? "Class" : "Module", container.name, container.changeType)}${diffEvidence(container.diffHunkIds)}${container.renamedFrom === undefined ? "" : section("Renamed from", `<p class="flow-label"><strong>Name:</strong> ${escapeHtml(container.renamedFrom.name)}</p><p class="flow-label"><strong>Source file:</strong> ${escapeHtml(container.renamedFrom.sourceFile)}</p>`)}${section("Functions", nodeRows(container.functions), container.functions.length)}${section("State variables", nodeRows(container.stateVariables), container.stateVariables.length)}${section("Static data", nodeRows(container.staticData), container.staticData.length)}${section("State written by", flowRows(writes, "from", true), writes.length)}`;
   } else if (inspected.type === "relationship") {
     const edges = relationshipsForEdge(graph.relationships, inspected.edge, collapsedContainers);
     if (edges.length === 0) {

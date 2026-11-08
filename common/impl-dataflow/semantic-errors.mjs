@@ -28,6 +28,14 @@ export function implementationDataflowErrors(implementationDataflow, evaluated =
       entityIds.add(node.id);
       nodes.set(node.id, node);
     }
+    if (node.renamedFrom !== undefined) {
+      if (node.renamedFrom.name === node.name) {
+        semanticErrors.push(`renamedFrom requires a different original name for node ${node.id}`);
+      }
+      if (node.changeType !== "modified") {
+        semanticErrors.push(`renamedFrom requires a modified node: ${node.id}`);
+      }
+    }
     if (node.containerId !== undefined) {
       if (!containers.has(node.containerId)) {
         semanticErrors.push(`Unknown container for node ${node.id}: ${node.containerId}`);

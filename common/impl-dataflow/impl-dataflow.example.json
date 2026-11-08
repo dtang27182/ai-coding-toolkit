@@ -126,6 +126,7 @@
       "name": "Push Webhook",
       "type": "system-input",
       "location": "POST /webhooks/push",
+      "renamedFrom": { "name": "Push Notification Endpoint" },
       "changeType": "modified",
       "changeSummary": { "existingBehavior": "Accepts push notifications without requesting a change set.", "newBehavior": "Expand push notifications to request change sets for pushed paths." },
       "initialization": false
