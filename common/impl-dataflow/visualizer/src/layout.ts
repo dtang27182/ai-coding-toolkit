@@ -1,4 +1,4 @@
-import type { GraphLayout, GraphNode, HelperMember, Rect, ResolvedRelationship } from "./types.ts";
+import { boxCollapsed, type CollapsedContainers, type GraphLayout, type GraphNode, type HelperMember, type Rect, type ResolvedRelationship } from "./types.ts";
 import type { FunctionNode } from "../../types.ts";
 
 export const FUNCTION_HEIGHT = 32;
@@ -61,7 +61,7 @@ function acyclicEdges(nodes: GraphNode[], edges: ResolvedRelationship[]): Resolv
 export function computeLayout(
   nodes: GraphNode[],
   relationships: ResolvedRelationship[],
-  collapsed: boolean,
+  collapsed: CollapsedContainers,
   measureFunction: (name: string, writesState: boolean, mismatch?: boolean, hasHelpers?: boolean) => number,
   measureStateVariable: (name: string) => number,
   measureComponent: (name: string) => number,
@@ -144,8 +144,12 @@ export function computeLayout(
   const minimumRank = Math.min(...ids.map((id) => rank.get(id)!));
   for (const id of ids) rank.set(id, rank.get(id)! - minimumRank);
 
+  function isCollapsed(node: GraphNode): boolean {
+    return node.nodeType !== undefined || boxCollapsed(node.id, collapsed);
+  }
+
   function visibleMembers(node: GraphNode) {
-    return collapsed || node.nodeType !== undefined ? [] : node.functions;
+    return isCollapsed(node) ? [] : node.functions;
   }
 
   const expandedHelperIds = new Set([...helperGroups.values()].flatMap((members) => members.map(({ node }) => node.id)));
@@ -162,7 +166,7 @@ export function computeLayout(
   }
 
   function visibleStateVariables(node: GraphNode) {
-    return collapsed || node.nodeType !== undefined ? [] : node.stateVariables;
+    return isCollapsed(node) ? [] : node.stateVariables;
   }
 
   function stateHeight(node: GraphNode): number {
@@ -180,8 +184,8 @@ export function computeLayout(
   }
 
   function widthOf(node: GraphNode): number {
-    if (collapsed || node.nodeType !== undefined) {
-      return Math.max(164, measureComponent(node.name) + 62);
+    if (isCollapsed(node)) {
+      return Math.max(164, measureComponent(node.name) + (node.nodeType === undefined ? 86 : 62));
     } else {
       const members = topMembers(node);
       const memberWidth = members.reduce(
@@ -195,7 +199,7 @@ export function computeLayout(
   }
 
   function heightOf(node: GraphNode): number {
-    if (collapsed || node.nodeType !== undefined) {
+    if (isCollapsed(node)) {
       return COMPONENT_HEIGHT;
     } else {
       const memberHeight = topMembers(node).length > 0 ? FUNCTION_HEIGHT : 0;
@@ -325,8 +329,8 @@ export function computeLayout(
   }
 
   const helperFrameRects = new Map<string, Rect>();
-  if (!collapsed) {
-    for (const [rootId, members] of helperGroups) {
+  for (const [rootId, members] of helperGroups) {
+    if (memberRects.has(rootId)) {
       const rects = [rootId, ...members.map(({ node }) => node.id)].map((id) => memberRects.get(id)!);
       const left = Math.min(...rects.map((rect) => rect.x)) - HELPER_FRAME_PADDING;
       const top = Math.min(...rects.map((rect) => rect.y)) - HELPER_FRAME_PADDING;

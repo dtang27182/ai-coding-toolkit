@@ -22,10 +22,20 @@ export type Selection =
   | { type: "node"; nodeId: string }
   | { type: "relationship"; edge: string };
 
+export type CollapsedContainers = boolean | ReadonlySet<string>;
+
+export function boxCollapsed(boxId: string, collapsed: CollapsedContainers): boolean {
+  return collapsed === true || (collapsed !== false && collapsed.has(boxId));
+}
+
+export function visibleEndpointId(endpoint: ResolvedEndpoint, collapsed: CollapsedContainers): string {
+  return boxCollapsed(endpoint.boxId, collapsed) || endpoint.type === "ui-component"
+    ? endpoint.boxId : endpoint.nodeId ?? endpoint.boxId;
+}
+
 /** Collapsed edge identity uses the containers that own its endpoints. */
-export function edgeKey(relationship: ResolvedRelationship, collapsed: boolean): string {
-  const side = (endpoint: ResolvedEndpoint) => collapsed || endpoint.type === "ui-component" ? endpoint.boxId : endpoint.nodeId ?? endpoint.boxId;
-  return JSON.stringify([relationship.relationship.type, side(relationship.from), side(relationship.to)]);
+export function edgeKey(relationship: ResolvedRelationship, collapsed: CollapsedContainers): string {
+  return JSON.stringify([relationship.relationship.type, visibleEndpointId(relationship.from, collapsed), visibleEndpointId(relationship.to, collapsed)]);
 }
 
 export interface Rect {

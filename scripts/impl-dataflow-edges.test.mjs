@@ -154,6 +154,24 @@ test("collapsed pairs with different return colors merge and retain inspector de
   assert.deepEqual(relationshipsForEdge(graph.relationships, edges[0].key, true), graph.relationships);
 });
 
+test("a collapsed container merges only its own endpoints", () => {
+  const input = implementation([
+    flow("a", "a2", "arguments"),
+    flow("a", "b", "arguments"), flow("a2", "b", "arguments", "modified"),
+    flow("b", "a", "return"), flow("b2", "a2", "return"),
+    flow("b", "state"), flow("state", "b"),
+  ]);
+  const graph = filterGraph(input, true);
+  const collapsed = new Set(["client"]);
+  const edges = dataflowEdges(graph.relationships, collapsed);
+  assert.equal(edges.length, 3);
+  const toB = edges.find((edge) => edge.relationships.some((item) => item.relationship === input.relationships[1]));
+  assert.deepEqual(new Set(relationshipsForEdge(graph.relationships, toB.key, collapsed).map((item) => item.relationship)), new Set(input.relationships.slice(1, 4)));
+  assert.ok(edges.some((edge) => edge.relationships.length === 1 && edge.relationships[0].relationship === input.relationships[4]));
+  assert.ok(edges.some((edge) => edge.relationships.some((item) => item.to.nodeId === "state")));
+  assert.ok(edges.every((edge) => !edge.relationships.some((item) => item.from.nodeId === "a" && item.to.nodeId === "a2")));
+});
+
 test("hide unchanged pairs only the remaining visible relationships", () => {
   for (const unchangedType of ["arguments", "return"]) {
     const args = flow("a", "b", "arguments", unchangedType === "arguments" ? "unchanged" : "added");

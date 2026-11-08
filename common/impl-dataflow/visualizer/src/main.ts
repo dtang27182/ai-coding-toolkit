@@ -10,7 +10,7 @@ import { edgePortSpreads, routeCompositionEdge, routeEdge } from "./routing";
 import { semanticError } from "./validation";
 import "./styles.css";
 import type { ChangeType, ContainerStatus, GraphContainer, GraphLayout, ImplementationDataflow, Rect, ResolvedEndpoint, ResolvedRelationship, Selection } from "./types";
-import { edgeKey } from "./types";
+import { edgeKey, visibleEndpointId } from "./types";
 import { droppedJsonFile, pickJsonFile, supportsJsonFileHandles, watchOpenedJson, type JsonFileHandle } from "../../../watch-opened-json.ts";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -107,7 +107,7 @@ let fileName = "impl-dataflow.example.json";
 let showUnchanged = false;
 let hideInitialization = true;
 let hideHelpers = true;
-let functionsHidden = false;
+const collapsedContainers = new Set<string>();
 const expandedHelpers = new Set<string>();
 let zoom = 1;
 let panX = 0;
@@ -184,7 +184,7 @@ function componentWidth(name: string): number {
 
 function tabWidth(container: GraphContainer): number {
   measureContext.font = "600 11.5px IBM Plex Mono, monospace";
-  return Math.ceil(measureContext.measureText(container.name).width) + (container.type === "module" ? 92 : 42);
+  return Math.ceil(measureContext.measureText(container.name).width) + (container.type === "module" ? 114 : 64);
 }
 
 function endpointBoxLabel(endpoint: ResolvedEndpoint): string {
@@ -231,16 +231,16 @@ function relationshipMatches(relationship: ResolvedRelationship, value: Selectio
 
 function graphFocus(value: Selection | undefined): Selection | undefined {
   let focus = value;
-  if (functionsHidden && value?.type === "node") {
+  if (value?.type === "node") {
     const node = implementationDataflow.nodes.find((node) => node.id === value.nodeId)!;
-    if ((node.type === "function" && node.subtype !== "missing-from-cr") || node.type === "state-variable") {
+    if (((node.type === "function" && node.subtype !== "missing-from-cr") || node.type === "state-variable") && collapsedContainers.has(node.containerId)) {
       focus = { type: "container", containerId: node.containerId };
     }
   }
   return focus;
 }
 
-function relationshipAttributes(relationship: ResolvedRelationship, key = edgeKey(relationship, functionsHidden)): string {
+function relationshipAttributes(relationship: ResolvedRelationship, key = edgeKey(relationship, collapsedContainers)): string {
   return `data-relation data-edge="${escapeHtml(key)}" data-from-box="${escapeHtml(relationship.from.boxId)}" data-from-node-id="${escapeHtml(relationship.from.nodeId ?? "")}" data-from-type="${relationship.from.type}" data-to-box="${escapeHtml(relationship.to.boxId)}" data-to-node-id="${escapeHtml(relationship.to.nodeId ?? "")}" data-to-type="${relationship.to.type}"`;
 }
 
@@ -249,13 +249,13 @@ function visibleGraph(): VisibleGraph {
 }
 
 function graphRect(endpoint: ResolvedEndpoint, boxes: Map<string, Rect>, memberRects: Map<string, Rect>): Rect | undefined {
-  return !functionsHidden && endpoint.nodeId !== undefined && endpoint.nodeId !== endpoint.boxId && endpoint.type !== "ui-component"
+  return !collapsedContainers.has(endpoint.boxId) && endpoint.nodeId !== undefined && endpoint.nodeId !== endpoint.boxId && endpoint.type !== "ui-component"
     ? memberRects.get(endpoint.nodeId)
     : boxes.get(endpoint.boxId);
 }
 
 function graphEndpointKey(endpoint: ResolvedEndpoint): string {
-  return functionsHidden || endpoint.type === "ui-component" ? endpoint.boxId : endpoint.nodeId ?? endpoint.boxId;
+  return visibleEndpointId(endpoint, collapsedContainers);
 }
 
 function classTargetRect(container: GraphContainer, box: Rect): Rect {
@@ -279,7 +279,7 @@ function renderMarkers(): string {
 
 function renderGraph(graph: VisibleGraph): string {
   const stateWriters = new Set(graph.relationships.filter((relationship) => relationship.to.type === "state-variable" && relationship.from.type === "function").map((relationship) => relationship.from.nodeId!));
-  const layout = computeLayout(graph.nodes, graph.relationships, functionsHidden, functionWidth, stateVariableWidth, componentWidth, stateWriters, graph.missingFunctions, graph.expandedHelperGroups, graph.helperGroups);
+  const layout = computeLayout(graph.nodes, graph.relationships, collapsedContainers, functionWidth, stateVariableWidth, componentWidth, stateWriters, graph.missingFunctions, graph.expandedHelperGroups, graph.helperGroups);
   graphLayout = layout;
   currentGraphWidth = layout.width;
   currentGraphHeight = layout.height;
@@ -288,7 +288,7 @@ function renderGraph(graph: VisibleGraph): string {
   const routingBounds = new Map(graph.nodes.map((node): [string, Rect] => {
     const box = layout.boxes.get(node.id)!;
     let bounds = box;
-    if (!functionsHidden && node.nodeType === undefined) {
+    if (node.nodeType === undefined && !collapsedContainers.has(node.id)) {
       const tab = classTargetRect(containers.get(node.id)!, box);
       bounds = { x: box.x, y: tab.y, width: Math.max(box.width, tab.x + tab.width - box.x), height: box.y + box.height - tab.y };
     }
@@ -296,7 +296,7 @@ function renderGraph(graph: VisibleGraph): string {
   }));
   function obstaclesFor(relationship: ResolvedRelationship): Rect[] {
     const boxes = [...routingBounds].filter(([id]) => id !== relationship.from.boxId && id !== relationship.to.boxId).map(([, box]) => box);
-    if (relationship.relationship.type === "dataflow" && hideHelpers && !functionsHidden) {
+    if (relationship.relationship.type === "dataflow" && hideHelpers) {
       for (const members of graph.expandedHelperGroups.values()) {
         for (const { node } of members) {
           const rect = layout.memberRects.get(node.id);
@@ -307,12 +307,12 @@ function renderGraph(graph: VisibleGraph): string {
     return boxes;
   }
 
-  const classFrames = functionsHidden ? "" : graph.containers.map((container) => {
+  const classFrames = graph.containers.filter((container) => !collapsedContainers.has(container.id)).map((container) => {
     const box = layout.boxes.get(container.id)!;
     return `<rect class="class-frame" data-node="${escapeHtml(container.id)}" x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="11" fill="var(--frame-fill)" stroke="var(--frame-stroke)" stroke-width="1.25" stroke-dasharray="6 5"></rect>`;
   }).join("");
 
-  const helperFrames = functionsHidden ? "" : [...graph.expandedHelperGroups].map(([rootId, members]) => {
+  const helperFrames = [...graph.expandedHelperGroups].filter(([rootId]) => layout.helperFrameRects.has(rootId)).map(([rootId, members]) => {
     const rect = layout.helperFrameRects.get(rootId)!;
     return `<rect class="helper-frame" data-node="${escapeHtml(members[0].node.containerId)}" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" rx="9"></rect>`;
   }).join("");
@@ -323,7 +323,7 @@ function renderGraph(graph: VisibleGraph): string {
       <path class="edge-hit" ${relationshipAttributes(relationship)} data-select="relationship" d="${path}" fill="none" stroke="transparent" stroke-width="12"></path>`;
   }).join("");
 
-  const edgeLayouts = dataflowEdges(graph.relationships, functionsHidden).map((edge) => ({
+  const edgeLayouts = dataflowEdges(graph.relationships, collapsedContainers).map((edge) => ({
     ...edge,
     from: graphRect(edge.forward.from, routingBounds, layout.memberRects)!,
     to: graphRect(edge.forward.to, routingBounds, layout.memberRects)!,
@@ -349,27 +349,30 @@ function renderGraph(graph: VisibleGraph): string {
 
   const classTabs = graph.containers.map((container) => {
     const box = layout.boxes.get(container.id)!;
+    const collapsed = collapsedContainers.has(container.id);
     const selected = selectionKey(selection) === selectionKey({ type: "container", containerId: container.id });
     const deleted = container.changeType === "deleted" ? " deleted" : "";
-    const attributes = `data-select="container" data-node="${escapeHtml(container.id)}" data-container="${escapeHtml(container.id)}" aria-label="Inspect ${container.type} ${escapeHtml(container.name)}${functionsHidden && container.hldMismatch ? ", HLD mismatch" : ""}"`;
-    const rect = functionsHidden ? { x: box.x, y: box.y, width: box.width, height: box.height } : classTargetRect(container, box);
+    const attributes = `data-select="container" data-node="${escapeHtml(container.id)}" data-container="${escapeHtml(container.id)}" aria-label="Inspect ${container.type} ${escapeHtml(container.name)}${collapsed && container.hldMismatch ? ", HLD mismatch" : ""}"`;
+    const rect = collapsed ? { x: box.x, y: box.y, width: box.width, height: box.height } : classTargetRect(container, box);
     const form = silhouette(CONTAINER_TYPE.shape, rect.width, rect.height);
     const style = `left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;height:${rect.height}px;--type-color:${CONTAINER_TYPE.color};--change-color:${changeColor(container.changeType)}`;
     const shape = `<svg class="node-shape" width="${rect.width}" height="${rect.height}" viewBox="0 0 ${rect.width} ${rect.height}" aria-hidden="true"><path class="node-outline" d="${form.outline}"></path></svg>`;
-    if (functionsHidden) {
+    const toggleLabel = `${collapsed ? "Expand" : "Collapse"} ${container.type} ${container.name}`;
+    const toggle = `<button class="graph-node container-toggle" style="left:${rect.x + rect.width - 27}px;top:${rect.y + (rect.height - 20) / 2}px" data-toggle-container="${escapeHtml(container.id)}" data-node="${escapeHtml(container.id)}" aria-expanded="${!collapsed}" aria-label="${escapeHtml(toggleLabel)}" title="${escapeHtml(toggleLabel)}">${collapsed ? "+" : "−"}</button>`;
+    if (collapsed) {
       return `<button class="graph-node boundary-node container-node${selected ? " selected" : ""}${deleted}" style="${style}" ${attributes}>
         ${shape}<span class="boundary-body">${container.hldMismatch
           ? `<span class="node-badge hld-mismatch-badge" title="A function change in this ${container.type} does not match the HLD">${CONTAINER_TYPE.badge[container.type]} · ≠ HLD</span>`
           : `<span class="node-badge">${CONTAINER_TYPE.badge[container.type]}</span>`}<span class="component-name">${escapeHtml(container.name)}</span></span>
-      </button>`;
+      </button>${toggle}`;
     } else {
       return `<button class="graph-node boundary-node class-tab${selected ? " selected" : ""}${deleted}" style="${style}" ${attributes}>
         ${shape}<span class="boundary-body"><span class="class-name">${escapeHtml(container.name)}</span>${container.type === "module" ? '<span class="container-kind">module</span>' : ""}</span>
-      </button>`;
+      </button>${toggle}`;
     }
   }).join("");
 
-  const members = functionsHidden ? "" : graph.containers.flatMap((container) => container.functions.map((node) => {
+  const members = graph.containers.filter((container) => !collapsedContainers.has(container.id)).flatMap((container) => container.functions.map((node) => {
     const rect = layout.memberRects.get(node.id)!;
     const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
     const mismatch = node["hld-change-mismatch"] === true;
@@ -393,7 +396,7 @@ function renderGraph(graph: VisibleGraph): string {
     </button>`;
   }).join("");
 
-  const stateBoxes = graph.containers.filter((container) => !functionsHidden && container.stateVariables.length > 0).map((container) => {
+  const stateBoxes = graph.containers.filter((container) => !collapsedContainers.has(container.id) && container.stateVariables.length > 0).map((container) => {
     const rect = layout.stateRects.get(container.id)!;
     const variables = container.stateVariables.map((node) => {
       const selected = selectionKey(selection) === selectionKey({ type: "node", nodeId: node.id });
@@ -421,7 +424,7 @@ function renderGraph(graph: VisibleGraph): string {
     </button>`;
   }).join("");
 
-  const emptyNotes = graph.containers.filter((container) => !functionsHidden && container.functions.length + container.stateVariables.length === 0).map((container) => {
+  const emptyNotes = graph.containers.filter((container) => !collapsedContainers.has(container.id) && container.functions.length + container.stateVariables.length === 0).map((container) => {
     const box = layout.boxes.get(container.id)!;
     return `<span class="graph-node empty-class" data-node="${escapeHtml(container.id)}" style="left:${box.x + 15}px;top:${box.y + 30}px">No visible members</span>`;
   }).join("");
@@ -523,14 +526,16 @@ function renderInspector(graph: VisibleGraph): string {
     const writes = graph.relationships.filter((relationship) => relationship.to.type === "state-variable" && relationship.to.boxId === container.id);
     content = `${inspectorHeader(container.type === "class" ? "Class" : "Module", container.name, container.changeType)}${diffEvidence(container.diffHunkIds)}${section("Functions", nodeRows(container.functions), container.functions.length)}${section("State variables", nodeRows(container.stateVariables), container.stateVariables.length)}${section("Static data", nodeRows(container.staticData), container.staticData.length)}${section("State written by", flowRows(writes, "from", true), writes.length)}`;
   } else if (inspected.type === "relationship") {
-    const edges = relationshipsForEdge(graph.relationships, inspected.edge, functionsHidden);
+    const edges = relationshipsForEdge(graph.relationships, inspected.edge, collapsedContainers);
     if (edges.length === 0) {
       content = `${inspectorHeader("Relationship", "Not visible", "unchanged")}<p class="empty-copy">The current filters hide this relationship.</p>`;
     } else {
       const first = edges[0];
       const merged = edges.length > 1;
       const arrow = first.relationship.type === "composition" ? "owns" : first.to.type === "state-variable" ? "↝" : first.from.type === "state-variable" ? "⇢" : "→";
-      const title = merged && functionsHidden ? `${endpointBoxLabel(first.from)} → ${endpointBoxLabel(first.to)}` : `${endpointLabel(first.from)} ${arrow} ${endpointLabel(first.to)}`;
+      const title = merged && (collapsedContainers.has(first.from.boxId) || collapsedContainers.has(first.to.boxId))
+        ? `${collapsedContainers.has(first.from.boxId) ? endpointBoxLabel(first.from) : endpointLabel(first.from)} → ${collapsedContainers.has(first.to.boxId) ? endpointBoxLabel(first.to) : endpointLabel(first.to)}`
+        : `${endpointLabel(first.from)} ${arrow} ${endpointLabel(first.to)}`;
       const eyebrow = merged ? "Merged relationships" : first.relationship.type === "composition" ? "Composition" : first.to.type === "state-variable" ? "State update" : first.from.type === "state-variable" ? "State read" : "Dataflow";
       const entries = edges.map((item) => `<div class="relationship-entry" style="border-color:${changeColor(item.relationship.changeType)}">${merged ? `<button class="entry-endpoints" data-jump="${escapeHtml(JSON.stringify(selectionForEndpoint(item.to)))}">${escapeHtml(endpointLabel(item.from))} → ${escapeHtml(endpointLabel(item.to))}</button><div class="entry-chips"><span class="change-chip" style="${chipStyle(item.relationship.changeType)}">${item.relationship.changeType}</span>${item.relationship.type === "dataflow" && item.relationship.transferType !== undefined ? `<span class="change-chip neutral">${item.relationship.transferType}</span>` : ""}</div>` : ""}${item.relationship.type === "dataflow" ? `<div class="entry-heading">Data</div><p class="entry-copy">${escapeHtml(item.relationship.dataDescription)}</p><div class="entry-heading">Purpose</div><p class="entry-copy">${escapeHtml(item.relationship.purpose)}</p>` : `<p class="entry-copy">${escapeHtml(endpointLabel(item.from))} owns instances of ${escapeHtml(endpointLabel(item.to))}.</p>`}</div>`).join("");
       content = `${inspectorHeader(eyebrow, title, first.relationship.changeType, merged ? `${edges.length} relationships` : first.relationship.type === "dataflow" ? first.relationship.transferType : undefined)}${diffEvidence([...new Set(edges.flatMap((edge) => edge.relationship.diffHunkIds ?? []))])}${section("Description", entries, merged ? edges.length : undefined)}`;
@@ -546,6 +551,7 @@ function updateInspector(): void {
 
 function render(): void {
   const graph = visibleGraph();
+  const allCollapsed = graph.containers.length > 0 && graph.containers.every((container) => collapsedContainers.has(container.id));
   app.innerHTML = `<div class="app-shell">
     <header class="topbar">
       <div class="summary-row">
@@ -555,7 +561,7 @@ function render(): void {
           <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
           <button class="control-button${hideInitialization ? " active" : ""}" data-toggle-initialization aria-pressed="${hideInitialization}">Hide Initialization</button>
           <button class="control-button${hideHelpers ? " active" : ""}" data-toggle-hide-helpers aria-pressed="${hideHelpers}">Hide helpers</button>
-          <button class="control-button${functionsHidden ? " active" : ""}" data-toggle-functions>${functionsHidden ? "Expand containers" : "Collapse containers"}</button>
+          <button class="control-button${allCollapsed ? " active" : ""}" data-toggle-functions>${allCollapsed ? "Expand containers" : "Collapse containers"}</button>
           <button class="control-button${inspectorCollapsed ? "" : " active"}" data-toggle-inspector aria-pressed="${!inspectorCollapsed}" aria-label="${inspectorCollapsed ? "Show inspector" : "Hide inspector"}">${inspectorCollapsed ? "Show inspector" : "Hide inspector"}</button>
           <div class="zoom-controls"><button class="zoom-button" data-zoom-out aria-label="Zoom out">−</button><button class="zoom-button${userZoomed ? "" : " active"}" data-fit aria-pressed="${!userZoomed}">Fit · ${Math.round(zoom * 100)}%</button><button class="zoom-button" data-zoom-in aria-label="Zoom in">+</button></div>
         </div>
@@ -716,6 +722,21 @@ function bindEvents(): void {
       updateInspector();
     });
   }
+  for (const toggle of app.querySelectorAll<HTMLElement>("[data-toggle-container]")) {
+    toggle.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const containerId = toggle.dataset.toggleContainer!;
+      if (collapsedContainers.has(containerId)) {
+        collapsedContainers.delete(containerId);
+      } else {
+        collapsedContainers.add(containerId);
+      }
+      if (selection?.type === "relationship") selection = undefined;
+      hovered = undefined;
+      render();
+      [...app.querySelectorAll<HTMLElement>("[data-toggle-container]")].find((button) => button.dataset.toggleContainer === containerId)?.focus();
+    });
+  }
   for (const toggle of app.querySelectorAll<HTMLElement>("[data-toggle-helpers]")) {
     toggle.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -772,7 +793,12 @@ function bindEvents(): void {
     render();
   });
   app.querySelector<HTMLElement>("[data-toggle-functions]")!.addEventListener("click", () => {
-    functionsHidden = !functionsHidden;
+    const graph = visibleGraph();
+    if (graph.containers.length > 0 && graph.containers.every((container) => collapsedContainers.has(container.id))) {
+      collapsedContainers.clear();
+    } else {
+      for (const container of implementationDataflow.containers) collapsedContainers.add(container.id);
+    }
     if (selection?.type === "relationship") selection = undefined;
     hovered = undefined;
     panX = 0;
@@ -852,7 +878,7 @@ function updateGraphFocus(value: Selection | undefined): void {
     relatedBoxes.add(node.type === "function" || node.type === "state-variable" ? node.containerId : node.id);
     for (const component of graph.components.filter((component) => component.nodeId === node.id)) relatedBoxes.add(component.id);
   }
-  const selectedRelationships = value?.type === "relationship" ? relationshipsForEdge(graph.relationships, value.edge, functionsHidden) : [];
+  const selectedRelationships = value?.type === "relationship" ? relationshipsForEdge(graph.relationships, value.edge, collapsedContainers) : [];
   for (const relationship of graph.relationships.filter((item) => relationshipMatches(item, value, selectedRelationships))) {
     for (const endpoint of [relationship.from, relationship.to]) {
       relatedBoxes.add(endpoint.boxId);
@@ -923,6 +949,7 @@ function setImplementationDataflow(value: unknown, nextFileName: string): string
     } else {
       implementationDataflow = nextImplementationDataflow;
       fileName = nextFileName;
+      collapsedContainers.clear();
       expandedHelpers.clear();
       selection = undefined;
       hovered = undefined;

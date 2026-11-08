@@ -34,7 +34,7 @@ function syncHeader(): void {
   const stage = (systemFile === undefined ? implementationRoot : systemRoot)?.querySelector<HTMLElement>(".stage-chip")?.textContent;
   const featureName = systemRoot?.querySelector<HTMLElement>(".feature-name")?.textContent;
   const nodeCount = systemRoot?.querySelector<HTMLElement>(".overview-counts strong")?.textContent;
-  const classCount = implementationRoot?.querySelectorAll(".class-tab").length;
+  const classCount = implementationRoot?.querySelectorAll('[data-select="container"]').length;
 
   if (systemFile === undefined && implementationFile !== undefined) {
     app.querySelector<HTMLElement>(".review-title")!.textContent = implementationFile.name.split("/").at(-1)!.replace(/\.impl-dataflow\.json$/, "");

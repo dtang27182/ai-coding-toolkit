@@ -86,6 +86,15 @@ test("UI reads, system inputs, and all static data share the top row above proce
   }
 });
 
+test("one container can collapse while another keeps its members", () => {
+  const graph = filterGraph(implementation(), true);
+  const layout = computeLayout(graph.nodes, graph.relationships, new Set(["parent"]), () => 80, () => 80, () => 100, new Set());
+  assert.equal(layout.memberRects.has("handle"), false);
+  assert.ok(layout.memberRects.has("process"));
+  assert.ok(layout.boxes.get("child").height > layout.boxes.get("parent").height);
+  assert.ok(layout.boxes.get("parent").y < layout.boxes.get("child").y);
+});
+
 test("UI self-flows connect the read icon to the write icon in both views", () => {
   const input = implementation();
   input.relationships = [{ from: { nodeId: "panel", type: "ui-component" }, to: { nodeId: "panel", type: "ui-component" }, type: "dataflow", changeType: "added", dataDescription: "Value", purpose: "Update UI" }];
