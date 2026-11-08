@@ -6,18 +6,18 @@ import { computeLayout } from "../common/impl-dataflow/visualizer/src/layout.ts"
 
 function review() {
   return {
-    schemaVersion: 18,
+    schemaVersion: 19,
     stage: "code-review",
     containers: [
       { id: "service", name: "Service", type: "class", sourceFile: "src/Service.ts" },
       { id: "other", name: "Other", type: "class", sourceFile: "src/Other.ts" },
     ],
     nodes: [
-      { id: "actual", name: "run", type: "function", containerId: "service", sourceFile: "src/service.ts", initialization: false, changeType: "added", changeSummary: "Add run.", "hld-change-mismatch": true },
+      { id: "actual", name: "run", type: "function", containerId: "service", sourceFile: "src/service.ts", initialization: false, changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add run." }, "hld-change-mismatch": true },
       ...["added", "modified", "deleted"].map((changeType, index) => ({
         id: `missing-${index}`, name: `expected${index}`, type: "function", subtype: "missing-from-cr",
         containerId: index === 0 ? "service" : "other", sourceFile: "src/service.ts",
-        initialization: false, changeType, changeSummary: `Not implemented: ${changeType} expected${index}`, "hld-change-mismatch": true,
+        initialization: false, changeType, changeSummary: { existingBehavior: "N/A", newBehavior: `Not implemented: ${changeType} expected${index}` }, "hld-change-mismatch": true,
       })),
     ],
     relationships: [],

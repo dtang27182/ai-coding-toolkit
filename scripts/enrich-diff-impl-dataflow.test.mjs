@@ -19,7 +19,7 @@ async function runValidator(t, dataflow, ...argumentsList) {
 
 function codeReview() {
   return {
-    schemaVersion: 18,
+    schemaVersion: 19,
     stage: "code-review",
     diffHunks: [{ id: "change", file: "src/Controller.ts", patch: "@@ -1 +1 @@\n-old implementation\n+new implementation" }],
     containers: [
@@ -27,11 +27,11 @@ function codeReview() {
       { id: "repository", name: "Repository", type: "class", sourceFile: "src/Repository.ts" },
     ],
     nodes: [
-      { id: "inspect", name: "inspect", type: "function", containerId: "controller", sourceFile: "src/Controller.ts", changeType: "modified", changeSummary: "Modify inspect.", initialization: false, diffHunkIds: ["change"] },
-      { id: "result", name: "result", type: "state-variable", containerId: "controller", sourceFile: "src/Controller.ts", changeType: "added", changeSummary: "Add result.", initialization: false, diffHunkIds: ["change"] },
-      { id: "read", name: "read", type: "function", containerId: "repository", sourceFile: "src/Repository.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false },
-      { id: "panel", name: "Panel", type: "ui-component", location: "Panel", changeType: "modified", changeSummary: "Modify Panel.", initialization: false, diffHunkIds: ["change"] },
-      { id: "rules", name: "Rules", type: "static-data", containerId: "controller", sourceFile: "src/Controller.ts", changeType: "modified", changeSummary: "Modify Rules.", initialization: false, diffHunkIds: ["change"] },
+      { id: "inspect", name: "inspect", type: "function", containerId: "controller", sourceFile: "src/Controller.ts", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: "Modify inspect." }, initialization: false, diffHunkIds: ["change"] },
+      { id: "result", name: "result", type: "state-variable", containerId: "controller", sourceFile: "src/Controller.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add result." }, initialization: false, diffHunkIds: ["change"] },
+      { id: "read", name: "read", type: "function", containerId: "repository", sourceFile: "src/Repository.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
+      { id: "panel", name: "Panel", type: "ui-component", location: "Panel", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: "Modify Panel." }, initialization: false, diffHunkIds: ["change"] },
+      { id: "rules", name: "Rules", type: "static-data", containerId: "controller", sourceFile: "src/Controller.ts", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: "Modify Rules." }, initialization: false, diffHunkIds: ["change"] },
     ],
     relationships: [
       {
@@ -82,7 +82,7 @@ test("represents module-owned functions, state, and static data without requirin
 test("free functions can read and update class state", async (t) => {
   const value = codeReview();
   value.containers.push({ id: "operations", name: "src/operations", type: "module", sourceFile: "src/operations.ts" });
-  value.nodes.push({ id: "process", name: "process", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "modified", changeSummary: "Modify process.", initialization: false, diffHunkIds: ["change"] });
+  value.nodes.push({ id: "process", name: "process", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: "Modify process." }, initialization: false, diffHunkIds: ["change"] });
   value.relationships.push(
     { from: { nodeId: "result", type: "state-variable" }, to: { nodeId: "process", type: "function" }, type: "dataflow", changeType: "added", diffHunkIds: ["change"], dataDescription: "Current result", purpose: "Reads the result." },
     { from: { nodeId: "process", type: "function" }, to: { nodeId: "result", type: "state-variable" }, type: "dataflow", changeType: "added", diffHunkIds: ["change"], dataDescription: "Updated result", purpose: "Stores the processed result." },

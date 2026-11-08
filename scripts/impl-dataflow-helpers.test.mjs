@@ -7,7 +7,7 @@ import { computeLayout } from "../common/impl-dataflow/visualizer/src/layout.ts"
 import { routeEdge } from "../common/impl-dataflow/visualizer/src/routing.ts";
 
 function fn(id, containerId = "service", helperOf) {
-  return { id, name: id, type: "function", containerId, sourceFile: "src/service.ts", changeType: "modified", changeSummary: id, initialization: false, ...(helperOf === undefined ? {} : { helperOf }) };
+  return { id, name: id, type: "function", containerId, sourceFile: "src/service.ts", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: id }, initialization: false, ...(helperOf === undefined ? {} : { helperOf }) };
 }
 
 function flow(from, to, transferType = "arguments") {
@@ -16,7 +16,7 @@ function flow(from, to, transferType = "arguments") {
 
 function graph() {
   return {
-    schemaVersion: 18,
+    schemaVersion: 19,
     stage: "high-level-design",
     containers: [
       { id: "service", name: "Service", type: "class", sourceFile: "src/service.ts" },
@@ -45,7 +45,7 @@ test("Hide helpers folds descendants and reroutes their external relationships t
 
 test("a UI component connected only to collapsed helpers remains visible and points to their parent", () => {
   const input = graph();
-  input.nodes.push({ id: "provider-page", name: "Provider-selection page", type: "ui-component", location: "ProviderSelectionPage", changeType: "modified", changeSummary: "Page action", initialization: false });
+  input.nodes.push({ id: "provider-page", name: "Provider-selection page", type: "ui-component", location: "ProviderSelectionPage", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: "Page action" }, initialization: false });
   input.relationships = [
     { type: "dataflow", from: { nodeId: "provider-page", type: "ui-component" }, to: { nodeId: "child", type: "function" }, dataDescription: "select_openai event", purpose: "Handle selection", changeType: "modified" },
     { type: "dataflow", from: { nodeId: "grandchild", type: "function" }, to: { nodeId: "provider-page", type: "ui-component" }, dataDescription: "page update", purpose: "Show selection", changeType: "modified" },
@@ -151,7 +151,7 @@ test("a wide helper row leaves room for its dataflow curves below", () => {
 
 test("an expanded parent can still route a state update beside its helper", () => {
   const input = graph();
-  input.nodes.push({ id: "state", name: "state", type: "state-variable", containerId: "service", sourceFile: "src/service.ts", changeType: "modified", changeSummary: "state", initialization: false });
+  input.nodes.push({ id: "state", name: "state", type: "state-variable", containerId: "service", sourceFile: "src/service.ts", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: "state" }, initialization: false });
   input.relationships.push({ type: "dataflow", from: { nodeId: "root", type: "function" }, to: { nodeId: "state", type: "state-variable" }, dataDescription: "state", purpose: "Update state", changeType: "modified" });
   const visible = filterGraph(input, true, true, true, new Set(["root"]));
   const rects = layout(visible).memberRects;

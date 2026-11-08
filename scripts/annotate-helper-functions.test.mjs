@@ -11,7 +11,7 @@ import { implementationDataflowErrors } from "../common/impl-dataflow/semantic-e
 const scriptPath = new URL("../common/impl-dataflow/annotate-helper-functions.mjs", import.meta.url).pathname;
 
 function fn(id, containerId = "owner") {
-  return { id, name: id, type: "function", containerId, sourceFile: "src/service.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false };
+  return { id, name: id, type: "function", containerId, sourceFile: "src/service.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false };
 }
 
 function flow(from, to, transferType = "arguments") {
@@ -20,7 +20,7 @@ function flow(from, to, transferType = "arguments") {
 
 function graph() {
   return {
-    schemaVersion: 18,
+    schemaVersion: 19,
     stage: "high-level-design",
     containers: [
       { id: "owner", name: "Service", type: "class", sourceFile: "src/service.ts" },
@@ -60,7 +60,7 @@ test("recognizes a caller from an arguments flow alone", () => {
 
 test("marks single-link event handlers as helpers of a shared function", () => {
   const input = graph();
-  input.nodes.push(fn("another-handler"), { id: "page", name: "Page", type: "ui-component", location: "Page", changeType: "unchanged", changeSummary: "N/A", initialization: false });
+  input.nodes.push(fn("another-handler"), { id: "page", name: "Page", type: "ui-component", location: "Page", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false });
   input.relationships = [
     flow("helper", "parent"),
     flow("another-handler", "parent"),
@@ -106,7 +106,7 @@ test("annotates a code-review graph and leaves missing-from-cr markers unmarked"
   const input = graph();
   input.stage = "code-review";
   input.diffHunks = [];
-  input.nodes.push({ ...fn("missing"), subtype: "missing-from-cr", changeType: "added", changeSummary: "Not implemented" });
+  input.nodes.push({ ...fn("missing"), subtype: "missing-from-cr", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Not implemented" } });
   input.relationships = [flow("parent", "helper"), flow("parent", "missing")];
   const result = annotateHelperFunctions(input);
   assert.equal(result.nodes.find((node) => node.id === "helper").helperOf, "parent");

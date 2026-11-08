@@ -19,13 +19,13 @@ const validatorPath = path.join(toolkitDirectory, "common/impl-dataflow/validate
 
 function highLevelDesign() {
   return {
-    schemaVersion: 18,
+    schemaVersion: 19,
     stage: "high-level-design",
     containers: [{ id: "service", name: "Service", type: "class", sourceFile: "src/Service.ts" }, { id: "operations", name: "operations", type: "module", sourceFile: "src/operations.ts" }],
     nodes: [
-      { id: "inspect", name: "inspect", type: "function", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false },
-      { id: "value", name: "value", type: "state-variable", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false },
-      { id: "rules", name: "Rules", type: "static-data", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false },
+      { id: "inspect", name: "inspect", type: "function", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
+      { id: "value", name: "value", type: "state-variable", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
+      { id: "rules", name: "Rules", type: "static-data", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
     ],
     relationships: [],
   };
@@ -59,7 +59,7 @@ test("high-level-design validation accepts the implementation example", async (t
   assert.equal(result.status, 0, result.stderr);
 });
 
-test("all node types require a nonempty change summary in both stages", async () => {
+test("changed nodes require a summary and unchanged nodes may omit it in both stages", async () => {
   const schema = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.schema.json"), "utf8"));
   const validate = new Ajv2020({ allErrors: true, strictTypes: true }).compile(schema);
   for (const stage of ["high-level-design", "code-review"]) {
@@ -67,16 +67,32 @@ test("all node types require a nonempty change summary in both stages", async ()
     input.stage = stage;
     if (stage === "code-review") input.diffHunks = [];
     for (const type of ["ui-component", "system-input", "system-output", "external-dependency"]) {
-      input.nodes.push({ id: type, name: type, type, location: type, changeType: "unchanged", changeSummary: "N/A", initialization: false });
+      input.nodes.push({ id: type, name: type, type, location: type, changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false });
     }
     assert.equal(validate(input), true, JSON.stringify(validate.errors));
     for (const node of input.nodes) {
       delete node.changeSummary;
-      assert.equal(validate(input), false, `${stage} ${node.type} must require changeSummary`);
-      node.changeSummary = "";
-      assert.equal(validate(input), false, `${stage} ${node.type} must reject an empty changeSummary`);
+      assert.equal(validate(input), true, `${stage} unchanged ${node.type} may omit changeSummary`);
+      node.changeType = "added";
+      if (stage === "code-review") node.diffHunkIds = ["change"];
+      assert.equal(validate(input), false, `${stage} added ${node.type} must require changeSummary`);
+      assert.ok(validate.errors.some((error) => error.keyword === "required" && error.params.missingProperty === "changeSummary"));
       node.changeSummary = "N/A";
+      assert.equal(validate(input), false, `${stage} ${node.type} must reject a string changeSummary`);
+      node.changeSummary = { newBehavior: "Add node." };
+      assert.equal(validate(input), true, `${stage} ${node.type} may omit existingBehavior`);
+      delete node.changeSummary.newBehavior;
+      assert.equal(validate(input), false, `${stage} ${node.type} must require newBehavior`);
+      node.changeSummary.newBehavior = "";
+      assert.equal(validate(input), false, `${stage} ${node.type} must reject an empty newBehavior`);
+      node.changeSummary.newBehavior = "Add node.";
+      node.changeSummary.existingBehavior = "";
+      assert.equal(validate(input), false, `${stage} ${node.type} must reject an empty existingBehavior`);
+      node.changeSummary.existingBehavior = "Current behavior.";
       assert.equal(validate(input), true, JSON.stringify(validate.errors));
+      node.changeType = "unchanged";
+      delete node.changeSummary;
+      delete node.diffHunkIds;
     }
   }
 });
@@ -87,7 +103,7 @@ test("code nodes and containers require repository-relative source files in both
   for (const stage of ["high-level-design", "code-review"]) {
     const input = highLevelDesign();
     input.stage = stage;
-    input.nodes.push({ id: "module-inspect", name: "inspect", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false });
+    input.nodes.push({ id: "module-inspect", name: "inspect", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false });
     if (stage === "code-review") input.diffHunks = [];
     assert.equal(validate(input), true, JSON.stringify(validate.errors));
 
@@ -130,8 +146,8 @@ test("initialization is a required boolean only on nodes in both stages", async 
   const validate = new Ajv2020({ allErrors: true, strictTypes: true }).compile(schema);
   const example = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"), "utf8"));
   example.nodes.push(
-    { id: "input", name: "Input", type: "system-input", location: "incoming requests", changeType: "unchanged", changeSummary: "N/A", initialization: false },
-    { id: "output", name: "Output", type: "system-output", location: "published results", changeType: "unchanged", changeSummary: "N/A", initialization: false },
+    { id: "input", name: "Input", type: "system-input", location: "incoming requests", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
+    { id: "output", name: "Output", type: "system-output", location: "published results", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
   );
   for (const stage of ["high-level-design", "code-review"]) {
     const input = structuredClone(example);
@@ -171,19 +187,19 @@ test("initialization is a required boolean only on nodes in both stages", async 
 
 test("container-free graphs are valid but functions still require an existing owner", async (t) => {
   for (const stage of ["high-level-design", "code-review"]) {
-    const input = { schemaVersion: 18, stage, containers: [], nodes: [], relationships: [] };
+    const input = { schemaVersion: 19, stage, containers: [], nodes: [], relationships: [] };
     if (stage === "code-review") {
       input.diffHunks = [];
     }
     assert.equal((await runValidator(t, input)).status, 0);
 
     input.nodes.push(
-      { id: "panel", name: "Panel", type: "ui-component", location: "Panel", changeType: "unchanged", changeSummary: "N/A", initialization: false },
-      { id: "rules", name: "Rules", type: "static-data", sourceFile: "src/rules.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false },
+      { id: "panel", name: "Panel", type: "ui-component", location: "Panel", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
+      { id: "rules", name: "Rules", type: "static-data", sourceFile: "src/rules.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
     );
     assert.equal((await runValidator(t, input)).status, 0);
 
-    input.nodes.push({ id: "inspect", name: "inspect", type: "function", sourceFile: "src/Service.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false });
+    input.nodes.push({ id: "inspect", name: "inspect", type: "function", sourceFile: "src/Service.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false });
     const missingOwner = await runValidator(t, input);
     assert.equal(missingOwner.status, 1);
     assert.match(missingOwner.stderr, /required property 'containerId'/);
@@ -198,11 +214,11 @@ test("container-free graphs are valid but functions still require an existing ow
 test("classes and modules can own state, functions, and optionally static data", async (t) => {
   const input = highLevelDesign();
   input.nodes.push(
-    { id: "module-inspect", name: "inspect", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "added", changeSummary: "Add inspect.", initialization: false },
-    { id: "class-value", name: "value", type: "state-variable", containerId: "service", sourceFile: "src/Service.ts", changeType: "modified", changeSummary: "Modify value.", initialization: false },
-    { id: "module-rules", name: "Rules", type: "static-data", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false },
-    { id: "unowned-rules", name: "Rules", type: "static-data", sourceFile: "src/rules.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false },
-    { id: "same-name", name: "inspect", type: "state-variable", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false },
+    { id: "module-inspect", name: "inspect", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add inspect." }, initialization: false },
+    { id: "class-value", name: "value", type: "state-variable", containerId: "service", sourceFile: "src/Service.ts", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: "Modify value." }, initialization: false },
+    { id: "module-rules", name: "Rules", type: "static-data", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
+    { id: "unowned-rules", name: "Rules", type: "static-data", sourceFile: "src/rules.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
+    { id: "same-name", name: "inspect", type: "state-variable", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
   );
   input.relationships.push({
     from: { nodeId: "value", type: "state-variable" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow",
@@ -223,7 +239,7 @@ test("nodes reject descriptions and boundary nodes cannot have container owners"
   }
   for (const type of ["ui-component", "system-input", "system-output", "external-dependency"]) {
     const input = highLevelDesign();
-    input.nodes.push({ id: "boundary", name: "Boundary", type, location: "Boundary", changeType: "unchanged", changeSummary: "N/A", initialization: false });
+    input.nodes.push({ id: "boundary", name: "Boundary", type, location: "Boundary", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false });
     assert.equal((await runValidator(t, input)).status, 0);
 
     input.nodes[3].description = "Extra description";
@@ -243,7 +259,7 @@ test("boundary nodes require a nonempty system location in both stages", async (
     input.stage = stage;
     if (stage === "code-review") input.diffHunks = [];
     for (const type of ["ui-component", "system-input", "system-output", "external-dependency"]) {
-      input.nodes.push({ id: type, name: type, type, location: type, changeType: "unchanged", changeSummary: "N/A", initialization: false });
+      input.nodes.push({ id: type, name: type, type, location: type, changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false });
     }
     assert.equal(validate(input), true, JSON.stringify(validate.errors));
     for (const node of input.nodes.slice(3)) {
@@ -287,11 +303,11 @@ test("name uniqueness follows owner and subtype rather than entity IDs", async (
 
   const duplicateUnowned = highLevelDesign();
   delete duplicateUnowned.nodes[2].containerId;
-  duplicateUnowned.nodes.push({ id: "external-rules", name: "Rules", type: "external-dependency", location: "rules service", changeType: "unchanged", changeSummary: "N/A", initialization: false });
+  duplicateUnowned.nodes.push({ id: "external-rules", name: "Rules", type: "external-dependency", location: "rules service", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false });
   assert.match((await runValidator(t, duplicateUnowned)).stderr, /Duplicate unowned node name: Rules/);
 
   const sharedContainerName = highLevelDesign();
-  sharedContainerName.nodes.push({ id: "boundary", name: "Service", type: "ui-component", location: "ServicePanel", changeType: "unchanged", changeSummary: "N/A", initialization: false });
+  sharedContainerName.nodes.push({ id: "boundary", name: "Service", type: "ui-component", location: "ServicePanel", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false });
   assert.equal((await runValidator(t, sharedContainerName)).status, 0);
 });
 
@@ -365,7 +381,7 @@ test("function transfers require arguments or return in both development stages"
       const input = highLevelDesign();
       input.stage = stage;
       if (stage === "code-review") input.diffHunks = [];
-      input.nodes.push({ id: "process", name: "process", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false });
+      input.nodes.push({ id: "process", name: "process", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false });
       input.relationships.push({
         from: { nodeId: "inspect", type: "function" }, to: { nodeId: "process", type: "function" }, type: "dataflow",
         transferType, changeType: "unchanged", dataDescription: "Value", purpose: "Process value",
@@ -392,7 +408,7 @@ test("schema enforces all node-type connection combinations and limits transferT
     for (const to of Object.keys(permittedTargets)) {
       const input = highLevelDesign();
       input.nodes = Object.keys(permittedTargets).map((type) => {
-        const node = { id: type, name: type, type, changeType: "unchanged", changeSummary: "N/A", initialization: false };
+        const node = { id: type, name: type, type, changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false };
         if (type === "function" || type === "state-variable") {
           node.containerId = "service";
         }
@@ -450,7 +466,7 @@ test("changed relationships do not independently mark containers changed", async
   });
   input.containers.push({ id: "model", name: "Model", type: "class", sourceFile: "src/Model.ts" });
   input.relationships.push({ from: { containerId: "service", type: "class" }, to: { containerId: "model", type: "class" }, type: "composition", changeType: "added" });
-  input.nodes.push({ id: "panel", name: "Panel", type: "ui-component", location: "Panel", changeType: "modified", changeSummary: "Modify Panel.", initialization: false });
+  input.nodes.push({ id: "panel", name: "Panel", type: "ui-component", location: "Panel", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: "Modify Panel." }, initialization: false });
   Object.assign(input, { changedClassCount: 0, changedFunctionCount: 0, changedComponentCount: 1, changedDataflowRelationshipCount: 1 });
   const result = await runValidator(t, input, "--evaluated");
   assert.equal(result.status, 0, result.stderr);
@@ -459,7 +475,7 @@ test("changed relationships do not independently mark containers changed", async
   assert.match((await runValidator(t, input)).stderr, /changedComponentCount must equal the derived count: 1/);
 });
 
-test("visualizer loads version 18 examples with owned static data", async () => {
+test("visualizer loads version 19 examples with owned static data", async () => {
   const input = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"), "utf8"));
   assert.equal(semanticError(input), undefined);
   const graph = filterGraph(input, true, false);
@@ -479,9 +495,9 @@ test("visualizer loads version 18 examples with owned static data", async () => 
 test("visualizer keeps repeated member names and container/node names distinct by ID", () => {
   const input = highLevelDesign();
   input.nodes.push(
-    { id: "module-inspect", name: "inspect", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false },
-    { id: "module-rules", name: "Rules", type: "static-data", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: "N/A", initialization: false },
-    { id: "service-panel", name: "Service", type: "ui-component", location: "ServicePanel", changeType: "unchanged", changeSummary: "N/A", initialization: false },
+    { id: "module-inspect", name: "inspect", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
+    { id: "module-rules", name: "Rules", type: "static-data", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
+    { id: "service-panel", name: "Service", type: "ui-component", location: "ServicePanel", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
   );
   for (const nodeId of ["inspect", "module-inspect"]) {
     input.relationships.push({ from: { nodeId: "service-panel", type: "ui-component" }, to: { nodeId, type: "function" }, type: "dataflow", changeType: "added", dataDescription: "Request", purpose: "Inspect" });
@@ -556,7 +572,7 @@ test("visualizer filters all member types and derives status from changed owned 
 test("initialization filtering hides every node subtype and restores it when disabled", () => {
   for (const type of ["function", "state-variable", "static-data", "ui-component", "system-input", "system-output", "external-dependency"]) {
     const input = highLevelDesign();
-    input.nodes = [{ id: "setup", name: "Setup", type, changeType: "added", changeSummary: "Add Setup.", initialization: true }];
+    input.nodes = [{ id: "setup", name: "Setup", type, changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Setup." }, initialization: true }];
     if (type === "function" || type === "state-variable" || type === "static-data") {
       input.nodes[0].containerId = "service";
       input.nodes[0].sourceFile = "src/Service.ts";
@@ -564,7 +580,7 @@ test("initialization filtering hides every node subtype and restores it when dis
       input.nodes[0].location = "Setup";
     }
     if (type === "ui-component") {
-      input.nodes.push({ id: "output", name: "Output", type: "system-output", location: "setup results", changeType: "added", changeSummary: "Add Output.", initialization: false });
+      input.nodes.push({ id: "output", name: "Output", type: "system-output", location: "setup results", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Output." }, initialization: false });
       input.relationships.push({ from: { nodeId: "setup", type }, to: { nodeId: "output", type: "system-output" }, type: "dataflow", changeType: "added", dataDescription: "Setup result", purpose: "Publish setup" });
     }
     for (const hideInitialization of [true, false]) {
@@ -580,7 +596,7 @@ test("initialization filtering removes empty owners and relationships with hidde
   input.containers[1].type = "class";
   input.nodes[0].initialization = true;
   input.nodes[2].initialization = true;
-  input.nodes.push({ id: "process", name: "process", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "added", changeSummary: "Add process.", initialization: false });
+  input.nodes.push({ id: "process", name: "process", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add process." }, initialization: false });
   input.relationships.push(
     { from: { nodeId: "inspect", type: "function" }, to: { nodeId: "process", type: "function" }, type: "dataflow", transferType: "arguments", changeType: "added", dataDescription: "Setup", purpose: "Hidden source" },
     { from: { nodeId: "process", type: "function" }, to: { nodeId: "inspect", type: "function" }, type: "dataflow", transferType: "arguments", changeType: "added", dataDescription: "Setup", purpose: "Hidden target" },
@@ -626,9 +642,9 @@ test("visualizer supports boundary-only graphs and an empty graph", () => {
   const input = highLevelDesign();
   input.containers = [];
   input.nodes = [
-    { id: "input", name: "Input", type: "system-input", location: "incoming requests", changeType: "added", changeSummary: "Add Input.", initialization: false },
-    { id: "output", name: "Output", type: "system-output", location: "published results", changeType: "added", changeSummary: "Add Output.", initialization: false },
-    { id: "rules", name: "Rules", type: "static-data", sourceFile: "src/rules.ts", changeType: "added", changeSummary: "Add Rules.", initialization: false },
+    { id: "input", name: "Input", type: "system-input", location: "incoming requests", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Input." }, initialization: false },
+    { id: "output", name: "Output", type: "system-output", location: "published results", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Output." }, initialization: false },
+    { id: "rules", name: "Rules", type: "static-data", sourceFile: "src/rules.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Rules." }, initialization: false },
   ];
   input.relationships.push({ from: { nodeId: "input", type: "system-input" }, to: { nodeId: "output", type: "system-output" }, type: "dataflow", changeType: "added", dataDescription: "Result", purpose: "Publish" });
   assert.equal(semanticError(input), undefined);

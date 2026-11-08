@@ -486,7 +486,7 @@ function renderInspector(graph: VisibleGraph): string {
     const node = implementationDataflow.nodes.find((node) => node.id === inspected.nodeId)!;
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, inspected));
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
-    content = `${inspectorHeader(NODE_LABELS[node.type], node.name, nodeChangeType(node), node.type === "function" && node.subtype === "missing-from-cr" ? `Expected: ${node.changeType}` : undefined)}${diffEvidence(node.diffHunkIds)}${section("Change summary", `<p class="flow-label">${escapeHtml(node.changeSummary)}</p>`)}`;
+    content = `${inspectorHeader(NODE_LABELS[node.type], node.name, nodeChangeType(node), node.type === "function" && node.subtype === "missing-from-cr" ? `Expected: ${node.changeType}` : undefined)}${diffEvidence(node.diffHunkIds)}${node.changeSummary === undefined ? "" : section("Change summary", `${node.changeSummary.existingBehavior === undefined ? "" : `<p class="flow-label"><strong>Existing behavior:</strong> ${escapeHtml(node.changeSummary.existingBehavior)}</p>`}<p class="flow-label"><strong>New behavior:</strong> ${escapeHtml(node.changeSummary.newBehavior)}</p>`)}`;
     if (node.type === "function") {
       if (node["hld-change-mismatch"] === true) {
         let hldStatus: string;

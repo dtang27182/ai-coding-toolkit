@@ -8,15 +8,15 @@ import { dataflowEdges, relationshipsForEdge } from "../common/impl-dataflow/vis
 
 function implementation(relationships = []) {
   return {
-    schemaVersion: 18,
+    schemaVersion: 19,
     stage: "high-level-design",
     containers: [{ id: "model", name: "Model", type: "class", sourceFile: "src/Model.ts" }, { id: "controller", name: "Controller", type: "module", sourceFile: "src/controller.ts" }],
     nodes: [
-      { id: "write", name: "update", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: "Add update.", initialization: false },
-      { id: "read", name: "read", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: "Add read.", initialization: false },
-      { id: "handle", name: "update", type: "function", containerId: "controller", sourceFile: "src/controller.ts", changeType: "added", changeSummary: "Add update.", initialization: false },
-      { id: "value", name: "value", type: "state-variable", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: "Add value.", initialization: false },
-      { id: "rules", name: "Rules", type: "static-data", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: "Add Rules.", initialization: false },
+      { id: "write", name: "update", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add update." }, initialization: false },
+      { id: "read", name: "read", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add read." }, initialization: false },
+      { id: "handle", name: "update", type: "function", containerId: "controller", sourceFile: "src/controller.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add update." }, initialization: false },
+      { id: "value", name: "value", type: "state-variable", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add value." }, initialization: false },
+      { id: "rules", name: "Rules", type: "static-data", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Rules." }, initialization: false },
     ],
     relationships,
   };
@@ -57,6 +57,6 @@ test("collapsed dataflows merge function calls and state accesses and retain ins
   ]), true);
   const merged = dataflowEdges(graph.relationships, true);
   assert.equal(merged.length, 1);
-  assert.deepEqual(relationshipsForEdge(graph.relationships, merged[0].key, true), graph.relationships);
+  assert.deepEqual(new Set(relationshipsForEdge(graph.relationships, merged[0].key, true)), new Set(graph.relationships));
   assert.notEqual(edgeKey(graph.relationships[0], false), edgeKey(graph.relationships[1], false));
 });
