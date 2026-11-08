@@ -322,7 +322,7 @@
           "$ref": "#/$defs/changeType"
         },
         "changeSummary": {
-          "description": "The planned change to this node during high-level design or the actual change during code review. For a missing-from-cr function marker, describe the missing implementation. May be N/A when changeType is unchanged.",
+          "description": "Concise summary of the node's change. For modified existing nodes, use 'Existing behavior:' for the relevant behavior before the change, followed by 'Planned change:' during high-level design or 'Actual change:' during code review. For added nodes, use 'Planned addition:' during high-level design or 'Actual addition:' during code review. For deleted nodes, use 'Planned removal:' during high-level design or 'Actual removal:' during code review. For a missing-from-cr function marker, describe the missing implementation. May be N/A when changeType is unchanged.",
           "type": "string",
           "minLength": 1
         },
