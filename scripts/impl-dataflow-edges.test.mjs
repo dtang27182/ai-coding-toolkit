@@ -48,13 +48,13 @@ test("standalone arguments and return flows keep their original direction", () =
   }
 });
 
-test("opposite calls or opposite returns do not pair", () => {
+test("opposite calls or opposite returns pair", () => {
   for (const transferType of ["arguments", "return"]) {
     const graph = filterGraph(implementation([flow("a", "b", transferType), flow("b", "a", transferType)]), true);
     const edges = dataflowEdges(graph.relationships, false);
-    assert.equal(edges.length, 2);
-    assert.ok(edges.every((edge) => edge.back === undefined));
-    assert.notEqual(edges[0].key, edges[1].key);
+    assert.equal(edges.length, 1);
+    assert.equal(edges[0].back.relationship, graph.relationships[1].relationship);
+    assert.deepEqual(relationshipsForEdge(graph.relationships, edges[0].key, false), graph.relationships);
     const collapsed = dataflowEdges(graph.relationships, true);
     assert.equal(collapsed.length, 1);
     assert.ok(collapsed[0].back);
@@ -82,18 +82,31 @@ test("state flows pair only when they connect the same function and state variab
   assert.ok(edges.every((edge) => edge.back === undefined));
 });
 
-test("collapsed state reads and writes and boundary traffic merge by visible pair", () => {
+test("state reads and writes and boundary traffic merge by visible pair", () => {
   const graph = filterGraph(implementation([
     flow("a", "state"), flow("state", "a"), flow("a", "boundary"), flow("boundary", "a"),
   ]), true);
   const expanded = dataflowEdges(graph.relationships, false);
-  assert.equal(expanded.length, 3);
+  assert.equal(expanded.length, 2);
   assert.equal(expanded[0].back.relationship, graph.relationships[1].relationship);
-  assert.ok(expanded.slice(1).every((edge) => edge.back === undefined));
+  assert.equal(expanded[1].back.relationship, graph.relationships[3].relationship);
   const collapsed = dataflowEdges(graph.relationships, true);
   assert.equal(collapsed.length, 2);
   assert.ok(collapsed.every((edge) => edge.back !== undefined));
   assert.deepEqual(collapsed.map((edge) => edge.relationships.length), [2, 2]);
+});
+
+test("boundary flows pair in either order", () => {
+  const request = flow("a", "boundary", undefined, "added");
+  const response = flow("boundary", "a", undefined, "modified");
+  for (const relationships of [[request, response], [response, request]]) {
+    const graph = filterGraph(implementation(relationships), true);
+    const edges = dataflowEdges(graph.relationships, false);
+    assert.equal(edges.length, 1);
+    assert.equal(edges[0].forward.relationship, relationships[0]);
+    assert.equal(edges[0].back.relationship, relationships[1]);
+    assert.deepEqual(relationshipsForEdge(graph.relationships, edges[0].key, false).map((item) => item.relationship), relationships);
+  }
 });
 
 test("collapsed containers merge opposite flows between different functions", () => {

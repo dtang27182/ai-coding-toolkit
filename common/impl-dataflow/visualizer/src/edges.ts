@@ -7,7 +7,7 @@ export interface DrawnEdge {
   relationships: ResolvedRelationship[];
 }
 
-/** Pair opposite flows at node IDs, then collapse all flows between each visible pair. */
+/** Pair opposite flows at visible endpoints, then collapse all flows between each visible pair. */
 export function dataflowEdges(relationships: ResolvedRelationship[], collapsed: CollapsedContainers): DrawnEdge[] {
   const drawable = relationships.filter((item) => item.relationship.type === "dataflow" &&
     (!boxCollapsed(item.from.boxId, collapsed) || item.from.boxId !== item.to.boxId));
@@ -19,31 +19,17 @@ export function dataflowEdges(relationships: ResolvedRelationship[], collapsed: 
       const { relationship, from, to } = item;
       let forward = item;
       let back: ResolvedRelationship | undefined;
-      if (relationship.type === "dataflow" && from.type === "function" && to.type === "function") {
-        const opposite = drawable.find((candidate) => candidate !== item && !used.has(candidate)
-          && candidate.relationship.type === "dataflow" && candidate.from.type === "function" && candidate.to.type === "function"
-          && candidate.from.nodeId === to.nodeId && candidate.to.nodeId === from.nodeId
-          && ((relationship.transferType === "arguments" && candidate.relationship.transferType === "return")
-            || (relationship.transferType === "return" && candidate.relationship.transferType === "arguments")));
-        if (opposite !== undefined) {
-          if (relationship.transferType === "arguments") {
-            back = opposite;
-          } else if (relationship.transferType === "return") {
-            forward = opposite;
-            back = item;
-          }
-        }
-      } else if (relationship.type === "dataflow" && ((from.type === "function" && to.type === "state-variable") || (from.type === "state-variable" && to.type === "function"))) {
-        const opposite = drawable.find((candidate) => candidate !== item && !used.has(candidate)
-          && candidate.relationship.type === "dataflow" && candidate.from.type === to.type && candidate.to.type === from.type
-          && candidate.from.nodeId === to.nodeId && candidate.to.nodeId === from.nodeId);
-        if (opposite !== undefined) {
-          if (from.type === "function") {
-            back = opposite;
-          } else if (from.type === "state-variable") {
-            forward = opposite;
-            back = item;
-          }
+      const opposite = drawable.find((candidate) => candidate !== item && !used.has(candidate)
+        && visibleEndpointId(candidate.from, collapsed) === visibleEndpointId(to, collapsed)
+        && visibleEndpointId(candidate.to, collapsed) === visibleEndpointId(from, collapsed));
+      if (opposite !== undefined) {
+        if ((relationship.type === "dataflow" && relationship.transferType === "return"
+          && opposite.relationship.type === "dataflow" && opposite.relationship.transferType === "arguments")
+          || (from.type === "state-variable" && to.type === "function")) {
+          forward = opposite;
+          back = item;
+        } else {
+          back = opposite;
         }
       }
       const members = back === undefined ? [forward] : [forward, back];
