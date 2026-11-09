@@ -39,8 +39,8 @@ app.innerHTML = `
       </div>
     </header>
     <div class="dataflow-controls" role="toolbar" aria-label="Graph controls" data-toolbar="implementation">
-      <button class="control-button" type="button" data-proxy="toggle-unchanged">Hide unchanged</button>
-      <button class="control-button active" type="button" data-proxy="toggle-initialization" aria-pressed="true">Hide Initialization</button>
+      <button class="control-button active" type="button" data-proxy="toggle-unchanged" aria-pressed="true">Unchanged: hidden</button>
+      <button class="control-button active" type="button" data-proxy="toggle-initialization" aria-pressed="true">Initialization: hidden</button>
       <button class="control-button" type="button" data-proxy="toggle-functions">Hide functions</button>
       <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
       <div class="zoom-controls">

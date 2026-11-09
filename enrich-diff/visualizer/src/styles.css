@@ -251,6 +251,12 @@ button:focus-visible {
   color: var(--bright);
 }
 
+.control-button.active {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+  font-weight: 600;
+}
+
 .zoom-controls {
   display: flex;
   margin-left: 6px;

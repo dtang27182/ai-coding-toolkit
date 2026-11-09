@@ -561,8 +561,8 @@ function render(): void {
         <div class="brand"><span class="file-label" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span><span class="stage-chip">${escapeHtml(implementationDataflow.stage)}</span></div>
         <div class="control-group">
           <button class="control-button open-button" data-open>Open JSON</button>
-          <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged>Hide unchanged</button>
-          <button class="control-button${hideInitialization ? " active" : ""}" data-toggle-initialization aria-pressed="${hideInitialization}">Hide Initialization</button>
+          <button class="control-button${showUnchanged ? "" : " active"}" data-toggle-unchanged aria-pressed="${!showUnchanged}">Unchanged: ${showUnchanged ? "shown" : "hidden"}</button>
+          <button class="control-button${hideInitialization ? " active" : ""}" data-toggle-initialization aria-pressed="${hideInitialization}">Initialization: ${hideInitialization ? "hidden" : "shown"}</button>
           <button class="control-button${hideHelpers ? " active" : ""}" data-toggle-hide-helpers aria-pressed="${hideHelpers}">Hide helpers</button>
           <button class="control-button${allCollapsed ? " active" : ""}" data-toggle-functions>${allCollapsed ? "Expand containers" : "Collapse containers"}</button>
           <button class="control-button${inspectorCollapsed ? "" : " active"}" data-toggle-inspector aria-pressed="${!inspectorCollapsed}" aria-label="${inspectorCollapsed ? "Show inspector" : "Hide inspector"}">${inspectorCollapsed ? "Show inspector" : "Hide inspector"}</button>
