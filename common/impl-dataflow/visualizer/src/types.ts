@@ -1,4 +1,4 @@
-import type { ChangeType, ComponentType, Container, ContainerType, DataflowNode, FunctionNode, NodeType, Relationship, RelationshipEndpoint, StateVariableNode, StaticDataNode } from "../../types.ts";
+import type { ChangeType, ComponentType, Container, ContainerType, DataflowNode, FunctionNode, NodeType, Relationship, RelationshipEndpoint, StateVariableNode } from "../../types.ts";
 export type { ChangeType, ComponentType, DataflowNode, ImplementationDataflow } from "../../types.ts";
 
 export type ContainerStatus = "new" | "changed" | "unchanged" | "deleted";
@@ -8,7 +8,6 @@ export interface GraphContainer extends Container {
   hldMismatch: boolean;
   functions: FunctionNode[];
   stateVariables: StateVariableNode[];
-  staticData: StaticDataNode[];
 }
 
 export interface HelperMember {
@@ -51,7 +50,6 @@ export interface GraphNode {
   changeType: ChangeType | ContainerStatus;
   functions: FunctionNode[];
   stateVariables: StateVariableNode[];
-  staticData: StaticDataNode[];
   nodeType?: ComponentType | "static-data";
   uiDirection?: "read" | "write";
 }

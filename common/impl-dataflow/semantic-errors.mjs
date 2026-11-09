@@ -36,7 +36,14 @@ export function implementationDataflowErrors(implementationDataflow, evaluated =
         semanticErrors.push(`renamedFrom requires a modified node: ${node.id}`);
       }
     }
-    if (node.containerId !== undefined) {
+    if (node.type === "static-data" && node.containerName !== undefined) {
+      const nameKey = JSON.stringify([node.containerName, node.containerPath, node.type, node.name]);
+      if (ownedNodeNames.has(nameKey)) {
+        semanticErrors.push(`Duplicate static-data name in container ${node.containerName} at ${node.containerPath}: ${node.name}`);
+      } else {
+        ownedNodeNames.add(nameKey);
+      }
+    } else if (node.containerId !== undefined) {
       if (!containers.has(node.containerId)) {
         semanticErrors.push(`Unknown container for node ${node.id}: ${node.containerId}`);
       }
@@ -118,7 +125,7 @@ export function implementationDataflowErrors(implementationDataflow, evaluated =
   }
 
   const changedNodes = implementationDataflow.nodes.filter((node) => (node.type !== "function" || node.subtype !== "missing-from-cr") && ["added", "modified", "deleted"].includes(node.changeType));
-  const changedContainerIds = new Set(changedNodes.filter((node) => node.containerId !== undefined).map((node) => node.containerId));
+  const changedContainerIds = new Set(changedNodes.filter((node) => (node.type === "function" || node.type === "state-variable") && node.containerId !== undefined).map((node) => node.containerId));
   const counts = {
     changedClassCount: implementationDataflow.containers.filter((container) => container.type === "class" && changedContainerIds.has(container.id)).length,
     changedFunctionCount: changedNodes.filter((node) => node.type === "function").length,

@@ -29,7 +29,10 @@ export type FunctionNode = NodeBase & {
   hldChangeType?: ChangeType | null;
 };
 export type StateVariableNode = NodeBase & { type: "state-variable"; containerId: string; sourceFile: string; renamedFrom?: RenameOrigin };
-export type StaticDataNode = NodeBase & { type: "static-data"; containerId?: string; sourceFile: string; renamedFrom?: RenameOrigin };
+export type StaticDataNode = NodeBase & { type: "static-data"; sourceFile: string; renamedFrom?: RenameOrigin } & (
+  | { containerName: string; containerPath: string }
+  | { containerName?: never; containerPath?: never }
+);
 export type BoundaryNode = NodeBase & { type: ComponentType; location: string; renamedFrom?: { name: string } };
 export type DataflowNode = FunctionNode | StateVariableNode | StaticDataNode | BoundaryNode;
 
@@ -70,7 +73,7 @@ export type Relationship = RelationshipBase & (
 );
 
 export interface ImplementationDataflow {
-  schemaVersion: 19;
+  schemaVersion: 20;
   stage: "high-level-design" | "code-review";
   diffHunks?: { id: string; file: string; patch: string }[];
   nodes: DataflowNode[];

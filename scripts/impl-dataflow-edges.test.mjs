@@ -6,14 +6,14 @@ import { filterGraph } from "../common/impl-dataflow/visualizer/src/filter.ts";
 
 function implementation(relationships) {
   return {
-    schemaVersion: 19,
+    schemaVersion: 20,
     stage: "high-level-design",
     containers: [{ id: "client", name: "Client", type: "module", sourceFile: "src/client.ts" }, { id: "service", name: "Service", type: "class", sourceFile: "src/Service.ts" }],
     nodes: [
       ...["a", "a2"].map((id) => ({ id, name: id, type: "function", containerId: "client", sourceFile: "src/client.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add the node." }, initialization: false })),
       ...["b", "b2"].map((id) => ({ id, name: id, type: "function", containerId: "service", sourceFile: "src/Service.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add the node." }, initialization: false })),
       { id: "state", name: "State", type: "state-variable", containerId: "service", sourceFile: "src/Service.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add State." }, initialization: false },
-      { id: "static", name: "Static", type: "static-data", containerId: "service", sourceFile: "src/Service.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Static." }, initialization: false },
+      { id: "static", name: "Static", type: "static-data", containerName: "Service", containerPath: "src/Service.ts", sourceFile: "src/Service.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Static." }, initialization: false },
       { id: "boundary", name: "Boundary", type: "external-dependency", location: "external service", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Boundary." }, initialization: false },
     ],
     relationships,

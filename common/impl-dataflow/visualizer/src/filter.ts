@@ -82,8 +82,8 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
   }
   const graphNodes = visibleNodes.filter((node) => !hiddenHelpers.has(node.id));
   const nodeIds = new Set(graphNodes.map((node) => node.id));
-  const containersWithChildren = new Set(implementationDataflow.nodes.flatMap((node) => "containerId" in node && node.containerId !== undefined ? [node.containerId] : []));
-  const visibleMemberContainerIds = new Set(graphNodes.flatMap((node) => "containerId" in node && node.containerId !== undefined ? [node.containerId] : []));
+  const containersWithChildren = new Set(implementationDataflow.nodes.flatMap((node) => (node.type === "function" || node.type === "state-variable") ? [node.containerId] : []));
+  const visibleMemberContainerIds = new Set(graphNodes.flatMap((node) => (node.type === "function" || node.type === "state-variable") ? [node.containerId] : []));
   const containerIds = new Set(visibleMemberContainerIds);
   for (const relationship of implementationDataflow.relationships) {
     if (relationship.type === "composition" && (showUnchanged || relationship.changeType !== "unchanged")) {
@@ -94,7 +94,7 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
   const containers: GraphContainer[] = implementationDataflow.containers.filter((container) =>
     (!containersWithChildren.has(container.id) || visibleMemberContainerIds.has(container.id)) && (showUnchanged || containerIds.has(container.id)),
   ).map((container) => {
-    const children = implementationDataflow.nodes.filter((node) => "containerId" in node && node.containerId === container.id && (node.type !== "function" || node.subtype !== "missing-from-cr"));
+    const children = implementationDataflow.nodes.filter((node) => (node.type === "state-variable" || (node.type === "function" && node.subtype !== "missing-from-cr")) && node.containerId === container.id);
     let changeType: ContainerStatus;
     if (children.length === 0 || children.every((node) => node.changeType === "unchanged")) {
       changeType = "unchanged";
@@ -111,7 +111,6 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
       hldMismatch: implementationDataflow.nodes.some((node) => node.type === "function" && node.containerId === container.id && node["hld-change-mismatch"] === true),
       functions: graphNodes.filter((node): node is FunctionNode => node.type === "function" && node.containerId === container.id),
       stateVariables: graphNodes.filter((node): node is StateVariableNode => node.type === "state-variable" && node.containerId === container.id),
-      staticData: graphNodes.filter((node): node is StaticDataNode => node.type === "static-data" && node.containerId === container.id),
     };
   });
   const visibleContainerIds = new Set(containers.map((container) => container.id));
@@ -153,7 +152,7 @@ export function filterGraph(implementationDataflow: ImplementationDataflow, show
   const staticData = graphNodes.filter((node): node is StaticDataNode => node.type === "static-data");
   const nodes: GraphNode[] = [
     ...containers,
-    ...[...components, ...staticData].map((node) => ({ ...node, functions: [], stateVariables: [], staticData: [], nodeType: node.type })),
+    ...[...components, ...staticData].map((node) => ({ ...node, functions: [], stateVariables: [], nodeType: node.type })),
   ];
   const allNodes = new Map(implementationDataflow.nodes.map((node): [string, DataflowNode] => [node.id, node]));
   const relationships = visibleRelationships.map((relationship) => {

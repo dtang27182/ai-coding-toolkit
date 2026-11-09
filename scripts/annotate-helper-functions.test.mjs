@@ -20,7 +20,7 @@ function flow(from, to, transferType = "arguments") {
 
 function graph() {
   return {
-    schemaVersion: 19,
+    schemaVersion: 20,
     stage: "high-level-design",
     containers: [
       { id: "owner", name: "Service", type: "class", sourceFile: "src/service.ts" },

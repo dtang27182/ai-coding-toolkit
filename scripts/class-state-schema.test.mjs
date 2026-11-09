@@ -8,7 +8,7 @@ import { dataflowEdges, relationshipsForEdge } from "../common/impl-dataflow/vis
 
 function implementation(relationships = []) {
   return {
-    schemaVersion: 19,
+    schemaVersion: 20,
     stage: "high-level-design",
     containers: [{ id: "model", name: "Model", type: "class", sourceFile: "src/Model.ts" }, { id: "controller", name: "Controller", type: "module", sourceFile: "src/controller.ts" }],
     nodes: [
@@ -16,7 +16,7 @@ function implementation(relationships = []) {
       { id: "read", name: "read", type: "function", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add read." }, initialization: false },
       { id: "handle", name: "update", type: "function", containerId: "controller", sourceFile: "src/controller.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add update." }, initialization: false },
       { id: "value", name: "value", type: "state-variable", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add value." }, initialization: false },
-      { id: "rules", name: "Rules", type: "static-data", containerId: "model", sourceFile: "src/Model.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Rules." }, initialization: false },
+      { id: "rules", name: "Rules", type: "static-data", containerName: "Model", containerPath: "src/Model.ts", sourceFile: "src/Model.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Rules." }, initialization: false },
     ],
     relationships,
   };

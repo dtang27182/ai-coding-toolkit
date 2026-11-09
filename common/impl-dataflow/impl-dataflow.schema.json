@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI Coding Toolkit Implementation Dataflow — Nodes and Containers",
-  "description": "impl-dataflow is shorthand for implementation dataflow. This JSON models proposed designs or implemented behavior using a flat array of typed dataflow nodes and class/module containers. Functions and mutable state belong to containers; static data may optionally belong to a container. Membership is distinct from class composition. Dataflow relationships connect nodes, and composition relationships connect class containers. Diff hunks provide code-review evidence.",
-  "$comment": "Schema version 19. Semantic validation must check that node and container IDs are unique across both arrays, container names are unique, function names are unique within each source file and owner, other owned node names are unique within each owner and subtype, and unowned node names are unique among unowned nodes. Resolve every containerId, helperOf, and endpoint ID explicitly, and verify that referenced entity types match. Diff-hunk IDs must be unique, every reference must resolve, and every diff hunk must be referenced by a node, container, or relationship. Validate derived counts against nodes and relationships. These cross-entry checks cannot be enforced by this static JSON Schema alone.",
+  "description": "impl-dataflow is shorthand for implementation dataflow. This JSON models proposed designs or implemented behavior using a flat array of typed dataflow nodes and class/module containers. Functions and mutable state belong to containers; static data may record a declaring container by name and path without becoming a member. Membership is distinct from class composition. Dataflow relationships connect nodes, and composition relationships connect class containers. Diff hunks provide code-review evidence.",
+  "$comment": "Schema version 20. Semantic validation must check that node and container IDs are unique across both arrays, container names are unique, function names are unique within each source file and owner, state-variable names are unique within each owner, static-data names are unique within each declaring containerName and containerPath pair, and other unowned node names are unique among unowned nodes. Resolve every containerId, helperOf, and endpoint ID explicitly, and verify that referenced entity types match. Diff-hunk IDs must be unique, every reference must resolve, and every diff hunk must be referenced by a node, container, or relationship. Validate derived counts against nodes and relationships. These cross-entry checks cannot be enforced by this static JSON Schema alone.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -15,7 +15,7 @@
   "properties": {
     "schemaVersion": {
       "description": "Version of the Implementation Dataflow schema used by this document.",
-      "const": 19
+      "const": 20
     },
     "stage": {
       "description": "The development stage represented by this dataflow: proposed implementation during high-level design or implemented behavior during code review.",
@@ -32,7 +32,7 @@
       }
     },
     "changedClassCount": {
-      "description": "Derived number of class containers owning at least one function, state-variable, or static-data node whose changeType is added, modified, or deleted. Container status is derived solely from owned nodes, not from composition relationships or diff-hunk references.",
+      "description": "Derived number of class containers owning at least one function or state-variable node whose changeType is added, modified, or deleted. Container status is derived solely from owned nodes, not from static-data references, composition relationships, or diff-hunk references.",
       "type": "integer",
       "minimum": 0
     },
@@ -52,14 +52,14 @@
       "minimum": 0
     },
     "nodes": {
-      "description": "One entry per represented dataflow entity. Node IDs are unique across nodes and containers. Function names are unique within their source file and owner; other owned node names are unique within their owner and subtype, so names may repeat across files or owners. Names of unowned nodes are unique among unowned nodes. Use explicit IDs for references; never infer identity from a name.",
+      "description": "One entry per represented dataflow entity. Node IDs are unique across nodes and containers. Function names are unique within their source file and owner; state-variable names are unique within their owner; static-data names are unique within each containerName and containerPath pair when provided. Other unowned node names are unique among unowned nodes. Use explicit IDs for references; never infer identity from a name.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/node"
       }
     },
     "containers": {
-      "description": "Class and module containers for function, state-variable, and optionally owned static-data nodes. Membership is recorded only by each owned node's containerId. Container names are unique among containers; IDs are unique across nodes and containers. Derive container status from all owned nodes, including hidden nodes: new when all are added, unchanged when all are unchanged or there are no owned nodes, deleted when all are deleted, and changed for mixed statuses or modified children. Do not store an independent changeType. Optional diff-hunk references provide evidence for the container independently of its derived status.",
+      "description": "Class and module containers for function and state-variable nodes. Membership is recorded only by each owned node's containerId; static-data containerName and containerPath are descriptive references, not membership. Container names are unique among containers; IDs are unique across nodes and containers. Derive container status from all owned nodes, including hidden nodes: new when all are added, unchanged when all are unchanged or there are no owned nodes, deleted when all are deleted, and changed for mixed statuses or modified children. Do not store an independent changeType. Optional diff-hunk references provide evidence for the container independently of its derived status.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/container"
@@ -576,7 +576,7 @@
       "unevaluatedProperties": false
     },
     "staticData": {
-      "description": "Fixed data that is significant to the design or patch. Some examples would be configuration files or static data files used for object initialization . Contant varibles in the code may be included as static data if they are truely significant to the design or patch, but this is usually not the case. If this is the case, group together contants in the same class/module under one staticData node. May only send data to functions. May optionally belong to a class or module through containerId. External files and storage are external-dependency nodes.",
+      "description": "Fixed data that is significant to the design or patch. Some examples would be configuration files or static data files used for object initialization . Contant varibles in the code may be included as static data if they are truely significant to the design or patch, but this is usually not the case. If this is the case, group together contants in the same class/module under one staticData node. May only send data to functions. May record its declaring class or module by containerName and containerPath without becoming a member. External files and storage are external-dependency nodes.",
       "type": "object",
       "required": [
         "sourceFile"
@@ -584,6 +584,10 @@
       "properties": {
         "sourceFile": { "$ref": "#/$defs/sourceFile" },
         "renamedFrom": { "$ref": "#/$defs/renamedFrom" }
+      },
+      "dependentRequired": {
+        "containerName": ["containerPath"],
+        "containerPath": ["containerName"]
       },
       "allOf": [
         {
@@ -595,10 +599,14 @@
             "type": {
               "const": "static-data"
             },
-            "containerId": {
-              "description": "Optional ID of the owning class or module container. The referenced container must exist.",
+            "containerName": {
+              "description": "Optional name of the class or module where this static data is declared. Use together with containerPath; this does not make the static data a container member.",
               "type": "string",
               "minLength": 1
+            },
+            "containerPath": {
+              "description": "Repository-relative source path of the class or module named by containerName. Use together with containerName; this does not make the static data a container member.",
+              "$ref": "#/$defs/sourceFile"
             }
           }
         }
@@ -631,7 +639,7 @@
       "unevaluatedProperties": false
     },
     "container": {
-      "description": "A class or module grouping function, state-variable, and optionally owned static-data nodes through their containerId. Both types may own any combination of these node types. Derive container status from all owned nodes, including hidden nodes: new when all are added, unchanged when all are unchanged or there are no owned nodes, deleted when all are deleted, and changed for mixed statuses or modified children. Do not store changeType. Container diffHunkIds remain optional during code review, including when owned nodes are unchanged. Class composition is separate from membership.",
+      "description": "A class or module grouping function and state-variable nodes through their containerId. Both types may own either node type. Static-data containerName and containerPath do not create membership. Derive container status from all owned nodes, including hidden nodes: new when all are added, unchanged when all are unchanged or there are no owned nodes, deleted when all are deleted, and changed for mixed statuses or modified children. Do not store changeType. Container diffHunkIds remain optional during code review, including when owned nodes are unchanged. Class composition is separate from membership.",
       "type": "object",
       "additionalProperties": false,
       "required": [

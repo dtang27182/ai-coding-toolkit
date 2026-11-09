@@ -13,7 +13,7 @@ function implementation() {
     { id: "input", name: "Input", type: "system-input", location: "incoming requests", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Input." }, initialization: false },
     { id: "output", name: "Output", type: "system-output", location: "published results", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Output." }, initialization: false },
     { id: "storage", name: "Storage", type: "external-dependency", location: "storage service", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Storage." }, initialization: false },
-    { id: "rules", name: "Rules", type: "static-data", containerId: "child", sourceFile: "src/Child.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Rules." }, initialization: false },
+    { id: "rules", name: "Rules", type: "static-data", containerName: "Child", containerPath: "src/Child.ts", sourceFile: "src/Child.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Rules." }, initialization: false },
     { id: "defaults", name: "Defaults", type: "static-data", sourceFile: "src/defaults.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Defaults." }, initialization: false },
     { id: "handle", name: "handle", type: "function", containerId: "parent", sourceFile: "src/Parent.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add handle." }, initialization: false },
     { id: "process", name: "process", type: "function", containerId: "child", sourceFile: "src/Child.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add process." }, initialization: false },
@@ -24,7 +24,7 @@ function implementation() {
     type: "dataflow", changeType: "added", dataDescription: "Value", purpose: "Transfer value",
   });
   return {
-    schemaVersion: 19,
+    schemaVersion: 20,
     stage: "high-level-design",
     containers: [{ id: "parent", name: "Parent", type: "class", sourceFile: "src/Parent.ts" }, { id: "child", name: "Child", type: "class", sourceFile: "src/Child.ts" }],
     nodes,
@@ -81,7 +81,8 @@ test("UI reads, system inputs, and all static data share the top row above proce
       }
     }
     assert.equal(layout.memberRects.has("rules"), false);
-    assert.equal(graph.staticData.find((node) => node.id === "rules").containerId, "child");
+    assert.equal(graph.staticData.find((node) => node.id === "rules").containerName, "Child");
+    assert.equal(graph.staticData.find((node) => node.id === "rules").containerPath, "src/Child.ts");
     assert.ok(layout.boxes.get("parent").y < layout.boxes.get("child").y);
   }
 });

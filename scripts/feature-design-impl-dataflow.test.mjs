@@ -19,13 +19,13 @@ const validatorPath = path.join(toolkitDirectory, "common/impl-dataflow/validate
 
 function highLevelDesign() {
   return {
-    schemaVersion: 19,
+    schemaVersion: 20,
     stage: "high-level-design",
     containers: [{ id: "service", name: "Service", type: "class", sourceFile: "src/Service.ts" }, { id: "operations", name: "operations", type: "module", sourceFile: "src/operations.ts" }],
     nodes: [
       { id: "inspect", name: "inspect", type: "function", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
       { id: "value", name: "value", type: "state-variable", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
-      { id: "rules", name: "Rules", type: "static-data", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
+      { id: "rules", name: "Rules", type: "static-data", containerName: "Service", containerPath: "src/Service.ts", sourceFile: "src/Service.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
     ],
     relationships: [],
   };
@@ -222,7 +222,7 @@ test("initialization is a required boolean only on nodes in both stages", async 
 
 test("container-free graphs are valid but functions still require an existing owner", async (t) => {
   for (const stage of ["high-level-design", "code-review"]) {
-    const input = { schemaVersion: 19, stage, containers: [], nodes: [], relationships: [] };
+    const input = { schemaVersion: 20, stage, containers: [], nodes: [], relationships: [] };
     if (stage === "code-review") {
       input.diffHunks = [];
     }
@@ -246,12 +246,12 @@ test("container-free graphs are valid but functions still require an existing ow
   }
 });
 
-test("classes and modules can own state, functions, and optionally static data", async (t) => {
+test("classes and modules own state and functions while static data records its declaration", async (t) => {
   const input = highLevelDesign();
   input.nodes.push(
     { id: "module-inspect", name: "inspect", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add inspect." }, initialization: false },
     { id: "class-value", name: "value", type: "state-variable", containerId: "service", sourceFile: "src/Service.ts", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: "Modify value." }, initialization: false },
-    { id: "module-rules", name: "Rules", type: "static-data", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
+    { id: "module-rules", name: "Rules", type: "static-data", containerName: "operations", containerPath: "src/operations.ts", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
     { id: "unowned-rules", name: "Rules", type: "static-data", sourceFile: "src/rules.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
     { id: "same-name", name: "inspect", type: "state-variable", containerId: "service", sourceFile: "src/Service.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
   );
@@ -323,7 +323,7 @@ test("entity IDs must be unique across nodes and containers", async (t) => {
   }
 });
 
-test("name uniqueness follows owner and subtype rather than entity IDs", async (t) => {
+test("name uniqueness follows container membership or static-data declaration rather than entity IDs", async (t) => {
   const duplicateContainer = highLevelDesign();
   duplicateContainer.containers[1].name = "Service";
   assert.match((await runValidator(t, duplicateContainer)).stderr, /Duplicate container name: Service/);
@@ -334,10 +334,11 @@ test("name uniqueness follows owner and subtype rather than entity IDs", async (
 
   const duplicateStatic = highLevelDesign();
   duplicateStatic.nodes.push({ ...duplicateStatic.nodes[2], id: "other-rules" });
-  assert.match((await runValidator(t, duplicateStatic)).stderr, /Duplicate static-data name in container service: Rules/);
+  assert.match((await runValidator(t, duplicateStatic)).stderr, /Duplicate static-data name in container Service at src\/Service.ts: Rules/);
 
   const duplicateUnowned = highLevelDesign();
-  delete duplicateUnowned.nodes[2].containerId;
+  delete duplicateUnowned.nodes[2].containerName;
+  delete duplicateUnowned.nodes[2].containerPath;
   duplicateUnowned.nodes.push({ id: "external-rules", name: "Rules", type: "external-dependency", location: "rules service", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false });
   assert.match((await runValidator(t, duplicateUnowned)).stderr, /Duplicate unowned node name: Rules/);
 
@@ -346,8 +347,8 @@ test("name uniqueness follows owner and subtype rather than entity IDs", async (
   assert.equal((await runValidator(t, sharedContainerName)).status, 0);
 });
 
-test("membership requires an explicit existing container ID", async (t) => {
-  for (const index of [0, 1, 2]) {
+test("function and state membership requires an explicit existing container ID", async (t) => {
+  for (const index of [0, 1]) {
     for (const containerId of ["missing", "inspect"]) {
       const input = highLevelDesign();
       input.nodes[index].containerId = containerId;
@@ -359,9 +360,28 @@ test("membership requires an explicit existing container ID", async (t) => {
     delete input.nodes[index].containerId;
     assert.equal((await runValidator(t, input)).status, 1);
   }
-  const unownedStaticData = highLevelDesign();
-  delete unownedStaticData.nodes[2].containerId;
-  assert.equal((await runValidator(t, unownedStaticData)).status, 0);
+  const staticData = highLevelDesign();
+  delete staticData.nodes[2].containerName;
+  delete staticData.nodes[2].containerPath;
+  assert.equal((await runValidator(t, staticData)).status, 0);
+});
+
+test("static data requires container name and path together without container membership", async (t) => {
+  const input = highLevelDesign();
+  input.nodes[2].containerName = "ExternalHolder";
+  input.nodes[2].containerPath = "src/ExternalHolder.ts";
+  assert.equal((await runValidator(t, input)).status, 0);
+  delete input.nodes[2].containerPath;
+  assert.equal((await runValidator(t, input)).status, 1);
+  input.nodes[2].containerPath = "src/ExternalHolder.ts";
+  delete input.nodes[2].containerName;
+  assert.equal((await runValidator(t, input)).status, 1);
+  input.nodes[2].containerName = "ExternalHolder";
+  input.nodes[2].containerPath = "../ExternalHolder.ts";
+  assert.equal((await runValidator(t, input)).status, 1);
+  input.nodes[2].containerPath = "src/ExternalHolder.ts";
+  input.nodes[2].containerId = "service";
+  assert.equal((await runValidator(t, input)).status, 1);
 });
 
 test("dataflow endpoints resolve exact node IDs and verify their declared types", async (t) => {
@@ -482,14 +502,13 @@ test("evaluated designs require accurate derived metrics without exposure invent
   assert.equal((await runValidator(t, input, "--evaluated")).status, 0);
 
   input.nodes[2].changeType = "modified";
+  assert.equal((await runValidator(t, input, "--evaluated")).status, 0);
+  input.nodes[0].changeType = "deleted";
   assert.match((await runValidator(t, input)).stderr, /changedClassCount must equal the derived count: 1/);
   input.changedClassCount = 1;
-  input.nodes[1].changeType = "added";
-  assert.equal((await runValidator(t, input, "--evaluated")).status, 0);
-
-  input.nodes[0].changeType = "deleted";
   assert.match((await runValidator(t, input)).stderr, /changedFunctionCount must equal the derived count: 1/);
   input.changedFunctionCount = 1;
+  input.nodes[1].changeType = "added";
   assert.equal((await runValidator(t, input, "--evaluated")).status, 0);
 });
 
@@ -510,17 +529,19 @@ test("changed relationships do not independently mark containers changed", async
   assert.match((await runValidator(t, input)).stderr, /changedComponentCount must equal the derived count: 1/);
 });
 
-test("visualizer loads version 19 examples with owned static data", async () => {
+test("visualizer loads version 20 examples with separate static data", async () => {
   const input = JSON.parse(await readFile(path.join(toolkitDirectory, "common/impl-dataflow/impl-dataflow.example.json"), "utf8"));
   assert.equal(semanticError(input), undefined);
   const graph = filterGraph(input, true, false);
   assert.equal(graph.containers.length, input.containers.length);
   const service = graph.containers.find((container) => container.name === "ChangeService");
-  assert.equal(service.changeType, "changed");
+  assert.equal(service.changeType, "new");
   assert.equal(graph.containers.find((container) => container.name === "ChangeModel").changeType, "new");
   assert.equal(graph.containers.find((container) => container.name === "LegacyChangeAdapter").changeType, "deleted");
-  assert.deepEqual(service.staticData.map((node) => node.name), ["Diff Format Rules"]);
+  assert.equal(service.functions.length, 2);
   assert.deepEqual(graph.staticData.map((node) => node.name), ["Diff Format Rules"]);
+  assert.equal(graph.staticData[0].containerName, "ChangeService");
+  assert.equal(graph.staticData[0].containerPath, "src/ChangeService.ts");
   const layout = computeLayout(graph.nodes, graph.relationships, false, () => 80, () => 80, () => 100, new Set());
   for (const node of input.nodes) {
     assert.ok(layout.memberRects.has(node.id) || layout.boxes.has(node.id));
@@ -531,7 +552,7 @@ test("visualizer keeps repeated member names and container/node names distinct b
   const input = highLevelDesign();
   input.nodes.push(
     { id: "module-inspect", name: "inspect", type: "function", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
-    { id: "module-rules", name: "Rules", type: "static-data", containerId: "operations", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
+    { id: "module-rules", name: "Rules", type: "static-data", containerName: "operations", containerPath: "src/operations.ts", sourceFile: "src/operations.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
     { id: "service-panel", name: "Service", type: "ui-component", location: "ServicePanel", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
   );
   for (const nodeId of ["inspect", "module-inspect"]) {
@@ -547,28 +568,28 @@ test("visualizer keeps repeated member names and container/node names distinct b
   assert.equal(dataflowEdges(graph.relationships, true).length, 2);
 });
 
-test("container status reflects uniform and mixed statuses across all child types", () => {
+test("container status reflects only function and state statuses", () => {
   const cases = [
-    [["added", "added", "added"], "new"],
-    [["unchanged", "unchanged", "unchanged"], "unchanged"],
-    [["deleted", "deleted", "deleted"], "deleted"],
-    [["modified", "modified", "modified"], "changed"],
-    [["added", "unchanged", "unchanged"], "changed"],
-    [["added", "deleted", "added"], "changed"],
-    [["modified", "added", "added"], "changed"],
-    [["unchanged", "deleted", "unchanged"], "changed"],
-    [["unchanged", "modified", "unchanged"], "changed"],
-    [["deleted", "deleted", "modified"], "changed"],
+    [["added", "added"], "new"],
+    [["unchanged", "unchanged"], "unchanged"],
+    [["deleted", "deleted"], "deleted"],
+    [["modified", "modified"], "changed"],
+    [["added", "unchanged"], "changed"],
+    [["added", "deleted"], "changed"],
+    [["unchanged", "modified"], "changed"],
   ];
   for (const type of ["class", "module"]) {
     for (const [childStatuses, expected] of cases) {
       const input = highLevelDesign();
-      input.containers = [{ id: "service", name: "Service", type }];
-      for (const [index, node] of input.nodes.entries()) {
-        node.containerId = "service";
-        node.changeType = childStatuses[index];
+      input.containers = [{ id: "service", name: "Service", type, sourceFile: "src/Service.ts" }];
+      input.nodes[1].containerId = "service";
+      for (const [index, status] of childStatuses.entries()) {
+        input.nodes[index].changeType = status;
       }
-      assert.equal(filterGraph(input, true).containers[0].changeType, expected, `${type}: ${childStatuses.join(", ")}`);
+      for (const staticStatus of ["added", "modified", "deleted", "unchanged"]) {
+        input.nodes[2].changeType = staticStatus;
+        assert.equal(filterGraph(input, true).containers[0].changeType, expected, `${type}: ${childStatuses.join(", ")} with ${staticStatus} static data`);
+      }
     }
   }
 });
@@ -578,6 +599,8 @@ test("hidden initialization and unchanged children still contribute to container
     const input = highLevelDesign();
     input.nodes[0].changeType = hiddenStatus;
     input.nodes[0].initialization = true;
+    input.nodes[1].containerId = "service";
+    input.nodes[1].changeType = "added";
     input.nodes[2].changeType = "added";
     for (const showUnchanged of [true, false]) {
       for (const hideInitialization of [true, false]) {
@@ -591,14 +614,20 @@ test("hidden initialization and unchanged children still contribute to container
 test("visualizer filters all member types and derives status from changed owned nodes", () => {
   const input = highLevelDesign();
   assert.equal(filterGraph(input, false).nodes.length, 0);
+  input.nodes[0].changeType = "added";
   input.nodes[1].changeType = "modified";
   input.nodes[2].changeType = "added";
   const graph = filterGraph(input, false);
   assert.equal(graph.containers.length, 2);
-  assert.ok(graph.containers.every((container) => container.changeType === "changed"));
-  assert.equal(graph.containers[0].functions.length, 0);
-  assert.equal(graph.containers[0].staticData.length, 1);
+  assert.deepEqual(graph.containers.map((container) => container.changeType), ["new", "changed"]);
+  assert.equal(graph.containers[0].functions.length, 1);
   assert.equal(graph.containers[1].stateVariables.length, 1);
+  assert.equal(graph.staticData.length, 1);
+
+  const staticOnly = highLevelDesign();
+  staticOnly.nodes[2].changeType = "added";
+  assert.equal(filterGraph(staticOnly, false).containers.length, 0);
+  assert.equal(filterGraph(staticOnly, true).containers.find((container) => container.id === "service").changeType, "unchanged");
 
   const unchanged = filterGraph(highLevelDesign(), true);
   assert.ok(unchanged.containers.every((container) => container.changeType === "unchanged"));
@@ -608,8 +637,12 @@ test("initialization filtering hides every node subtype and restores it when dis
   for (const type of ["function", "state-variable", "static-data", "ui-component", "system-input", "system-output", "external-dependency"]) {
     const input = highLevelDesign();
     input.nodes = [{ id: "setup", name: "Setup", type, changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add Setup." }, initialization: true }];
-    if (type === "function" || type === "state-variable" || type === "static-data") {
+    if (type === "function" || type === "state-variable") {
       input.nodes[0].containerId = "service";
+      input.nodes[0].sourceFile = "src/Service.ts";
+    } else if (type === "static-data") {
+      input.nodes[0].containerName = "Service";
+      input.nodes[0].containerPath = "src/Service.ts";
       input.nodes[0].sourceFile = "src/Service.ts";
     } else if (type === "ui-component" || type === "system-input" || type === "system-output" || type === "external-dependency") {
       input.nodes[0].location = "Setup";
@@ -620,7 +653,7 @@ test("initialization filtering hides every node subtype and restores it when dis
     }
     for (const hideInitialization of [true, false]) {
       const graph = filterGraph(input, true, hideInitialization);
-      const members = graph.containers.flatMap((container) => [...container.functions, ...container.stateVariables, ...container.staticData]);
+      const members = graph.containers.flatMap((container) => [...container.functions, ...container.stateVariables]);
       assert.equal([...members, ...graph.components, ...graph.staticData].some((node) => node.id === "setup"), !hideInitialization, type);
     }
   }
@@ -657,7 +690,7 @@ test("initialization and unchanged filters compose without retaining containers 
   input.relationships.push({ from: { containerId: "service", type: "class" }, to: { containerId: "operations", type: "class" }, type: "composition", changeType: "added" });
   assert.deepEqual(filterGraph(input, false).containers.map((container) => container.id), ["operations"]);
   assert.equal(filterGraph(input, false).relationships.length, 0);
-  assert.equal(filterGraph(input, true).containers.length, 2);
+  assert.equal(filterGraph(input, true).containers.length, 1);
   assert.equal(filterGraph(input, false, false).containers.length, 2);
 });
 

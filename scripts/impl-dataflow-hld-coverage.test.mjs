@@ -6,7 +6,7 @@ import { computeLayout } from "../common/impl-dataflow/visualizer/src/layout.ts"
 
 function review() {
   return {
-    schemaVersion: 19,
+    schemaVersion: 20,
     stage: "code-review",
     containers: [
       { id: "service", name: "Service", type: "class", sourceFile: "src/Service.ts" },

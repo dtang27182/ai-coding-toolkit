@@ -19,7 +19,7 @@ async function runValidator(t, dataflow, ...argumentsList) {
 
 function codeReview() {
   return {
-    schemaVersion: 19,
+    schemaVersion: 20,
     stage: "code-review",
     diffHunks: [{ id: "change", file: "src/Controller.ts", patch: "@@ -1 +1 @@\n-old implementation\n+new implementation" }],
     containers: [
@@ -31,7 +31,7 @@ function codeReview() {
       { id: "result", name: "result", type: "state-variable", containerId: "controller", sourceFile: "src/Controller.ts", changeType: "added", changeSummary: { existingBehavior: "N/A", newBehavior: "Add result." }, initialization: false, diffHunkIds: ["change"] },
       { id: "read", name: "read", type: "function", containerId: "repository", sourceFile: "src/Repository.ts", changeType: "unchanged", changeSummary: { existingBehavior: "N/A", newBehavior: "N/A" }, initialization: false },
       { id: "panel", name: "Panel", type: "ui-component", location: "Panel", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: "Modify Panel." }, initialization: false, diffHunkIds: ["change"] },
-      { id: "rules", name: "Rules", type: "static-data", containerId: "controller", sourceFile: "src/Controller.ts", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: "Modify Rules." }, initialization: false, diffHunkIds: ["change"] },
+      { id: "rules", name: "Rules", type: "static-data", containerName: "Controller", containerPath: "src/Controller.ts", sourceFile: "src/Controller.ts", changeType: "modified", changeSummary: { existingBehavior: "N/A", newBehavior: "Modify Rules." }, initialization: false, diffHunkIds: ["change"] },
     ],
     relationships: [
       {
@@ -65,13 +65,16 @@ test("validates flat implementation entities and direct transfers sharing diff h
   assert.equal(result.status, 0, result.stderr);
 });
 
-test("represents module-owned functions, state, and static data without requiring a class", async (t) => {
+test("represents module-owned functions and state alongside declared static data without requiring a class", async (t) => {
   const value = codeReview();
   value.containers = [{ id: "operations", name: "src/operations", type: "module", sourceFile: "src/operations.ts" }];
   value.nodes = value.nodes.filter((node) => node.id !== "read");
   for (const node of value.nodes) {
     if (node.containerId !== undefined) {
       node.containerId = "operations";
+    } else if (node.type === "static-data") {
+      node.containerName = "src/operations";
+      node.containerPath = "src/operations.ts";
     }
   }
   value.relationships = value.relationships.filter((relationship) => relationship.type === "dataflow" && relationship.from.nodeId !== "read");

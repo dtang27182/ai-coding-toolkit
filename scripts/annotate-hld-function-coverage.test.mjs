@@ -28,7 +28,7 @@ function patchFor(rows, oldFile = "src/service.ts", newFile = oldFile) {
 }
 
 function graph(stage, nodes = [], containers = [{ id: "owner", name: "src/service.ts", type: "module", sourceFile: "src/service.ts" }]) {
-  return { schemaVersion: 19, stage, nodes, containers, relationships: [], ...(stage === "code-review" ? { diffHunks: [] } : {}) };
+  return { schemaVersion: 20, stage, nodes, containers, relationships: [], ...(stage === "code-review" ? { diffHunks: [] } : {}) };
 }
 
 function fn(id, name, changeType, sourceFile = "src/service.ts", containerId = "owner") {

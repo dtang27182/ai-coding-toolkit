@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 19,
+  "schemaVersion": 20,
   "stage": "high-level-design",
   "containers": [
     {
@@ -115,7 +115,8 @@
     {
       "id": "entity-14",
       "type": "static-data",
-      "containerId": "entity-1",
+      "containerName": "ChangeService",
+      "containerPath": "src/ChangeService.ts",
       "name": "Diff Format Rules",
       "sourceFile": "src/ChangeService.ts",
       "changeType": "unchanged",
