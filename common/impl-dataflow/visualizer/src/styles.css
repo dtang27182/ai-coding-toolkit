@@ -163,36 +163,46 @@ body.embedded .topbar {
   color: var(--muted);
 }
 
-.diff-evidence summary {
+.diff-evidence > summary {
   cursor: pointer;
   overflow-wrap: anywhere;
 }
 
-.diff-evidence.added summary {
+.diff-evidence.added > summary {
   color: var(--added);
 }
 
-.diff-evidence.modified summary {
+.diff-evidence.modified > summary {
   color: var(--modified);
 }
 
-.diff-evidence.deleted summary {
+.diff-evidence.deleted > summary {
   color: var(--deleted);
 }
 
-.diff-evidence pre {
+.diff-code {
   overflow-x: auto;
   padding: 4px 0;
   border: 1px solid var(--border);
   border-radius: 5px;
   color: var(--bright);
   background: var(--surface);
+  font-family: "IBM Plex Mono", monospace;
   font-size: 11px;
+}
+
+.diff-fold > summary {
+  padding: 4px 10px;
+  border-block: 1px solid var(--subtle-border);
+  color: var(--muted);
+  background: var(--control);
+  cursor: pointer;
 }
 
 .diff-line {
   display: block;
   padding: 0 10px;
+  white-space: pre;
 }
 
 .diff-line.add {

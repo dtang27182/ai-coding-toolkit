@@ -8,7 +8,7 @@ import { dataflowEdges, relationshipsForEdge } from "./edges";
 import { findUiPairs, linkPath } from "./pairing";
 import { edgePortSpreads, routeCompositionEdge, routeEdge } from "./routing";
 import { semanticError } from "./validation";
-import { functionDiffLines } from "./function-diff";
+import { functionDiffSections } from "./function-diff";
 import "./styles.css";
 import type { ChangeType, ContainerStatus, GraphContainer, GraphLayout, ImplementationDataflow, Rect, ResolvedEndpoint, ResolvedRelationship, Selection } from "./types";
 import { edgeKey, visibleEndpointId } from "./types";
@@ -170,15 +170,19 @@ function diffEvidence(ids: string[] | undefined, node?: DataflowNode): string {
   } else {
     const hunks = ids.map((id) => implementationDataflow.diffHunks!.find((hunk) => hunk.id === id)!);
     return section("Relevant diff", hunks.map((hunk) => {
-      const functionLines = node?.type === "function" && node.locations !== undefined && node.changes !== undefined
-        ? functionDiffLines(node, hunk) : undefined;
-      const lines = functionLines === undefined ? hunk.patch.replace(/\n$/, "").split("\n") : functionLines;
-      const label = functionLines === undefined ? hunk.patch.split("\n")[0] : "function changes";
+      const functionSections = node?.type === "function" && node.locations !== undefined && node.changes !== undefined
+        ? functionDiffSections(node, hunk) : undefined;
+      const code = functionSections === undefined
+        ? diffCode(hunk.patch.replace(/\n$/, "").split("\n"))
+        : functionSections.map((part) => part.hidden
+          ? `<details class="diff-fold"><summary>${part.lines.length} ${part.lines.length === 1 ? "line" : "lines"} collapsed</summary>${diffCode(part.lines)}</details>`
+          : diffCode(part.lines)).join("");
+      const label = functionSections === undefined ? hunk.patch.split("\n")[0] : "function changes";
       const changeType = node?.changeType ?? "modified";
       const elementId = node?.type === "function" ? node.enrichedPatchElementId : undefined;
       const openButton = document.body.classList.contains("embedded")
         ? `<button class="control-button diff-open-button" type="button" data-open-enriched-diff data-hunk-file="${escapeHtml(hunk.file)}"${elementId === undefined ? "" : ` data-element-id="${escapeHtml(elementId)}"`}>Open in Code Diff</button>` : "";
-      return `<details class="diff-evidence ${changeType}"><summary>${escapeHtml(hunk.file)} · ${escapeHtml(label)}</summary><pre>${diffCode(lines)}</pre>${openButton}</details>`;
+      return `<details class="diff-evidence ${changeType}"><summary>${escapeHtml(hunk.file)} · ${escapeHtml(label)}</summary><div class="diff-code">${code}</div>${openButton}</details>`;
     }).join(""), hunks.length);
   }
 }

@@ -8,7 +8,12 @@ function inLocation(oldLine: number | undefined, newLine: number | undefined, lo
   return locations.some((location) => inRange(oldLine, location.oldLines) || inRange(newLine, location.newLines));
 }
 
-export function functionDiffLines(node: FunctionNode, hunk: { file: string; patch: string }): string[] {
+export interface FunctionDiffSection {
+  hidden: boolean;
+  lines: string[];
+}
+
+export function functionDiffSections(node: FunctionNode, hunk: { file: string; patch: string }): FunctionDiffSection[] {
   const locations = (node.locations ?? []).filter((location) => location.file === hunk.file);
   const [header, ...lines] = hunk.patch.replaceAll("\r\n", "\n").replace(/\n$/, "").split("\n");
   const match = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(header);
@@ -40,12 +45,15 @@ export function functionDiffLines(node: FunctionNode, hunk: { file: string; patc
       }
     }
   }
-  const result: string[] = [];
+  const sections: FunctionDiffSection[] = [];
   for (let index = 0; index < rows.length; index += 1) {
-    if (selected[index]) {
-      if (result.length > 0 && !selected[index - 1]) result.push(" …");
-      result.push(rows[index].text);
+    const hidden = !selected[index];
+    const section = sections.at(-1);
+    if (section?.hidden === hidden) {
+      section.lines.push(rows[index].text);
+    } else {
+      sections.push({ hidden, lines: [rows[index].text] });
     }
   }
-  return result;
+  return sections;
 }
