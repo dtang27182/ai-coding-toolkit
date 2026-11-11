@@ -8,6 +8,7 @@ import { dataflowEdges, relationshipsForEdge } from "./edges";
 import { findUiPairs, linkPath } from "./pairing";
 import { edgePortSpreads, routeCompositionEdge, routeEdge } from "./routing";
 import { semanticError } from "./validation";
+import { functionDiffLines } from "./function-diff";
 import "./styles.css";
 import type { ChangeType, ContainerStatus, GraphContainer, GraphLayout, ImplementationDataflow, Rect, ResolvedEndpoint, ResolvedRelationship, Selection } from "./types";
 import { edgeKey, visibleEndpointId } from "./types";
@@ -156,14 +157,29 @@ function mismatchBadge(mismatch: boolean): string {
     : "";
 }
 
-function diffEvidence(ids: string[] | undefined): string {
+function diffCode(lines: string[]): string {
+  return lines.map((line) => {
+    const kind = line.startsWith("+") ? "add" : line.startsWith("-") ? "delete" : line.startsWith("@@") ? "modified" : "context";
+    return `<span class="diff-line ${kind}">${line === "" ? " " : escapeHtml(line)}</span>`;
+  }).join("");
+}
+
+function diffEvidence(ids: string[] | undefined, node?: DataflowNode): string {
   if (ids === undefined || ids.length === 0) {
     return "";
   } else {
     const hunks = ids.map((id) => implementationDataflow.diffHunks!.find((hunk) => hunk.id === id)!);
-    return section("Relevant diff", hunks.map((hunk) =>
-      `<details class="diff-evidence"><summary>${escapeHtml(hunk.file)} · ${escapeHtml(hunk.patch.split("\n")[0])}</summary><pre>${escapeHtml(hunk.patch)}</pre></details>`,
-    ).join(""), hunks.length);
+    return section("Relevant diff", hunks.map((hunk) => {
+      const functionLines = node?.type === "function" && node.locations !== undefined && node.changes !== undefined
+        ? functionDiffLines(node, hunk) : undefined;
+      const lines = functionLines === undefined ? hunk.patch.replace(/\n$/, "").split("\n") : functionLines;
+      const label = functionLines === undefined ? hunk.patch.split("\n")[0] : "function changes";
+      const changeType = node?.changeType ?? "modified";
+      const elementId = node?.type === "function" ? node.enrichedPatchElementId : undefined;
+      const openButton = document.body.classList.contains("embedded")
+        ? `<button class="control-button diff-open-button" type="button" data-open-enriched-diff data-hunk-file="${escapeHtml(hunk.file)}"${elementId === undefined ? "" : ` data-element-id="${escapeHtml(elementId)}"`}>Open in Code Diff</button>` : "";
+      return `<details class="diff-evidence ${changeType}"><summary>${escapeHtml(hunk.file)} · ${escapeHtml(label)}</summary><pre>${diffCode(lines)}</pre>${openButton}</details>`;
+    }).join(""), hunks.length);
   }
 }
 
@@ -486,7 +502,7 @@ function renderInspector(graph: VisibleGraph): string {
     const node = implementationDataflow.nodes.find((node) => node.id === inspected.nodeId)!;
     const inputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.to, inspected));
     const outputs = graph.relationships.filter((relationship) => relationship.relationship.type === "dataflow" && endpointMatches(relationship.from, inspected));
-    content = `${inspectorHeader(NODE_LABELS[node.type], node.name, nodeChangeType(node), node.type === "function" && node.subtype === "missing-from-cr" ? `Expected: ${node.changeType}` : undefined)}${diffEvidence(node.diffHunkIds)}${node.changeSummary === undefined ? "" : section("Change summary", `${node.changeSummary.existingBehavior === undefined ? "" : `<p class="flow-label"><strong>Existing behavior:</strong> ${escapeHtml(node.changeSummary.existingBehavior)}</p>`}<p class="flow-label"><strong>New behavior:</strong> ${escapeHtml(node.changeSummary.newBehavior)}</p>`)}`;
+    content = `${inspectorHeader(NODE_LABELS[node.type], node.name, nodeChangeType(node), node.type === "function" && node.subtype === "missing-from-cr" ? `Expected: ${node.changeType}` : undefined)}${diffEvidence(node.diffHunkIds, node)}${node.changeSummary === undefined ? "" : section("Change summary", `${node.changeSummary.existingBehavior === undefined ? "" : `<p class="flow-label"><strong>Existing behavior:</strong> ${escapeHtml(node.changeSummary.existingBehavior)}</p>`}<p class="flow-label"><strong>New behavior:</strong> ${escapeHtml(node.changeSummary.newBehavior)}</p>`)}`;
     if (node.renamedFrom !== undefined) {
       content += section("Renamed from", `<p class="flow-label"><strong>Name:</strong> ${escapeHtml(node.renamedFrom.name)}</p>${"sourceFile" in node.renamedFrom ? `<p class="flow-label"><strong>Source file:</strong> ${escapeHtml(node.renamedFrom.sourceFile)}</p>` : ""}${"containerName" in node.renamedFrom && node.renamedFrom.containerName !== undefined ? `<p class="flow-label"><strong>Container:</strong> ${escapeHtml(node.renamedFrom.containerName)}</p>` : ""}`);
     }
@@ -754,11 +770,13 @@ function bindEvents(): void {
     });
   }
   app.querySelector<HTMLElement>(".inspector")?.addEventListener("click", (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLElement>("[data-jump], [data-close]");
-    if (button?.dataset.jump !== undefined) {
-      selection = JSON.parse(button.dataset.jump) as Selection;
+    const target = (event.target as HTMLElement).closest<HTMLElement>("[data-jump], [data-close], [data-open-enriched-diff]");
+    if (target?.dataset.openEnrichedDiff !== undefined) {
+      window.parent.postMessage({ type: "open-enriched-diff", file: target.dataset.hunkFile, elementId: target.dataset.elementId }, location.origin);
+    } else if (target?.dataset.jump !== undefined) {
+      selection = JSON.parse(target.dataset.jump) as Selection;
       render();
-    } else if (button?.hasAttribute("data-close")) {
+    } else if (target?.hasAttribute("data-close")) {
       selection = undefined;
       render();
     }

@@ -23,6 +23,8 @@ import type { DiffElement, DiffFile, EnrichedPatch } from "./types.ts";
 
 export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefault?: boolean; expansionStorageKey?: string; hideTagsByDefault?: boolean } = {}): {
   loadEnrichedPatch(value: unknown, name: string, preserveView?: boolean): void;
+  showElement(id: string, file?: string): boolean;
+  showFile(file: string): boolean;
 } {
   const root = host.shadowRoot ?? host.attachShadow({ mode: "open" });
   root.innerHTML = `<style>${styles}</style><div id="app"></div>`;
@@ -720,16 +722,35 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
     updateChangeNavigation();
   }
 
-  function selectElement(id: string, updateHash = true): void {
+  function selectElement(id: string, updateHash = true, file?: string): void {
     const navigationScrollTop = app.querySelector<HTMLElement>("#file-tree")!.scrollTop;
     selectedId = id;
-    showOriginal = false;
+    const original = renameSource(id);
+    showOriginal = file !== undefined && original !== undefined && elementPath(original) === file && elementPath(index.elements[id]) !== file;
     if (updateHash) {
       history.replaceState(null, "", `#${encodeURIComponent(id)}`);
     }
     render();
     app.querySelector<HTMLElement>("#file-tree")!.scrollTop = navigationScrollTop;
     requestAnimationFrame(scrollToSelection);
+  }
+
+  function showElement(id: string, file?: string): boolean {
+    const targetId = index.renames?.find((rename) => rename.from === id)?.to ?? id;
+    if (!hasLoadedEnrichedPatch || index.elements[targetId] === undefined) return false;
+    if (hiddenTags.size > 0 || mismatchOnly) {
+      hiddenTags = new Set();
+      mismatchOnly = false;
+      revealedChanges = new Set();
+      refreshTagFilter();
+    }
+    selectElement(targetId, true, file);
+    return true;
+  }
+
+  function showFile(file: string): boolean {
+    const matches = Object.entries(index.elements).filter(([, element]) => element.kind === "file" && element.name === file);
+    return matches.length === 1 && showElement(matches[0][0], file);
   }
 
   function scrollToSelection(): void {
@@ -905,5 +926,5 @@ export function mountEnrichedPatchViewer(host: HTMLElement, options: { loadDefau
   new ResizeObserver(fitSidebarWidth).observe(host);
   void document.fonts.ready.then(fitSidebarWidth);
   if (options.loadDefault !== false) void loadDefault();
-  return { loadEnrichedPatch };
+  return { loadEnrichedPatch, showElement, showFile };
 }

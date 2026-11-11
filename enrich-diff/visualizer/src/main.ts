@@ -77,6 +77,15 @@ implementationFrame.addEventListener("load", () => {
   syncHeader();
 });
 
+window.addEventListener("message", (event: MessageEvent<{ type: string; file?: string; elementId?: string }>) => {
+  if (event.source === implementationFrame.contentWindow && event.origin === location.origin &&
+    event.data.type === "open-enriched-diff" && typeof event.data.file === "string") {
+    const opened = typeof event.data.elementId === "string"
+      ? diffViewer.showElement(event.data.elementId, event.data.file) : diffViewer.showFile(event.data.file);
+    if (opened) selectView("diff");
+  }
+});
+
 function sourceControl(action: string): HTMLElement | null {
   return implementationFrame.contentDocument?.querySelector<HTMLElement>(`[data-${action}]`) ?? null;
 }

@@ -8,6 +8,10 @@ export interface RenameOrigin {
   sourceFile: string;
 }
 
+export type LineRange = [number, number];
+export interface FunctionDiffLocation { file: string; oldLines: LineRange | null; newLines: LineRange | null }
+export interface FunctionDiffChange { oldLines: LineRange | null; newLines: LineRange | null; tags: string[] }
+
 interface NodeBase {
   id: string;
   name: string;
@@ -22,6 +26,9 @@ export type FunctionNode = NodeBase & {
   type: "function";
   containerId: string;
   sourceFile: string;
+  enrichedPatchElementId?: string;
+  locations?: FunctionDiffLocation[];
+  changes?: FunctionDiffChange[];
   renamedFrom?: RenameOrigin & { containerName?: string };
   helperOf?: string;
   subtype?: "missing-from-cr";

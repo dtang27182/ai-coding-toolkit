@@ -125,7 +125,10 @@
                   "properties": {
                     "subtype": false,
                     "hld-change-mismatch": false,
-                    "hldChangeType": false
+                    "hldChangeType": false,
+                    "locations": false,
+                    "changes": false,
+                    "enrichedPatchElementId": false
                   }
                 }
               ]
@@ -193,6 +196,33 @@
         "minLength": 1
       }
     },
+    "sourceLineRange": {
+      "type": "array",
+      "prefixItems": [{ "type": "integer", "minimum": 1 }, { "type": "integer", "minimum": 1 }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "functionDiffLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "oldLines", "newLines"],
+      "properties": {
+        "file": { "$ref": "#/$defs/sourceFile" },
+        "oldLines": { "oneOf": [{ "$ref": "#/$defs/sourceLineRange" }, { "type": "null" }] },
+        "newLines": { "oneOf": [{ "$ref": "#/$defs/sourceLineRange" }, { "type": "null" }] }
+      }
+    },
+    "functionDiffChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["oldLines", "newLines", "tags"],
+      "properties": {
+        "oldLines": { "oneOf": [{ "$ref": "#/$defs/sourceLineRange" }, { "type": "null" }] },
+        "newLines": { "oneOf": [{ "$ref": "#/$defs/sourceLineRange" }, { "type": "null" }] },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      }
+    },
     "changeType": {
       "description": "How an entity or relationship differs from the existing architecture. Use added for a new entry, modified for a changed declaration, responsibility, contract, or relationship, deleted for a removed entry, and unchanged for an existing entry reused without such a change. Participation or a new connection alone does not modify an endpoint.",
       "enum": [
@@ -245,7 +275,10 @@
           },
           "then": {
             "properties": {
-              "diffHunkIds": false
+              "diffHunkIds": false,
+              "locations": false,
+              "changes": false,
+              "enrichedPatchElementId": false
             }
           }
         }
@@ -406,11 +439,32 @@
     "function": {
       "description": "An implementation function owned by a class or module. Functions can exchange data with other functions and boundary nodes, read static data, and read or write mutable state.",
       "type": "object",
+      "dependentRequired": {
+        "locations": ["changes"],
+        "changes": ["locations"]
+      },
       "required": [
         "sourceFile"
       ],
       "properties": {
         "sourceFile": { "$ref": "#/$defs/sourceFile" },
+        "enrichedPatchElementId": {
+          "description": "Matching enriched-patch method ID for navigation from a code-review function.",
+          "type": "string",
+          "pattern": "^element-[1-9][0-9]*$"
+        },
+        "locations": {
+          "description": "Function declaration ranges copied from the enriched patch during code review.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/functionDiffLocation" }
+        },
+        "changes": {
+          "description": "Changed-line ranges owned by the function, copied from the enriched patch during code review.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/functionDiffChange" }
+        },
         "renamedFrom": { "$ref": "#/$defs/functionRenamedFrom" },
         "helperOf": {
           "description": "ID of the same-container function this function folds under, assigned from function dataflow relationships by annotate-helper-functions.mjs.",
@@ -465,6 +519,9 @@
                 ]
               },
               "diffHunkIds": false,
+              "locations": false,
+              "changes": false,
+              "enrichedPatchElementId": false,
               "helperOf": false,
               "hldChangeType": false
             }

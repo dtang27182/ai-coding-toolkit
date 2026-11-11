@@ -52,6 +52,9 @@
   --state-divider: oklch(0.37 0.05 245);
   --state-name: oklch(0.9 0.035 245);
   --ink: 45%;
+  --added-bg: color-mix(in oklch, var(--added) 14%, transparent);
+  --deleted-bg: color-mix(in oklch, var(--deleted) 13%, transparent);
+  --added-ink: color-mix(in oklch, var(--added) var(--ink), var(--bright));
   --deleted-ink: color-mix(in oklch, var(--deleted) var(--ink), var(--bright));
 }
 
@@ -165,14 +168,49 @@ body.embedded .topbar {
   overflow-wrap: anywhere;
 }
 
+.diff-evidence.added summary {
+  color: var(--added);
+}
+
+.diff-evidence.modified summary {
+  color: var(--modified);
+}
+
+.diff-evidence.deleted summary {
+  color: var(--deleted);
+}
+
 .diff-evidence pre {
   overflow-x: auto;
-  padding: 10px;
+  padding: 4px 0;
   border: 1px solid var(--border);
   border-radius: 5px;
   color: var(--bright);
   background: var(--surface);
   font-size: 11px;
+}
+
+.diff-line {
+  display: block;
+  padding: 0 10px;
+}
+
+.diff-line.add {
+  color: var(--added-ink);
+  background: var(--added-bg);
+}
+
+.diff-line.delete {
+  color: var(--deleted-ink);
+  background: var(--deleted-bg);
+}
+
+.diff-line.modified {
+  color: var(--modified);
+}
+
+.diff-evidence .diff-open-button {
+  margin-top: 4px;
 }
 
 .topbar {
