@@ -40,6 +40,7 @@ test("reports missing toolkit dependencies before modifying the target", async (
     [repoDirectory, "--tool", "enrich-diff"],
     [repoDirectory, "--tool", "advanced-diff-viewer"],
     [repoDirectory, "--tool", "user-journey-dataflow"],
+    [repoDirectory, "--tool", "ui-design"],
   ]) {
     const result = install(argumentsList, sourceDirectory);
     assert.notEqual(result.status, 0);
@@ -53,7 +54,7 @@ test("reports missing toolkit dependencies before modifying the target", async (
 
 test("copies skills and scripts that work after the source checkout is removed", async (t) => {
   const sourceDirectory = await createRepository(t);
-  for (const directoryName of ["scripts", "adapters", "feature-design", "impl-design", "refactor-design", "enrich-diff", "advanced-diff-viewer", "user-journey-dataflow", "common", "node_modules"]) {
+  for (const directoryName of ["scripts", "adapters", "feature-design", "impl-design", "refactor-design", "enrich-diff", "advanced-diff-viewer", "user-journey-dataflow", "ui-design", "common", "node_modules"]) {
     await cp(path.join(toolkitDirectory, directoryName), path.join(sourceDirectory, directoryName), {
       recursive: true,
       dereference: true,
@@ -68,7 +69,7 @@ test("copies skills and scripts that work after the source checkout is removed",
   }
   await rm(sourceDirectory, { recursive: true });
 
-  for (const toolName of ["feature-design", "impl-design", "refactor-design"]) {
+  for (const toolName of ["feature-design", "impl-design", "refactor-design", "ui-design"]) {
     const skillPath = path.join(repoDirectory, ".agents", "skills", toolName, "SKILL.md");
     assert.equal((await lstat(path.dirname(skillPath))).isSymbolicLink(), false);
     assert.equal(
@@ -80,7 +81,7 @@ test("copies skills and scripts that work after the source checkout is removed",
     await readFile(path.join(repoDirectory, ".agents", "skills", "enrich-diff", "SKILL.md"), "utf8"),
     await readFile(path.join(toolkitDirectory, "enrich-diff", "skills", "enrich-diff", "SKILL.md"), "utf8")
   );
-  for (const directoryName of ["feature-design", "impl-design", "refactor-design", "enrich-diff", "advanced-diff-viewer", "user-journey-dataflow", "common", "node_modules"]) {
+  for (const directoryName of ["feature-design", "impl-design", "refactor-design", "enrich-diff", "advanced-diff-viewer", "user-journey-dataflow", "ui-design", "common", "node_modules"]) {
     assert.equal(
       (await lstat(path.join(repoDirectory, "ai-coding-toolkit", directoryName))).isSymbolicLink(),
       false
@@ -92,6 +93,9 @@ test("copies skills and scripts that work after the source checkout is removed",
     "diff-visualizer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/enrich-diff/visualizer",
     "adv-diff": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/advanced-diff-viewer/visualizer",
     "user-journey-dataflow-viewer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/user-journey-dataflow/visualizer",
+    "parse-ui-spec": "node ai-coding-toolkit/common/ui-spec/parser/parse-spec.ts",
+    "ui-spec-viewer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/ui-spec/viewer",
+    "ui-spec-viewer:build": "node ai-coding-toolkit/node_modules/vite/bin/vite.js build ai-coding-toolkit/common/ui-spec/viewer",
   });
 
   const inputPath = "ai-coding-toolkit/common/impl-dataflow/impl-dataflow.example.json";
@@ -269,6 +273,37 @@ test("installs user-journey-dataflow independently with its viewer", async (t) =
   const enrichInstall = install([repoDirectory, "--tool", "enrich-diff"]);
   assert.equal(enrichInstall.status, 0, enrichInstall.stderr);
   assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/sys-dataflow/sys-dataflow.schema.json"))).isFile(), true);
+});
+
+test("installs ui-design with its parser, viewer, and VS Code extension", async (t) => {
+  const repoDirectory = await createRepository(t);
+  await writeFile(path.join(repoDirectory, "package.json"), '{"scripts":{"test":"existing"}}\n');
+
+  const result = install([repoDirectory, "--tool", "ui-design", "--agent", "codex,claude"]);
+  assert.equal(result.status, 0, result.stderr);
+  const sourceSkill = await readFile(path.join(toolkitDirectory, "ui-design/SKILL.md"), "utf8");
+  assert.equal(await readFile(path.join(repoDirectory, ".agents/skills/ui-design/SKILL.md"), "utf8"), sourceSkill);
+  assert.match(await readFile(path.join(repoDirectory, ".claude/skills/ui-design/SKILL.md"), "utf8"), /Bash\(node ai-coding-toolkit\/common\/ui-spec\/parser\/parse-spec\.ts \*\)/);
+  assert.deepEqual(JSON.parse(await readFile(path.join(repoDirectory, "package.json"), "utf8")).scripts, {
+    test: "existing",
+    "parse-ui-spec": "node ai-coding-toolkit/common/ui-spec/parser/parse-spec.ts",
+    "ui-spec-viewer": "node ai-coding-toolkit/node_modules/vite/bin/vite.js ai-coding-toolkit/common/ui-spec/viewer",
+    "ui-spec-viewer:build": "node ai-coding-toolkit/node_modules/vite/bin/vite.js build ai-coding-toolkit/common/ui-spec/viewer",
+  });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/common/impl-dataflow")), { code: "ENOENT" });
+  await assert.rejects(lstat(path.join(repoDirectory, "ai-coding-toolkit/config.json")), { code: "ENOENT" });
+  const parsed = spawnSync(process.execPath, [
+    "ai-coding-toolkit/common/ui-spec/parser/parse-spec.ts",
+    "ai-coding-toolkit/common/ui-spec/ui-root.example.ui.dsl",
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(parsed.status, 0, parsed.stderr);
+  assert.deepEqual(JSON.parse(parsed.stdout), JSON.parse(await readFile(path.join(toolkitDirectory, "common/ui-spec/ui-root.example.ui.json"), "utf8")));
+  const build = spawnSync(process.execPath, [
+    "ai-coding-toolkit/node_modules/vite/bin/vite.js", "build", "ai-coding-toolkit/common/ui-spec/viewer",
+  ], { cwd: repoDirectory, encoding: "utf8" });
+  assert.equal(build.status, 0, build.stderr);
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/ui-spec/viewer/dist/index.html"))).isFile(), true);
+  assert.equal((await lstat(path.join(repoDirectory, "ai-coding-toolkit/common/ui-spec/vscode-extension/syntaxes/ui-dsl.tmLanguage.json"))).isFile(), true);
 });
 
 test("installs refactor-design independently for Codex and Claude", async (t) => {
@@ -519,6 +554,8 @@ test("refreshes installed copies on repeat installation", async (t) => {
   const relativePaths = [
     ".agents/skills/feature-design/SKILL.md",
     ".agents/skills/feature-redesign/SKILL.md",
+    ".agents/skills/ui-design/SKILL.md",
+    "ai-coding-toolkit/common/ui-spec/parser/parser.ts",
     "ai-coding-toolkit/feature-design/generate/gen-design.md",
     "ai-coding-toolkit/node_modules/ajv/package.json",
   ];

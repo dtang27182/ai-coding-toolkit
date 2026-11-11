@@ -10,3 +10,5 @@ advanced-diff-viewer/enriched-patch.json
 adv-diff/*
 .DS_Store
 Claude\ outputs/*
+common/ui-spec/viewer/dist/
+common/ui-spec/vscode-extension/*.vsix

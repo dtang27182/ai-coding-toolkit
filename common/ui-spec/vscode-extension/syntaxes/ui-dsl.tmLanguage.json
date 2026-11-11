@@ -1,0 +1,93 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "UI DSL",
+  "scopeName": "source.ui-dsl",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#content-state" },
+    { "include": "#on-click" },
+    {
+      "match": "\\b(app|backend|page)\\b(\\s+)([A-Za-z_$][\\w$]*)",
+      "captures": {
+        "1": { "name": "keyword.declaration.ui-dsl" },
+        "3": { "name": "entity.name.type.ui-dsl" }
+      }
+    },
+    {
+      "match": "\\b(button|text_field|text_area|container|link|text|custom)\\b(\\s+)([A-Za-z_$][\\w$]*)",
+      "captures": {
+        "1": { "name": "storage.type.ui-dsl" },
+        "3": { "name": "entity.name.type.ui-dsl" }
+      }
+    },
+    {
+      "match": "\\b(url|content|reads)\\b(?=\\s)",
+      "name": "keyword.other.property.ui-dsl"
+    },
+    {
+      "match": "\\b[A-Za-z_$][\\w$]*(?=\\s*\\()",
+      "name": "entity.name.function.ui-dsl"
+    },
+    { "include": "source.ts" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "begin": "/\\*\\*",
+          "end": "\\*/",
+          "name": "comment.block.documentation.ui-dsl"
+        },
+        {
+          "begin": "/\\*",
+          "end": "\\*/",
+          "name": "comment.block.ui-dsl"
+        },
+        {
+          "match": "//.*$",
+          "name": "comment.line.double-slash.ui-dsl"
+        }
+      ]
+    },
+    "content-state": {
+      "begin": "\\b(content_state)\\b(\\s*)(\\{)",
+      "end": "\\}",
+      "name": "meta.embedded.block.typescript",
+      "beginCaptures": {
+        "1": { "name": "keyword.declaration.ui-dsl" },
+        "3": { "name": "punctuation.section.block.begin.ui-dsl" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.section.block.end.ui-dsl" }
+      },
+      "patterns": [
+        { "include": "#code-braces" },
+        { "include": "source.ts" }
+      ]
+    },
+    "on-click": {
+      "begin": "\\b(on_click)\\b(\\s*)(\\{)",
+      "end": "\\}",
+      "name": "meta.embedded.block.typescript",
+      "beginCaptures": {
+        "1": { "name": "keyword.other.property.ui-dsl" },
+        "3": { "name": "punctuation.section.block.begin.ui-dsl" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.section.block.end.ui-dsl" }
+      },
+      "patterns": [
+        { "include": "#code-braces" },
+        { "include": "source.ts" }
+      ]
+    },
+    "code-braces": {
+      "begin": "\\{",
+      "end": "\\}",
+      "patterns": [
+        { "include": "#code-braces" },
+        { "include": "source.ts" }
+      ]
+    }
+  }
+}

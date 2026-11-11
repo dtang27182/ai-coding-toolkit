@@ -14,7 +14,7 @@ npm run install:all -- /path/to/code-repo
 
 Run `npm install` in this toolkit checkout before using any installer command; the installer copies its `node_modules` into the target repository. If an earlier attempt stopped with a missing `node_modules` error, install the dependencies and rerun the same installer command to finish the installation.
 
-The default installer installs `feature-design` (including `feature-redesign`), `impl-design`, `refactor-design`, `enrich-diff`, and `user-journey-dataflow` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the feature design skills, run:
+The default installer installs `feature-design` (including `feature-redesign`), `impl-design`, `refactor-design`, `enrich-diff`, `user-journey-dataflow`, and `ui-design` for Codex, along with the Advanced Diff Viewer (`adv-diff`). To install only the feature design skills, run:
 
 ```sh
 npm run install:feature-design -- /path/to/code-repo
@@ -52,9 +52,9 @@ npm run adv-diff
 
 The viewer generates `adv-diff/enriched-patch.json` automatically from current staged, unstaged, deleted, and untracked changes against `HEAD`. It updates as files change and provides a Refresh button. The generated enriched patch and, in installed repositories, the copied `ai-coding-toolkit` runtime and the output directory configured in `ai-coding-toolkit/config.json` are excluded from the comparison and do not trigger refreshes. You can open or drag in another enriched patch from the viewer.
 
-The design skills are invoked as `$feature-design`, `$impl-design`, and `$refactor-design`.
+The design skills are invoked as `$feature-design`, `$impl-design`, `$refactor-design`, and `$ui-design`.
 
-Skills install for Codex by default. To install them for Claude Code, where they are invoked as `/feature-design`, `/impl-design`, `/refactor-design`, and `/enrich-diff`, pass `--agent claude`, or `--agent codex,claude` for both:
+Skills install for Codex by default. To install them for Claude Code, where they are invoked as `/feature-design`, `/impl-design`, `/refactor-design`, `/enrich-diff`, and `/ui-design`, pass `--agent claude`, or `--agent codex,claude` for both:
 
 ```sh
 npm run install:all -- /path/to/code-repo --agent claude
@@ -71,6 +71,23 @@ node scripts/init.mjs ../code-repo --output-dir architecture/plans
 In the target repository, the installer records the selection in `ai-coding-toolkit/config.json`, copies the selected design tools and installed dependencies into `ai-coding-toolkit`, installs their skills under `.agents/skills/` (Codex) or `.claude/skills/` (Claude Code), and adds supported npm commands when the repository has a root `package.json`.
 
 Each target repository has its own files and output configuration and works independently of this checkout. Rerun the installer to update its installed copies; this overwrites files in directories marked as toolkit installations. It will not replace unrelated existing directories or npm scripts. Links created by the earlier installer to this checkout are replaced with copies.
+
+## Build a UI from a UI Spec
+
+Use `$ui-design` to build a new Vite TypeScript UI from a `.ui.dsl` application spec when its declared backend already exists. The skill and supporting format live in `ui-design/` and `common/ui-spec/`. Install them alone with:
+
+```sh
+npm run install:ui-design -- /path/to/code-repo
+```
+
+Parse a spec to `.ui.json` and open the viewer with:
+
+```sh
+npm run parse-ui-spec -- /path/to/app.ui.dsl /path/to/app.ui.json
+npm run ui-spec-viewer
+```
+
+The viewer opens the bundled example by default and accepts another `.ui.json` through its Open spec control or by dropping the file onto the canvas. Build the viewer with `npm run ui-spec-viewer:build`. The UI DSL syntax extension source is in `common/ui-spec/vscode-extension/`; see its README to try or package it for VS Code. Installing the toolkit does not install a VS Code extension.
 
 ## Generate a High-Level Design
 
