@@ -878,6 +878,7 @@ body.embedded .topbar {
   min-height: 0;
   overflow-y: auto;
   background: var(--header);
+  font-size: 13px;
 }
 
 .inspector-resizer {
@@ -1106,7 +1107,7 @@ button.function-row:hover {
 .flow-endpoint {
   overflow-wrap: anywhere;
   font-family: "IBM Plex Mono", monospace;
-  font-size: 11px;
+  font-size: inherit;
   color: var(--text);
 }
 
@@ -1114,7 +1115,7 @@ button.function-row:hover {
 .empty-copy,
 .file-location {
   margin-top: 2px;
-  font-size: 11px;
+  font-size: inherit;
   line-height: 1.4;
   color: var(--muted);
 }
@@ -1195,7 +1196,7 @@ button.function-row:hover {
 
 .flow-purpose {
   margin-top: 3px;
-  font-size: 11px;
+  font-size: inherit;
   line-height: 1.45;
   color: var(--muted);
 }
@@ -1215,7 +1216,7 @@ button.function-row:hover {
   border: 0;
   overflow-wrap: anywhere;
   font-family: "IBM Plex Mono", monospace;
-  font-size: 11px;
+  font-size: inherit;
   color: var(--text);
   background: transparent;
   text-align: left;
@@ -1244,7 +1245,7 @@ button.function-row:hover {
 
 .entry-copy {
   margin: 3px 0 0;
-  font-size: 12px;
+  font-size: inherit;
   line-height: 1.5;
   color: var(--text);
 }
