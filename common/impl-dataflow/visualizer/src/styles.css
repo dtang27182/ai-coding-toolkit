@@ -1100,6 +1100,11 @@ body.embedded .topbar {
   text-align: left;
 }
 
+.flow-list {
+  display: grid;
+  gap: 14px;
+}
+
 button.flow-row,
 button.function-row {
   cursor: pointer;
