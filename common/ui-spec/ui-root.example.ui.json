@@ -1,6 +1,6 @@
 {
   "id": "ui_root",
-  "content_state": {
+  "contentState": {
     "variables": [
       {
         "id": "s:authenticated_provider",

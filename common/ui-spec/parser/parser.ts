@@ -29,7 +29,7 @@ interface Backend extends Documented {
 export interface Spec {
   id: string
   description?: string
-  content_state: { variables: { id: string; name: string; initialization: string; changeType?: ChangeType }[] }
+  contentState: { variables: { id: string; name: string; initialization: string; changeType?: ChangeType }[] }
   backends: Record<string, Backend>
   pages: Record<string, Documented & { elements: Element[] }>
   relationships: Edge[]
@@ -156,7 +156,7 @@ class Parser {
     const spec: Spec = {
       id: this.identifier(),
       ...documentation,
-      content_state: { variables: [] },
+      contentState: { variables: [] },
       backends: {},
       pages: {},
       relationships: [],
@@ -168,7 +168,7 @@ class Parser {
       if (this.at('content_state')) {
         if (hasContentState) this.fail('Duplicate content_state block')
         this.advance()
-        spec.content_state.variables = this.codeBlock().initialization.map((initialization) => {
+        spec.contentState.variables = this.codeBlock().initialization.map((initialization) => {
           const match = initialization.match(/^\s*(?:let|const|var)\s+(\w+)\s*=\s*[\s\S]+$/)
           if (!match) this.fail('Expected an initialized content-state variable')
           return { id: stateId(match[1]), name: match[1], initialization }

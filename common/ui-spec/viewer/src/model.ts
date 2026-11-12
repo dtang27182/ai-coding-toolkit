@@ -93,7 +93,7 @@ export function deriveModel(spec: Spec): Model {
   const nodes = new Map<string, GraphNode>()
   const edges = spec.relationships
 
-  const state: StateNode[] = spec.content_state.variables.map((variable) => ({
+  const state: StateNode[] = spec.contentState.variables.map((variable) => ({
     type: 'state', id: variable.id, name: variable.name,
     init: variable.initialization.replace(/^\s*(?:let|const|var)\s+\w+\s*=\s*/, '').replace(/;?\s*$/, ''),
     source: variable.initialization, changeType: variable.changeType,

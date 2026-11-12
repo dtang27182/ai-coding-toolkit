@@ -16,7 +16,7 @@ test('the example DSL produces the existing JSON spec', () => {
 
 test('parsed JSON contains state nodes and every relationship layer', () => {
   const spec = parseSpec(readFileSync(examplePath, 'utf8'))
-  assert.deepEqual(spec.content_state.variables.map((variable) => variable.name), ['authenticated_provider', 'chat_transcript'])
+  assert.deepEqual(spec.contentState.variables.map((variable) => variable.name), ['authenticated_provider', 'chat_transcript'])
   assert.equal(Object.hasOwn(spec, 'external_links'), false)
   assert.ok(spec.relationships.some((edge) => edge.kind === 'nav' && edge.to === 'p:chat_page'))
   assert.ok(spec.relationships.some((edge) => edge.kind === 'nav' && edge.to === 'x:https://www.openworkbookai.org/help'))
@@ -32,7 +32,7 @@ test('schema accepts change types on every node and relationship kind', () => {
   const schema = JSON.parse(readFileSync(new URL('../common/ui-spec/ui-spec.schema.json', import.meta.url), 'utf8'))
   const validate = new Ajv2020().compile(schema)
   const spec = structuredClone(expected)
-  spec.content_state.variables[0].changeType = 'modified'
+  spec.contentState.variables[0].changeType = 'modified'
   spec.backends.chat_manager.changeType = 'unchanged'
   spec.backends.chat_manager.methods.auth_open_ai.changeType = 'added'
   spec.pages.chat_page.changeType = 'modified'
@@ -75,7 +75,7 @@ test('embedded code preserves strings, regexes, templates, nested blocks, and co
     page home { button run { on_click { ${handler}\n } } }
   }`)
   const output = spec.pages.home.elements[0].on_click!
-  assert.deepEqual(spec.content_state.variables, [{ id: 's:values', name: 'values', initialization: 'let values = [{ text: "}" }];' }])
+  assert.deepEqual(spec.contentState.variables, [{ id: 's:values', name: 'values', initialization: 'let values = [{ text: "}" }];' }])
   assert.ok(output.includes('const pattern = /[{}]/;'))
   assert.ok(output.includes('`value: ${value.text}`'))
   assert.ok(output.includes('// Keep the next statement on its own line: }\n'))

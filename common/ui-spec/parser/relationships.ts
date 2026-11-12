@@ -2,7 +2,7 @@ import { elementId, externalId, methodId, pageId, stateId } from './ids.ts'
 import type { Edge, Spec } from './parser.ts'
 
 export function populateRelationships(spec: Spec): Spec {
-  const stateNames = new Set(spec.content_state.variables.map((variable) => variable.name))
+  const stateNames = new Set(spec.contentState.variables.map((variable) => variable.name))
   const backendNames = new Set(Object.keys(spec.backends))
   const relationships: Edge[] = []
   const add = (relationship: Edge) => {

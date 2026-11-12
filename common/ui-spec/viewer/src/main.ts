@@ -426,8 +426,8 @@ function showStatus(message: string | null) {
 async function loadFile(file: File) {
   try {
     const spec = JSON.parse(await file.text()) as Spec
-    if (!spec || typeof spec.id !== 'string' || !spec.pages || !spec.backends || !spec.content_state) {
-      throw new Error('expected a ui-spec JSON document with id, content_state, backends and pages')
+    if (!spec || typeof spec.id !== 'string' || !spec.pages || !spec.backends || !spec.contentState) {
+      throw new Error('expected a ui-spec JSON document with id, contentState, backends and pages')
     }
     view.description = spec.description
     load(deriveModel(spec))
