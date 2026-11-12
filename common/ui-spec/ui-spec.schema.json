@@ -1,88 +1,95 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "UI DSL parser output",
-  "description": "The JSON structure returned by parseSpec. This schema does not validate embedded code or references between pages, state, and backend methods.",
+  "description": "The JSON structure returned by parseSpec. Change types describe a comparison and are omitted from a standalone parsed spec. This schema does not validate embedded code or relationship endpoints.",
   "type": "object",
-  "required": ["id", "content_state", "backend_apis", "pages"],
+  "required": ["id", "content_state", "backends", "pages", "relationships"],
   "properties": {
     "id": { "type": "string", "minLength": 1 },
     "description": { "type": "string" },
     "content_state": {
       "type": "object",
-      "required": ["initialization"],
+      "required": ["variables"],
       "properties": {
-        "initialization": {
+        "variables": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 }
+          "items": { "$ref": "#/$defs/stateVariable" }
         }
       },
       "additionalProperties": false
-    },
-    "backend_apis": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/$defs/backend" }
     },
     "pages": {
       "type": "object",
       "additionalProperties": { "$ref": "#/$defs/page" }
+    },
+    "backends": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/backend" }
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
     }
   },
   "additionalProperties": false,
   "$defs": {
-    "backend": {
+    "changeType": {
+      "description": "How a node or relationship changes relative to the comparison baseline.",
+      "enum": ["added", "modified", "deleted", "unchanged"]
+    },
+    "node": {
+      "description": "Fields shared by pages, elements, content-state variables, and backend methods.",
       "type": "object",
-      "required": ["methods"],
       "properties": {
         "description": { "type": "string" },
-        "methods": {
-          "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/method" }
-        }
-      },
-      "additionalProperties": false
+        "changeType": { "$ref": "#/$defs/changeType" }
+      }
     },
-    "method": {
+    "stateVariable": {
+      "allOf": [{ "$ref": "#/$defs/node" }],
       "type": "object",
-      "required": ["signature"],
+      "required": ["id", "name", "initialization"],
       "properties": {
-        "signature": { "type": "string", "minLength": 1 },
-        "description": { "type": "string" }
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "initialization": { "type": "string", "minLength": 1 }
       },
-      "additionalProperties": false
+      "unevaluatedProperties": false
     },
     "page": {
+      "allOf": [{ "$ref": "#/$defs/node" }],
       "type": "object",
       "required": ["elements"],
       "properties": {
-        "description": { "type": "string" },
         "elements": {
           "type": "array",
           "items": { "$ref": "#/$defs/element" }
         }
       },
-      "additionalProperties": false
+      "unevaluatedProperties": false
     },
     "element": {
       "oneOf": [
-        { "$ref": "#/$defs/container" },
+        { "$ref": "#/$defs/containerElement" },
         { "$ref": "#/$defs/leafElement" }
       ]
     },
-    "container": {
+    "containerElement": {
+      "allOf": [{ "$ref": "#/$defs/node" }],
       "type": "object",
       "required": ["id", "kind"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "kind": { "const": "container" },
-        "description": { "type": "string" },
         "elements": {
           "type": "array",
           "items": { "$ref": "#/$defs/element" }
         }
       },
-      "additionalProperties": false
+      "unevaluatedProperties": false
     },
     "leafElement": {
+      "allOf": [{ "$ref": "#/$defs/node" }],
       "type": "object",
       "required": ["id", "kind"],
       "properties": {
@@ -94,7 +101,6 @@
           "description": "Data direction relative to the user. The parser sets it from kind: button, text_field, and text_area are input; text is output; link and custom are input_output.",
           "enum": ["input", "output", "input_output"]
         },
-        "description": { "type": "string" },
         "on_click": { "type": "string" },
         "url": { "type": "string" },
         "content": { "type": "string", "minLength": 1 },
@@ -103,6 +109,40 @@
           "minItems": 1,
           "items": { "type": "string", "minLength": 1 }
         }
+      },
+      "unevaluatedProperties": false
+    },
+    "backend": {
+      "type": "object",
+      "required": ["methods"],
+      "properties": {
+        "description": { "type": "string" },
+        "changeType": { "$ref": "#/$defs/changeType" },
+        "methods": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/method" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "method": {
+      "allOf": [{ "$ref": "#/$defs/node" }],
+      "type": "object",
+      "required": ["signature"],
+      "properties": {
+        "signature": { "type": "string", "minLength": 1 }
+      },
+      "unevaluatedProperties": false
+    },
+    "edge": {
+      "description": "A navigation, dataflow, or backend method call relationship.",
+      "type": "object",
+      "required": ["kind", "from", "to"],
+      "properties": {
+        "kind": { "enum": ["nav", "dataflow", "methodCall"] },
+        "from": { "type": "string", "minLength": 1 },
+        "to": { "type": "string", "minLength": 1 },
+        "changeType": { "$ref": "#/$defs/changeType" }
       },
       "additionalProperties": false
     }

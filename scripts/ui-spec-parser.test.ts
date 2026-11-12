@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import test from 'node:test'
+import Ajv2020 from 'ajv/dist/2020.js'
 import { parseSpec } from '../common/ui-spec/parser/parser.ts'
 
 const examplePath = new URL('../common/ui-spec/ui-root.example.ui.dsl', import.meta.url)
@@ -11,6 +12,52 @@ const expected = JSON.parse(readFileSync(new URL('../common/ui-spec/ui-root.exam
 
 test('the example DSL produces the existing JSON spec', () => {
   assert.deepEqual(parseSpec(readFileSync(examplePath, 'utf8')), expected)
+})
+
+test('parsed JSON contains state nodes and every relationship layer', () => {
+  const spec = parseSpec(readFileSync(examplePath, 'utf8'))
+  assert.deepEqual(spec.content_state.variables.map((variable) => variable.name), ['authenticated_provider', 'chat_transcript'])
+  assert.equal(Object.hasOwn(spec, 'external_links'), false)
+  assert.ok(spec.relationships.some((edge) => edge.kind === 'nav' && edge.to === 'p:chat_page'))
+  assert.ok(spec.relationships.some((edge) => edge.kind === 'nav' && edge.to === 'x:https://www.openworkbookai.org/help'))
+  assert.deepEqual(new Set(spec.relationships.map((edge) => edge.kind)), new Set(['nav', 'methodCall', 'dataflow']))
+  assert.ok(spec.relationships.some((edge) => edge.kind === 'methodCall' && edge.to === 'm:chat_manager.send_message'))
+  assert.ok(spec.relationships.some((edge) => edge.kind === 'dataflow' && edge.from === 'e:chat_page/message' && edge.to === 'm:chat_manager.send_message'))
+  assert.ok(spec.relationships.some((edge) => edge.kind === 'dataflow' && edge.from === 'm:chat_manager.send_message' && edge.to === 'e:chat_page/send'))
+  assert.ok(spec.relationships.some((edge) => edge.kind === 'dataflow' && edge.from === 's:chat_transcript' && edge.to === 'e:chat_page/transcript'))
+  assert.ok(spec.relationships.some((edge) => edge.kind === 'dataflow' && edge.from === 'e:chat_page/send' && edge.to === 's:chat_transcript'))
+})
+
+test('schema accepts change types on every node and relationship kind', () => {
+  const schema = JSON.parse(readFileSync(new URL('../common/ui-spec/ui-spec.schema.json', import.meta.url), 'utf8'))
+  const validate = new Ajv2020().compile(schema)
+  const spec = structuredClone(expected)
+  spec.content_state.variables[0].changeType = 'modified'
+  spec.backends.chat_manager.changeType = 'unchanged'
+  spec.backends.chat_manager.methods.auth_open_ai.changeType = 'added'
+  spec.pages.chat_page.changeType = 'modified'
+  spec.pages.chat_page.elements[0].changeType = 'unchanged'
+  spec.pages.chat_page.elements[0].elements[0].changeType = 'deleted'
+  for (const edge of spec.relationships) edge.changeType = 'unchanged'
+  assert.equal(validate(spec), true, JSON.stringify(validate.errors))
+  spec.relationships[0].changeType = 'renamed'
+  assert.equal(validate(spec), false)
+  spec.relationships[0].changeType = 'unchanged'
+  spec.pages.chat_page.unexpected = true
+  assert.equal(validate(spec), false)
+  delete spec.pages.chat_page.unexpected
+  spec.changeType = 'modified'
+  assert.equal(validate(spec), false)
+  delete spec.changeType
+  const dataflow = spec.relationships.find((edge) => edge.kind === 'dataflow')!
+  dataflow.role = 'arg'
+  assert.equal(validate(spec), false)
+  delete dataflow.role
+  dataflow.kind = 'read'
+  assert.equal(validate(spec), false)
+  dataflow.kind = 'dataflow'
+  delete spec.relationships[0].from
+  assert.equal(validate(spec), false)
 })
 
 test('embedded code preserves strings, regexes, templates, nested blocks, and comments', () => {
@@ -28,7 +75,7 @@ test('embedded code preserves strings, regexes, templates, nested blocks, and co
     page home { button run { on_click { ${handler}\n } } }
   }`)
   const output = spec.pages.home.elements[0].on_click!
-  assert.deepEqual(spec.content_state.initialization, ['let values = [{ text: "}" }];'])
+  assert.deepEqual(spec.content_state.variables, [{ id: 's:values', name: 'values', initialization: 'let values = [{ text: "}" }];' }])
   assert.ok(output.includes('const pattern = /[{}]/;'))
   assert.ok(output.includes('`value: ${value.text}`'))
   assert.ok(output.includes('// Keep the next statement on its own line: }\n'))
@@ -59,7 +106,7 @@ test('doc comments attach to declarations and backend signatures keep nested typ
       }
     }
   }`)
-  assert.deepEqual(spec.backend_apis.storage, {
+  assert.deepEqual(spec.backends.storage, {
     description: 'Storage API.',
     methods: {
       get: {
@@ -103,6 +150,7 @@ test('leaf elements get an io direction from their kind alone', () => {
 test('invalid syntax and duplicate declarations report source locations', () => {
   const cases: [string, RegExp][] = [
     ['app example { content_state { let value = ; } }', /Unexpected token/],
+    ['app example { content_state { record(value); } }', /Expected an initialized content-state variable/],
     ['app example { content_state {} page home { button go { on_click { let x = ; } } } }', /Unexpected token/],
     ['app example { content_state {} page home { mystery item; } }', /Unknown element kind/],
     ['app example { content_state {} page home { button go { unknown value; } } }', /Unknown element property/],

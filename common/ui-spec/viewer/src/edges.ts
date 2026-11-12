@@ -3,7 +3,7 @@ import { pageOf, type Edge, type EdgeKind, type Model } from './model.ts'
 /** Drawable edges: model edges rerouted for collapsed pages, then merged. Pure, no DOM. */
 
 export type Side = 'l' | 'r' | 't' | 'b'
-export type Layer = 'nav' | 'dataflow' | 'state'
+export type Layer = EdgeKind
 
 export interface DrawEdge {
   kind: EdgeKind
@@ -20,11 +20,9 @@ export interface DrawEdge {
   back: boolean
 }
 
-export const layerOf = (kind: EdgeKind): Layer => (kind === 'write' || kind === 'read' ? 'state' : kind)
-
 /** Build drawable edges for the current set of collapsed pages, then merge pairs. */
 export function drawableEdges(model: Model, collapsed: ReadonlySet<string>): DrawEdge[] {
-  return mergeEdges(buildEdges(model, collapsed))
+  return mergeEdges(model, buildEdges(model, collapsed))
 }
 
 export function buildEdges(model: Model, collapsed: ReadonlySet<string>): DrawEdge[] {
@@ -42,28 +40,45 @@ export function buildEdges(model: Model, collapsed: ReadonlySet<string>): DrawEd
       const fromColumn = model.columns.get(pageOf(model, edge.from) ?? '') ?? 0
       const toColumn = edge.to.startsWith('p:') ? model.columns.get(edge.to.slice(2)) ?? 0 : Infinity
       sides = toColumn > fromColumn ? ['r', 'l'] : ['l', 'r']
-    } else if (edge.kind === 'dataflow' && edge.role !== 'return') sides = [fromPage ? 'b' : 'r', 't']
-    else if (edge.kind === 'dataflow') sides = ['t', toPage ? 'b' : 'r']
-    else if (edge.kind === 'write') sides = [fromPage ? 't' : 'r', 'b']
-    else sides = ['b', toPage ? 't' : 'r']
+    } else if (edge.kind === 'methodCall') {
+      sides = [fromPage ? 'b' : 'r', 't']
+    } else if (edge.kind === 'dataflow' && model.nodes.get(edge.to)?.type === 'method') {
+      sides = [fromPage ? 'b' : 'r', 't']
+    } else if (edge.kind === 'dataflow' && model.nodes.get(edge.from)?.type === 'method') {
+      sides = ['t', 'b']
+    } else if (edge.kind === 'dataflow' && model.nodes.get(edge.to)?.type === 'state') {
+      sides = [fromPage ? 't' : 'r', 'b']
+    } else if (edge.kind === 'dataflow' && model.nodes.get(edge.from)?.type === 'state') {
+      sides = ['b', toPage ? 't' : 'r']
+    } else {
+      sides = ['r', 'l']
+    }
     return { kind: edge.kind, from, to, fromSide: sides[0], toSide: sides[1], toAnchor: edge.kind === 'nav', members: [edge], back: false }
   })
 }
 
-const outward = (edge: DrawEdge) =>
-  edge.kind === 'write' || (edge.kind === 'dataflow' && edge.members[0].role !== 'return') || (edge.kind === 'nav' && edge.fromSide === 'r')
+function outward(model: Model, edge: DrawEdge): boolean {
+  let forward = false
+  if (edge.kind === 'nav') {
+    forward = edge.fromSide === 'r'
+  } else if (edge.kind === 'methodCall') {
+    forward = true
+  } else if (edge.kind === 'dataflow') {
+    const source = model.nodes.get(edge.members[0].from)
+    forward = source?.type !== 'method' && source?.type !== 'state'
+  }
+  return forward
+}
 
 /**
- * Dataflow edges that join the same two drawn nodes merge into one, in either direction; so do state
- * read/write edges (as in impl-dataflow's edges.ts) and navigation edges. The forward edge is the one
- * leaving the element or page (for navigation, the one moving to a later column); a member running the
- * other way makes the merged edge two-way.
+ * Edges of the same kind that join the same two drawn nodes merge in either direction. The forward edge
+ * leaves an element or page (for navigation, moves to a later column); an opposite member makes it two-way.
  */
-export function mergeEdges(edges: DrawEdge[]): DrawEdge[] {
+export function mergeEdges(model: Model, edges: DrawEdge[]): DrawEdge[] {
   const order: string[] = []
   const groups = new Map<string, DrawEdge[]>()
   for (const edge of edges) {
-    const key = `${layerOf(edge.kind)}|${[edge.from, edge.to].sort().join('|')}`
+    const key = `${edge.kind}|${[edge.from, edge.to].sort().join('|')}`
     const group = groups.get(key)
     if (group) group.push(edge)
     else {
@@ -73,7 +88,7 @@ export function mergeEdges(edges: DrawEdge[]): DrawEdge[] {
   }
   return order.map((key) => {
     const group = groups.get(key)!
-    const forward = group.find(outward) ?? group[0]
+    const forward = group.find((edge) => outward(model, edge)) ?? group[0]
     const members = group.flatMap((e) => e.members)
     const back = group.some((e) => e.from === forward.to && e.to === forward.from)
     return { ...forward, members, back }

@@ -1,10 +1,14 @@
 import { createScanner, LanguageVariant, SyntaxKind, type Scanner } from 'typescript/unstable/ast'
 import { parseSync } from 'rolldown/experimental'
+import { populateRelationships } from './relationships.ts'
+import { stateId } from './ids.ts'
 
 interface Documented {
   description?: string
+  changeType?: ChangeType
 }
 
+export type ChangeType = 'added' | 'modified' | 'deleted' | 'unchanged'
 export type ElementIo = 'input' | 'output' | 'input_output'
 
 interface Element extends Documented {
@@ -22,11 +26,20 @@ interface Backend extends Documented {
   methods: Record<string, Documented & { signature: string }>
 }
 
-export interface Spec extends Documented {
+export interface Spec {
   id: string
-  content_state: { initialization: string[] }
-  backend_apis: Record<string, Backend>
+  description?: string
+  content_state: { variables: { id: string; name: string; initialization: string; changeType?: ChangeType }[] }
+  backends: Record<string, Backend>
   pages: Record<string, Documented & { elements: Element[] }>
+  relationships: Edge[]
+}
+
+export type Edge = {
+  kind: 'nav' | 'dataflow' | 'methodCall'
+  from: string
+  to: string
+  changeType?: ChangeType
 }
 
 const elementKinds = new Set([
@@ -45,7 +58,7 @@ const elementIo: Record<string, ElementIo> = {
 }
 
 export function parseSpec(source: string): Spec {
-  return new Parser(source).parse()
+  return populateRelationships(new Parser(source).parse())
 }
 
 class Parser {
@@ -143,9 +156,10 @@ class Parser {
     const spec: Spec = {
       id: this.identifier(),
       ...documentation,
-      content_state: { initialization: [] },
-      backend_apis: {},
+      content_state: { variables: [] },
+      backends: {},
       pages: {},
+      relationships: [],
     }
     let hasContentState = false
     this.expect('{')
@@ -154,13 +168,17 @@ class Parser {
       if (this.at('content_state')) {
         if (hasContentState) this.fail('Duplicate content_state block')
         this.advance()
-        spec.content_state.initialization = this.codeBlock().initialization
+        spec.content_state.variables = this.codeBlock().initialization.map((initialization) => {
+          const match = initialization.match(/^\s*(?:let|const|var)\s+(\w+)\s*=\s*[\s\S]+$/)
+          if (!match) this.fail('Expected an initialized content-state variable')
+          return { id: stateId(match[1]), name: match[1], initialization }
+        })
         hasContentState = true
       } else if (this.at('backend')) {
         this.advance()
         const name = this.identifier()
-        this.unique(spec.backend_apis, name)
-        spec.backend_apis = { ...spec.backend_apis, [name]: { ...documentation, methods: this.backendMethods() } }
+        this.unique(spec.backends, name)
+        spec.backends = { ...spec.backends, [name]: { ...documentation, methods: this.backendMethods() } }
       } else if (this.at('page')) {
         this.advance()
         const name = this.identifier()

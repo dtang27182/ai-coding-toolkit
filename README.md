@@ -87,6 +87,8 @@ npm run parse-ui-spec -- /path/to/app.ui.dsl /path/to/app.ui.json
 npm run ui-spec-viewer
 ```
 
+The parser includes content-state variables and `nav`, `dataflow`, and `methodCall` relationships in the JSON. The viewer reads those relationships from the file.
+
 The viewer opens the bundled example by default and accepts another `.ui.json` through its Open spec control or by dropping the file onto the canvas. Build the viewer with `npm run ui-spec-viewer:build`. The UI DSL syntax extension source is in `common/ui-spec/vscode-extension/`; see its README to try or package it for VS Code. Installing the toolkit does not install a VS Code extension.
 
 ## Generate a High-Level Design

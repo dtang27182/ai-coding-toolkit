@@ -188,7 +188,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .edge-group.hidden { display: none; }
 .edge { fill: none; stroke: var(--edge); }
 .edge.dataflow { stroke-width: 1.6; }
-.edge.state { stroke-width: 1.75; stroke-dasharray: 7 4; stroke-linecap: round; }
+.edge.methodCall { stroke-width: 2.2; }
 .edge.rail { stroke-width: 6.5; stroke-linecap: round; }
 .edge.rail-core { stroke: var(--surface); stroke-width: 2.6; stroke-linecap: round; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -215,7 +215,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .edge-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
 .edge-group:hover .edge:not(.rail-core) { stroke: color-mix(in oklch, var(--edge) 55%, var(--accent)); }
 .edge-group.selected .edge:not(.rail-core) { stroke: var(--accent); }
-.edge-group.selected .edge.dataflow, .edge-group.selected .edge.state { stroke-width: 2.4; }
+.edge-group.selected .edge.dataflow, .edge-group.selected .edge.methodCall { stroke-width: 2.4; }
 
 .inspector { width: var(--inspector-width, clamp(330px, 29vw, 410px)); min-height: 0; overflow-y: auto; flex: 0 0 var(--inspector-width, clamp(330px, 29vw, 410px)); background: var(--header); }
 .inspector-collapsed .inspector, .inspector-collapsed .inspector-resizer { display: none; }

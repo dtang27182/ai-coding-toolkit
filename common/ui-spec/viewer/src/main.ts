@@ -1,7 +1,7 @@
 import type { Spec } from '../../parser/parser.ts'
 import exampleSpec from '../../ui-root.example.ui.json?raw'
 import { deriveModel, pageOf, type ElementNode, type Model } from './model.ts'
-import { drawableEdges, layerOf, type DrawEdge, type Layer, type Side } from './edges.ts'
+import { drawableEdges, type DrawEdge, type Layer, type Side } from './edges.ts'
 import { Router, bezierControls, bezierPoint, roundedPath, separate, stub, type Point, type Port, type Rect } from './route.ts'
 import './styles.css'
 import { renderBackend, renderEdge, renderNode, renderOverview } from './inspector.ts'
@@ -12,7 +12,7 @@ const IO: Record<string, [string, string]> = {
   output: ['→ USER', 'var(--t-output)'],
   input_output: ['USER ⇄', 'var(--t-both)'],
 }
-const LAYERS: [Layer, string][] = [['nav', 'Navigation'], ['dataflow', 'Dataflow'], ['state', 'State reads/writes']]
+const LAYERS: [Layer, string][] = [['nav', 'Navigation'], ['methodCall', 'Method calls'], ['dataflow', 'Dataflow']]
 
 interface Placed { edge: DrawEdge; fromEl: Element; toEl: Element; fromRect: Rect; toRect: Rect; fromT: number; toT: number }
 interface Drawn { edge: DrawEdge; group: SVGGElement }
@@ -63,7 +63,7 @@ const view = {
   selectedEdge: null as number | null,
   /** The spec's top-level description, shown when nothing is selected. */
   description: (JSON.parse(exampleSpec) as Spec).description,
-  layers: { nav: true, dataflow: true, state: true } as Record<Layer, boolean>,
+  layers: { nav: true, methodCall: true, dataflow: true } as Record<Layer, boolean>,
   scale: 1,
   tx: 0,
   ty: 0,
@@ -249,7 +249,7 @@ function drawEdges(placed: Placed[]) {
     if (edge.kind === 'nav') {
       group.append(svgNode('path', { d, class: 'edge rail' }), svgNode('path', { d, class: 'edge rail-core', 'marker-end': 'url(#rail-arrow)', ...(edge.back ? { 'marker-start': 'url(#rail-arrow)' } : {}) }))
     } else {
-      group.append(svgNode('path', { d, class: `edge ${layerOf(edge.kind)}`, 'marker-end': 'url(#arrow)', 'marker-start': edge.back ? 'url(#hollow)' : 'url(#dot)' }))
+      group.append(svgNode('path', { d, class: `edge ${edge.kind}`, 'marker-end': 'url(#arrow)', 'marker-start': edge.back ? 'url(#hollow)' : 'url(#dot)' }))
     }
     // A wide transparent stroke on top makes the edge easy to click.
     group.append(svgNode('path', { d, class: 'edge-hit' }))
@@ -271,8 +271,8 @@ function related(id: string) {
   model.backends.find((b) => b.id === id)?.methods.forEach((m) => ids.add(m))
   // A trigger's compute path includes the fields passed to the methods it calls.
   for (const e of model.edges) {
-    if (e.kind !== 'dataflow' || e.role !== 'call' || !ids.has(e.from)) continue
-    for (const arg of model.edges) if (arg.kind === 'dataflow' && arg.role === 'arg' && arg.to === e.to && pageOf(model, arg.from) === pageOf(model, e.from)) ids.add(arg.from)
+    if (e.kind !== 'methodCall' || !ids.has(e.from)) continue
+    for (const arg of model.edges) if (arg.kind === 'dataflow' && arg.to === e.to && pageOf(model, arg.from) === pageOf(model, e.from)) ids.add(arg.from)
   }
   const set = new Set(ids)
   for (const e of model.edges) {
@@ -292,7 +292,7 @@ function applyFilters() {
   for (const [n, { edge, group }] of view.drawn.entries()) {
     const touches = picked ? n === view.selectedEdge : !!rel && edge.members.some((m) => rel.ids.has(m.from) || rel.ids.has(m.to))
     group.classList.toggle('selected', n === view.selectedEdge)
-    const hidden = !view.layers[layerOf(edge.kind)]
+    const hidden = !view.layers[edge.kind]
     group.classList.toggle('hidden', hidden)
     group.classList.toggle('dimmed', !!rel && !touches)
   }
@@ -384,7 +384,7 @@ function glyph(kind: Layer | 'twoway' | 'navTwoway', width = 30): string {
   const tri = `<path d="M${w - 6} ${y - 3.5} L${w} ${y} L${w - 6} ${y + 3.5} z" fill="${c}"/>`
   const body = {
     dataflow: `<circle cx="3" cy="${y}" r="2.6" fill="${c}"/><line x1="3" y1="${y}" x2="${w - 2}" y2="${y}" stroke="${c}" stroke-width="1.6"/>${tri}`,
-    state: `<circle cx="3" cy="${y}" r="2.6" fill="${c}"/><line x1="3" y1="${y}" x2="${w - 2}" y2="${y}" stroke="${c}" stroke-width="1.75" stroke-dasharray="7 4" stroke-linecap="round"/>${tri}`,
+    methodCall: `<circle cx="3" cy="${y}" r="2.6" fill="${c}"/><line x1="3" y1="${y}" x2="${w - 2}" y2="${y}" stroke="${c}" stroke-width="2.2"/>${tri}`,
     twoway: `<path d="M7 ${y - 3.5} L1 ${y} L7 ${y + 3.5} z" fill="var(--surface)" stroke="${c}" stroke-width="1.2"/><line x1="7" y1="${y}" x2="${w - 2}" y2="${y}" stroke="${c}" stroke-width="1.6"/>${tri}`,
     nav: `<line x1="3" y1="${y}" x2="${w - 7}" y2="${y}" stroke="${c}" stroke-width="6.5" stroke-linecap="round"/><line x1="3" y1="${y}" x2="${w - 7}" y2="${y}" stroke="var(--surface)" stroke-width="2.6" stroke-linecap="round"/><path d="M${w - 9} ${y - 6} L${w} ${y} L${w - 9} ${y + 6} z" fill="${c}"/>`,
     navTwoway: `<line x1="8" y1="${y}" x2="${w - 7}" y2="${y}" stroke="${c}" stroke-width="6.5" stroke-linecap="round"/><line x1="8" y1="${y}" x2="${w - 7}" y2="${y}" stroke="var(--surface)" stroke-width="2.6" stroke-linecap="round"/><path d="M${w - 9} ${y - 6} L${w} ${y} L${w - 9} ${y + 6} z" fill="${c}"/><path d="M9 ${y - 6} L0 ${y} L9 ${y + 6} z" fill="${c}"/>`,
@@ -394,11 +394,11 @@ function glyph(kind: Layer | 'twoway' | 'navTwoway', width = 30): string {
 
 function renderLayers() {
   layersEl.innerHTML = '<span class="label">Layers</span>' + LAYERS.map(([layer, label]) =>
-    `<button class="layer-chip" data-layer="${layer}" aria-pressed="${view.layers[layer]}">${glyph(layer)}${label}<span class="ct">${view.model.edges.filter((e) => layerOf(e.kind) === layer).length}</span></button>`).join('')
+    `<button class="layer-chip" data-layer="${layer}" aria-pressed="${view.layers[layer]}">${glyph(layer)}${label}<span class="ct">${view.model.edges.filter((e) => e.kind === layer).length}</span></button>`).join('')
 }
 
 $('[data-legend]').innerHTML =
-  `<span>${glyph('dataflow')}Dataflow</span><span>${glyph('state')}State read/write</span><span>${glyph('twoway')}Two-way (merged)</span><span>${glyph('nav')}Navigation</span><span>${glyph('navTwoway', 36)}Two-way navigation</span>` +
+  `<span>${glyph('dataflow')}Dataflow</span><span>${glyph('methodCall')}Method call</span><span>${glyph('twoway')}Two-way (merged)</span><span>${glyph('nav')}Navigation</span><span>${glyph('navTwoway', 36)}Two-way navigation</span>` +
   Object.values(IO).map(([text, tone], i) => `<span>${badge(text, tone)}${['input', 'output', 'input and output'][i]}</span>`).join('')
 
 pagesButton.addEventListener('click', () => {
@@ -426,8 +426,8 @@ function showStatus(message: string | null) {
 async function loadFile(file: File) {
   try {
     const spec = JSON.parse(await file.text()) as Spec
-    if (!spec || typeof spec.id !== 'string' || !spec.pages || !spec.backend_apis || !spec.content_state) {
-      throw new Error('expected a ui-spec JSON document with id, content_state, backend_apis and pages')
+    if (!spec || typeof spec.id !== 'string' || !spec.pages || !spec.backends || !spec.content_state) {
+      throw new Error('expected a ui-spec JSON document with id, content_state, backends and pages')
     }
     view.description = spec.description
     load(deriveModel(spec))

@@ -92,10 +92,17 @@ export function renderBackend(backend: Backend): string {
   return header(badge('BACKEND API', 'var(--t-ext)'), backend.name) + section('Description', prose(backend.description))
 }
 
-const KIND_LABEL = (edge: Edge) =>
-  edge.kind === 'nav' ? 'Navigation'
-    : edge.kind === 'dataflow' ? `Dataflow · ${edge.role === 'arg' ? 'argument' : edge.role}`
-      : edge.kind === 'write' ? 'State write' : 'State read'
+function KIND_LABEL(edge: Edge): string {
+  let label = ''
+  if (edge.kind === 'nav') {
+    label = 'Navigation'
+  } else if (edge.kind === 'methodCall') {
+    label = 'Method call'
+  } else if (edge.kind === 'dataflow') {
+    label = 'Dataflow'
+  }
+  return label
+}
 
 function endpoint(model: Model, role: string, id: string): string {
   const node = model.nodes.get(id)
@@ -121,7 +128,7 @@ export function renderEdge(model: Model, edge: DrawEdge): string {
     return header(esc(KIND_LABEL(m)), `${short(m.from)} → ${short(m.to)}`) +
       `<div class="endpoint-pair">${endpoint(model, 'From', m.from)}<span class="endpoint-arrow">→</span>${endpoint(model, 'To', m.to)}</div><div class="pair-gap"></div>`
   }
-  const kinds = [...new Set(members.map((m) => m.kind === 'nav' ? 'Navigation' : m.kind === 'dataflow' ? 'Dataflow' : 'State'))].join(' + ')
+  const kinds = [...new Set(members.map(KIND_LABEL))].join(' + ')
   const arrow = edge.back ? '↔' : '→'
   return header(`Merged ${esc(kinds.toLowerCase())} edges`, `${short(from)} ${arrow} ${short(to)}`, `${members.length} edges`) +
     `<div class="endpoint-pair">${endpoint(model, edge.back ? 'Node' : 'From', from)}<span class="endpoint-arrow">${arrow}</span>${endpoint(model, edge.back ? 'Node' : 'To', to)}</div>` +

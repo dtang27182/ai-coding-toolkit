@@ -1,12 +1,20 @@
 {
   "id": "ui_root",
   "content_state": {
-    "initialization": [
-      "let authenticated_provider = 'none';",
-      "let chat_transcript = [];"
+    "variables": [
+      {
+        "id": "s:authenticated_provider",
+        "name": "authenticated_provider",
+        "initialization": "let authenticated_provider = 'none';"
+      },
+      {
+        "id": "s:chat_transcript",
+        "name": "chat_transcript",
+        "initialization": "let chat_transcript = [];"
+      }
     ]
   },
-  "backend_apis": {
+  "backends": {
     "chat_manager": {
       "description": "Keep the selected provider's API key and chat history in memory. Generate replies with a GPT Terra model through OpenAI or OpenRouter, depending on the selected provider.",
       "methods": {
@@ -150,5 +158,127 @@
         }
       ]
     }
-  }
+  },
+  "relationships": [
+    {
+      "kind": "nav",
+      "from": "e:provider_selection/select_open_router",
+      "to": "p:open_router_sign_in"
+    },
+    {
+      "kind": "nav",
+      "from": "e:provider_selection/select_open_ai",
+      "to": "p:open_ai_sign_in"
+    },
+    {
+      "kind": "nav",
+      "from": "e:open_router_sign_in/back_to_providers",
+      "to": "p:provider_selection"
+    },
+    {
+      "kind": "methodCall",
+      "from": "e:open_router_sign_in/save_key",
+      "to": "m:chat_manager.auth_open_router"
+    },
+    {
+      "kind": "dataflow",
+      "from": "e:open_router_sign_in/api_key",
+      "to": "m:chat_manager.auth_open_router"
+    },
+    {
+      "kind": "dataflow",
+      "from": "e:open_router_sign_in/save_key",
+      "to": "s:authenticated_provider"
+    },
+    {
+      "kind": "nav",
+      "from": "e:open_router_sign_in/save_key",
+      "to": "p:chat_page"
+    },
+    {
+      "kind": "nav",
+      "from": "e:open_ai_sign_in/back_to_providers",
+      "to": "p:provider_selection"
+    },
+    {
+      "kind": "methodCall",
+      "from": "e:open_ai_sign_in/save_key",
+      "to": "m:chat_manager.auth_open_ai"
+    },
+    {
+      "kind": "dataflow",
+      "from": "e:open_ai_sign_in/api_key",
+      "to": "m:chat_manager.auth_open_ai"
+    },
+    {
+      "kind": "dataflow",
+      "from": "e:open_ai_sign_in/save_key",
+      "to": "s:authenticated_provider"
+    },
+    {
+      "kind": "nav",
+      "from": "e:open_ai_sign_in/save_key",
+      "to": "p:chat_page"
+    },
+    {
+      "kind": "nav",
+      "from": "e:chat_page/help",
+      "to": "x:https://www.openworkbookai.org/help"
+    },
+    {
+      "kind": "dataflow",
+      "from": "s:authenticated_provider",
+      "to": "e:chat_page/signed_in_provider"
+    },
+    {
+      "kind": "methodCall",
+      "from": "e:chat_page/sign_out",
+      "to": "m:chat_manager.sign_out"
+    },
+    {
+      "kind": "dataflow",
+      "from": "e:chat_page/sign_out",
+      "to": "s:authenticated_provider"
+    },
+    {
+      "kind": "nav",
+      "from": "e:chat_page/sign_out",
+      "to": "p:provider_selection"
+    },
+    {
+      "kind": "methodCall",
+      "from": "e:chat_page/clear_chat",
+      "to": "m:chat_manager.reset_chat"
+    },
+    {
+      "kind": "dataflow",
+      "from": "e:chat_page/clear_chat",
+      "to": "s:chat_transcript"
+    },
+    {
+      "kind": "dataflow",
+      "from": "s:chat_transcript",
+      "to": "e:chat_page/transcript"
+    },
+    {
+      "kind": "dataflow",
+      "from": "e:chat_page/send",
+      "to": "s:chat_transcript"
+    },
+    {
+      "kind": "methodCall",
+      "from": "e:chat_page/send",
+      "to": "m:chat_manager.send_message"
+    },
+    {
+      "kind": "dataflow",
+      "from": "e:chat_page/message",
+      "to": "m:chat_manager.send_message"
+    },
+    {
+      "kind": "dataflow",
+      "from": "m:chat_manager.send_message",
+      "to": "e:chat_page/send"
+    }
+  ]
 }

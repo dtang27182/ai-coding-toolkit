@@ -12,8 +12,8 @@ const right: Port = { x: 300, y: 0, nx: -1, ny: 0 }
 
 const spec: Spec = JSON.parse(readFileSync(new URL('../common/ui-spec/ui-root.example.ui.json', import.meta.url), 'utf8'))
 const model = deriveModel(spec)
-const has = (kind: string, from: string, to: string, role?: string) =>
-  model.edges.some((e) => e.kind === kind && e.from === from && e.to === to && (role === undefined || e.role === role))
+const has = (kind: string, from: string, to: string) =>
+  model.edges.some((e) => e.kind === kind && e.from === from && e.to === to)
 
 test('splitStatements ignores semicolons inside strings and brackets', () => {
   assert.deepEqual(splitStatements("a = [1; 2]; b('x;y'); c"), ['a = [1; 2]', "b('x;y')", 'c'])
@@ -22,36 +22,41 @@ test('splitStatements ignores semicolons inside strings and brackets', () => {
 test('derives nodes and page columns from the example spec', () => {
   assert.deepEqual(model.state.map((s) => s.name), ['authenticated_provider', 'chat_transcript'])
   assert.equal(model.methods.length, 6)
+  assert.deepEqual(model.externals.map((node) => node.url), ['https://www.openworkbookai.org/help'])
   assert.equal(model.pages[0].entry, true)
   assert.deepEqual(Object.fromEntries(model.columns), { provider_selection: 0, open_router_sign_in: 1, open_ai_sign_in: 1, chat_page: 2 })
 })
 
-test('derives navigation, dataflow and state edges from on_click and reads', () => {
+test('reads navigation, method calls and dataflow from the parsed spec', () => {
   assert.ok(has('nav', 'e:provider_selection/select_open_router', 'p:open_router_sign_in'))
-  assert.ok(has('dataflow', 'e:open_router_sign_in/save_key', 'm:chat_manager.auth_open_router', 'call'))
-  assert.ok(has('dataflow', 'e:open_router_sign_in/api_key', 'm:chat_manager.auth_open_router', 'arg'))
-  assert.ok(has('dataflow', 'm:chat_manager.send_message', 'e:chat_page/send', 'return'))
-  assert.ok(has('write', 'e:open_router_sign_in/save_key', 's:authenticated_provider'))
-  assert.ok(has('read', 's:chat_transcript', 'e:chat_page/transcript'))
-  const sendWrites = model.edges.filter((e) => e.kind === 'write' && e.from === 'e:chat_page/send')
+  assert.ok(has('methodCall', 'e:open_router_sign_in/save_key', 'm:chat_manager.auth_open_router'))
+  assert.ok(has('dataflow', 'e:open_router_sign_in/api_key', 'm:chat_manager.auth_open_router'))
+  assert.ok(has('dataflow', 'm:chat_manager.send_message', 'e:chat_page/send'))
+  assert.ok(has('dataflow', 'e:open_router_sign_in/save_key', 's:authenticated_provider'))
+  assert.ok(has('dataflow', 's:chat_transcript', 'e:chat_page/transcript'))
+  const sendWrites = model.edges.filter((e) => e.kind === 'dataflow' && e.from === 'e:chat_page/send' && e.to === 's:chat_transcript')
   assert.equal(sendWrites.length, 1, 'repeated writes to the same variable are one edge')
 })
 
-test('merges a call and its return into one two-way dataflow edge', () => {
-  const edges = drawableEdges(model, new Set())
-  const send = edges.filter((e) => e.kind === 'dataflow' && [e.from, e.to].includes('e:chat_page/send') && [e.from, e.to].includes('m:chat_manager.send_message'))
-  assert.equal(send.length, 1)
-  assert.equal(send[0].from, 'e:chat_page/send')
-  assert.equal(send[0].back, true)
-  assert.equal(send[0].members.length, 2)
+test('viewer uses serialized relationships without deriving them again', () => {
+  const withoutEdges = deriveModel({ ...spec, relationships: [] })
+  assert.deepEqual(withoutEdges.edges, [])
+  assert.equal(withoutEdges.columns.get('chat_page'), 1)
 })
 
-test('collapsing a page reroutes its edges to the page and re-merges them', () => {
+test('keeps a method call distinct from its return dataflow', () => {
+  const edges = drawableEdges(model, new Set())
+  const send = edges.filter((e) => [e.from, e.to].includes('e:chat_page/send') && [e.from, e.to].includes('m:chat_manager.send_message'))
+  assert.deepEqual(send.map((edge) => edge.kind), ['methodCall', 'dataflow'])
+  assert.ok(send.every((edge) => edge.members.length === 1))
+  assert.notEqual(send[0].fromSide, send[1].toSide, 'call and return attach to different sides of the element')
+})
+
+test('collapsing a page reroutes method calls and argument dataflow independently', () => {
   const edges = drawableEdges(model, new Set(['open_router_sign_in']))
-  const toAuth = edges.filter((e) => e.kind === 'dataflow' && e.to === 'm:chat_manager.auth_open_router')
-  assert.equal(toAuth.length, 1, 'trigger and argument edges merge once both start at the collapsed page')
-  assert.equal(toAuth[0].from, 'p:open_router_sign_in')
-  assert.equal(toAuth[0].members.length, 2)
+  const toAuth = edges.filter((e) => e.to === 'm:chat_manager.auth_open_router')
+  assert.deepEqual(toAuth.map((edge) => edge.kind), ['methodCall', 'dataflow'])
+  assert.ok(toAuth.every((edge) => edge.from === 'p:open_router_sign_in' && edge.members.length === 1))
   assert.ok(edges.every((e) => !e.from.startsWith('e:open_router_sign_in/') && !e.to.startsWith('e:open_router_sign_in/')))
 })
 
@@ -134,12 +139,12 @@ test('inspector shows the full on_click of elements that have one', () => {
 test('inspector names both ends of single and merged edges', () => {
   assert.equal(qualifiedName(model, 'e:chat_page/sign_out'), 'chat_page › settings › sign_out')
   const edges = drawableEdges(model, new Set(['open_router_sign_in']))
-  const merged = edges.find((e) => e.kind === 'dataflow' && e.to === 'm:chat_manager.auth_open_router')!
+  const merged = drawableEdges(model, new Set(['chat_page'])).find((e) => e.kind === 'dataflow' && [e.from, e.to].includes('p:chat_page') && [e.from, e.to].includes('s:chat_transcript'))!
   const mergedHtml = renderEdge(model, merged)
-  assert.match(mergedHtml, /2 edges/)
-  assert.match(mergedHtml, /open_router_sign_in › save_key/)
-  assert.match(mergedHtml, /open_router_sign_in › api_key/)
-  const single = edges.find((e) => e.members.length === 1 && e.kind === 'dataflow' && e.to === 'm:chat_manager.reset_chat')!
+  assert.match(mergedHtml, /3 edges/)
+  assert.match(mergedHtml, /chat_page › clear_chat/)
+  assert.match(mergedHtml, /chat_page › transcript/)
+  const single = edges.find((e) => e.members.length === 1 && e.kind === 'methodCall' && e.to === 'm:chat_manager.reset_chat')!
   const singleHtml = renderEdge(model, single)
   assert.match(singleHtml, /From/)
   assert.match(singleHtml, /chat_page › clear_chat/)

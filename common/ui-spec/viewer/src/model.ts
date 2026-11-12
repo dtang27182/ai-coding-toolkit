@@ -1,19 +1,14 @@
-import type { Spec } from '../../parser/parser.ts'
+import type { ChangeType, Spec } from '../../parser/parser.ts'
+import { elementId, externalId, methodId, pageId } from '../../parser/ids.ts'
+export { splitStatements } from '../../parser/relationships.ts'
 
 /** Graph model derived from a ui-spec JSON document (ui-spec.schema.json). */
 
 type SpecElement = Spec['pages'][string]['elements'][number]
 
-export type EdgeKind = 'nav' | 'dataflow' | 'write' | 'read'
-/** Dataflow roles: the trigger calling a method, a field passed as an argument, a captured return value. */
-export type DataflowRole = 'call' | 'arg' | 'return'
+export type EdgeKind = Spec['relationships'][number]['kind']
 
-export interface Edge {
-  kind: EdgeKind
-  from: string
-  to: string
-  role?: DataflowRole
-}
+export type Edge = Spec['relationships'][number]
 
 export interface PageNode {
   type: 'page'
@@ -22,6 +17,7 @@ export interface PageNode {
   description?: string
   entry: boolean
   children: string[]
+  changeType?: ChangeType
 }
 
 export interface ElementNode {
@@ -39,6 +35,7 @@ export interface ElementNode {
   url?: string
   content?: string
   reads?: string[]
+  changeType?: ChangeType
 }
 
 export interface MethodNode {
@@ -48,6 +45,7 @@ export interface MethodNode {
   backend: string
   signature: string
   description?: string
+  changeType?: ChangeType
 }
 
 export interface StateNode {
@@ -57,6 +55,7 @@ export interface StateNode {
   init: string
   /** The full initialization statement from the spec. */
   source: string
+  changeType?: ChangeType
 }
 
 export interface ExternalNode {
@@ -73,6 +72,7 @@ export interface Backend {
   name: string
   description?: string
   methods: string[]
+  changeType?: ChangeType
 }
 
 export interface Model {
@@ -89,123 +89,53 @@ export interface Model {
   columns: Map<string, number>
 }
 
-export const pageId = (name: string) => `p:${name}`
-export const elementId = (page: string, name: string) => `e:${page}/${name}`
-export const methodId = (backend: string, name: string) => `m:${backend}.${name}`
-export const stateId = (name: string) => `s:${name}`
-export const externalId = (url: string) => `x:${url}`
-
 export function deriveModel(spec: Spec): Model {
   const nodes = new Map<string, GraphNode>()
-  const edges: Edge[] = []
+  const edges = spec.relationships
 
-  const state: StateNode[] = []
-  for (const line of spec.content_state.initialization) {
-    const match = line.match(/^\s*(?:let|const|var)\s+(\w+)\s*=\s*(.+?);?\s*$/)
-    if (match) state.push({ type: 'state', id: stateId(match[1]), name: match[1], init: match[2], source: line.trim() })
-  }
+  const state: StateNode[] = spec.content_state.variables.map((variable) => ({
+    type: 'state', id: variable.id, name: variable.name,
+    init: variable.initialization.replace(/^\s*(?:let|const|var)\s+\w+\s*=\s*/, '').replace(/;?\s*$/, ''),
+    source: variable.initialization, changeType: variable.changeType,
+  }))
 
   const backends: Backend[] = []
   const methods: MethodNode[] = []
-  for (const [name, backend] of Object.entries(spec.backend_apis)) {
+  for (const [name, backend] of Object.entries(spec.backends)) {
     const ids: string[] = []
     for (const [method, def] of Object.entries(backend.methods)) {
-      const node: MethodNode = { type: 'method', id: methodId(name, method), name: method, backend: name, signature: def.signature, description: def.description }
+      const node: MethodNode = { type: 'method', id: methodId(name, method), name: method, backend: name, signature: def.signature, description: def.description, changeType: def.changeType }
       methods.push(node)
       ids.push(node.id)
     }
-    backends.push({ id: `b:${name}`, name, description: backend.description, methods: ids })
+    backends.push({ id: `b:${name}`, name, description: backend.description, methods: ids, changeType: backend.changeType })
   }
 
   const elements: ElementNode[] = []
   const walk = (page: string, list: SpecElement[], parent: string | null): string[] => list.map((element) => {
     const node: ElementNode = {
       type: 'element', id: elementId(page, element.id), name: element.id, kind: element.kind, io: element.io, page, parent, children: [],
-      description: element.description, onClick: element.on_click, url: element.url, content: element.content, reads: element.reads,
+      description: element.description, onClick: element.on_click, url: element.url, content: element.content, reads: element.reads, changeType: element.changeType,
     }
     elements.push(node)
     if (element.kind === 'container') node.children = walk(page, element.elements ?? [], node.id)
     return node.id
   })
   const pages: PageNode[] = Object.entries(spec.pages).map(([name, page], index) => ({
-    type: 'page', id: pageId(name), name, description: page.description, entry: index === 0, children: walk(name, page.elements, null),
+    type: 'page', id: pageId(name), name, description: page.description, entry: index === 0, children: walk(name, page.elements, null), changeType: page.changeType,
   }))
 
   const externals: ExternalNode[] = []
-  for (const group of [state, methods, elements, pages] as GraphNode[][]) for (const node of group) nodes.set(node.id, node)
-
-  const stateNames = new Set(state.map((s) => s.name))
-  const backendNames = new Set(backends.map((b) => b.name))
-  const add = (edge: Edge) => {
-    if (!edges.some((e) => e.kind === edge.kind && e.from === edge.from && e.to === edge.to && e.role === edge.role)) edges.push(edge)
-  }
-
   for (const element of elements) {
-    const samePage = (name: string) => elements.find((e) => e.page === element.page && e.name === name)
-    for (const statement of splitStatements(element.onClick ?? '')) {
-      const nav = statement.match(/^navigate\(\s*['"](\w+)['"]\s*\)$/)
-      if (nav) {
-        add({ kind: 'nav', from: element.id, to: pageId(nav[1]) })
-        continue
-      }
-      let callId: string | undefined
-      const call = statement.match(/(\w+)\.(\w+)\(([^)]*)\)/)
-      if (call && backendNames.has(call[1])) {
-        callId = methodId(call[1], call[2])
-        add({ kind: 'dataflow', role: 'call', from: element.id, to: callId })
-        for (const arg of call[3].split(',').map((a) => a.trim()).filter(Boolean)) {
-          const source = samePage(arg)
-          if (source) add({ kind: 'dataflow', role: 'arg', from: source.id, to: callId })
-        }
-      }
-      const assignment = statement.match(/^(?:const\s+|let\s+)?(\w+)\s*=\s*([\s\S]+)$/)
-      if (assignment) {
-        const target = assignment[1]
-        if (callId) add({ kind: 'dataflow', role: 'return', from: callId, to: element.id })
-        if (stateNames.has(target)) add({ kind: 'write', from: element.id, to: stateId(target) })
-      }
+    if (element.kind === 'link' && element.url && !externals.some((external) => external.url === element.url)) {
+      externals.push({ type: 'external', id: externalId(element.url), name: element.url.replace(/^https?:\/\/(www\.)?/, ''), url: element.url })
     }
-    if (element.kind === 'link' && element.url) {
-      const id = externalId(element.url)
-      if (!nodes.has(id)) {
-        const node: ExternalNode = { type: 'external', id, name: element.url.replace(/^https?:\/\/(www\.)?/, ''), url: element.url }
-        externals.push(node)
-        nodes.set(id, node)
-      }
-      add({ kind: 'nav', from: element.id, to: id })
-    }
-    for (const read of element.reads ?? []) if (stateNames.has(read)) add({ kind: 'read', from: stateId(read), to: element.id })
-    const content = element.content?.trim()
-    if (element.kind === 'text' && content && stateNames.has(content)) add({ kind: 'read', from: stateId(content), to: element.id })
   }
+  for (const group of [state, methods, elements, pages, externals] as GraphNode[][]) for (const node of group) nodes.set(node.id, node)
 
   const model: Model = { id: spec.id, pages, elements, methods, backends, state, externals, edges, nodes, columns: new Map() }
   model.columns = pageColumns(model)
   return model
-}
-
-/** Split an on_click body into top-level statements (ignores ; inside strings, brackets and template literals). */
-export function splitStatements(source: string): string[] {
-  const statements: string[] = []
-  let depth = 0
-  let quote = ''
-  let current = ''
-  for (let i = 0; i < source.length; i++) {
-    const char = source[i]
-    current += char
-    if (quote) {
-      if (char === '\\') current += source[++i] ?? ''
-      else if (char === quote) quote = ''
-    } else if (char === '"' || char === "'" || char === '`') quote = char
-    else if ('([{'.includes(char)) depth++
-    else if (')]}'.includes(char)) depth--
-    else if (char === ';' && depth === 0) {
-      statements.push(current.slice(0, -1).trim())
-      current = ''
-    }
-  }
-  statements.push(current.trim())
-  return statements.filter(Boolean)
 }
 
 export function pageOf(model: Model, id: string): string | undefined {
@@ -215,7 +145,7 @@ export function pageOf(model: Model, id: string): string | undefined {
 
 /** Methods reached by at least one trigger. */
 export function calledMethods(model: Model): Set<string> {
-  return new Set(model.edges.filter((e) => e.kind === 'dataflow' && e.role === 'call').map((e) => e.to))
+  return new Set(model.edges.filter((e) => e.kind === 'methodCall').map((e) => e.to))
 }
 
 /** Page columns: BFS depth over page-to-page navigation from the entry page; unreachable pages go last. */
