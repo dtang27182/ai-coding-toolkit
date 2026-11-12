@@ -72,9 +72,9 @@ In the target repository, the installer records the selection in `ai-coding-tool
 
 Each target repository has its own files and output configuration and works independently of this checkout. Rerun the installer to update its installed copies; this overwrites files in directories marked as toolkit installations. It will not replace unrelated existing directories or npm scripts. Links created by the earlier installer to this checkout are replaced with copies.
 
-## Build a UI from a UI Spec
+## Design a UI Change
 
-Use `$ui-design` to build a new Vite TypeScript UI from a `.ui.dsl` application spec when its declared backend already exists. The skill and supporting format live in `ui-design/` and `common/ui-spec/`. Install them alone with:
+Use `$ui-design` with high level requirements and an existing codebase to produce before and after `.ui.dsl` designs, a change-annotated `.diff.ui.json`, and a UI design document. The skill and supporting format live in `ui-design/` and `common/ui-spec/`. Install them alone with:
 
 ```sh
 npm run install:ui-design -- /path/to/code-repo

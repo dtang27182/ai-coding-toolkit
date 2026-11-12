@@ -1,16 +1,21 @@
 ---
 name: ui-design
-description: Build a new Vite TypeScript UI from a .ui.dsl application specification when the declared backend already exists in the repository.
+description: Design a change to an existing UI from high level requirements and the codebase, producing before and after UI DSL, a change-annotated UI JSON, and a design document.
 ---
 
-# Build a Vite app from UI DSL
+# UI Design
 
-Use this skill for a **new app**. Treat the `.ui.dsl` file as the source of truth for behavior and the existing backend as the implementation of its declared API.
+Use the high level requirements and the existing codebase to describe the current UI architecture, the proposed architecture, and the changes needed to reach it. Keep the design at the level of pages, elements, content state, navigation, and backend interactions.
 
-1. Read the spec and locate the backend implementation. Run `node ai-coding-toolkit/common/ui-spec/parser/parse-spec.ts <input.ui.dsl> <output.ui.json>` and inspect the resulting JSON against `ai-coding-toolkit/common/ui-spec/ui-spec.schema.json`; the parser does not validate references. Check that page targets, content-state names, and backend calls resolve, and identify any method-name or return-shape differences before wiring the UI.
-2. Create a Vite TypeScript entry point and a controller for each declared page. Use the first declared page as the initial page unless the task supplies another entry page. Initialize content state from `content_state`; keep input values, open menus, pending requests, errors, and other UI control state separate. Keep page and element IDs traceable to the spec.
-3. Implement every element and `on_click` action, including nested containers, links, content reads, state writes, backend calls, and navigation. Execute statements in their written order. Await a backend operation before running the next statement when it returns a promise; update visible content after state changes so users can see intermediate results. Make `custom` elements from their doc comments and `reads` declarations.
-4. Connect to the existing backend without changing its behavior. Use a small UI adapter if the implementation names or types differ from the declared interface. Follow any supplied visual mockup; otherwise make a simple, accessible layout without treating visual choices as spec behavior.
-5. Run the app's type check, build, and relevant behavior tests. Verify each page is reachable, displayed content reflects state, actions call the backend in order, and navigation works. Report any spec ambiguity or backend mismatch that could not be resolved from the repository.
+## Workflow
 
-See `ai-coding-toolkit/common/ui-spec/ui-root.example.ui.dsl` and `ai-coding-toolkit/common/ui-spec/ui-root.example.ui.json` for the supported syntax and JSON shape. Do not assume that parsing alone generates an app.
+Choose one stable `<feature>` slug and write these four files together: `<feature>.old.ui.dsl`, `<feature>.new.ui.dsl`, `<feature>.diff.ui.json`, and `<feature>.ui-design-doc.md`. Use the user's requested destination, or write them under `<outputDirectory>/<feature>/` with `outputDirectory` from `ai-coding-toolkit/config.json` when present and `docs/plans/features` otherwise.
+
+1. Use `ai-coding-toolkit/ui-design/define/high-level-requirements-template.md` to organize the supplied requirements. Preserve their original meaning and wording in the design document. Inspect the relevant UI code, state, navigation, and backend interfaces before describing the baseline.
+2. Present the organized Desired Behavior and Scope and Assumptions to the user and obtain explicit approval before drafting the design artifacts. If the user corrects them, revise and present them again. An explicit approval already given in the conversation satisfies this step.
+3. Write the old DSL from current code and the new DSL for the required end state. Use the same level of detail in both. Refer to `ai-coding-toolkit/common/ui-spec/ui-root.example.ui.dsl` for syntax and `ai-coding-toolkit/common/ui-spec/ui-spec.schema.json` for the parsed JSON format.
+4. Parse both DSL files with `node ai-coding-toolkit/common/ui-spec/parser/parse-spec.ts <input.ui.dsl> <output.ui.json>` into temporary JSON files. Check that navigation targets, content-state references, backend methods, and relationship endpoints resolve; parsing does not validate those references.
+5. Build the diff JSON from the two parsed graphs. Use the proposed graph as the base and include old-only nodes and edges so deletions remain visible. Match nodes by their explicit IDs or keyed names, and edges by kind and endpoints. Mark every node and edge relative to the current code; classify edges independently of their endpoints. Use new properties for retained and added entries, old properties for deleted entries, and treat a rename or move as deletion plus addition when no reliable identity links the two.
+6. Fill `ai-coding-toolkit/ui-design/generate/ui-design-doc-template.md` with the original requirements, links to the three graph artifacts, and a narrative explaining the changes shown in the diff. Check the diff JSON against the UI spec schema and review all four artifacts for consistency.
+
+Deliver the four artifacts for design review.
