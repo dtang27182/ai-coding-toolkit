@@ -26,7 +26,7 @@ app.innerHTML = `
     <header class="topbar">
       <div class="brand">
         <span class="stage-chip">UI spec</span>
-        <span class="file-label" data-spec-name></span>
+        <span class="file-label" data-file-name></span>
         <span class="counts" data-spec-counts></span>
       </div>
       <div class="layers" data-layers></div>
@@ -75,12 +75,14 @@ const view = {
   connected: new Set<string>(),
 }
 
-function load(model: Model) {
+function load(model: Model, fileName: string) {
   view.model = model
   view.collapsed = new Set(model.pages.map((p) => p.name))
   view.selected = null
   view.connected = new Set(model.edges.flatMap((e) => [e.from, e.to]))
-  $('[data-spec-name]').textContent = model.id
+  const fileLabel = $<HTMLElement>('[data-file-name]')
+  fileLabel.textContent = fileName
+  fileLabel.title = fileName
   $('[data-spec-counts]').textContent = `${model.pages.length} pages · ${model.elements.filter((e) => e.kind !== 'container').length} elements · ${model.methods.length} API methods · ${model.state.length} content-state vars`
   renderLayers()
   render()
@@ -427,23 +429,40 @@ function showStatus(message: string | null) {
   statusEl.textContent = message ?? ''
 }
 
-async function loadFile(file: File) {
+async function loadFile(file: File, fileName = file.name) {
   try {
     const spec = JSON.parse(await file.text()) as Spec
     if (!spec || typeof spec.id !== 'string' || !spec.pages || !spec.backends || !spec.contentState) {
       throw new Error('expected a ui-spec JSON document with id, contentState, backends and pages')
     }
     view.description = spec.description
-    load(deriveModel(spec))
+    load(deriveModel(spec), fileName)
     showStatus(null)
   } catch (error) {
-    showStatus(`${file.name}: ${error instanceof Error ? error.message : String(error)}`)
+    showStatus(`${fileName}: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
+let openedManually = false
+
+async function openDefaultFile() {
+  try {
+    const response = await fetch('/__ui-spec/default')
+    if (response.ok && response.status !== 204) {
+      const defaultFile = await response.json() as { fileName: string; contents: string }
+      if (!openedManually) await loadFile(new File([defaultFile.contents], defaultFile.fileName, { type: 'application/json' }), defaultFile.fileName)
+    }
+  } catch {
+    // The bundled example remains available when the dev server endpoint is absent.
   }
 }
 
 $<HTMLInputElement>('[data-open]').addEventListener('change', (event) => {
   const input = event.target as HTMLInputElement
-  if (input.files?.[0]) void loadFile(input.files[0])
+  if (input.files?.[0]) {
+    openedManually = true
+    void loadFile(input.files[0])
+  }
   input.value = ''
 })
 const dropOverlay = $<HTMLDivElement>('[data-drop]')
@@ -453,7 +472,10 @@ canvas.addEventListener('drop', (event) => {
   event.preventDefault()
   dropOverlay.hidden = true
   const file = event.dataTransfer?.files[0]
-  if (file) void loadFile(file)
+  if (file) {
+    openedManually = true
+    void loadFile(file)
+  }
 })
 
 /* ---------- pan / zoom / clicks ---------- */
@@ -551,5 +573,6 @@ $('[data-zoom]').addEventListener('click', (event) => {
   setTransform()
 })
 
-load(view.model)
+load(view.model, 'common/ui-spec/ui-root.example.ui.json')
+void openDefaultFile()
 void document.fonts.ready.then(() => { render(); fit() })

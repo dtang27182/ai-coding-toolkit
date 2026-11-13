@@ -103,7 +103,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .topbar { flex: 0 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--header); }
 .brand { display: flex; align-items: baseline; gap: 10px; flex: 1 1 300px; min-width: 0; }
 .stage-chip { padding: 3px 7px; border-radius: 4px; font: 500 10px var(--mono); letter-spacing: .08em; color: var(--accent-ink); background: var(--accent-soft); text-transform: uppercase; white-space: nowrap; }
-.file-label { font: 600 18px var(--mono); letter-spacing: -.01em; color: var(--bright); white-space: nowrap; }
+.file-label { min-width: 0; overflow: hidden; font: 600 18px var(--mono); letter-spacing: -.01em; color: var(--bright); text-overflow: ellipsis; white-space: nowrap; }
 .counts { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .layers { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .label { font: 500 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }

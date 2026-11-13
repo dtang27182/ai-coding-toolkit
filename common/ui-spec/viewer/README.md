@@ -13,11 +13,11 @@ The palette follows the OS appearance the same way impl-dataflow does: dark by d
 ## Run
 
 ```sh
-npm run ui-spec-viewer        # dev server, opens the example spec
+npm run ui-spec-viewer        # dev server, opens the newest UI diff from the configured output directory
 npm run ui-spec-viewer:build  # static build into common/ui-spec/viewer/dist
 ```
 
-Load another spec with **Open spec** or by dropping a `.ui.json` file on the canvas. To view a DSL file, convert it first with `npm run parse-ui-spec`.
+The dev server searches recursively under `outputDirectory` in `config.json` for `.ui.diff.json` and `.diff.ui.json` files, and opens the newest by modification time. If none exists, the bundled example opens. Load another spec with **Open spec** or by dropping a `.ui.json` file on the canvas. To view a DSL file, convert it first with `npm run parse-ui-spec`.
 
 ## Code
 
