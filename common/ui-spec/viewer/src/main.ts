@@ -5,6 +5,7 @@ import { drawableEdges, type DrawEdge, type Layer, type Side } from './edges.ts'
 import { Router, bezierControls, bezierPoint, roundedPath, separate, stub, type Point, type Port, type Rect } from './route.ts'
 import './styles.css'
 import { renderBackend, renderEdge, renderNode, renderOverview } from './inspector.ts'
+import { manifestFiles, type ManifestFile, type ManifestTab } from './manifest.ts'
 
 /** Direction badge and tint for each io value. */
 const IO: Record<string, [string, string]> = {
@@ -31,8 +32,9 @@ app.innerHTML = `
       </div>
       <div class="layers" data-layers></div>
       <button class="control-button" data-toggle-pages></button>
-      <label class="open-button">Open spec<input type="file" data-open hidden></label>
+      <label class="open-button">Open file<input type="file" data-open hidden></label>
     </header>
+    <div class="spec-tabs" data-spec-tabs role="tablist" aria-label="UI design files" hidden></div>
     <div class="workspace inspector-collapsed" data-workspace>
     <div class="canvas" data-canvas>
       <div class="graph" data-graph></div>
@@ -43,7 +45,7 @@ app.innerHTML = `
       </div>
       <div class="legend" data-legend></div>
       <div class="status-banner" data-status hidden></div>
-      <div class="drop-overlay" data-drop hidden>Drop a .ui.json or .ui.dsl spec</div>
+      <div class="drop-overlay" data-drop hidden>Drop a UI design manifest, .ui.json, or .ui.dsl file</div>
     </div>
     <button class="inspector-rail" data-toggle-inspector aria-label="Show inspector" title="Show inspector"><span class="inspector-rail-chevron">‹</span><span class="inspector-rail-label">Inspector</span></button>
     <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" tabindex="0"><button class="inspector-collapse" data-toggle-inspector aria-label="Hide inspector" title="Hide inspector">›</button></div>
@@ -57,6 +59,7 @@ const canvas = $<HTMLDivElement>('[data-canvas]')
 const layersEl = $<HTMLDivElement>('[data-layers]')
 const statusEl = $<HTMLDivElement>('[data-status]')
 const pagesButton = $<HTMLButtonElement>('[data-toggle-pages]')
+interface OpenTab extends ManifestFile { spec: Spec; fileName: string }
 
 const view = {
   model: deriveModel(JSON.parse(exampleSpec) as Spec),
@@ -73,6 +76,9 @@ const view = {
   drawn: [] as Drawn[],
   /** Node ids with at least one edge; backend methods without one are not drawn. */
   connected: new Set<string>(),
+  tabs: [] as OpenTab[],
+  activeTab: null as ManifestTab | null,
+  manifestName: null as string | null,
 }
 
 function load(model: Model, fileName: string) {
@@ -88,6 +94,27 @@ function load(model: Model, fileName: string) {
   render()
   fit()
   renderInspector()
+}
+
+function renderTabs() {
+  const tabsEl = $<HTMLElement>('[data-spec-tabs]')
+  tabsEl.hidden = view.tabs.length === 0
+  tabsEl.title = view.manifestName ?? ''
+  tabsEl.innerHTML = view.tabs.map((tab) => `<button class="spec-tab" data-spec-tab="${tab.key}" role="tab" aria-selected="${view.activeTab === tab.key}" title="${esc(tab.fileName)}">${tab.label}</button>`).join('')
+}
+
+function showSpec(spec: Spec, fileName: string) {
+  view.description = spec.description
+  load(deriveModel(spec), fileName)
+}
+
+function selectTab(key: ManifestTab) {
+  const tab = view.tabs.find((item) => item.key === key)
+  if (tab !== undefined) {
+    view.activeTab = key
+    renderTabs()
+    showSpec(tab.spec, tab.fileName)
+  }
 }
 
 /* ---------- markup ---------- */
@@ -429,27 +456,65 @@ function showStatus(message: string | null) {
   statusEl.textContent = message ?? ''
 }
 
+function parseJsonSpec(contents: string): Spec {
+  const spec = JSON.parse(contents) as Spec
+  if (!spec || typeof spec.id !== 'string' || !spec.pages || !spec.backends || !spec.contentState) {
+    throw new Error('expected a ui-spec JSON document with id, contentState, backends and pages')
+  }
+  return spec
+}
+
+async function readSpecFile(file: File): Promise<Spec> {
+  if (file.name.endsWith('.ui.dsl')) {
+    const response = await fetch('/__ui-spec/parse', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: await file.text() })
+    if (response.status === 400) {
+      throw new Error(await response.text())
+    } else if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json')) {
+      throw new Error('DSL conversion requires the UI-spec viewer server')
+    } else {
+      return parseJsonSpec(await response.text())
+    }
+  } else {
+    return parseJsonSpec(await file.text())
+  }
+}
+
+async function openManifest(value: unknown, fileName: string, defaultOpen = false) {
+  const references = manifestFiles(value)
+  const files = await Promise.all(references.map(async (reference) => {
+    const response = await fetch(`/__ui-spec/reference?path=${encodeURIComponent(reference.path)}`)
+    if (response.status === 404) {
+      return undefined
+    } else if (!response.ok) {
+      throw new Error(`${reference.path}: ${await response.text()}`)
+    } else {
+      const file = await response.json() as { fileName: string; contents: string }
+      return { ...reference, fileName: file.fileName, spec: parseJsonSpec(file.contents) }
+    }
+  }))
+  const available = files.filter((file): file is OpenTab => file !== undefined)
+  if (available.length === 0) throw new Error('UI design manifest has no available UI files')
+  if (!defaultOpen || !openedManually) {
+    view.tabs = available
+    view.manifestName = fileName
+    selectTab((available.find((file) => file.key === 'diffUiJson') ?? available[0]).key)
+    showStatus(null)
+  }
+}
+
 async function loadFile(file: File, fileName = file.name) {
   try {
-    let spec: Spec
-    if (file.name.endsWith('.ui.dsl')) {
-      const response = await fetch('/__ui-spec/parse', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: await file.text() })
-      if (response.status === 400) {
-        throw new Error(await response.text())
-      } else if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json')) {
-        throw new Error('DSL conversion requires the UI-spec viewer server')
-      } else {
-        spec = await response.json() as Spec
-      }
+    if (file.name.endsWith('ui-design-manifest.json')) {
+      await openManifest(JSON.parse(await file.text()), fileName)
     } else {
-      spec = JSON.parse(await file.text()) as Spec
+      const spec = await readSpecFile(file)
+      view.tabs = []
+      view.activeTab = null
+      view.manifestName = null
+      renderTabs()
+      showSpec(spec, fileName)
+      showStatus(null)
     }
-    if (!spec || typeof spec.id !== 'string' || !spec.pages || !spec.backends || !spec.contentState) {
-      throw new Error('expected a ui-spec JSON document with id, contentState, backends and pages')
-    }
-    view.description = spec.description
-    load(deriveModel(spec), fileName)
-    showStatus(null)
   } catch (error) {
     showStatus(`${fileName}: ${error instanceof Error ? error.message : String(error)}`)
   }
@@ -459,15 +524,26 @@ let openedManually = false
 
 async function openDefaultFile() {
   try {
-    const response = await fetch('/__ui-spec/default')
-    if (response.ok && response.status !== 204) {
-      const defaultFile = await response.json() as { fileName: string; contents: string }
-      if (!openedManually) await loadFile(new File([defaultFile.contents], defaultFile.fileName, { type: 'application/json' }), defaultFile.fileName)
+    const manifestResponse = await fetch('/__ui-spec/default-manifest')
+    if (manifestResponse.ok && manifestResponse.status !== 204 && manifestResponse.headers.get('Content-Type')?.includes('application/json')) {
+      const manifest = await manifestResponse.json() as { fileName: string; contents: string }
+      if (!openedManually) await openManifest(JSON.parse(manifest.contents), manifest.fileName, true)
+    } else {
+      const response = await fetch('/__ui-spec/default')
+      if (response.ok && response.status !== 204 && response.headers.get('Content-Type')?.includes('application/json')) {
+        const defaultFile = await response.json() as { fileName: string; contents: string }
+        if (!openedManually) await loadFile(new File([defaultFile.contents], defaultFile.fileName, { type: 'application/json' }), defaultFile.fileName)
+      }
     }
-  } catch {
-    // The bundled example remains available when the dev server endpoint is absent.
+  } catch (error) {
+    showStatus(`Could not open default UI design: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
+
+$<HTMLElement>('[data-spec-tabs]').addEventListener('click', (event) => {
+  const tab = (event.target as Element).closest<HTMLElement>('[data-spec-tab]')
+  if (tab) selectTab(tab.dataset.specTab as ManifestTab)
+})
 
 $<HTMLInputElement>('[data-open]').addEventListener('change', (event) => {
   const input = event.target as HTMLInputElement

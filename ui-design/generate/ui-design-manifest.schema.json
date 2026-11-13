@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UI design manifest",
+  "description": "Absolute paths to the current UI DSL, proposed UI DSL, and change-annotated UI JSON.",
+  "type": "object",
+  "required": ["oldUiDsl", "newUiDsl", "diffUiJson"],
+  "properties": {
+    "oldUiDsl": { "type": "string", "pattern": "\\.old\\.ui\\.dsl$" },
+    "newUiDsl": { "type": "string", "pattern": "\\.new\\.ui\\.dsl$" },
+    "diffUiJson": { "type": "string", "pattern": "\\.diff\\.ui\\.json$" }
+  },
+  "additionalProperties": false
+}

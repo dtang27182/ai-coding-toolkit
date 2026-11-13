@@ -13,11 +13,11 @@ The palette follows the OS appearance the same way impl-dataflow does: dark by d
 ## Run
 
 ```sh
-npm run ui-spec-viewer        # dev server, opens the newest UI diff from the configured output directory
+npm run ui-spec-viewer        # dev server, opens the newest UI design manifest when available
 npm run ui-spec-viewer:build  # static build into common/ui-spec/viewer/dist
 ```
 
-The dev server searches recursively under `outputDirectory` in `config.json` for `.ui.diff.json` and `.diff.ui.json` files, and opens the newest by modification time. If none exists, the bundled example opens. Load another `.ui.json` or `.ui.dsl` spec with **Open spec** or by dropping it on the canvas. The viewer converts DSL through the existing parser when served by Vite; the static build still opens JSON files.
+The dev server searches recursively under `outputDirectory` in `config.json` for `ui-design-manifest.json` and opens the newest by modification time. Its **Old UI**, **New UI**, and **Diff** tabs show the referenced files; a missing entry or missing file has no tab. If no manifest exists, the viewer opens the newest `.ui.diff.json` or `.diff.ui.json`, then the bundled example. Use **Open file** or drag and drop to open a manifest or an individual `.ui.json` or `.ui.dsl` spec. The viewer converts DSL through the existing parser when served by Vite; the static build still opens individual JSON files.
 
 ## Code
 
