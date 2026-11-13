@@ -71,14 +71,14 @@ function outward(model: Model, edge: DrawEdge): boolean {
 }
 
 /**
- * Edges of the same kind that join the same two drawn nodes merge in either direction. The forward edge
+ * Edges of the same kind and change type that join the same two drawn nodes merge in either direction. The forward edge
  * leaves an element or page (for navigation, moves to a later column); an opposite member makes it two-way.
  */
 export function mergeEdges(model: Model, edges: DrawEdge[]): DrawEdge[] {
   const order: string[] = []
   const groups = new Map<string, DrawEdge[]>()
   for (const edge of edges) {
-    const key = `${edge.kind}|${[edge.from, edge.to].sort().join('|')}`
+    const key = `${edge.kind}|${edge.members[0].changeType ?? 'unchanged'}|${[edge.from, edge.to].sort().join('|')}`
     const group = groups.get(key)
     if (group) group.push(edge)
     else {

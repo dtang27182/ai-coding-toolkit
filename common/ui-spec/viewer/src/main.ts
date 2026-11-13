@@ -1,4 +1,4 @@
-import type { Spec } from '../../parser/parser.ts'
+import type { ChangeType, Spec } from '../../parser/parser.ts'
 import exampleSpec from '../../ui-root.example.ui.json?raw'
 import { deriveModel, pageOf, type ElementNode, type Model } from './model.ts'
 import { drawableEdges, type DrawEdge, type Layer, type Side } from './edges.ts'
@@ -13,6 +13,9 @@ const IO: Record<string, [string, string]> = {
   input_output: ['USER ⇄', 'var(--t-both)'],
 }
 const LAYERS: [Layer, string][] = [['nav', 'Navigation'], ['methodCall', 'Method calls'], ['dataflow', 'Dataflow']]
+const CHANGE_TYPES: ChangeType[] = ['added', 'modified', 'deleted', 'unchanged']
+const changeColor = (changeType?: ChangeType) => `var(--${changeType ?? 'unchanged'})`
+const changeStyle = (changeType?: ChangeType) => `--change-color:${changeColor(changeType)}`
 
 interface Placed { edge: DrawEdge; fromEl: Element; toEl: Element; fromRect: Rect; toRect: Rect; fromT: number; toT: number }
 interface Drawn { edge: DrawEdge; group: SVGGElement }
@@ -95,17 +98,17 @@ const badge = (text: string, tone: string) => `<span class="badge" style="--t:${
 function elementMarkup(id: string): string {
   const element = view.model.nodes.get(id) as ElementNode
   if (element.kind === 'container') {
-    return `<div class="sub-frame" data-id="${esc(id)}"><div class="sub-label">${esc(element.name)} · container</div>${element.children.map(elementMarkup).join('')}</div>`
+    return `<div class="sub-frame" data-id="${esc(id)}" style="${changeStyle(element.changeType)}"><div class="sub-label">${esc(element.name)} · container</div>${element.children.map(elementMarkup).join('')}</div>`
   }
   const io = element.io ? IO[element.io] : undefined
-  return `<button class="pill leaf" data-id="${esc(id)}" style="--t:${io?.[1] ?? 'var(--node-stroke)'}">${io ? badge(io[0], io[1]) : ''}<span class="n">${esc(element.name)}</span><span class="t">${esc(element.kind.replace('_', ' '))}</span></button>`
+  return `<button class="pill leaf" data-id="${esc(id)}" style="--t:${io?.[1] ?? 'var(--node-stroke)'};${changeStyle(element.changeType)}">${io ? badge(io[0], io[1]) : ''}<span class="n">${esc(element.name)}</span><span class="t">${esc(element.kind.replace('_', ' '))}</span></button>`
 }
 
 function methodMarkup(id: string): string {
   const method = view.model.nodes.get(id)
   if (method?.type !== 'method') return ''
   const params = method.signature.match(/^\w+\s*(\([^)]*\))/)?.[1] ?? method.signature.replace(/^\w+/, '')
-  return `<button class="pill method" data-id="${esc(id)}" title="${esc(method.signature)}"><span class="g">ƒ</span><span class="n">${esc(method.name)}</span><span class="sig">${esc(params)}</span></button>`
+  return `<button class="pill method" data-id="${esc(id)}" style="${changeStyle(method.changeType)}" title="${esc(method.signature)}"><span class="g">ƒ</span><span class="n">${esc(method.name)}</span><span class="sig">${esc(params)}</span></button>`
 }
 
 /** sys-dataflow cylinder: caps 5.65% of the width, so it scales exactly with preserveAspectRatio="none". */
@@ -121,10 +124,10 @@ function pageMarkup(name: string): string {
   const count = elementCount(name)
   const label = page.entry ? 'PAGE · ENTRY' : 'PAGE'
   if (view.collapsed.has(name)) {
-    return `<div class="node"><button class="page-node" data-id="${esc(page.id)}" data-anchor="${esc(page.id)}" style="--t:var(--t-page)"><span class="hex-fill">${badge(label, 'var(--t-page)')}<span class="frame-name">${esc(name)}</span></span></button>
+    return `<div class="node"><button class="page-node" data-id="${esc(page.id)}" data-anchor="${esc(page.id)}" style="--t:var(--t-page);${changeStyle(page.changeType)}"><span class="hex-fill">${badge(label, 'var(--t-page)')}<span class="frame-name">${esc(name)}</span></span></button>
       <button class="toggle" data-toggle="${esc(name)}" style="right:18px;top:-12px" aria-label="Expand ${count} elements in ${esc(name)}">+${count}</button></div>`
   }
-  return `<div class="node frame page" data-id="${esc(page.id)}">${tab('hex', label, 'var(--t-page)', name, `data-id="${esc(page.id)}" data-anchor="${esc(page.id)}"`)}
+  return `<div class="node frame page" data-id="${esc(page.id)}" style="${changeStyle(page.changeType)}">${tab('hex', label, 'var(--t-page)', name, `data-id="${esc(page.id)}" data-anchor="${esc(page.id)}"`)}
     <button class="toggle" data-toggle="${esc(name)}" style="right:10px;top:7px" aria-label="Collapse ${esc(name)}">−</button>
     <div class="stack">${page.children.map(elementMarkup).join('')}</div></div>`
 }
@@ -144,11 +147,11 @@ function render() {
   for (const page of model.pages) (columns[model.columns.get(page.name)!] ??= []).push(page.name)
   graph.innerHTML = `<svg class="graph-svg" aria-hidden="true"></svg>
     <div class="band"><div class="node frame">${tab('cyl', 'CONTENT STATE', 'var(--t-state)', model.id)}<div class="row">${model.state.map((s) =>
-      `<button class="state-box" data-id="${esc(s.id)}" style="--t:var(--t-state)">${CYLINDER}<span class="sn">${esc(s.name)}</span><span class="si">init ${esc(s.init)}</span></button>`).join('')}</div></div></div>
+      `<button class="state-box" data-id="${esc(s.id)}" style="--t:var(--t-state);${changeStyle(s.changeType)}">${CYLINDER}<span class="sn">${esc(s.name)}</span><span class="si">init ${esc(s.init)}</span></button>`).join('')}</div></div></div>
     <div class="band page-band">${columns.filter(Boolean).map((pages) => `<div class="col">${pages.map(pageMarkup).join('')}</div>`).join('')}
       ${model.externals.length ? `<div class="col">${model.externals.map((x) => `<div class="node"><button class="ext-node" data-id="${esc(x.id)}" data-anchor="${esc(x.id)}" style="--t:var(--t-ext)" title="${esc(x.url)}">${badge('EXTERNAL', 'var(--t-ext)')}<span class="frame-name">${esc(x.name)}</span></button></div>`).join('')}</div>` : ''}</div>
     <div class="band">${model.backends.map((b) => [b, b.methods.filter((m) => view.connected.has(m))] as const).filter(([, methods]) => methods.length > 0)
-      .map(([b, methods]) => `<div class="node frame">${tab('ext', 'BACKEND API', 'var(--t-ext)', b.name, `data-id="${esc(b.id)}"`)}<div class="row">${methods.map(methodMarkup).join('')}</div></div>`).join('')}</div>`
+      .map(([b, methods]) => `<div class="node frame backend" style="${changeStyle(b.changeType)}">${tab('ext', 'BACKEND API', 'var(--t-ext)', b.name, `data-id="${esc(b.id)}"`)}<div class="row">${methods.map(methodMarkup).join('')}</div></div>`).join('')}</div>`
   // Drawn edges are rebuilt, so an edge selection no longer points at the same edge.
   if (view.selectedEdge !== null) {
     view.selectedEdge = null
@@ -216,12 +219,11 @@ function edgePath(router: Router, a: Port, b: Port, exempt: ReadonlySet<number>)
   return router.route(a, b, exempt) ?? curve
 }
 
-const MARKERS = `<defs>
-  <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 1 L7 4 L0 7 z" fill="var(--edge)"/></marker>
-  <marker id="hollow" viewBox="-1 -1 10 10" refX="7" refY="4" markerWidth="14" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 1 L7 4 L0 7 z" fill="var(--surface)" stroke="var(--edge)" stroke-width="1.1" stroke-linejoin="round"/></marker>
-  <marker id="dot" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse"><circle cx="4" cy="4" r="3" fill="var(--edge)" stroke="var(--surface)" stroke-width="1.2"/></marker>
-  <marker id="rail-arrow" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="16" markerHeight="16" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0 L7 4 L0 8 z" fill="var(--edge)"/></marker>
-</defs>`
+const MARKERS = `<defs>${CHANGE_TYPES.map((changeType) => `
+  <marker id="arrow-${changeType}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 1 L7 4 L0 7 z" fill="${changeColor(changeType)}"/></marker>
+  <marker id="hollow-${changeType}" viewBox="-1 -1 10 10" refX="7" refY="4" markerWidth="14" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 1 L7 4 L0 7 z" fill="var(--surface)" stroke="${changeColor(changeType)}" stroke-width="1.1" stroke-linejoin="round"/></marker>
+  <marker id="dot-${changeType}" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse"><circle cx="4" cy="4" r="3" fill="${changeColor(changeType)}" stroke="var(--surface)" stroke-width="1.2"/></marker>
+  <marker id="rail-arrow-${changeType}" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="16" markerHeight="16" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0 L7 4 L0 8 z" fill="${changeColor(changeType)}"/></marker>`).join('')}</defs>`
 
 function drawEdges(placed: Placed[]) {
   const svg = graph.querySelector('.graph-svg')!
@@ -245,11 +247,12 @@ function drawEdges(placed: Placed[]) {
   for (const [n, { edge }] of placed.entries()) {
     const shape = shapes[n]
     const d = typeof shape === 'string' ? shape : roundedPath(shape)
-    const group = svgNode('g', { class: 'edge-group', 'data-edge': String(view.drawn.length) })
+    const changeType = edge.members[0].changeType ?? 'unchanged'
+    const group = svgNode('g', { class: 'edge-group', 'data-edge': String(view.drawn.length), style: changeStyle(changeType) })
     if (edge.kind === 'nav') {
-      group.append(svgNode('path', { d, class: 'edge rail' }), svgNode('path', { d, class: 'edge rail-core', 'marker-end': 'url(#rail-arrow)', ...(edge.back ? { 'marker-start': 'url(#rail-arrow)' } : {}) }))
+      group.append(svgNode('path', { d, class: 'edge rail' }), svgNode('path', { d, class: 'edge rail-core', 'marker-end': `url(#rail-arrow-${changeType})`, ...(edge.back ? { 'marker-start': `url(#rail-arrow-${changeType})` } : {}) }))
     } else {
-      group.append(svgNode('path', { d, class: `edge ${edge.kind}`, 'marker-end': 'url(#arrow)', 'marker-start': edge.back ? 'url(#hollow)' : 'url(#dot)' }))
+      group.append(svgNode('path', { d, class: `edge ${edge.kind}`, 'marker-end': `url(#arrow-${changeType})`, 'marker-start': edge.back ? `url(#hollow-${changeType})` : `url(#dot-${changeType})` }))
     }
     // A wide transparent stroke on top makes the edge easy to click.
     group.append(svgNode('path', { d, class: 'edge-hit' }))
@@ -399,7 +402,8 @@ function renderLayers() {
 
 $('[data-legend]').innerHTML =
   `<span>${glyph('dataflow')}Dataflow</span><span>${glyph('methodCall')}Method call</span><span>${glyph('twoway')}Two-way (merged)</span><span>${glyph('nav')}Navigation</span><span>${glyph('navTwoway', 36)}Two-way navigation</span>` +
-  Object.values(IO).map(([text, tone], i) => `<span>${badge(text, tone)}${['input', 'output', 'input and output'][i]}</span>`).join('')
+  Object.values(IO).map(([text, tone], i) => `<span>${badge(text, tone)}${['input', 'output', 'input and output'][i]}</span>`).join('') +
+  CHANGE_TYPES.map((changeType) => `<span><i class="change-swatch" style="background:${changeColor(changeType)}"></i>${changeType}</span>`).join('')
 
 pagesButton.addEventListener('click', () => {
   view.collapsed = view.collapsed.size > 0 ? new Set() : new Set(view.model.pages.map((p) => p.name))

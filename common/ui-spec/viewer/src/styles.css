@@ -29,9 +29,12 @@
   --state-name: oklch(0.9 0.035 245);
   --shadow: oklch(0.1 0.02 255 / 0.35);
   --edge: oklch(0.56 0.02 250);           /* impl-dataflow --unchanged */
+  --added: oklch(0.76 0.16 155);
+  --modified: oklch(0.82 0.15 82);
   --deleted: oklch(0.72 0.18 25);
+  --unchanged: oklch(0.56 0.02 250);
   --banner-bg: oklch(0.23 0.05 25 / 0.96);
-  /* Node set: outlines share one gray; tint and badge carry the node type. */
+  /* Node tint and badge carry the node type. */
   --node-stroke: oklch(0.52 0.02 250);
   --tint: 14%;
   --t-page: oklch(0.74 0.08 260);
@@ -74,7 +77,10 @@
     --state-name: oklch(0.36 0.05 248);
     --shadow: oklch(0.3 0.03 255 / 0.12);
     --edge: oklch(0.62 0.02 255);           /* impl-dataflow --unchanged */
+    --added: oklch(0.68 0.17 150);
+    --modified: oklch(0.73 0.16 70);
     --deleted: oklch(0.63 0.2 25);
+    --unchanged: oklch(0.62 0.02 255);
     --banner-bg: oklch(0.97 0.012 25 / 0.97);
     --node-stroke: oklch(0.62 0.02 255);
     --tint: 9%;
@@ -114,6 +120,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .zoom button:hover { color: var(--bright); background: var(--hover); }
 .legend { position: absolute; bottom: 14px; left: 14px; z-index: 5; display: flex; flex-wrap: wrap; gap: 6px 14px; max-width: calc(100% - 28px); padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); font-size: 11px; color: var(--muted); pointer-events: none; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
+.change-swatch { width: 9px; height: 9px; border-radius: 2px; }
 
 /* graph: three flex bands; edges are measured from the laid-out DOM */
 .graph { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 120px; padding: 40px 50px 60px; transform-origin: 0 0; width: max-content; }
@@ -126,6 +133,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .frame { position: relative; padding: 38px 12px 12px; border: 1.5px dashed var(--frame-stroke); border-radius: 12px; background: var(--frame-fill); }
 .frame.page { width: 300px; }
+.frame.page, .frame.backend { border-color: var(--change-color); }
 .frame.selected { border-color: var(--accent); border-style: solid; }
 .badge { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; height: 15px; padding: 0 6px; border-radius: 4px; font: 600 9px var(--mono); letter-spacing: .11em; white-space: nowrap; color: var(--t); background: color-mix(in oklch, var(--t) 14%, transparent); border: 1px solid color-mix(in oklch, var(--t) 44%, transparent); }
 .frame-name { font: 600 12px var(--mono); color: var(--bright); white-space: nowrap; }
@@ -133,21 +141,21 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* frame tabs: page hexagon, content-state cylinder, backend external-dependency box */
 .frame-tab { position: absolute; top: -16px; left: 10px; padding: 0; border: 0; cursor: pointer; }
 .frame-tab > span { display: flex; align-items: center; gap: 8px; height: 30px; white-space: nowrap; }
-.frame-tab.hex { padding: 1.5px; background: var(--node-stroke); clip-path: polygon(11px 0, calc(100% - 11px) 0, 100% 50%, calc(100% - 11px) 100%, 11px 100%, 0 50%); }
+.frame-tab.hex { padding: 1.5px; background: var(--change-color, var(--node-stroke)); clip-path: polygon(11px 0, calc(100% - 11px) 0, 100% 50%, calc(100% - 11px) 100%, 11px 100%, 0 50%); }
 .frame-tab.hex > span { height: 27px; padding: 0 18px; background: color-mix(in oklch, var(--t) var(--tint), var(--raised)); clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%); }
 .frame-tab.hex:hover > span, .selected > .frame-tab.hex > span { background: color-mix(in oklch, var(--t) var(--tint), var(--hover)); }
 .selected > .frame-tab.hex { background: var(--accent); }
 .frame-tab.cyl { background: none; --sw: 1.5px; }
 .frame-tab.cyl > span { position: relative; height: 30px; padding: 0 22px; }
-.frame-tab.ext { border: 1.5px dashed var(--node-stroke); border-radius: 6px; background: color-mix(in oklch, var(--t) var(--tint), var(--raised)); }
+.frame-tab.ext { border: 1.5px dashed var(--change-color, var(--node-stroke)); border-radius: 6px; background: color-mix(in oklch, var(--t) var(--tint), var(--raised)); }
 .frame-tab.ext > span { height: 27px; padding: 0 12px; }
 .frame-tab.ext:hover { background: color-mix(in oklch, var(--t) var(--tint), var(--hover)); }
 .stack { display: flex; flex-direction: column; gap: 8px; }
 .row { display: flex; gap: 12px; }
-.sub-frame { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 24px 10px 10px; border: 1px dashed var(--frame-stroke); border-radius: 9px; }
+.sub-frame { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 24px 10px 10px; border: 1px dashed var(--change-color); border-radius: 9px; }
 .sub-label { position: absolute; top: 5px; left: 10px; font: 500 10px var(--mono); color: var(--muted); }
 
-.pill { position: relative; display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 1.5px solid var(--node-stroke); border-radius: 7px; background: var(--raised); box-shadow: 0 1px 2px var(--shadow); cursor: pointer; text-align: left; min-width: 0; transition: opacity 120ms ease, background 120ms ease; }
+.pill { position: relative; display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 1.5px solid var(--change-color, var(--node-stroke)); border-radius: 7px; background: var(--raised); box-shadow: 0 1px 2px var(--shadow); cursor: pointer; text-align: left; min-width: 0; transition: opacity 120ms ease, background 120ms ease; }
 .pill:hover, .pill.selected { background: var(--hover); }
 .pill.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 12px color-mix(in oklch, var(--accent) 40%, transparent); }
 .pill .n { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 12px var(--mono); color: var(--bright); }
@@ -164,14 +172,14 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .state-box { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 220px; height: 46px; padding: 0 28px; border: 0; background: none; cursor: pointer; transition: opacity 120ms ease; --sw: 1.75px; }
 .state-box > span { position: relative; }
 .cyl-shape { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.cyl-shape .o { fill: color-mix(in oklch, var(--t) var(--tint), var(--raised)); stroke: var(--node-stroke); stroke-width: var(--sw); }
+.cyl-shape .o { fill: color-mix(in oklch, var(--t) var(--tint), var(--raised)); stroke: var(--change-color, var(--node-stroke)); stroke-width: var(--sw); }
 .cyl-shape .d { fill: none; stroke: color-mix(in oklch, var(--t) 52%, transparent); stroke-width: var(--sw); }
 .state-box:hover .o, .state-box.selected .o, .frame-tab.cyl:hover .o { fill: color-mix(in oklch, var(--t) var(--tint), var(--hover)); }
 .state-box.selected .o { stroke: var(--accent); }
 .state-box .sn { font: 500 12.5px var(--mono); color: var(--bright); white-space: nowrap; }
 .state-box .si { font: 10px var(--mono); color: var(--muted); white-space: nowrap; }
 /* collapsed page: impl-dataflow hexagon */
-.page-node { display: block; min-width: 250px; height: 56px; padding: 1.75px; border: 0; background: var(--node-stroke); clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%); cursor: pointer; transition: opacity 120ms ease; }
+.page-node { display: block; min-width: 250px; height: 56px; padding: 1.75px; border: 0; background: var(--change-color, var(--node-stroke)); clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%); cursor: pointer; transition: opacity 120ms ease; }
 .page-node .hex-fill { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 100%; padding: 0 30px; background: color-mix(in oklch, var(--t) var(--tint), var(--raised)); clip-path: polygon(13px 0, calc(100% - 13px) 0, 100% 50%, calc(100% - 13px) 100%, 13px 100%, 0 50%); }
 .page-node .frame-name { font-weight: 500; font-size: 12.5px; }
 .page-node:hover .hex-fill, .page-node.selected .hex-fill { background: color-mix(in oklch, var(--t) var(--tint), var(--hover)); }
@@ -186,7 +194,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* edges */
 .edge-group { transition: opacity 120ms ease; }
 .edge-group.hidden { display: none; }
-.edge { fill: none; stroke: var(--edge); }
+.edge { fill: none; stroke: var(--change-color, var(--edge)); }
 .edge.dataflow { stroke-width: 1.6; }
 .edge.methodCall { stroke-width: 2.2; }
 .edge.rail { stroke-width: 6.5; stroke-linecap: round; }
@@ -213,7 +221,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .band, .col { pointer-events: none; }
 .node, .band > .frame { pointer-events: auto; }
 .edge-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
-.edge-group:hover .edge:not(.rail-core) { stroke: color-mix(in oklch, var(--edge) 55%, var(--accent)); }
+.edge-group:hover .edge:not(.rail-core) { stroke: color-mix(in oklch, var(--change-color) 55%, var(--accent)); }
 .edge-group.selected .edge:not(.rail-core) { stroke: var(--accent); }
 .edge-group.selected .edge.dataflow, .edge-group.selected .edge.methodCall { stroke-width: 2.4; }
 

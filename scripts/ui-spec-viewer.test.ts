@@ -83,6 +83,19 @@ test('navigation between two collapsed pages merges into one two-way rail', () =
   assert.equal(back.back, false, 'a one-way return stays one-way')
 })
 
+test('navigation with different change types stays separate so each rail retains its status', () => {
+  const changed = deriveModel({ ...spec, relationships: spec.relationships.map((edge) => ({
+    ...edge,
+    changeType: edge.from === 'e:provider_selection/select_open_router' ? 'added' as const : 'unchanged' as const,
+  })) })
+  const all = new Set(changed.pages.map((page) => page.name))
+  const pair = drawableEdges(changed, all).filter((edge) =>
+    edge.kind === 'nav' && [edge.from, edge.to].includes('p:provider_selection') && [edge.from, edge.to].includes('p:open_router_sign_in'))
+  assert.equal(pair.length, 2)
+  assert.deepEqual(pair.map((edge) => edge.members[0].changeType), ['added', 'unchanged'])
+  assert.ok(pair.every((edge) => !edge.back && edge.members.length === 1))
+})
+
 test('navigation from an expanded page stays per trigger', () => {
   const nav = drawableEdges(model, new Set(['open_router_sign_in'])).filter((e) => e.kind === 'nav' && e.to === 'p:open_router_sign_in')
   assert.deepEqual(nav.map((e) => [e.from, e.back]), [['e:provider_selection/select_open_router', false]])
