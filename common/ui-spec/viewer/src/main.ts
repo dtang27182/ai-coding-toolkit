@@ -33,7 +33,7 @@ app.innerHTML = `
       <button class="control-button" data-toggle-pages></button>
       <label class="open-button">Open spec<input type="file" accept=".json,application/json" data-open hidden></label>
     </header>
-    <div class="workspace" data-workspace>
+    <div class="workspace inspector-collapsed" data-workspace>
     <div class="canvas" data-canvas>
       <div class="graph" data-graph></div>
       <div class="zoom" data-zoom>
@@ -45,7 +45,7 @@ app.innerHTML = `
       <div class="status-banner" data-status hidden></div>
       <div class="drop-overlay" data-drop hidden>Drop a .ui.json spec</div>
     </div>
-    <button class="inspector-rail" data-toggle-inspector aria-label="Show inspector" title="Show inspector" hidden><span class="inspector-rail-chevron">‹</span><span class="inspector-rail-label">Inspector</span></button>
+    <button class="inspector-rail" data-toggle-inspector aria-label="Show inspector" title="Show inspector"><span class="inspector-rail-chevron">‹</span><span class="inspector-rail-label">Inspector</span></button>
     <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" tabindex="0"><button class="inspector-collapse" data-toggle-inspector aria-label="Hide inspector" title="Hide inspector">›</button></div>
     <aside class="inspector" data-inspector aria-label="UI spec inspector"></aside>
     </div>
