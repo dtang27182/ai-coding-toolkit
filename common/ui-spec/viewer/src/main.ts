@@ -31,7 +31,7 @@ app.innerHTML = `
       </div>
       <div class="layers" data-layers></div>
       <button class="control-button" data-toggle-pages></button>
-      <label class="open-button">Open spec<input type="file" accept=".json,application/json" data-open hidden></label>
+      <label class="open-button">Open spec<input type="file" data-open hidden></label>
     </header>
     <div class="workspace inspector-collapsed" data-workspace>
     <div class="canvas" data-canvas>
@@ -43,7 +43,7 @@ app.innerHTML = `
       </div>
       <div class="legend" data-legend></div>
       <div class="status-banner" data-status hidden></div>
-      <div class="drop-overlay" data-drop hidden>Drop a .ui.json spec</div>
+      <div class="drop-overlay" data-drop hidden>Drop a .ui.json or .ui.dsl spec</div>
     </div>
     <button class="inspector-rail" data-toggle-inspector aria-label="Show inspector" title="Show inspector"><span class="inspector-rail-chevron">‹</span><span class="inspector-rail-label">Inspector</span></button>
     <div class="inspector-resizer" data-inspector-resizer role="separator" aria-label="Resize inspector" aria-orientation="vertical" tabindex="0"><button class="inspector-collapse" data-toggle-inspector aria-label="Hide inspector" title="Hide inspector">›</button></div>
@@ -431,7 +431,19 @@ function showStatus(message: string | null) {
 
 async function loadFile(file: File, fileName = file.name) {
   try {
-    const spec = JSON.parse(await file.text()) as Spec
+    let spec: Spec
+    if (file.name.endsWith('.ui.dsl')) {
+      const response = await fetch('/__ui-spec/parse', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: await file.text() })
+      if (response.status === 400) {
+        throw new Error(await response.text())
+      } else if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json')) {
+        throw new Error('DSL conversion requires the UI-spec viewer server')
+      } else {
+        spec = await response.json() as Spec
+      }
+    } else {
+      spec = JSON.parse(await file.text()) as Spec
+    }
     if (!spec || typeof spec.id !== 'string' || !spec.pages || !spec.backends || !spec.contentState) {
       throw new Error('expected a ui-spec JSON document with id, contentState, backends and pages')
     }

@@ -17,7 +17,7 @@ npm run ui-spec-viewer        # dev server, opens the newest UI diff from the co
 npm run ui-spec-viewer:build  # static build into common/ui-spec/viewer/dist
 ```
 
-The dev server searches recursively under `outputDirectory` in `config.json` for `.ui.diff.json` and `.diff.ui.json` files, and opens the newest by modification time. If none exists, the bundled example opens. Load another spec with **Open spec** or by dropping a `.ui.json` file on the canvas. To view a DSL file, convert it first with `npm run parse-ui-spec`.
+The dev server searches recursively under `outputDirectory` in `config.json` for `.ui.diff.json` and `.diff.ui.json` files, and opens the newest by modification time. If none exists, the bundled example opens. Load another `.ui.json` or `.ui.dsl` spec with **Open spec** or by dropping it on the canvas. The viewer converts DSL through the existing parser when served by Vite; the static build still opens JSON files.
 
 ## Code
 
