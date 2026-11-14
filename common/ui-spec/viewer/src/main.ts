@@ -343,17 +343,19 @@ function applyFilters() {
 }
 
 function select(id: string | null) {
-  view.selected = view.selected === id ? null : id
+  view.selected = id
   view.selectedEdge = null
   applyFilters()
   renderInspector()
+  if (id !== null) setInspectorCollapsed(false)
 }
 
 function selectEdge(index: number) {
-  view.selectedEdge = view.selectedEdge === index ? null : index
+  view.selectedEdge = index
   view.selected = null
   applyFilters()
   renderInspector()
+  setInspectorCollapsed(false)
 }
 
 /* ---------- inspector ---------- */
@@ -361,12 +363,18 @@ function selectEdge(index: number) {
 const inspectorEl = $<HTMLElement>('[data-inspector]')
 const workspace = $<HTMLElement>('[data-workspace]')
 
+function setInspectorCollapsed(collapsed: boolean) {
+  workspace.classList.toggle('inspector-collapsed', collapsed)
+  $<HTMLElement>('.inspector-rail').hidden = !collapsed
+}
+
 function renderInspector() {
   const model = view.model
   const edge = view.selectedEdge === null ? undefined : view.drawn[view.selectedEdge]?.edge
   const backend = model.backends.find((b) => b.id === view.selected)
   const node = view.selected ? model.nodes.get(view.selected) : undefined
   inspectorEl.innerHTML = edge ? renderEdge(model, edge) : backend ? renderBackend(backend) : node ? renderNode(model, node) : renderOverview(model, view.description)
+  inspectorEl.scrollTop = 0
 }
 
 inspectorEl.addEventListener('click', (event) => {
@@ -386,8 +394,7 @@ inspectorEl.addEventListener('click', (event) => {
 
 for (const toggle of app.querySelectorAll<HTMLElement>('[data-toggle-inspector]')) {
   toggle.addEventListener('click', () => {
-    const collapsed = workspace.classList.toggle('inspector-collapsed')
-    $<HTMLElement>('.inspector-rail').hidden = !collapsed
+    setInspectorCollapsed(!workspace.classList.contains('inspector-collapsed'))
   })
 }
 
@@ -602,11 +609,13 @@ graph.addEventListener('click', (event) => {
   if (edgeGroup) return selectEdge(Number(edgeGroup.dataset.edge))
   const pageNode = target.closest<HTMLElement>('.page-node')
   if (pageNode) {
-    view.collapsed.delete(pageNode.dataset.id!.slice(2))
-    return render()
+    const id = pageNode.dataset.id!
+    view.collapsed.delete(id.slice(2))
+    render()
+    return select(id)
   }
   const node = target.closest<HTMLElement>('[data-id]')
-  if (node && !node.classList.contains('frame') && !(node.classList.contains('sub-frame') && !target.classList.contains('sub-label'))) return select(node.dataset.id!)
+  if (node) return select(node.dataset.id!)
   select(null)
 })
 
