@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#091017">
+    <meta name="description" content="Explore system and implementation dataflows.">
+    <title>HLD Dataflow Visualizer</title>
+    <script type="module" crossorigin src="./assets/index-o75JUoz4.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/watch-opened-json-Ln7xNKjL.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-Bt-CAckG.css">
+  </head>
+  <body>
+    <div id="app">
+      <header class="review-header">
+        <div class="review-title-block">
+          <div class="review-title-line">
+            <span class="review-title">HLD Dataflow</span>
+            <span class="stage-chip" hidden></span>
+          </div>
+          <span class="review-path"></span>
+        </div>
+        <nav class="view-navigation" aria-label="Switch dataflow view">
+          <button class="view-button active" type="button" data-view="system" aria-selected="true" aria-current="page">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.5" y="2" width="5" height="4" rx="1"></rect><rect x="9.5" y="2" width="5" height="4" rx="1"></rect><rect x="5.5" y="10" width="5" height="4" rx="1"></rect><path d="M4 6v1.5a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6M8 8.5V10"></path></svg>
+            <span>System Dataflow</span>
+            <span class="view-count" data-count="system">nodes</span>
+          </button>
+          <button class="view-button" type="button" data-view="implementation" aria-selected="false">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2" y="1.5" width="12" height="13" rx="1.5"></rect><path d="M2 5.5h12M4.5 8.5h7M4.5 11.5h5"></path></svg>
+            <span>Implementation Dataflow</span>
+            <span class="view-count" data-count="implementation">units</span>
+          </button>
+        </nav>
+        <div class="header-actions">
+          <button class="open-button" type="button" id="open-hld-manifest">Open HLD Manifest</button>
+          <input id="hld-manifest-input" type="file" accept="application/json,.json" hidden>
+        </div>
+      </header>
+      <div class="dataflow-controls" role="toolbar" aria-label="Graph controls">
+        <button class="control-button active" type="button" data-proxy="toggle-unchanged" aria-pressed="true" hidden>Unchanged: hidden</button>
+        <button class="control-button active" type="button" data-proxy="toggle-initialization" aria-pressed="true" hidden>Initialization: hidden</button>
+        <button class="control-button" type="button" data-proxy="toggle-functions" hidden>Hide functions</button>
+        <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
+        <div class="zoom-controls">
+          <button class="zoom-button" type="button" data-proxy="zoom-out" aria-label="Zoom out">−</button>
+          <button class="zoom-button" type="button" data-proxy="fit">Fit</button>
+          <button class="zoom-button" type="button" data-proxy="zoom-in" aria-label="Zoom in">+</button>
+        </div>
+      </div>
+      <main class="view-panels">
+        <section class="view-panel active" data-panel="system" aria-label="System Dataflow">
+          <iframe src="./system.html" title="System Dataflow"></iframe>
+        </section>
+        <section class="view-panel" data-panel="implementation" aria-label="Implementation Dataflow" aria-hidden="true" inert>
+          <iframe src="./implementation.html?embedded" title="Implementation Dataflow"></iframe>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

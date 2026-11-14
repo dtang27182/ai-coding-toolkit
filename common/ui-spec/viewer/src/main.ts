@@ -30,7 +30,6 @@ app.innerHTML = `
         <div class="review-path"><span class="file-label" data-file-name></span><span class="counts" data-spec-counts></span></div>
       </div>
       <div class="view-navigation" data-spec-tabs role="tablist" aria-label="UI design files" hidden></div>
-      <div class="diff-legend">${CHANGE_TYPES.filter((changeType) => changeType !== 'unchanged').map((changeType) => `<span><i style="background:${changeColor(changeType)}"></i>${changeType[0].toUpperCase()}${changeType.slice(1)}</span>`).join('')}</div>
       <label class="open-button">Open file<input type="file" data-open hidden></label>
     </header>
     <div class="dataflow-controls">

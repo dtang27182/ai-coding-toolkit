@@ -114,9 +114,6 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .view-button { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border: 0; border-radius: 6px; color: var(--muted); background: transparent; font-size: 12.5px; font-weight: 500; white-space: nowrap; cursor: pointer; }
 .view-button:hover { color: var(--bright); }
 .view-button[aria-selected="true"] { color: var(--bright); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-border); }
-.diff-legend { display: flex; flex: 0 0 auto; align-items: center; gap: 14px; color: var(--muted); font-size: 11px; }
-.diff-legend span { display: flex; align-items: center; gap: 5px; }
-.diff-legend i { width: 7px; height: 7px; border-radius: 50%; }
 .dataflow-controls { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; gap: 7px; min-height: 44px; padding: 6px 18px; border-bottom: 1px solid var(--border); background: var(--header); }
 .layers { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
 .layer-chip { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; font-weight: 500; white-space: nowrap; background: var(--control); color: var(--muted); cursor: pointer; }

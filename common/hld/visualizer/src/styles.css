@@ -193,8 +193,7 @@ body,
 }
 
 .header-actions,
-.dataflow-controls,
-.diff-legend {
+.dataflow-controls {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
@@ -276,36 +275,6 @@ body,
   border-right: 0;
 }
 
-.diff-legend {
-  gap: 14px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.diff-legend span {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.diff-legend i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-
-.added-dot {
-  background: var(--added);
-}
-
-.modified-dot {
-  background: var(--modified);
-}
-
-.deleted-dot {
-  background: var(--deleted);
-}
-
 .open-button {
   padding: 6px 11px;
   border: 1px solid var(--accent-border);
@@ -353,8 +322,7 @@ iframe {
     gap: 12px;
   }
 
-  .interaction-hint,
-  .diff-legend {
+  .interaction-hint {
     display: none;
   }
 

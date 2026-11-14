@@ -29,11 +29,6 @@ app.innerHTML = `
         </button>
       </nav>
       <div class="header-actions">
-        <div class="diff-legend" aria-label="Change types">
-          <span><i class="added-dot"></i>Added</span>
-          <span><i class="modified-dot"></i>Modified</span>
-          <span><i class="deleted-dot"></i>Deleted</span>
-        </div>
         <button class="open-button" type="button" id="open-rich-diff">Open Rich Diff</button>
         <input id="rich-diff-input" type="file" accept="application/json,.json" hidden />
       </div>
