@@ -24,25 +24,30 @@ interface Drawn { edge: DrawEdge; group: SVGGElement }
 const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `
   <div class="app-shell">
-    <header class="topbar">
-      <div class="brand">
-        <span class="stage-chip">UI spec</span>
-        <span class="file-label" data-file-name></span>
-        <span class="counts" data-spec-counts></span>
+    <header class="review-header">
+      <div class="review-title-block">
+        <div class="review-title-line"><span class="review-title" data-spec-id></span><span class="stage-chip">UI spec</span></div>
+        <div class="review-path"><span class="file-label" data-file-name></span><span class="counts" data-spec-counts></span></div>
       </div>
-      <div class="layers" data-layers></div>
-      <button class="control-button" data-toggle-pages></button>
+      <div class="view-navigation" data-spec-tabs role="tablist" aria-label="UI design files" hidden></div>
+      <div class="diff-legend">${CHANGE_TYPES.filter((changeType) => changeType !== 'unchanged').map((changeType) => `<span><i style="background:${changeColor(changeType)}"></i>${changeType[0].toUpperCase()}${changeType.slice(1)}</span>`).join('')}</div>
       <label class="open-button">Open file<input type="file" data-open hidden></label>
     </header>
-    <div class="spec-tabs" data-spec-tabs role="tablist" aria-label="UI design files" hidden></div>
+    <div class="dataflow-controls">
+      <div class="layers" data-layers></div>
+      <button class="control-button" data-toggle-pages></button>
+      <div class="view-controls">
+        <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
+        <div class="zoom-controls" data-zoom>
+          <button class="zoom-button" data-z="out" aria-label="Zoom out">−</button>
+          <button class="zoom-button" data-z="fit">Fit</button>
+          <button class="zoom-button" data-z="in" aria-label="Zoom in">+</button>
+        </div>
+      </div>
+    </div>
     <div class="workspace inspector-collapsed" data-workspace>
     <div class="canvas" data-canvas>
       <div class="graph" data-graph></div>
-      <div class="zoom" data-zoom>
-        <button data-z="out" aria-label="Zoom out">−</button>
-        <button data-z="fit">Fit</button>
-        <button data-z="in" aria-label="Zoom in">+</button>
-      </div>
       <div class="legend" data-legend></div>
       <div class="status-banner" data-status hidden></div>
       <div class="drop-overlay" data-drop hidden>Drop a UI design manifest, .ui.json, or .ui.dsl file</div>
@@ -89,6 +94,7 @@ function load(model: Model, fileName: string) {
   const fileLabel = $<HTMLElement>('[data-file-name]')
   fileLabel.textContent = fileName
   fileLabel.title = fileName
+  $('[data-spec-id]').textContent = model.id
   $('[data-spec-counts]').textContent = `${model.pages.length} pages · ${model.elements.filter((e) => e.kind !== 'container').length} elements · ${model.methods.length} API methods · ${model.state.length} content-state vars`
   renderLayers()
   render()
@@ -100,7 +106,7 @@ function renderTabs() {
   const tabsEl = $<HTMLElement>('[data-spec-tabs]')
   tabsEl.hidden = view.tabs.length === 0
   tabsEl.title = view.manifestName ?? ''
-  tabsEl.innerHTML = view.tabs.map((tab) => `<button class="spec-tab" data-spec-tab="${tab.key}" role="tab" aria-selected="${view.activeTab === tab.key}" title="${esc(tab.fileName)}">${tab.label}</button>`).join('')
+  tabsEl.innerHTML = view.tabs.map((tab) => `<button class="view-button" data-spec-tab="${tab.key}" role="tab" aria-selected="${view.activeTab === tab.key}" title="${esc(tab.fileName)}">${tab.label}</button>`).join('')
 }
 
 function showSpec(spec: Spec, fileName: string) {
@@ -409,7 +415,7 @@ for (const toggle of app.querySelectorAll<HTMLElement>('[data-toggle-inspector]'
 
 /* ---------- toolbar + legend ---------- */
 
-function glyph(kind: Layer | 'twoway' | 'navTwoway', width = 30): string {
+function glyph(kind: Layer, width = 30): string {
   const c = 'var(--edge)'
   const w = width
   const y = 6
@@ -417,21 +423,17 @@ function glyph(kind: Layer | 'twoway' | 'navTwoway', width = 30): string {
   const body = {
     dataflow: `<circle cx="3" cy="${y}" r="2.6" fill="${c}"/><line x1="3" y1="${y}" x2="${w - 2}" y2="${y}" stroke="${c}" stroke-width="1.6"/>${tri}`,
     methodCall: `<circle cx="3" cy="${y}" r="2.6" fill="${c}"/><line x1="3" y1="${y}" x2="${w - 2}" y2="${y}" stroke="${c}" stroke-width="2.2"/>${tri}`,
-    twoway: `<path d="M7 ${y - 3.5} L1 ${y} L7 ${y + 3.5} z" fill="var(--surface)" stroke="${c}" stroke-width="1.2"/><line x1="7" y1="${y}" x2="${w - 2}" y2="${y}" stroke="${c}" stroke-width="1.6"/>${tri}`,
     nav: `<line x1="3" y1="${y}" x2="${w - 7}" y2="${y}" stroke="${c}" stroke-width="6.5" stroke-linecap="round"/><line x1="3" y1="${y}" x2="${w - 7}" y2="${y}" stroke="var(--surface)" stroke-width="2.6" stroke-linecap="round"/><path d="M${w - 9} ${y - 6} L${w} ${y} L${w - 9} ${y + 6} z" fill="${c}"/>`,
-    navTwoway: `<line x1="8" y1="${y}" x2="${w - 7}" y2="${y}" stroke="${c}" stroke-width="6.5" stroke-linecap="round"/><line x1="8" y1="${y}" x2="${w - 7}" y2="${y}" stroke="var(--surface)" stroke-width="2.6" stroke-linecap="round"/><path d="M${w - 9} ${y - 6} L${w} ${y} L${w - 9} ${y + 6} z" fill="${c}"/><path d="M9 ${y - 6} L0 ${y} L9 ${y + 6} z" fill="${c}"/>`,
   }[kind]
   return `<svg class="glyph" width="${w + 2}" height="12" viewBox="-1 0 ${w + 2} 12" aria-hidden="true">${body}</svg>`
 }
 
 function renderLayers() {
-  layersEl.innerHTML = '<span class="label">Layers</span>' + LAYERS.map(([layer, label]) =>
+  layersEl.innerHTML = LAYERS.map(([layer, label]) =>
     `<button class="layer-chip" data-layer="${layer}" aria-pressed="${view.layers[layer]}">${glyph(layer)}${label}<span class="ct">${view.model.edges.filter((e) => e.kind === layer).length}</span></button>`).join('')
 }
 
 $('[data-legend]').innerHTML =
-  `<span>${glyph('dataflow')}Dataflow</span><span>${glyph('methodCall')}Method call</span><span>${glyph('twoway')}Two-way (merged)</span><span>${glyph('nav')}Navigation</span><span>${glyph('navTwoway', 36)}Two-way navigation</span>` +
-  Object.values(IO).map(([text, tone], i) => `<span>${badge(text, tone)}${['input', 'output', 'input and output'][i]}</span>`).join('') +
   CHANGE_TYPES.map((changeType) => `<span><i class="change-swatch" style="background:${changeColor(changeType)}"></i>${changeType}</span>`).join('')
 
 pagesButton.addEventListener('click', () => {
