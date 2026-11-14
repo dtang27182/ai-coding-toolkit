@@ -1,5 +1,6 @@
 import { splitStatements, type Backend, type Edge, type GraphNode, type Model } from './model.ts'
 import type { DrawEdge } from './edges.ts'
+import type { ChangeType } from '../../parser/parser.ts'
 
 /**
  * Inspector panel (mockup). Shows only spec fields the graph does not already draw, using the
@@ -14,16 +15,17 @@ const IO: Record<string, [string, string]> = {
 
 const esc = (value: string) => value.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
 const badge = (text: string, tone: string) => `<span class="badge" style="--t:${tone}">${esc(text)}</span>`
+const changeChip = (changeType?: ChangeType) => changeType === undefined ? '' : `<span class="change-chip" style="--change-color:var(--${changeType})">${changeType}</span>`
 
 function section(title: string, content: string, count?: number): string {
   return `<section class="inspector-section"><div class="section-heading"><span>${esc(title)}</span>${count === undefined ? '' : `<span class="inspector-count">${count}</span>`}</div>${content}</section>`
 }
 
-function header(eyebrow: string, title: string, detail?: string): string {
+function header(eyebrow: string, title: string, detail?: string, changeType?: ChangeType): string {
   return `<header class="inspector-header">
     <div class="inspector-eyebrow">${eyebrow}</div>
     <div class="inspector-title-row"><div class="inspector-title">${esc(title)}</div><button class="close-button" data-close aria-label="Clear selection">✕</button></div>
-    ${detail === undefined ? '' : `<span class="detail-chip">${esc(detail)}</span>`}
+    ${changeChip(changeType)}${detail === undefined ? '' : `<span class="detail-chip">${esc(detail)}</span>`}
   </header>`
 }
 
@@ -69,7 +71,7 @@ export function qualifiedName(model: Model, id: string): string {
 export function renderNode(model: Model, node: GraphNode): string {
   switch (node.type) {
     case 'page':
-      return header(nodeBadge(node), node.name) + section('Description', prose(node.description))
+      return header(nodeBadge(node), node.name, undefined, node.changeType) + section('Description', prose(node.description))
     case 'element': {
       const path = qualifiedName(model, node.id).split(' › ').slice(0, -1).join(' › ')
       let body = section('Description', prose(node.description))
@@ -77,19 +79,19 @@ export function renderNode(model: Model, node: GraphNode): string {
       if (node.kind === 'text' && content && !model.state.some((s) => s.name === content)) body += section('Content', code(content))
       // One statement per line; the text is the spec's own, not interpreted.
       if (node.onClick) body += section('on_click', code(splitStatements(node.onClick).map((s) => `${s};`).join('\n')))
-      return header(nodeBadge(node), node.name, path) + body
+      return header(nodeBadge(node), node.name, path, node.changeType) + body
     }
     case 'method':
-      return header(nodeBadge(node), node.name, node.backend) + section('Signature', code(`${node.name}${node.signature.replace(/^\w+/, '')}`)) + section('Description', prose(node.description))
+      return header(nodeBadge(node), node.name, node.backend, node.changeType) + section('Signature', code(`${node.name}${node.signature.replace(/^\w+/, '')}`)) + section('Description', prose(node.description))
     case 'state':
-      return header(nodeBadge(node), node.name) + section('Initialization', code(node.source))
+      return header(nodeBadge(node), node.name, undefined, node.changeType) + section('Initialization', code(node.source))
     case 'external':
       return header(nodeBadge(node), node.name) + section('URL', `<a class="url-copy" href="${esc(node.url)}" target="_blank" rel="noopener">${esc(node.url)}</a>`)
   }
 }
 
 export function renderBackend(backend: Backend): string {
-  return header(badge('BACKEND API', 'var(--t-ext)'), backend.name) + section('Description', prose(backend.description))
+  return header(badge('BACKEND API', 'var(--t-ext)'), backend.name, undefined, backend.changeType) + section('Description', prose(backend.description))
 }
 
 function KIND_LABEL(edge: Edge): string {
@@ -125,7 +127,7 @@ export function renderEdge(model: Model, edge: DrawEdge): string {
   const short = (id: string) => model.nodes.get(id)?.name ?? id
   if (members.length === 1) {
     const m = members[0]
-    return header(esc(KIND_LABEL(m)), `${short(m.from)} → ${short(m.to)}`) +
+    return header(esc(KIND_LABEL(m)), `${short(m.from)} → ${short(m.to)}`, undefined, m.changeType) +
       `<div class="endpoint-pair">${endpoint(model, 'From', m.from)}<span class="endpoint-arrow">→</span>${endpoint(model, 'To', m.to)}</div><div class="pair-gap"></div>`
   }
   const kinds = [...new Set(members.map(KIND_LABEL))].join(' + ')
@@ -135,6 +137,7 @@ export function renderEdge(model: Model, edge: DrawEdge): string {
     section('Edges', `<div class="flow-list">${members.map((m) => `<div class="flow-row static">
       <span class="flow-kind">${esc(KIND_LABEL(m))}</span>
       <span class="flow-endpoint"><button class="link" data-jump-node="${esc(m.from)}">${esc(qualifiedName(model, m.from))}</button> → <button class="link" data-jump-node="${esc(m.to)}">${esc(qualifiedName(model, m.to))}</button></span>
+      ${changeChip(m.changeType)}
     </div>`).join('')}</div>`, members.length)
 }
 
@@ -160,9 +163,10 @@ function renderNavigation(model: Model, edge: DrawEdge): string {
       ${node ? `<span class="endpoint-badges">${nodeBadge(node)}</span>` : ''}
       <span class="flow-endpoint"><button class="link" data-jump-node="${esc(m.from)}">${esc(qualifiedName(model, m.from))}</button></span>
       ${edge.back || edge.members.length > 1 ? `<span class="flow-kind">→ ${esc(short(m.to))}</span>` : ''}
+      ${edge.members.length > 1 ? changeChip(m.changeType) : ''}
     </div>`
   }).join('')
-  return header(edge.back ? 'Two-way navigation' : 'Navigation', `${short(from)} ${arrow} ${short(to)}`, edge.members.length > 1 ? `${edge.members.length} triggers` : undefined) +
+  return header(edge.back ? 'Two-way navigation' : 'Navigation', `${short(from)} ${arrow} ${short(to)}`, edge.members.length > 1 ? `${edge.members.length} triggers` : undefined, edge.members.length === 1 ? first.changeType : undefined) +
     `<div class="endpoint-pair">${endpoint(model, edge.back ? 'Page' : 'From', from)}<span class="endpoint-arrow">${arrow}</span>${endpoint(model, edge.back ? 'Page' : 'To', to)}</div>` +
     section('Triggered by', `<div class="flow-list">${triggers}</div>`, edge.members.length)
 }

@@ -4,7 +4,7 @@ import test from 'node:test'
 import type { Spec } from '../common/ui-spec/parser/parser.ts'
 import { deriveModel, splitStatements } from '../common/ui-spec/viewer/src/model.ts'
 import { drawableEdges } from '../common/ui-spec/viewer/src/edges.ts'
-import { qualifiedName, renderEdge, renderNode } from '../common/ui-spec/viewer/src/inspector.ts'
+import { qualifiedName, renderBackend, renderEdge, renderNode } from '../common/ui-spec/viewer/src/inspector.ts'
 import { Router, bezierControls, bezierPoint, separate, stub, type Port } from '../common/ui-spec/viewer/src/route.ts'
 
 const left: Port = { x: 0, y: 0, nx: 1, ny: 0 }
@@ -162,6 +162,24 @@ test('inspector shows the full initialization statement and method signature', (
   const method = renderNode(model, model.nodes.get('m:chat_manager.send_message')!)
   assert.match(method, /send_message\(content: string\): \{ role: &#39;user&#39;|send_message\(content: string\): \{ role: 'user'/)
   assert.match(method, /Add the user message/)
+})
+
+test('inspector shows change types on nodes, backends, and edges when present', () => {
+  for (const node of [model.pages[0], model.elements[0], model.methods[0], model.state[0]]) {
+    assert.match(renderNode(model, { ...node, changeType: 'modified' }), /modified<\/span>/)
+  }
+  assert.match(renderBackend({ ...model.backends[0], changeType: 'deleted' }), /deleted<\/span>/)
+  assert.doesNotMatch(renderNode(model, model.pages[0]), /class="change-chip"/)
+
+  const single = drawableEdges(model, new Set()).find((edge) => edge.kind === 'nav' && edge.members.length === 1)!
+  assert.match(renderEdge(model, { ...single, members: [{ ...single.members[0], changeType: 'added' }] }), /added<\/span>/)
+  const merged = drawableEdges(model, new Set(['chat_page'])).find((edge) => edge.kind === 'dataflow' && edge.members.length > 1)!
+  const changed = { ...merged, members: merged.members.map((member) => ({ ...member, changeType: 'modified' as const })) }
+  assert.equal(renderEdge(model, changed).match(/modified<\/span>/g)?.length, changed.members.length)
+  const nav = drawableEdges(model, new Set(model.pages.map((page) => page.name))).find((edge) => edge.kind === 'nav' && edge.back)!
+  const changedNav = { ...nav, members: nav.members.map((member) => ({ ...member, changeType: 'added' as const })) }
+  assert.equal(renderEdge(model, changedNav).match(/added<\/span>/g)?.length, changedNav.members.length)
+  assert.doesNotMatch(renderEdge(model, single), /class="change-chip"/)
 })
 
 test('inspector shows the full on_click of elements that have one', () => {

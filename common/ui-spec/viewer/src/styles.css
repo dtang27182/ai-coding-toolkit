@@ -259,6 +259,8 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .close-button { width: 26px; height: 26px; flex: 0 0 auto; padding: 0; border: 0; border-radius: 5px; color: var(--muted); background: transparent; cursor: pointer; }
 .close-button:hover { color: var(--bright); background: var(--raised); }
 .detail-chip { display: inline-block; margin-top: 10px; padding: 3px 7px; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); background: var(--raised); font: 10px var(--mono); letter-spacing: 0.06em; }
+.change-chip { display: inline-block; align-self: flex-start; margin: 10px 6px 0 0; padding: 3px 7px; border: 1px solid var(--change-color); border-radius: 4px; color: var(--change-color); background: color-mix(in oklch, var(--change-color) 15%, transparent); font: 10px var(--mono); }
+.flow-row .change-chip { margin-top: 0; }
 .inspector-section { padding: 17px 20px; border-bottom: 1px solid var(--subtle-border); }
 .inspector-section:last-child { padding-bottom: 32px; border-bottom: 0; }
 .section-heading { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
