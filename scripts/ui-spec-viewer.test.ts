@@ -60,13 +60,13 @@ test('collapsing a page reroutes method calls and argument dataflow independentl
   assert.ok(edges.every((e) => !e.from.startsWith('e:open_router_sign_in/') && !e.to.startsWith('e:open_router_sign_in/')))
 })
 
-test('return navigation has no special routing: it leaves the source left side for the target anchor', () => {
+test('single-direction return navigation leaves the source right side and enters the target left side', () => {
   const edges = drawableEdges(model, new Set(['open_router_sign_in', 'open_ai_sign_in', 'chat_page']))
   const returns = edges.filter((e) => e.kind === 'nav' && e.to === 'p:provider_selection')
   assert.equal(returns.length, 3)
   for (const edge of returns) {
-    assert.equal(edge.fromSide, 'l')
-    assert.equal(edge.toSide, 'r')
+    assert.equal(edge.fromSide, 'r')
+    assert.equal(edge.toSide, 'l')
     assert.equal(edge.toAnchor, true)
   }
 })
@@ -77,10 +77,14 @@ test('navigation between two collapsed pages merges into one two-way rail', () =
   const pair = nav.filter((e) => [e.from, e.to].includes('p:provider_selection') && [e.from, e.to].includes('p:open_router_sign_in'))
   assert.equal(pair.length, 1)
   assert.equal(pair[0].from, 'p:provider_selection', 'the forward direction is drawn')
+  assert.equal(pair[0].fromSide, 'r')
+  assert.equal(pair[0].toSide, 'l')
   assert.equal(pair[0].toAnchor, true)
   assert.equal(pair[0].back, true)
   const back = nav.find((e) => e.from === 'p:chat_page' && e.to === 'p:provider_selection')!
   assert.equal(back.back, false, 'a one-way return stays one-way')
+  assert.equal(back.fromSide, 'r')
+  assert.equal(back.toSide, 'l')
 })
 
 test('navigation with different change types stays separate so each rail retains its status', () => {
@@ -120,6 +124,24 @@ test('routes around a node that blocks the straight path', () => {
   assert.deepEqual(path[path.length - 1], { x: 300, y: 0 })
 })
 
+test('return navigation routes around its source and target page panels', () => {
+  const source = { x: 400, y: 0, w: 250, h: 76 }
+  const target = { x: 0, y: 0, w: 250, h: 76 }
+  const from: Port = { x: 650, y: 38, nx: 1, ny: 0 }
+  const to: Port = { x: 0, y: 38, nx: -1, ny: 0 }
+  const router = new Router([source, target], [stub(from), stub(to)])
+  const [c0, c1] = bezierControls(from, to)
+  const samples = Array.from({ length: 41 }, (_, i) => bezierPoint(from, c0, c1, to, i / 40))
+  assert.equal(router.clear(samples, new Set()), false)
+  const path = router.route(from, to, new Set())!
+  assert.equal(router.clear(path, new Set()), true)
+})
+
+test('clear detects a panel crossed between sampled points', () => {
+  const router = new Router([{ x: 12, y: -5, w: 5, h: 10 }], [])
+  assert.equal(router.clear([{ x: 0, y: 0 }, { x: 30, y: 0 }], new Set()), false)
+})
+
 test('separate moves routed edges that share a line into their own lanes', () => {
   // Two paths that run along the same horizontal line y=100 between x=60 and x=200.
   const a = [{ x: 0, y: 0 }, { x: 0, y: 100 }, { x: 200, y: 100 }, { x: 200, y: 300 }]
@@ -127,7 +149,7 @@ test('separate moves routed edges that share a line into their own lanes', () =>
   const [pa, pb] = separate([a, b])
   const horizontal = (path: { x: number; y: number }[]) => path.slice(0, -1).flatMap((p, k) =>
     Math.abs(p.y - path[k + 1].y) < 0.01 && Math.abs(p.x - path[k + 1].x) > 0.01 ? [p.y] : [])
-  assert.notDeepEqual(horizontal(pa), horizontal(pb))
+  assert.ok(Math.abs(horizontal(pa)[0] - horizontal(pb)[0]) >= 16)
   // Endpoints and the stubs leaving them stay where they were.
   assert.deepEqual([pa[0], pa.at(-1), pb[0], pb.at(-1)], [{ x: 0, y: 0 }, { x: 200, y: 300 }, { x: 60, y: 0 }, { x: 260, y: 300 }])
   assert.equal(pa[1].x, 0)

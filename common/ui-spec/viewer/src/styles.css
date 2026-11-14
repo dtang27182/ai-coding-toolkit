@@ -143,6 +143,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .band { display: flex; align-items: center; justify-content: center; gap: 40px; }
 .page-band { gap: 130px; align-items: center; }
 .col { display: flex; flex-direction: column; align-items: flex-start; gap: 56px; }
+.page-band .col { gap: 96px; }
 .node { position: relative; transition: opacity 120ms ease; }
 .dimmed { opacity: .17; }
 
@@ -194,7 +195,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .state-box .sn { font: 500 12.5px var(--mono); color: var(--bright); white-space: nowrap; }
 .state-box .si { font: 10px var(--mono); color: var(--muted); white-space: nowrap; }
 /* collapsed page: impl-dataflow hexagon */
-.page-node { display: block; min-width: 250px; height: 56px; padding: 1.75px; border: 0; background: var(--change-color, var(--node-stroke)); clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%); cursor: pointer; transition: opacity 120ms ease; }
+.page-node { display: block; min-width: 250px; height: 76px; padding: 1.75px; border: 0; background: var(--change-color, var(--node-stroke)); clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%); cursor: pointer; transition: opacity 120ms ease; }
 .page-node .hex-fill { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 100%; padding: 0 30px; background: color-mix(in oklch, var(--t) var(--tint), var(--raised)); clip-path: polygon(13px 0, calc(100% - 13px) 0, 100% 50%, calc(100% - 13px) 100%, 13px 100%, 0 50%); }
 .page-node .frame-name { font-weight: 500; font-size: 12.5px; }
 .page-node:hover .hex-fill, .page-node.selected .hex-fill { background: color-mix(in oklch, var(--t) var(--tint), var(--hover)); }

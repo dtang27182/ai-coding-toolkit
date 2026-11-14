@@ -12,7 +12,7 @@ export interface Point { x: number; y: number }
 export interface Port extends Point { nx: number; ny: number }
 
 /** Space kept between a routed edge and any node it passes. */
-export const MARGIN = 14
+export const MARGIN = 32
 /** How far an edge leaves its node straight along the port normal before it may turn. */
 export const STUB = 18
 const BEND_COST = 60
@@ -72,9 +72,22 @@ export class Router {
     return hits
   }
 
-  /** True when no sampled point of the curve lies inside a non-exempt node (its real outline, not the margin). */
+  /** True when no segment crosses a non-exempt node's real outline. */
   clear(points: Point[], exempt: ReadonlySet<number>): boolean {
-    return points.every((p) => !(this.cover(p.x, p.y, this.raw) ?? []).some((i) => !exempt.has(i)))
+    return points.slice(1).every((point, n) => this.raw.every((box, i) => {
+      if (exempt.has(i)) return true
+      const previous = points[n]
+      let enter = 0, exit = 1
+      for (const [start, delta, min, max] of [[previous.x, point.x - previous.x, box.x0, box.x1], [previous.y, point.y - previous.y, box.y0, box.y1]]) {
+        if (delta === 0) {
+          if (start <= min || start >= max) return true
+        } else {
+          enter = Math.max(enter, Math.min((min - start) / delta, (max - start) / delta))
+          exit = Math.min(exit, Math.max((min - start) / delta, (max - start) / delta))
+        }
+      }
+      return enter >= exit || enter >= 1 || exit <= 0
+    }))
   }
 
   /** Route from port a to port b avoiding obstacles; `exempt` are the endpoint nodes' obstacle indices. */
@@ -161,7 +174,7 @@ export function simplify(points: Point[]): Point[] {
 }
 
 /** Gap between parallel routed edges that would otherwise share a line. */
-export const LANE_GAP = 8
+export const LANE_GAP = 16
 
 /**
  * Pull apart routed paths that run along the same line (no two edges may fully overlap). Each path's stub
@@ -234,7 +247,7 @@ export function separate(paths: Point[][], gap = LANE_GAP): Point[][] {
 }
 
 /** SVG path through the points with corners rounded as much as the neighbouring segments allow. */
-export function roundedPath(points: Point[], radius = 56): string {
+export function roundedPath(points: Point[], radius = 28): string {
   let d = `M${points[0].x},${points[0].y}`
   for (let k = 1; k < points.length - 1; k++) {
     const [p, c, n] = [points[k - 1], points[k], points[k + 1]]

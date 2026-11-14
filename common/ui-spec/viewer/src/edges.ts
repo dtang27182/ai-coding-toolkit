@@ -37,9 +37,7 @@ export function buildEdges(model: Model, collapsed: ReadonlySet<string>): DrawEd
     const toPage = to.startsWith('p:')
     let sides: [Side, Side]
     if (edge.kind === 'nav') {
-      const fromColumn = model.columns.get(pageOf(model, edge.from) ?? '') ?? 0
-      const toColumn = edge.to.startsWith('p:') ? model.columns.get(edge.to.slice(2)) ?? 0 : Infinity
-      sides = toColumn > fromColumn ? ['r', 'l'] : ['l', 'r']
+      sides = ['r', 'l']
     } else if (edge.kind === 'methodCall') {
       sides = [fromPage ? 'b' : 'r', 't']
     } else if (edge.kind === 'dataflow' && model.nodes.get(edge.to)?.type === 'method') {
@@ -60,7 +58,9 @@ export function buildEdges(model: Model, collapsed: ReadonlySet<string>): DrawEd
 function outward(model: Model, edge: DrawEdge): boolean {
   let forward = false
   if (edge.kind === 'nav') {
-    forward = edge.fromSide === 'r'
+    const fromColumn = model.columns.get(pageOf(model, edge.members[0].from) ?? '') ?? 0
+    const toColumn = edge.to.startsWith('p:') ? model.columns.get(edge.to.slice(2)) ?? 0 : Infinity
+    forward = toColumn > fromColumn
   } else if (edge.kind === 'methodCall') {
     forward = true
   } else if (edge.kind === 'dataflow') {

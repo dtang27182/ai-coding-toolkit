@@ -242,8 +242,8 @@ function port(r: Rect, side: Side, t: number): Port {
   return { x: r.x + r.w * t, y: r.y + r.h, nx: 0, ny: 1 }
 }
 
-/** Nodes an edge must not pass through: every leaf node plus frame tabs and container labels. */
-const OBSTACLES = '.page-node, .pill, .state-box, .ext-node, .frame-tab, .sub-label'
+/** Node panels and frames; an edge may cross only the frames containing its endpoints. */
+const OBSTACLES = '.frame, .sub-frame, .page-node, .pill, .state-box, .ext-node, .frame-tab, .sub-label'
 
 /** Bezier when it is clear of other nodes, otherwise a routed path with rounded corners. */
 function edgePath(router: Router, a: Port, b: Port, exempt: ReadonlySet<number>): string | Point[] {
@@ -271,14 +271,25 @@ function drawEdges(placed: Placed[]) {
   view.drawn = []
   const obstacleEls = [...graph.querySelectorAll(OBSTACLES)]
   const index = new Map(obstacleEls.map((node, i) => [node, i]))
+  const exemptions = placed.map(({ fromEl, toEl }) => {
+    const exempt = new Set<number>()
+    for (const endpoint of [fromEl, toEl]) {
+      let frame = endpoint.closest('.frame, .sub-frame')
+      while (frame) {
+        const i = index.get(frame)
+        if (i !== undefined) exempt.add(i)
+        frame = frame.parentElement?.closest('.frame, .sub-frame') ?? null
+      }
+    }
+    return exempt
+  })
   const ends = placed.map(({ edge, fromRect, toRect, fromT, toT }) => [port(fromRect, edge.fromSide, fromT), port(toRect, edge.toSide, toT)] as const)
   const router = new Router(obstacleEls.map(rectOf), ends.flatMap(([a, b]) => [stub(a), stub(b)]))
-  const shapes = placed.map(({ fromEl, toEl }, n) =>
-    edgePath(router, ends[n][0], ends[n][1], new Set([index.get(fromEl), index.get(toEl)].filter((i) => i !== undefined))))
+  const shapes = placed.map((_, n) => edgePath(router, ends[n][0], ends[n][1], exemptions[n]))
   // Routed edges that share a grid line get their own lanes.
   const routed = shapes.flatMap((shape, n) => (typeof shape === 'string' ? [] : [n]))
-  const lanes = separate(routed.map((n) => shapes[n] as Point[]))
-  routed.forEach((n, i) => { shapes[n] = lanes[i] })
+  const lanes = separate(routed.map((n) => (shapes[n] as Point[]).map((point) => ({ ...point }))))
+  routed.forEach((n, i) => { if (router.clear(lanes[i], exemptions[n])) shapes[n] = lanes[i] })
   for (const [n, { edge }] of placed.entries()) {
     const shape = shapes[n]
     const d = typeof shape === 'string' ? shape : roundedPath(shape)
