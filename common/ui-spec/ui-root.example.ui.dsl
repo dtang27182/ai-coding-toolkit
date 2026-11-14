@@ -1,7 +1,7 @@
 app ui_root {
   content_state {
-    let authenticated_provider = 'none';
-    let chat_transcript = [];
+    authenticated_provider = 'none';
+    chat_transcript = [];
   }
 
   /** Keep the selected provider's API key and chat history in memory. Generate replies with a GPT Terra model through OpenAI or OpenRouter, depending on the selected provider. */

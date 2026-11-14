@@ -184,8 +184,8 @@ class Parser {
         if (hasContentState) this.fail('Duplicate content_state block')
         this.advance()
         spec.contentState.variables = this.codeBlock().initialization.map((initialization) => {
-          const match = initialization.match(/^\s*(?:let|const|var)\s+(\w+)\s*=\s*[\s\S]+$/)
-          if (!match) this.fail('Expected an initialized content-state variable')
+          const match = initialization.match(/^\s*(\w+)\s*=(?!=|>)\s*[\s\S]+$/)
+          if (!match) this.fail('Expected a content-state initialization assignment')
           return { id: stateId(match[1]), name: match[1], initialization }
         })
         hasContentState = true

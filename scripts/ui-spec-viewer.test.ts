@@ -49,8 +49,8 @@ test('container statuses derive from child changes and hidden unchanged content 
   const input: Spec = {
     id: 'filter',
     contentState: { variables: [
-      { id: 's:context', name: 'context', initialization: 'let context = 0;', changeType: 'unchanged' },
-      { id: 's:orphan', name: 'orphan', initialization: 'let orphan = 0;', changeType: 'unchanged' },
+      { id: 's:context', name: 'context', initialization: 'context = 0;', changeType: 'unchanged' },
+      { id: 's:orphan', name: 'orphan', initialization: 'orphan = 0;', changeType: 'unchanged' },
     ] },
     backends: {
       active: { methods: {
@@ -251,7 +251,7 @@ test('separate moves routed edges that share a line into their own lanes', () =>
 
 test('inspector shows the full initialization statement and method signature', () => {
   const state = renderNode(model, model.nodes.get('s:chat_transcript')!)
-  assert.match(state, /let chat_transcript = \[\];/)
+  assert.match(state, /chat_transcript = \[\];/)
   const method = renderNode(model, model.nodes.get('m:chat_manager.send_message')!)
   assert.match(method, /send_message\(content: string\): \{ role: &#39;user&#39;|send_message\(content: string\): \{ role: 'user'/)
   assert.match(method, /Add the user message/)

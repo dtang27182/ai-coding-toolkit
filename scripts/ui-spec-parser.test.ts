@@ -38,6 +38,9 @@ test('schema accepts change types on leaves and edges, but not containers', () =
   spec.pages.chat_page.elements[0].elements[0].changeType = 'deleted'
   for (const edge of spec.relationships) edge.changeType = 'unchanged'
   assert.equal(validate(spec), true, JSON.stringify(validate.errors))
+  spec.contentState.variables[0].initialization = "let authenticated_provider = 'none';"
+  assert.equal(validate(spec), false)
+  spec.contentState.variables[0].initialization = "authenticated_provider = 'none';"
   for (const container of [spec.pages.chat_page, spec.pages.chat_page.elements[0], spec.backends.chat_manager]) {
     container.changeType = 'modified'
     assert.equal(validate(spec), false)
@@ -74,11 +77,11 @@ test('embedded code preserves strings, regexes, templates, nested blocks, and co
     'record(message)',
   ].join('\n')
   const spec = parseSpec(`app example {
-    content_state { let values = [{ text: "}" }]; }
+    content_state { values = [{ text: "}" }]; }
     page home { button run { on_click { ${handler}\n } } }
   }`)
   const output = spec.pages.home.elements[0].on_click!
-  assert.deepEqual(spec.contentState.variables, [{ id: 's:values', name: 'values', initialization: 'let values = [{ text: "}" }];' }])
+  assert.deepEqual(spec.contentState.variables, [{ id: 's:values', name: 'values', initialization: 'values = [{ text: "}" }];' }])
   assert.ok(output.includes('const pattern = /[{}]/;'))
   assert.ok(output.includes('`value: ${value.text}`'))
   assert.ok(output.includes('// Keep the next statement on its own line: }\n'))
@@ -152,8 +155,11 @@ test('leaf elements get an io direction from their kind alone', () => {
 
 test('invalid syntax and duplicate declarations report source locations', () => {
   const cases: [string, RegExp][] = [
-    ['app example { content_state { let value = ; } }', /Unexpected token/],
-    ['app example { content_state { record(value); } }', /Expected an initialized content-state variable/],
+    ['app example { content_state { value = ; } }', /Unexpected token/],
+    ['app example { content_state { let value = 1; } }', /Expected a content-state initialization assignment/],
+    ['app example { content_state { const value = 1; } }', /Expected a content-state initialization assignment/],
+    ['app example { content_state { var value = 1; } }', /Expected a content-state initialization assignment/],
+    ['app example { content_state { record(value); } }', /Expected a content-state initialization assignment/],
     ['app example { content_state {} page home { button go { on_click { let x = ; } } } }', /Unexpected token/],
     ['app example { content_state {} page home { mystery item; } }', /Unknown element kind/],
     ['app example { content_state {} page home { button go { unknown value; } } }', /Unknown element property/],

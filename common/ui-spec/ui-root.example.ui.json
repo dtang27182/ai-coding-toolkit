@@ -5,12 +5,12 @@
       {
         "id": "s:authenticated_provider",
         "name": "authenticated_provider",
-        "initialization": "let authenticated_provider = 'none';"
+        "initialization": "authenticated_provider = 'none';"
       },
       {
         "id": "s:chat_transcript",
         "name": "chat_transcript",
-        "initialization": "let chat_transcript = [];"
+        "initialization": "chat_transcript = [];"
       }
     ]
   },

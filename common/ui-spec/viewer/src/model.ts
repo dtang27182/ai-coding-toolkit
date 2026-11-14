@@ -96,7 +96,7 @@ export function deriveModel(spec: Spec): Model {
 
   const state: StateNode[] = spec.contentState.variables.map((variable) => ({
     type: 'state', id: variable.id, name: variable.name,
-    init: variable.initialization.replace(/^\s*(?:let|const|var)\s+\w+\s*=\s*/, '').replace(/;?\s*$/, ''),
+    init: variable.initialization.replace(/^\s*\w+\s*=\s*/, '').replace(/;?\s*$/, ''),
     source: variable.initialization, changeType: variable.changeType,
   }))
 

@@ -54,7 +54,11 @@
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "name": { "type": "string", "minLength": 1 },
-        "initialization": { "type": "string", "minLength": 1 }
+        "initialization": {
+          "description": "Assignment initializing the state variable, such as `provider = 'none';`, without a declaration keyword.",
+          "type": "string",
+          "pattern": "^\\s*[A-Za-z_][A-Za-z0-9_]*\\s*=(?!=|>)\\s*\\S"
+        }
       },
       "unevaluatedProperties": false
     },
