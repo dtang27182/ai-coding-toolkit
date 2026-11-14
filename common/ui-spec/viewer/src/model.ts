@@ -89,6 +89,15 @@ export interface Model {
   columns: Map<string, number>
 }
 
+function childChangeType(children: { changeType?: ChangeType }[]): ChangeType | undefined {
+  const types = children.map((child) => child.changeType)
+  if (types.length === 0 || types.every((type) => type === undefined)) return undefined
+  else if (types.every((type) => type === undefined || type === 'unchanged')) return 'unchanged'
+  else if (types.every((type) => type === 'added')) return 'added'
+  else if (types.every((type) => type === 'deleted')) return 'deleted'
+  else return 'modified'
+}
+
 export function deriveModel(spec: Spec): Model {
   const nodes = new Map<string, GraphNode>()
   const edges = spec.relationships
@@ -103,27 +112,35 @@ export function deriveModel(spec: Spec): Model {
   const methods: MethodNode[] = []
   for (const [name, backend] of Object.entries(spec.backends)) {
     const ids: string[] = []
+    const children: MethodNode[] = []
     for (const [method, def] of Object.entries(backend.methods)) {
       const node: MethodNode = { type: 'method', id: methodId(name, method), name: method, backend: name, signature: def.signature, description: def.description, changeType: def.changeType }
       methods.push(node)
+      children.push(node)
       ids.push(node.id)
     }
-    backends.push({ id: `b:${name}`, name, description: backend.description, methods: ids, changeType: backend.changeType })
+    backends.push({ id: `b:${name}`, name, description: backend.description, methods: ids, changeType: childChangeType(children) })
   }
 
   const elements: ElementNode[] = []
   const walk = (page: string, list: SpecElement[], parent: string | null): string[] => list.map((element) => {
     const node: ElementNode = {
       type: 'element', id: elementId(page, element.id), name: element.id, kind: element.kind, io: element.io, page, parent, children: [],
-      description: element.description, onClick: element.on_click, url: element.url, content: element.content, reads: element.reads, changeType: element.changeType,
+      description: element.description, onClick: element.on_click, url: element.url, content: element.content, reads: element.reads,
+      changeType: element.kind === 'container' ? undefined : element.changeType,
     }
     elements.push(node)
     if (element.kind === 'container') node.children = walk(page, element.elements ?? [], node.id)
     return node.id
   })
   const pages: PageNode[] = Object.entries(spec.pages).map(([name, page], index) => ({
-    type: 'page', id: pageId(name), name, description: page.description, entry: index === 0, children: walk(name, page.elements, null), changeType: page.changeType,
+    type: 'page', id: pageId(name), name, description: page.description, entry: index === 0, children: walk(name, page.elements, null),
   }))
+  const elementById = new Map(elements.map((element) => [element.id, element]))
+  for (const element of [...elements].reverse()) {
+    if (element.kind === 'container') element.changeType = childChangeType(element.children.map((id) => elementById.get(id)!))
+  }
+  for (const page of pages) page.changeType = childChangeType(page.children.map((id) => elementById.get(id)!))
 
   const externals: ExternalNode[] = []
   for (const element of elements) {

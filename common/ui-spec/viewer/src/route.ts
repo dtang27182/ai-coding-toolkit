@@ -12,10 +12,11 @@ export interface Point { x: number; y: number }
 export interface Port extends Point { nx: number; ny: number }
 
 /** Space kept between a routed edge and any node it passes. */
-export const MARGIN = 32
+export const MARGIN = 40
 /** How far an edge leaves its node straight along the port normal before it may turn. */
 export const STUB = 18
 const BEND_COST = 60
+const gridCoordinate = (value: number) => Math.round(value * 100) / 100
 
 export function bezierControls(a: Port, b: Port) {
   const c = Math.max(40, Math.min(220, Math.hypot(b.x - a.x, b.y - a.y) * 0.42))
@@ -43,11 +44,13 @@ export class Router {
   private nodeCover: (number[] | null)[]
   private hCover: (number[] | null)[]
   private vCover: (number[] | null)[]
+  private margin: number
 
   /** `extra` points (edge stubs) are added to the grid so routes can start and end on them exactly. */
   constructor(obstacles: Rect[], extra: Point[], margin = MARGIN) {
+    this.margin = margin
     this.raw = obstacles.map((r) => ({ x0: r.x, y0: r.y, x1: r.x + r.w, y1: r.y + r.h }))
-    this.boxes = obstacles.map((r) => ({ x0: r.x - margin, y0: r.y - margin, x1: r.x + r.w + margin, y1: r.y + r.h + margin }))
+    this.boxes = obstacles.map((r) => ({ x0: gridCoordinate(r.x - margin), y0: gridCoordinate(r.y - margin), x1: gridCoordinate(r.x + r.w + margin), y1: gridCoordinate(r.y + r.h + margin) }))
     this.xs = gridLines([...this.boxes.flatMap((b) => [b.x0, b.x1]), ...extra.map((p) => p.x)])
     this.ys = gridLines([...this.boxes.flatMap((b) => [b.y0, b.y1]), ...extra.map((p) => p.y)])
     const { xs, ys } = this
@@ -98,12 +101,15 @@ export class Router {
     const near = (lines: number[], v: number) => lines.findIndex((l) => Math.abs(l - v) < 0.01)
     const si = near(xs, sa.x), sj = near(ys, sa.y), gi = near(xs, sb.x), gj = near(ys, sb.y)
     if (si < 0 || sj < 0 || gi < 0 || gj < 0) return null
-    // A stub that lands in a neighbour's margin (e.g. a method just under its backend tab) may use that
-    // neighbour's margin, but never its outline.
+    // Let endpoint stubs cross inflated outlines only along their outward port axes.
     const soft = new Set([...(this.cover(sa.x, sa.y) ?? []), ...(this.cover(sb.x, sb.y) ?? [])])
     const raw = this.raw
+    const onStubAxis = (port: Port, x: number, y: number) => port.nx !== 0
+      ? Math.abs(y - port.y) < 0.01 && (x - port.x) * port.nx >= 0 && (x - port.x) * port.nx <= this.margin
+      : Math.abs(x - port.x) < 0.01 && (y - port.y) * port.ny >= 0 && (y - port.y) * port.ny <= this.margin
     const blocked = (c: number[] | null, x: number, y: number) => !!c && c.some((i) =>
-      !exempt.has(i) && (!soft.has(i) || (x > raw[i].x0 && x < raw[i].x1 && y > raw[i].y0 && y < raw[i].y1)))
+      !exempt.has(i) && (!soft.has(i) || (!onStubAxis(a, x, y) && !onStubAxis(b, x, y))
+        || (x > raw[i].x0 && x < raw[i].x1 && y > raw[i].y0 && y < raw[i].y1)))
     const dirOf = (dx: number, dy: number) => DIRS.findIndex(([x, y]) => x === Math.sign(dx) && y === Math.sign(dy))
     const startDir = dirOf(a.nx, a.ny)
     const goalDir = dirOf(-b.nx, -b.ny)
@@ -151,7 +157,7 @@ export class Router {
 
 /** Sorted unique grid lines, plus a line midway between each neighbouring pair so routes can run down the middle of gaps. */
 function gridLines(values: number[]): number[] {
-  const sorted = [...new Set(values.map((v) => Math.round(v * 100) / 100))].sort((a, b) => a - b)
+  const sorted = [...new Set(values.map(gridCoordinate))].sort((a, b) => a - b)
   const lines: number[] = []
   sorted.forEach((v, i) => {
     if (i > 0) lines.push((sorted[i - 1] + v) / 2)

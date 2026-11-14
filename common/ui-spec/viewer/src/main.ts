@@ -1,6 +1,7 @@
 import type { ChangeType, Spec } from '../../parser/parser.ts'
 import exampleSpec from '../../ui-root.example.ui.json?raw'
 import { deriveModel, pageOf, type ElementNode, type Model } from './model.ts'
+import { visibleModel } from './filter.ts'
 import { drawableEdges, type DrawEdge, type Layer, type Side } from './edges.ts'
 import { Router, bezierControls, bezierPoint, roundedPath, separate, stub, type Point, type Port, type Rect } from './route.ts'
 import './styles.css'
@@ -34,6 +35,7 @@ app.innerHTML = `
     </header>
     <div class="dataflow-controls">
       <div class="layers" data-layers></div>
+      <button class="control-button" data-toggle-unchanged hidden></button>
       <button class="control-button" data-toggle-pages></button>
       <div class="view-controls">
         <span class="interaction-hint">Wheel to zoom · right-drag to pan</span>
@@ -62,24 +64,27 @@ const graph = $<HTMLDivElement>('[data-graph]')
 const canvas = $<HTMLDivElement>('[data-canvas]')
 const layersEl = $<HTMLDivElement>('[data-layers]')
 const statusEl = $<HTMLDivElement>('[data-status]')
+const unchangedButton = $<HTMLButtonElement>('[data-toggle-unchanged]')
 const pagesButton = $<HTMLButtonElement>('[data-toggle-pages]')
 interface OpenTab extends ManifestFile { spec: Spec; fileName: string }
 
+const initialSpec = JSON.parse(exampleSpec) as Spec
+const initialModel = deriveModel(initialSpec)
 const view = {
-  model: deriveModel(JSON.parse(exampleSpec) as Spec),
+  model: initialModel,
+  visible: initialModel,
+  showUnchanged: true,
   collapsed: new Set<string>(),
   selected: null as string | null,
   /** Index into view.drawn of the selected edge. */
   selectedEdge: null as number | null,
   /** The spec's top-level description, shown when nothing is selected. */
-  description: (JSON.parse(exampleSpec) as Spec).description,
+  description: initialSpec.description,
   layers: { nav: true, methodCall: true, dataflow: true } as Record<Layer, boolean>,
   scale: 1,
   tx: 0,
   ty: 0,
   drawn: [] as Drawn[],
-  /** Node ids with at least one edge; backend methods without one are not drawn. */
-  connected: new Set<string>(),
   tabs: [] as OpenTab[],
   activeTab: null as ManifestTab | null,
   manifestName: null as string | null,
@@ -89,13 +94,15 @@ function load(model: Model, fileName: string) {
   view.model = model
   view.collapsed = new Set(model.pages.map((p) => p.name))
   view.selected = null
-  view.connected = new Set(model.edges.flatMap((e) => [e.from, e.to]))
+  const hasChangeTypes = [...model.elements, ...model.state, ...model.methods].some((node) => node.changeType !== undefined)
+  view.showUnchanged = !hasChangeTypes
+  unchangedButton.hidden = !hasChangeTypes
+  renderUnchangedButton()
   const fileLabel = $<HTMLElement>('[data-file-name]')
   fileLabel.textContent = fileName
   fileLabel.title = fileName
   $('[data-spec-id]').textContent = model.id
   $('[data-spec-counts]').textContent = `${model.pages.length} pages · ${model.elements.filter((e) => e.kind !== 'container').length} elements · ${model.methods.length} API methods · ${model.state.length} content-state vars`
-  renderLayers()
   render()
   fit()
   renderInspector()
@@ -125,12 +132,12 @@ function selectTab(key: ManifestTab) {
 /* ---------- markup ---------- */
 
 const esc = (value: string) => value.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
-const elementCount = (page: string) => view.model.elements.filter((e) => e.page === page && e.kind !== 'container').length
+const elementCount = (page: string) => view.visible.elements.filter((e) => e.page === page && e.kind !== 'container').length
 
 const badge = (text: string, tone: string) => `<span class="badge" style="--t:${tone}">${esc(text)}</span>`
 
 function elementMarkup(id: string): string {
-  const element = view.model.nodes.get(id) as ElementNode
+  const element = view.visible.nodes.get(id) as ElementNode
   if (element.kind === 'container') {
     return `<div class="sub-frame" data-id="${esc(id)}" style="${changeStyle(element.changeType)}"><div class="sub-label">${esc(element.name)} · container</div>${element.children.map(elementMarkup).join('')}</div>`
   }
@@ -139,7 +146,7 @@ function elementMarkup(id: string): string {
 }
 
 function methodMarkup(id: string): string {
-  const method = view.model.nodes.get(id)
+  const method = view.visible.nodes.get(id)
   if (method?.type !== 'method') return ''
   const params = method.signature.match(/^\w+\s*(\([^)]*\))/)?.[1] ?? method.signature.replace(/^\w+/, '')
   return `<button class="pill method" data-id="${esc(id)}" style="${changeStyle(method.changeType)}" title="${esc(method.signature)}"><span class="g">ƒ</span><span class="n">${esc(method.name)}</span><span class="sig">${esc(params)}</span></button>`
@@ -154,7 +161,7 @@ function tab(shape: 'hex' | 'cyl' | 'ext', label: string, tone: string, name: st
 }
 
 function pageMarkup(name: string): string {
-  const page = view.model.pages.find((p) => p.name === name)!
+  const page = view.visible.pages.find((p) => p.name === name)!
   const count = elementCount(name)
   const label = page.entry ? 'PAGE · ENTRY' : 'PAGE'
   if (view.collapsed.has(name)) {
@@ -175,17 +182,19 @@ function renderPagesButton() {
 }
 
 function render() {
+  view.visible = visibleModel(view.model, view.showUnchanged)
+  renderLayers()
   renderPagesButton()
-  const model = view.model
+  const model = view.visible
+  const backends = model.backends.filter((backend) => backend.methods.length > 0)
   const columns: string[][] = []
   for (const page of model.pages) (columns[model.columns.get(page.name)!] ??= []).push(page.name)
   graph.innerHTML = `<svg class="graph-svg" aria-hidden="true"></svg>
-    <div class="band"><div class="node frame">${tab('cyl', 'CONTENT STATE', 'var(--t-state)', model.id)}<div class="row">${model.state.map((s) =>
-      `<button class="state-box" data-id="${esc(s.id)}" style="--t:var(--t-state);${changeStyle(s.changeType)}">${CYLINDER}<span class="sn">${esc(s.name)}</span><span class="si">init ${esc(s.init)}</span></button>`).join('')}</div></div></div>
-    <div class="band page-band">${columns.filter(Boolean).map((pages) => `<div class="col">${pages.map(pageMarkup).join('')}</div>`).join('')}
-      ${model.externals.length ? `<div class="col">${model.externals.map((x) => `<div class="node"><button class="ext-node" data-id="${esc(x.id)}" data-anchor="${esc(x.id)}" style="--t:var(--t-ext)" title="${esc(x.url)}">${badge('EXTERNAL', 'var(--t-ext)')}<span class="frame-name">${esc(x.name)}</span></button></div>`).join('')}</div>` : ''}</div>
-    <div class="band">${model.backends.map((b) => [b, b.methods.filter((m) => view.connected.has(m))] as const).filter(([, methods]) => methods.length > 0)
-      .map(([b, methods]) => `<div class="node frame backend" style="${changeStyle(b.changeType)}">${tab('ext', 'BACKEND API', 'var(--t-ext)', b.name, `data-id="${esc(b.id)}"`)}<div class="row">${methods.map(methodMarkup).join('')}</div></div>`).join('')}</div>`
+    ${model.state.length ? `<div class="band"><div class="node frame">${tab('cyl', 'CONTENT STATE', 'var(--t-state)', model.id)}<div class="row">${model.state.map((s) =>
+      `<button class="state-box" data-id="${esc(s.id)}" style="--t:var(--t-state);${changeStyle(s.changeType)}">${CYLINDER}<span class="sn">${esc(s.name)}</span><span class="si">init ${esc(s.init)}</span></button>`).join('')}</div></div></div>` : ''}
+    ${model.pages.length || model.externals.length ? `<div class="band page-band">${columns.filter(Boolean).map((pages) => `<div class="col">${pages.map(pageMarkup).join('')}</div>`).join('')}
+      ${model.externals.length ? `<div class="col">${model.externals.map((x) => `<div class="node"><button class="ext-node" data-id="${esc(x.id)}" data-anchor="${esc(x.id)}" style="--t:var(--t-ext)" title="${esc(x.url)}">${badge('EXTERNAL', 'var(--t-ext)')}<span class="frame-name">${esc(x.name)}</span></button></div>`).join('')}</div>` : ''}</div>` : ''}
+    ${backends.length ? `<div class="band">${backends.map((backend) => `<div class="node frame backend" style="${changeStyle(backend.changeType)}">${tab('ext', 'BACKEND API', 'var(--t-ext)', backend.name, `data-id="${esc(backend.id)}"`)}<div class="row">${backend.methods.map(methodMarkup).join('')}</div></div>`).join('')}</div>` : ''}`
   // Drawn edges are rebuilt, so an edge selection no longer points at the same edge.
   if (view.selectedEdge !== null) {
     view.selectedEdge = null
@@ -447,7 +456,13 @@ function glyph(kind: Layer, width = 30): string {
 
 function renderLayers() {
   layersEl.innerHTML = LAYERS.map(([layer, label]) =>
-    `<button class="layer-chip" data-layer="${layer}" aria-pressed="${view.layers[layer]}">${glyph(layer)}${label}<span class="ct">${view.model.edges.filter((e) => e.kind === layer).length}</span></button>`).join('')
+    `<button class="layer-chip" data-layer="${layer}" aria-pressed="${view.layers[layer]}">${glyph(layer)}${label}<span class="ct">${view.visible.edges.filter((e) => e.kind === layer).length}</span></button>`).join('')
+}
+
+function renderUnchangedButton() {
+  unchangedButton.textContent = `Unchanged: ${view.showUnchanged ? 'shown' : 'hidden'}`
+  unchangedButton.classList.toggle('active', !view.showUnchanged)
+  unchangedButton.setAttribute('aria-pressed', String(!view.showUnchanged))
 }
 
 $('[data-legend]').innerHTML =
@@ -457,6 +472,16 @@ pagesButton.addEventListener('click', () => {
   view.collapsed = view.collapsed.size > 0 ? new Set() : new Set(view.model.pages.map((p) => p.name))
   render()
   fit()
+})
+
+unchangedButton.addEventListener('click', () => {
+  view.showUnchanged = !view.showUnchanged
+  view.selected = null
+  view.selectedEdge = null
+  renderUnchangedButton()
+  render()
+  fit()
+  renderInspector()
 })
 
 layersEl.addEventListener('click', (event) => {

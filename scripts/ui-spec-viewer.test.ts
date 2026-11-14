@@ -4,8 +4,9 @@ import test from 'node:test'
 import type { Spec } from '../common/ui-spec/parser/parser.ts'
 import { deriveModel, splitStatements } from '../common/ui-spec/viewer/src/model.ts'
 import { drawableEdges } from '../common/ui-spec/viewer/src/edges.ts'
+import { visibleModel } from '../common/ui-spec/viewer/src/filter.ts'
 import { qualifiedName, renderBackend, renderEdge, renderNode } from '../common/ui-spec/viewer/src/inspector.ts'
-import { Router, bezierControls, bezierPoint, separate, stub, type Port } from '../common/ui-spec/viewer/src/route.ts'
+import { LANE_GAP, MARGIN, Router, bezierControls, bezierPoint, separate, stub, type Port } from '../common/ui-spec/viewer/src/route.ts'
 
 const left: Port = { x: 0, y: 0, nx: 1, ny: 0 }
 const right: Port = { x: 300, y: 0, nx: -1, ny: 0 }
@@ -42,6 +43,74 @@ test('viewer uses serialized relationships without deriving them again', () => {
   const withoutEdges = deriveModel({ ...spec, relationships: [] })
   assert.deepEqual(withoutEdges.edges, [])
   assert.equal(withoutEdges.columns.get('chat_page'), 1)
+})
+
+test('container statuses derive from child changes and hidden unchanged content is pruned upward', () => {
+  const input: Spec = {
+    id: 'filter',
+    contentState: { variables: [
+      { id: 's:context', name: 'context', initialization: 'let context = 0;', changeType: 'unchanged' },
+      { id: 's:orphan', name: 'orphan', initialization: 'let orphan = 0;', changeType: 'unchanged' },
+    ] },
+    backends: {
+      active: { methods: {
+        changed: { signature: 'changed(): void', changeType: 'added' },
+        context: { signature: 'context(): void', changeType: 'unchanged' },
+        orphan: { signature: 'orphan(): void', changeType: 'unchanged' },
+      } },
+      hidden: { methods: { orphan: { signature: 'orphan(): void', changeType: 'unchanged' } } },
+    },
+    pages: {
+      active: { elements: [
+        { id: 'group', kind: 'container', elements: [
+          { id: 'changed', kind: 'button', changeType: 'added' },
+          { id: 'context', kind: 'text', changeType: 'unchanged' },
+          { id: 'orphan', kind: 'button', changeType: 'unchanged' },
+        ] },
+        { id: 'empty', kind: 'container', elements: [{ id: 'orphan_nested', kind: 'text', changeType: 'unchanged' }] },
+      ] },
+      hidden: { elements: [{ id: 'orphan', kind: 'button', changeType: 'unchanged' }] },
+    },
+    relationships: [
+      { kind: 'dataflow', from: 'e:active/changed', to: 'e:active/context' },
+      { kind: 'dataflow', from: 'e:active/changed', to: 's:context' },
+      { kind: 'methodCall', from: 'e:active/changed', to: 'm:active.context' },
+      { kind: 'nav', from: 'e:active/orphan', to: 'p:hidden', changeType: 'added' },
+    ],
+  }
+  const full = deriveModel(input)
+  assert.equal(full.elements.find((element) => element.name === 'group')?.changeType, 'modified')
+  assert.equal(full.elements.find((element) => element.name === 'empty')?.changeType, 'unchanged')
+  assert.equal(full.pages[0].changeType, 'modified')
+  assert.equal(full.pages[1].changeType, 'unchanged')
+  assert.equal(full.backends[0].changeType, 'modified')
+  assert.equal(full.backends[1].changeType, 'unchanged')
+  assert.equal(visibleModel(full, true), full)
+
+  const visible = visibleModel(full, false)
+  assert.deepEqual(visible.pages.map((page) => page.name), ['active'])
+  assert.deepEqual(visible.elements.map((element) => element.name), ['group', 'changed', 'context'])
+  assert.deepEqual(visible.state.map((node) => node.name), ['context'])
+  assert.deepEqual(visible.methods.map((node) => node.name), ['changed', 'context'])
+  assert.deepEqual(visible.backends.map((backend) => backend.name), ['active'])
+  assert.equal(visible.edges.length, 3)
+  assert.ok(visible.edges.every((edge) => visible.nodes.has(edge.from) && visible.nodes.has(edge.to)))
+})
+
+test('nested container status derives from its leaves up to the page', () => {
+  const input: Spec = {
+    id: 'nested',
+    contentState: { variables: [] },
+    backends: {},
+    pages: { home: { elements: [{ id: 'outer', kind: 'container', elements: [
+      { id: 'inner', kind: 'container', elements: [{ id: 'new', kind: 'text', changeType: 'added' }] },
+    ] }] } },
+    relationships: [],
+  }
+  const full = deriveModel(input)
+  assert.deepEqual(full.elements.map((element) => element.changeType), ['added', 'added', 'added'])
+  assert.equal(full.pages[0].changeType, 'added')
+  assert.deepEqual(visibleModel(full, false).elements.map((element) => element.name), ['outer', 'inner', 'new'])
 })
 
 test('keeps a method call distinct from its return dataflow', () => {
@@ -134,6 +203,24 @@ test('return navigation routes around its source and target page panels', () => 
   const samples = Array.from({ length: 41 }, (_, i) => bezierPoint(from, c0, c1, to, i / 40))
   assert.equal(router.clear(samples, new Set()), false)
   const path = router.route(from, to, new Set())!
+  assert.equal(router.clear(path, new Set()), true)
+  const crossing = path.slice(1).find((point, index) => point.y === path[index].y && Math.abs(point.x - path[index].x) > source.w)!
+  assert.ok(crossing.y <= -MARGIN || crossing.y >= source.h + MARGIN, 'the return rail clears the page row')
+  const lanes = separate([path.map((point) => ({ ...point })), path.map((point) => ({ ...point }))])
+  for (const lane of lanes) {
+    const crossing = lane.slice(1).find((point, index) => point.y === lane[index].y && Math.abs(point.x - lane[index].x) > source.w)!
+    assert.ok(crossing.y <= -MARGIN + LANE_GAP / 2 || crossing.y >= source.h + MARGIN - LANE_GAP / 2)
+  }
+})
+
+test('return navigation still routes when page bounds have subpixel offsets', () => {
+  const offset = 0.00005
+  const pages = [50, 430, 810].map((x) => ({ x: x + offset, y: 258 + offset, w: 250, h: 76 }))
+  const from: Port = { x: 1060 + offset, y: 283.333 + offset, nx: 1, ny: 0 }
+  const to: Port = { x: 50 + offset, y: 296 + offset, nx: -1, ny: 0 }
+  const router = new Router(pages, [stub(from), stub(to)])
+  const path = router.route(from, to, new Set())
+  assert.ok(path, 'subpixel page bounds must not force the crossing Bezier fallback')
   assert.equal(router.clear(path, new Set()), true)
 })
 

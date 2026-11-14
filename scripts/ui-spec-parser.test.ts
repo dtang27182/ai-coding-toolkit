@@ -28,18 +28,21 @@ test('parsed JSON contains state nodes and every relationship layer', () => {
   assert.ok(spec.relationships.some((edge) => edge.kind === 'dataflow' && edge.from === 'e:chat_page/send' && edge.to === 's:chat_transcript'))
 })
 
-test('schema accepts change types on every node and relationship kind', () => {
+test('schema accepts change types on leaves and edges, but not containers', () => {
   const schema = JSON.parse(readFileSync(new URL('../common/ui-spec/ui-spec.schema.json', import.meta.url), 'utf8'))
   const validate = new Ajv2020().compile(schema)
   const spec = structuredClone(expected)
   spec.contentState.variables[0].changeType = 'modified'
-  spec.backends.chat_manager.changeType = 'unchanged'
   spec.backends.chat_manager.methods.auth_open_ai.changeType = 'added'
-  spec.pages.chat_page.changeType = 'modified'
-  spec.pages.chat_page.elements[0].changeType = 'unchanged'
+  spec.pages.provider_selection.elements[0].changeType = 'unchanged'
   spec.pages.chat_page.elements[0].elements[0].changeType = 'deleted'
   for (const edge of spec.relationships) edge.changeType = 'unchanged'
   assert.equal(validate(spec), true, JSON.stringify(validate.errors))
+  for (const container of [spec.pages.chat_page, spec.pages.chat_page.elements[0], spec.backends.chat_manager]) {
+    container.changeType = 'modified'
+    assert.equal(validate(spec), false)
+    delete container.changeType
+  }
   spec.relationships[0].changeType = 'renamed'
   assert.equal(validate(spec), false)
   spec.relationships[0].changeType = 'unchanged'

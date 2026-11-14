@@ -39,7 +39,7 @@
       "enum": ["added", "modified", "deleted", "unchanged"]
     },
     "node": {
-      "description": "Fields shared by pages, elements, content-state variables, and backend methods.",
+      "description": "Fields shared by leaf elements, content-state variables, and backend methods.",
       "type": "object",
       "properties": {
         "description": { "type": "string" },
@@ -59,16 +59,17 @@
       "unevaluatedProperties": false
     },
     "page": {
-      "allOf": [{ "$ref": "#/$defs/node" }],
+      "description": "A page. Its change status is derived from its elements.",
       "type": "object",
       "required": ["elements"],
       "properties": {
+        "description": { "type": "string" },
         "elements": {
           "type": "array",
           "items": { "$ref": "#/$defs/element" }
         }
       },
-      "unevaluatedProperties": false
+      "additionalProperties": false
     },
     "element": {
       "oneOf": [
@@ -77,18 +78,19 @@
       ]
     },
     "containerElement": {
-      "allOf": [{ "$ref": "#/$defs/node" }],
+      "description": "An element group. Its change status is derived from its child elements.",
       "type": "object",
       "required": ["id", "kind"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "kind": { "const": "container" },
+        "description": { "type": "string" },
         "elements": {
           "type": "array",
           "items": { "$ref": "#/$defs/element" }
         }
       },
-      "unevaluatedProperties": false
+      "additionalProperties": false
     },
     "leafElement": {
       "allOf": [{ "$ref": "#/$defs/node" }],
@@ -115,11 +117,11 @@
       "unevaluatedProperties": false
     },
     "backend": {
+      "description": "A backend API. Its change status is derived from its methods.",
       "type": "object",
       "required": ["methods"],
       "properties": {
         "description": { "type": "string" },
-        "changeType": { "$ref": "#/$defs/changeType" },
         "methods": {
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/method" }

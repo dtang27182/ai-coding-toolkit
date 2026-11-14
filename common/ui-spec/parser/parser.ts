@@ -3,26 +3,41 @@ import { parseSync } from 'rolldown/experimental'
 import { populateRelationships } from './relationships.ts'
 import { stateId } from './ids.ts'
 
-interface Documented {
+interface Described {
   description?: string
+}
+
+interface Documented extends Described {
   changeType?: ChangeType
 }
 
 export type ChangeType = 'added' | 'modified' | 'deleted' | 'unchanged'
 export type ElementIo = 'input' | 'output' | 'input_output'
 
-interface Element extends Documented {
+interface ElementBase extends Described {
   id: string
-  kind: string
   io?: ElementIo
-  elements?: Element[]
   on_click?: string
   url?: string
   content?: string
   reads?: string[]
 }
 
-interface Backend extends Documented {
+interface ContainerElement extends ElementBase {
+  kind: 'container'
+  elements?: Element[]
+}
+
+type LeafKind = 'button' | 'text_field' | 'text_area' | 'link' | 'text' | 'custom'
+
+interface LeafElement extends ElementBase, Documented {
+  kind: LeafKind
+  elements?: never
+}
+
+type Element = ContainerElement | LeafElement
+
+interface Backend extends Described {
   methods: Record<string, Documented & { signature: string }>
 }
 
@@ -31,7 +46,7 @@ export interface Spec {
   description?: string
   contentState: { variables: { id: string; name: string; initialization: string; changeType?: ChangeType }[] }
   backends: Record<string, Backend>
-  pages: Record<string, Documented & { elements: Element[] }>
+  pages: Record<string, Described & { elements: Element[] }>
   relationships: Edge[]
 }
 
@@ -65,7 +80,7 @@ class Parser {
   private source: string
   private scanner: Scanner
   private token = SyntaxKind.Unknown
-  private documentation: Documented = {}
+  private documentation: Described = {}
 
   constructor(source: string) {
     this.source = source
@@ -253,7 +268,8 @@ class Parser {
     const kind = this.scanner.getTokenText()
     if (!elementKinds.has(kind)) this.fail(`Unknown element kind '${kind}'`)
     this.advance()
-    const element: Element = { id: this.identifier(), kind, ...documentation }
+    const id = this.identifier()
+    const element: Element = kind === 'container' ? { id, kind, ...documentation } : { id, kind: kind as LeafKind, ...documentation }
     if (Object.hasOwn(elementIo, kind)) element.io = elementIo[kind]
     if (this.at(';')) {
       this.advance()
