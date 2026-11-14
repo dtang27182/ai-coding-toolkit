@@ -14,7 +14,9 @@ const IO: Record<string, [string, string]> = {
   output: ['→ USER', 'var(--t-output)'],
   input_output: ['USER ⇄', 'var(--t-both)'],
 }
-const LAYERS: [Layer, string][] = [['nav', 'Navigation'], ['methodCall', 'Method calls'], ['dataflow', 'Dataflow']]
+type FilterLayer = 'nav' | 'dataflow'
+const LAYERS: [FilterLayer, string][] = [['nav', 'Navigation'], ['dataflow', 'Dataflow + calls']]
+const filterLayer = (kind: Layer): FilterLayer => kind === 'nav' ? 'nav' : 'dataflow'
 const CHANGE_TYPES: ChangeType[] = ['added', 'modified', 'deleted', 'unchanged']
 const changeColor = (changeType?: ChangeType) => `var(--${changeType ?? 'unchanged'})`
 const changeStyle = (changeType?: ChangeType) => `--change-color:${changeColor(changeType)}`
@@ -80,7 +82,7 @@ const view = {
   selectedEdge: null as number | null,
   /** The spec's top-level description, shown when nothing is selected. */
   description: initialSpec.description,
-  layers: { nav: true, methodCall: true, dataflow: true } as Record<Layer, boolean>,
+  layers: { nav: true, dataflow: true } as Record<FilterLayer, boolean>,
   scale: 1,
   tx: 0,
   ty: 0,
@@ -349,7 +351,7 @@ function applyFilters() {
   for (const [n, { edge, group }] of view.drawn.entries()) {
     const touches = picked ? n === view.selectedEdge : !!rel && edge.members.some((m) => rel.ids.has(m.from) || rel.ids.has(m.to))
     group.classList.toggle('selected', n === view.selectedEdge)
-    const hidden = !view.layers[edge.kind]
+    const hidden = !view.layers[filterLayer(edge.kind)]
     group.classList.toggle('hidden', hidden)
     group.classList.toggle('dimmed', !!rel && !touches)
   }
@@ -441,14 +443,13 @@ for (const toggle of app.querySelectorAll<HTMLElement>('[data-toggle-inspector]'
 
 /* ---------- toolbar + legend ---------- */
 
-function glyph(kind: Layer, width = 30): string {
+function glyph(kind: FilterLayer, width = 30): string {
   const c = 'var(--edge)'
   const w = width
   const y = 6
   const tri = `<path d="M${w - 6} ${y - 3.5} L${w} ${y} L${w - 6} ${y + 3.5} z" fill="${c}"/>`
   const body = {
     dataflow: `<circle cx="3" cy="${y}" r="2.6" fill="${c}"/><line x1="3" y1="${y}" x2="${w - 2}" y2="${y}" stroke="${c}" stroke-width="1.6"/>${tri}`,
-    methodCall: `<circle cx="3" cy="${y}" r="2.6" fill="${c}"/><line x1="3" y1="${y}" x2="${w - 2}" y2="${y}" stroke="${c}" stroke-width="2.2"/>${tri}`,
     nav: `<line x1="3" y1="${y}" x2="${w - 7}" y2="${y}" stroke="${c}" stroke-width="6.5" stroke-linecap="round"/><line x1="3" y1="${y}" x2="${w - 7}" y2="${y}" stroke="var(--surface)" stroke-width="2.6" stroke-linecap="round"/><path d="M${w - 9} ${y - 6} L${w} ${y} L${w - 9} ${y + 6} z" fill="${c}"/>`,
   }[kind]
   return `<svg class="glyph" width="${w + 2}" height="12" viewBox="-1 0 ${w + 2} 12" aria-hidden="true">${body}</svg>`
@@ -456,7 +457,7 @@ function glyph(kind: Layer, width = 30): string {
 
 function renderLayers() {
   layersEl.innerHTML = LAYERS.map(([layer, label]) =>
-    `<button class="layer-chip" data-layer="${layer}" aria-pressed="${view.layers[layer]}">${glyph(layer)}${label}<span class="ct">${view.visible.edges.filter((e) => e.kind === layer).length}</span></button>`).join('')
+    `<button class="layer-chip" data-layer="${layer}" aria-pressed="${view.layers[layer]}">${glyph(layer)}${label}<span class="ct">${view.visible.edges.filter((e) => filterLayer(e.kind) === layer).length}</span></button>`).join('')
 }
 
 function renderUnchangedButton() {
@@ -487,7 +488,7 @@ unchangedButton.addEventListener('click', () => {
 layersEl.addEventListener('click', (event) => {
   const chip = (event.target as Element).closest<HTMLElement>('[data-layer]')
   if (!chip) return
-  const layer = chip.dataset.layer as Layer
+  const layer = chip.dataset.layer as FilterLayer
   view.layers[layer] = !view.layers[layer]
   renderLayers()
   applyFilters()
