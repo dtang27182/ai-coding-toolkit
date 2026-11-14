@@ -607,13 +607,6 @@ graph.addEventListener('click', (event) => {
   }
   const edgeGroup = target.closest<SVGGElement>('.edge-group')
   if (edgeGroup) return selectEdge(Number(edgeGroup.dataset.edge))
-  const pageNode = target.closest<HTMLElement>('.page-node')
-  if (pageNode) {
-    const id = pageNode.dataset.id!
-    view.collapsed.delete(id.slice(2))
-    render()
-    return select(id)
-  }
   const node = target.closest<HTMLElement>('[data-id]')
   if (node) return select(node.dataset.id!)
   select(null)
