@@ -189,14 +189,17 @@ function render() {
   renderPagesButton()
   const model = view.visible
   const backends = model.backends.filter((backend) => backend.methods.length > 0)
+  const pages = view.layers.nav ? model.pages : model.pages.filter((page) => view.layers.dataflow && model.edges.some((edge) =>
+    (edge.kind === 'dataflow' || edge.kind === 'methodCall') &&
+    (pageOf(model, edge.from) === page.name || pageOf(model, edge.to) === page.name)))
   const columns: string[][] = []
-  for (const page of model.pages) (columns[model.columns.get(page.name)!] ??= []).push(page.name)
+  for (const page of pages) (columns[model.columns.get(page.name)!] ??= []).push(page.name)
   graph.innerHTML = `<svg class="graph-svg" aria-hidden="true"></svg>
-    ${model.state.length ? `<div class="band"><div class="node frame">${tab('cyl', 'CONTENT STATE', 'var(--t-state)', model.id)}<div class="row">${model.state.map((s) =>
+    ${view.layers.dataflow && model.state.length ? `<div class="band"><div class="node frame">${tab('cyl', 'CONTENT STATE', 'var(--t-state)', model.id)}<div class="row">${model.state.map((s) =>
       `<button class="state-box" data-id="${esc(s.id)}" style="--t:var(--t-state);${changeStyle(s.changeType)}">${CYLINDER}<span class="sn">${esc(s.name)}</span><span class="si">init ${esc(s.init)}</span></button>`).join('')}</div></div></div>` : ''}
-    ${model.pages.length || model.externals.length ? `<div class="band page-band">${columns.filter(Boolean).map((pages) => `<div class="col">${pages.map(pageMarkup).join('')}</div>`).join('')}
+    ${pages.length || model.externals.length ? `<div class="band page-band">${columns.filter(Boolean).map((pages) => `<div class="col">${pages.map(pageMarkup).join('')}</div>`).join('')}
       ${model.externals.length ? `<div class="col">${model.externals.map((x) => `<div class="node"><button class="ext-node" data-id="${esc(x.id)}" data-anchor="${esc(x.id)}" style="--t:var(--t-ext)" title="${esc(x.url)}">${badge('EXTERNAL', 'var(--t-ext)')}<span class="frame-name">${esc(x.name)}</span></button></div>`).join('')}</div>` : ''}</div>` : ''}
-    ${backends.length ? `<div class="band">${backends.map((backend) => `<div class="node frame backend" style="${changeStyle(backend.changeType)}">${tab('ext', 'BACKEND API', 'var(--t-ext)', backend.name, `data-id="${esc(backend.id)}"`)}<div class="row">${backend.methods.map(methodMarkup).join('')}</div></div>`).join('')}</div>` : ''}`
+    ${view.layers.dataflow && backends.length ? `<div class="band">${backends.map((backend) => `<div class="node frame backend" style="${changeStyle(backend.changeType)}">${tab('ext', 'BACKEND API', 'var(--t-ext)', backend.name, `data-id="${esc(backend.id)}"`)}<div class="row">${backend.methods.map(methodMarkup).join('')}</div></div>`).join('')}</div>` : ''}`
   // Drawn edges are rebuilt, so an edge selection no longer points at the same edge.
   if (view.selectedEdge !== null) {
     view.selectedEdge = null
@@ -490,8 +493,11 @@ layersEl.addEventListener('click', (event) => {
   if (!chip) return
   const layer = chip.dataset.layer as FilterLayer
   view.layers[layer] = !view.layers[layer]
-  renderLayers()
-  applyFilters()
+  view.selected = null
+  view.selectedEdge = null
+  render()
+  fit()
+  renderInspector()
 })
 
 /* ---------- spec loading ---------- */
