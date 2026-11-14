@@ -23,7 +23,7 @@ test('splitStatements ignores semicolons inside strings and brackets', () => {
 test('derives nodes and page columns from the example spec', () => {
   assert.deepEqual(model.state.map((s) => s.name), ['authenticated_provider', 'chat_transcript'])
   assert.equal(model.methods.length, 6)
-  assert.deepEqual(model.externals.map((node) => node.url), ['https://www.openworkbookai.org/help'])
+  assert.equal(model.nodes.has('x:https://www.openworkbookai.org/help'), false)
   assert.equal(model.pages[0].entry, true)
   assert.deepEqual(Object.fromEntries(model.columns), { provider_selection: 0, open_router_sign_in: 1, open_ai_sign_in: 1, chat_page: 2 })
 })
@@ -172,6 +172,12 @@ test('navigation with different change types stays separate so each rail retains
 test('navigation from an expanded page stays per trigger', () => {
   const nav = drawableEdges(model, new Set(['open_router_sign_in'])).filter((e) => e.kind === 'nav' && e.to === 'p:open_router_sign_in')
   assert.deepEqual(nav.map((e) => [e.from, e.back]), [['e:provider_selection/select_open_router', false]])
+})
+
+test('external link destinations are not drawn as graph nodes or edges', () => {
+  assert.ok(model.edges.some((edge) => edge.to === 'x:https://www.openworkbookai.org/help'))
+  assert.ok(drawableEdges(model, new Set()).every((edge) => !edge.to.startsWith('x:')))
+  assert.match(renderNode(model, model.nodes.get('e:chat_page/help')!), /https:\/\/www\.openworkbookai\.org\/help/)
 })
 
 test('routes around a node that blocks the straight path', () => {

@@ -39,7 +39,6 @@ export function nodeBadge(node: GraphNode): string {
     case 'page': return badge(node.entry ? 'PAGE · ENTRY' : 'PAGE', 'var(--t-page)')
     case 'state': return badge('CONTENT STATE', 'var(--t-state)')
     case 'method': return badge('METHOD', 'var(--t-ext)')
-    case 'external': return badge('EXTERNAL', 'var(--t-ext)')
     case 'element': {
       if (node.kind === 'container') return badge('CONTAINER', 'var(--node-stroke)')
       const io = node.io ? IO[node.io] : undefined
@@ -64,7 +63,6 @@ export function qualifiedName(model: Model, id: string): string {
     return [node.page, ...path].join(' › ')
   }
   if (node.type === 'method') return `${node.backend}.${node.name}`
-  if (node.type === 'external') return node.url
   return node.name
 }
 
@@ -77,6 +75,7 @@ export function renderNode(model: Model, node: GraphNode): string {
       let body = section('Description', prose(node.description))
       const content = node.content?.trim()
       if (node.kind === 'text' && content && !model.state.some((s) => s.name === content)) body += section('Content', code(content))
+      if (node.kind === 'link' && node.url) body += section('URL', `<a class="url-copy" href="${esc(node.url)}" target="_blank" rel="noopener">${esc(node.url)}</a>`)
       // One statement per line; the text is the spec's own, not interpreted.
       if (node.onClick) body += section('on_click', code(splitStatements(node.onClick).map((s) => `${s};`).join('\n')))
       return header(nodeBadge(node), node.name, path, node.changeType) + body
@@ -85,8 +84,6 @@ export function renderNode(model: Model, node: GraphNode): string {
       return header(nodeBadge(node), node.name, node.backend, node.changeType) + section('Signature', code(`${node.name}${node.signature.replace(/^\w+/, '')}`)) + section('Description', prose(node.description))
     case 'state':
       return header(nodeBadge(node), node.name, undefined, node.changeType) + section('Initialization', code(node.source))
-    case 'external':
-      return header(nodeBadge(node), node.name) + section('URL', `<a class="url-copy" href="${esc(node.url)}" target="_blank" rel="noopener">${esc(node.url)}</a>`)
   }
 }
 
@@ -141,7 +138,7 @@ export function renderEdge(model: Model, edge: DrawEdge): string {
     </div>`).join('')}</div>`, members.length)
 }
 
-/** Page (or external target) at either end of a navigation edge: the trigger's page, the target page. */
+/** Page at either end of a navigation edge: the trigger's page, the target page. */
 const navEnd = (model: Model, id: string) => {
   const node = model.nodes.get(id)
   return node?.type === 'element' ? `p:${node.page}` : id

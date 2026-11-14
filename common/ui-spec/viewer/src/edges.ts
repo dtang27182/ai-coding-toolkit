@@ -25,12 +25,16 @@ export function drawableEdges(model: Model, collapsed: ReadonlySet<string>): Dra
   return mergeEdges(model, buildEdges(model, collapsed))
 }
 
+export function drawableRelationships(model: Model): Edge[] {
+  return model.edges.filter((edge) => model.nodes.has(edge.from) && model.nodes.has(edge.to))
+}
+
 export function buildEdges(model: Model, collapsed: ReadonlySet<string>): DrawEdge[] {
   const drawn = (id: string) => {
     const page = pageOf(model, id)
     return page !== undefined && collapsed.has(page) ? `p:${page}` : id
   }
-  return model.edges.map((edge) => {
+  return drawableRelationships(model).map((edge) => {
     const from = drawn(edge.from)
     const to = edge.kind === 'nav' ? edge.to : drawn(edge.to)
     const fromPage = from.startsWith('p:')

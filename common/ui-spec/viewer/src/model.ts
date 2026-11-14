@@ -1,5 +1,5 @@
 import type { ChangeType, Spec } from '../../parser/parser.ts'
-import { elementId, externalId, methodId, pageId } from '../../parser/ids.ts'
+import { elementId, methodId, pageId } from '../../parser/ids.ts'
 export { splitStatements } from '../../parser/relationships.ts'
 
 /** Graph model derived from a ui-spec JSON document (ui-spec.schema.json). */
@@ -58,14 +58,7 @@ export interface StateNode {
   changeType?: ChangeType
 }
 
-export interface ExternalNode {
-  type: 'external'
-  id: string
-  name: string
-  url: string
-}
-
-export type GraphNode = PageNode | ElementNode | MethodNode | StateNode | ExternalNode
+export type GraphNode = PageNode | ElementNode | MethodNode | StateNode
 
 export interface Backend {
   id: string
@@ -82,7 +75,6 @@ export interface Model {
   methods: MethodNode[]
   backends: Backend[]
   state: StateNode[]
-  externals: ExternalNode[]
   edges: Edge[]
   nodes: Map<string, GraphNode>
   /** Page name -> column, by navigation depth from the entry (first) page. */
@@ -142,15 +134,9 @@ export function deriveModel(spec: Spec): Model {
   }
   for (const page of pages) page.changeType = childChangeType(page.children.map((id) => elementById.get(id)!))
 
-  const externals: ExternalNode[] = []
-  for (const element of elements) {
-    if (element.kind === 'link' && element.url && !externals.some((external) => external.url === element.url)) {
-      externals.push({ type: 'external', id: externalId(element.url), name: element.url.replace(/^https?:\/\/(www\.)?/, ''), url: element.url })
-    }
-  }
-  for (const group of [state, methods, elements, pages, externals] as GraphNode[][]) for (const node of group) nodes.set(node.id, node)
+  for (const group of [state, methods, elements, pages] as GraphNode[][]) for (const node of group) nodes.set(node.id, node)
 
-  const model: Model = { id: spec.id, pages, elements, methods, backends, state, externals, edges, nodes, columns: new Map() }
+  const model: Model = { id: spec.id, pages, elements, methods, backends, state, edges, nodes, columns: new Map() }
   model.columns = pageColumns(model)
   return model
 }

@@ -27,14 +27,11 @@ export function visibleModel(model: Model, showUnchanged: boolean): Model {
   const backends = model.backends.filter((backend) => changed.has(backend.id))
     .map((backend) => ({ ...backend, methods: backend.methods.filter((id) => methodIds.has(id)) }))
   const visibleIds = new Set([...pages.map((page) => page.id), ...elementIds, ...state.map((node) => node.id), ...methodIds])
-  const externals = model.externals.filter((external) => model.edges.some((edge) =>
-    (edge.from === external.id && visibleIds.has(edge.to)) || (edge.to === external.id && visibleIds.has(edge.from))))
-  for (const external of externals) visibleIds.add(external.id)
   const edges = model.edges.filter((edge) => visibleIds.has(edge.from) && visibleIds.has(edge.to))
-  const nodes = new Map([...state, ...methods, ...elements, ...pages, ...externals].map((node) => [node.id, node]))
+  const nodes = new Map([...state, ...methods, ...elements, ...pages].map((node) => [node.id, node]))
   return {
     ...model,
     pages: pages.map((page) => ({ ...page, children: page.children.filter((id) => elementIds.has(id)) })),
-    elements, methods, backends, state, externals, edges, nodes,
+    elements, methods, backends, state, edges, nodes,
   }
 }

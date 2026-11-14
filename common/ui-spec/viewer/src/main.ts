@@ -2,7 +2,7 @@ import type { ChangeType, Spec } from '../../parser/parser.ts'
 import exampleSpec from '../../ui-root.example.ui.json?raw'
 import { deriveModel, pageOf, type ElementNode, type Model } from './model.ts'
 import { visibleModel } from './filter.ts'
-import { drawableEdges, type DrawEdge, type Layer, type Side } from './edges.ts'
+import { drawableEdges, drawableRelationships, type DrawEdge, type Layer, type Side } from './edges.ts'
 import { Router, bezierControls, bezierPoint, roundedPath, separate, stub, type Point, type Port, type Rect } from './route.ts'
 import './styles.css'
 import { renderBackend, renderEdge, renderNode, renderOverview } from './inspector.ts'
@@ -197,8 +197,7 @@ function render() {
   graph.innerHTML = `<svg class="graph-svg" aria-hidden="true"></svg>
     ${view.layers.dataflow && model.state.length ? `<div class="band"><div class="node frame">${tab('cyl', 'CONTENT STATE', 'var(--t-state)', model.id)}<div class="row">${model.state.map((s) =>
       `<button class="state-box" data-id="${esc(s.id)}" style="--t:var(--t-state);${changeStyle(s.changeType)}">${CYLINDER}<span class="sn">${esc(s.name)}</span><span class="si">init ${esc(s.init)}</span></button>`).join('')}</div></div></div>` : ''}
-    ${pages.length || model.externals.length ? `<div class="band page-band">${columns.filter(Boolean).map((pages) => `<div class="col">${pages.map(pageMarkup).join('')}</div>`).join('')}
-      ${model.externals.length ? `<div class="col">${model.externals.map((x) => `<div class="node"><button class="ext-node" data-id="${esc(x.id)}" data-anchor="${esc(x.id)}" style="--t:var(--t-ext)" title="${esc(x.url)}">${badge('EXTERNAL', 'var(--t-ext)')}<span class="frame-name">${esc(x.name)}</span></button></div>`).join('')}</div>` : ''}</div>` : ''}
+    ${pages.length ? `<div class="band page-band">${columns.filter(Boolean).map((pages) => `<div class="col">${pages.map(pageMarkup).join('')}</div>`).join('')}</div>` : ''}
     ${view.layers.dataflow && backends.length ? `<div class="band">${backends.map((backend) => `<div class="node frame backend" style="${changeStyle(backend.changeType)}">${tab('ext', 'BACKEND API', 'var(--t-ext)', backend.name, `data-id="${esc(backend.id)}"`)}<div class="row">${backend.methods.map(methodMarkup).join('')}</div></div>`).join('')}</div>` : ''}`
   // Drawn edges are rebuilt, so an edge selection no longer points at the same edge.
   if (view.selectedEdge !== null) {
@@ -256,7 +255,7 @@ function port(r: Rect, side: Side, t: number): Port {
 }
 
 /** Node panels and frames; an edge may cross only the frames containing its endpoints. */
-const OBSTACLES = '.frame, .sub-frame, .page-node, .pill, .state-box, .ext-node, .frame-tab, .sub-label'
+const OBSTACLES = '.frame, .sub-frame, .page-node, .pill, .state-box, .frame-tab, .sub-label'
 
 /** Bezier when it is clear of other nodes, otherwise a routed path with rounded corners. */
 function edgePath(router: Router, a: Port, b: Port, exempt: ReadonlySet<number>): string | Point[] {
@@ -459,8 +458,9 @@ function glyph(kind: FilterLayer, width = 30): string {
 }
 
 function renderLayers() {
+  const edges = drawableRelationships(view.visible)
   layersEl.innerHTML = LAYERS.map(([layer, label]) =>
-    `<button class="layer-chip" data-layer="${layer}" aria-pressed="${view.layers[layer]}">${glyph(layer)}${label}<span class="ct">${view.visible.edges.filter((e) => filterLayer(e.kind) === layer).length}</span></button>`).join('')
+    `<button class="layer-chip" data-layer="${layer}" aria-pressed="${view.layers[layer]}">${glyph(layer)}${label}<span class="ct">${edges.filter((e) => filterLayer(e.kind) === layer).length}</span></button>`).join('')
 }
 
 function renderUnchangedButton() {
